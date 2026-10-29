@@ -184,9 +184,9 @@ public:
             false,
             [](void *data, int, std::uint32_t found) {
                 std::uint32_t said = 0;
-                said |= (found & SPA_IO_IN) != 0 ? Readable : 0U;
-                said |= (found & SPA_IO_OUT) != 0 ? Writable : 0U;
-                said |= (found & (SPA_IO_ERR | SPA_IO_HUP)) != 0 ? Failed : 0U;
+                said |= (found & SPA_IO_IN) != 0 ? std::uint32_t{Readable} : 0U;
+                said |= (found & SPA_IO_OUT) != 0 ? std::uint32_t{Writable} : 0U;
+                said |= (found & (SPA_IO_ERR | SPA_IO_HUP)) != 0 ? std::uint32_t{Failed} : 0U;
                 static_cast<Entry *>(data)->ready(said);
             },
             entry.get());
@@ -840,16 +840,21 @@ int main(int argc, char **argv)
         host.send(plugin::MessageType::Error, "UnsupportedFormat");
         return 3;
     }
+    // **The main loop first**: a plugin may ask for its timers as soon as
+    // it is made, and they run on it.
+    pw_init(&argc, &argv);
+    host.loop = pw_main_loop_new(nullptr);
     constexpr std::uint32_t kStartingRate = 48000;
     std::unique_ptr<dsp::Block> first = host.make(kStartingRate, nullptr);
     if (!first) {
         host.send(plugin::MessageType::Error, "UnknownPlugin");
+        pw_main_loop_destroy(host.loop);
+        host.loop = nullptr;
+        pw_deinit();
         return 3;
     }
     host.install(std::move(first), kStartingRate);
 
-    pw_init(&argc, &argv);
-    host.loop = pw_main_loop_new(nullptr);
     pw_loop *loop = pw_main_loop_get_loop(host.loop);
     host.nodeName = "reverblabr.plugin." + options->instance;
     pw_properties *props = pw_properties_new(PW_KEY_NODE_NAME,

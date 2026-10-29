@@ -96,6 +96,7 @@ public:
     {
         m_loop = &loop;
         m_events = &events;
+        onAttached();
     }
 
     /// Shows the plugin's window.
@@ -121,6 +122,9 @@ public:
     }
 
 protected:
+    /// Once attached: what a plugin starts on the loop.
+    virtual void onAttached() { }
+
     [[nodiscard]] MainLoop *loop() const noexcept
     {
         return m_loop;

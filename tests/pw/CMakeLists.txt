@@ -226,6 +226,13 @@ pkg_check_modules(RB_TEST_LILV REQUIRED IMPORTED_TARGET lilv-0>=0.24)
 target_link_libraries(reverblabr-pw-pluginhost-test PRIVATE PkgConfig::RB_TEST_LILV)
 target_compile_definitions(reverblabr-pw-pluginhost-test PRIVATE RB_TEST_LV2_DIR="${RB_TEST_LV2_DIR}")
 add_dependencies(reverblabr-pw-pluginhost-test rb-test-lv2 rb-test-lv2-ui)
+# The tests' CLAP plugin, where the build hosts CLAP plugins.
+if(RB_BUILD_CLAP)
+    target_compile_definitions(reverblabr-pw-pluginhost-test PRIVATE RB_HAVE_CLAP RB_TEST_CLAP_DIR="${RB_TEST_CLAP_DIR}")
+    add_dependencies(reverblabr-pw-pluginhost-test rb-test-clap)
+    target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_TEST_CLAP_DIR="${RB_TEST_CLAP_DIR}")
+    add_dependencies(reverblabr-pw-session-test rb-test-clap)
+endif()
 add_test(NAME pw.plugin-host COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-pluginhost-test>)
 set_tests_properties(pw.plugin-host PROPERTIES TIMEOUT 180)
 

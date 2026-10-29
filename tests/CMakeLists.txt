@@ -15,6 +15,12 @@ add_subdirectory(ladspa) # LADSPA plugins the tests host
 # name in LV2_PATH.
 set(RB_TEST_LV2_DIR "${CMAKE_CURRENT_BINARY_DIR}/lv2/bundles")
 add_subdirectory(lv2)   # the LV2 plugin the tests host, and its window
+# A CLAP plugin with a stand-in window that needs no display, and presets,
+# where the build hosts CLAP plugins.
+set(RB_TEST_CLAP_DIR "${CMAKE_CURRENT_BINARY_DIR}/clap/plugins")
+if(RB_BUILD_CLAP)
+    add_subdirectory(clap)
+endif()
 add_subdirectory(unit)  # GoogleTest, one executable per engine layer
 add_subdirectory(sanitizers) # checks that the sanitizers catch what they should
 add_subdirectory(qml)   # Qt Quick Test for the QML user interface

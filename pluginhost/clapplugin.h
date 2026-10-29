@@ -8,14 +8,18 @@
 #pragma once
 
 #include "dsp/block.h"
+#include "editor.h"
 #include "plugin/formats.h"
+#include "rt/spscqueue.h"
 
 #include <clap/clap.h>
 
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -25,6 +29,8 @@
 
 namespace rb::pluginhost
 {
+
+class X11Window;
 
 /// **One `.clap` file, loaded**: its entry initialised for as long as
 /// the host runs, and the factory its plugins are made by. One per host, and
@@ -42,6 +48,8 @@ public:
 
     [[nodiscard]] std::uint32_t count() const;
     [[nodiscard]] const clap_plugin_descriptor *descriptorAt(std::uint32_t index) const;
+    /// The file's preset-discovery factory, or null when it has none.
+    [[nodiscard]] const clap_preset_discovery_factory *presetFactory() const;
     /// A plugin of the file's called \a id, made and initialised, or null.
     [[nodiscard]] const clap_plugin *create(const clap_host *host, std::string_view id) const;
 
@@ -54,15 +62,20 @@ private:
 };
 
 /// **What this host is to a CLAP plugin**, and what the plugin has asked of
-/// it: a call on the main thread, or to be restarted.
+/// it: a call on the main thread, to be restarted, its values read again,
+/// its window resized or shown or closed, a preset it has put in.
 ///
 /// The host extensions a plugin can count on are here: log, thread check,
-/// parameters, latency, state and audio ports. What they ask for is kept as
-/// a flag for the main thread; nothing is done on the thread that asked.
+/// parameters, latency, state, audio ports, gui, timer support, posix fd
+/// support and preset load. What the plugin asks for from another thread is
+/// kept as a flag for the main thread; what it asks of the main thread (its
+/// window, its timers) is done there and then. **One for each instance**, so
+/// a timer is called on the instance that asked for it.
 class ClapHost
 {
 public:
     ClapHost();
+    ~ClapHost();
     ClapHost(const ClapHost &) = delete;
     ClapHost &operator=(const ClapHost &) = delete;
 
@@ -70,6 +83,17 @@ public:
     {
         return &m_host;
     }
+
+    /// The instance this host is to, once made.
+    void setPlugin(const clap_plugin *plugin) noexcept
+    {
+        m_plugin = plugin;
+    }
+
+    /// **Where its timers and descriptors are watched.** A plugin may ask
+    /// for them before there is a loop (as it is made): they are kept and
+    /// watched from here on. Null stops watching them.
+    void setLoop(MainLoop *loop);
 
     /// Whether the plugin asked for on_main_thread(), taken back.
     [[nodiscard]] bool takeCallback() noexcept
@@ -82,6 +106,27 @@ public:
     {
         return m_restart.exchange(false);
     }
+    /// Whether the plugin said its values changed by themselves (a preset
+    /// in its window), taken back.
+    [[nodiscard]] bool takeRescan() noexcept
+    {
+        return m_rescan.exchange(false);
+    }
+    /// Whether the plugin's floating window was closed by a person, taken
+    /// back.
+    [[nodiscard]] bool takeClosed() noexcept
+    {
+        return m_closed.exchange(false);
+    }
+    /// The preset the plugin said it has put in, as "<kind> <location> <key>",
+    /// taken back; or nothing.
+    [[nodiscard]] std::optional<std::string> takeLoaded();
+
+    /// **What the plugin's window asks of the window it is in**: called on
+    /// the main thread as it asks. Unset, a request is refused.
+    std::function<bool(std::uint32_t, std::uint32_t)> requestResize;
+    std::function<bool(bool)> requestShow;
+    std::function<void()> resizeHintsChanged;
 
     /// Marks the calling thread as acting for the audio thread while it
     /// exists: stop_processing() is called on the main thread, once the
@@ -99,10 +144,43 @@ private:
     static const void *extension(const clap_host *host, const char *id);
     static ClapHost *self(const clap_host *host);
 
+    struct Timer {
+        std::uint32_t period = 0;
+        std::optional<MainLoop::Id> watch;
+    };
+    struct Fd {
+        clap_posix_fd_flags_t flags = 0;
+        std::optional<MainLoop::Id> watch;
+    };
+    void watchTimer(clap_id id, Timer &timer);
+    void watchFd(int fd, Fd &watched);
+
     clap_host m_host{};
     std::thread::id m_main;
+    const clap_plugin *m_plugin = nullptr;
+    MainLoop *m_loop = nullptr;
+    std::map<clap_id, Timer> m_timers;
+    clap_id m_nextTimer = 0;
+    std::map<int, Fd> m_fds;
     std::atomic<bool> m_callback{false};
     std::atomic<bool> m_restart{false};
+    std::atomic<bool> m_rescan{false};
+    std::atomic<bool> m_closed{false};
+    std::mutex m_loadedLock;
+    std::optional<std::string> m_loaded;
+};
+
+/// **What a CLAP plugin's window did, as its audio thread heard it**, for
+/// the main thread: a parameter moved, or taken hold of, or let go of.
+struct ClapSaid {
+    enum Kind : std::uint8_t {
+        Value,
+        Begin,
+        End,
+    };
+    Kind kind = Value;
+    std::uint32_t index = 0;
+    float value = 0.0f;
 };
 
 /// **A CLAP plugin's settings, as the engine numbers them**: every
@@ -140,7 +218,18 @@ clapParams(const clap_plugin *plugin, std::vector<clap_id> *ids = nullptr, std::
 ///
 /// **Its state is the plugin's own**, through the state extension: bytes,
 /// kept in the session as base64.
-class ClapPlugin final : public dsp::Block
+///
+/// **Its own window is the gui extension's**: an X11 window of its own,
+/// floating, when it offers one; otherwise put inside an X11 window the
+/// host makes; a Wayland one where it offers that and the desktop is
+/// Wayland's. A parameter it moves arrives as an output event, gestures
+/// round it, and goes to the engine too; one the engine moves reaches it as
+/// an event, as ever, and its window follows by itself.
+///
+/// **Its presets are its own**, found through its preset-discovery factory
+/// and put in through preset-load. One kept from a CLAP block is ours,
+/// with the plugin's state in it.
+class ClapPlugin final : public dsp::Block, public Editable
 {
 public:
     enum class Mono : std::uint8_t {
@@ -195,8 +284,36 @@ public:
         return m_instances.size();
     }
 
+    [[nodiscard]] Opened openUi() override;
+    void closeUi() override;
+    [[nodiscard]] bool uiOpen() const override
+    {
+        return m_gui != nullptr;
+    }
+    [[nodiscard]] bool hasUi() const override;
+    [[nodiscard]] std::vector<plugin::PresetEntry> presets() override;
+    [[nodiscard]] bool loadPreset(const std::string &id) override;
+
+    /// **The main thread's turn for what the window and presets did**: a
+    /// parameter the window moved, values the plugin read again, a preset
+    /// put in, a window closed. A few times a second; a test calls it.
+    void editorTick();
+
+protected:
+    void onAttached() override;
+
 private:
     ClapPlugin(std::shared_ptr<ClapLibrary> library, std::string id, Mono mono);
+
+    /// One of the plugin's own presets, as its preset discovery told of it.
+    struct Found {
+        std::uint32_t kind = 0;
+        std::string location;
+        std::string key;
+    };
+    [[nodiscard]] static std::string presetId(std::uint32_t kind, const std::string &location, const std::string &key);
+    /// Makes the window's requests reach the window it is in.
+    void hookWindow(ClapHost &host);
 
     /// Sets parameter \a index to \a value itself, where the main thread and
     /// the state can read it.
@@ -210,8 +327,10 @@ private:
 
     std::shared_ptr<ClapLibrary> m_library;
     std::string m_id;
+    std::string m_name;
     Mono m_mono = Mono::DualMono;
-    std::unique_ptr<ClapHost> m_host;
+    /// One host for each instance, the first instance's first.
+    std::vector<std::unique_ptr<ClapHost>> m_hosts;
     dsp::BlockInfo m_info;
     std::vector<plugin::PluginParam> m_params;
     std::vector<clap_id> m_ids;
@@ -256,6 +375,21 @@ private:
     std::vector<float> m_spare;
 
     std::string m_pendingState;
+
+    /// **What the window does, for the main thread**: the first
+    /// instance's output events, while its window is open.
+    rt::SpscQueue<ClapSaid> m_said{1024};
+    std::atomic<bool> m_windowListens{false};
+    std::optional<MainLoop::Id> m_tick;
+    const clap_plugin_gui *m_gui = nullptr;
+    bool m_floating = false;
+    std::unique_ptr<X11Window> m_window;
+    /// The presets the last listing found, by the ids it gave them.
+    std::map<std::string, Found> m_found;
+    /// A preset asked for and not yet in, and how many turns it has been
+    /// waited for.
+    std::optional<std::string> m_loading;
+    int m_loadingFor = 0;
 };
 
 } // namespace rb::pluginhost

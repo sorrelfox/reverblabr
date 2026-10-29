@@ -18,9 +18,11 @@
 #include "pwtest.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
+#include <QFileInfo>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QTemporaryDir>
@@ -364,12 +366,14 @@ protected:
                    std::uint32_t latency = 0,
                    const QString &plugin = QStringLiteral("test.gain"),
                    const QString &format = QStringLiteral("builtin"),
-                   const QString &mono = QStringLiteral("dualMono"))
+                   const QString &mono = QStringLiteral("dualMono"),
+                   const QString &location = {})
     {
         PluginHostSpec spec;
         spec.plugin = plugin;
         spec.format = format;
         spec.monoMode = mono;
+        spec.location = location;
         g_hostPorts = format == QStringLiteral("builtin") ? std::array<std::string, 2>{"FL", "FR"}
                                                           : std::array<std::string, 2>{"1", "2"};
         // Another name for every host, so that one test's host on its way
@@ -397,9 +401,10 @@ protected:
                     std::uint32_t latency = 0,
                     const QString &plugin = QStringLiteral("test.gain"),
                     const QString &format = QStringLiteral("builtin"),
-                    const QString &mono = QStringLiteral("dualMono"))
+                    const QString &mono = QStringLiteral("dualMono"),
+                    const QString &location = {})
     {
-        startHost(host, latency, plugin, format, mono);
+        startHost(host, latency, plugin, format, mono, location);
         ASSERT_TRUE(spinUntil([&] { return host.isReady(); })) << "the host never said it was ready";
         EXPECT_TRUE(host.nodeName().startsWith(QStringLiteral("reverblabr.plugin.t"))) << host.nodeName().toStdString();
         ASSERT_TRUE(waitForNode(nodeNamed(host.nodeName().toStdString())).has_value());
@@ -1112,6 +1117,171 @@ TEST_F(PluginHosts, AnLspCompressorsWindowNeedsADisplayAndItsPresetsWork)
     EXPECT_TRUE(said.values.back().first);
     EXPECT_GT(said.values.back().second.size(), 10) << "every setting the compressor has";
 }
+
+#ifdef RB_HAVE_CLAP
+
+namespace
+{
+
+constexpr const char *kTestClap = "org.reverblabr.test.gain";
+
+/// The tests' CLAP plugin's notes and preset folder, of the test's own.
+class ClapFolder
+{
+public:
+    ClapFolder()
+        : m_log("RB_TEST_CLAP_LOG", m_dir.path().toStdString() + "/window.log")
+        , m_presets("RB_TEST_CLAP_PRESETS", m_dir.path().toStdString() + "/presets")
+        , m_state("XDG_STATE_HOME", m_dir.path().toStdString() + "/state")
+    {
+        QDir(m_dir.path()).mkpath(QStringLiteral("presets"));
+    }
+
+    [[nodiscard]] QString path() const
+    {
+        return m_dir.path();
+    }
+    [[nodiscard]] QStringList told() const
+    {
+        return linesOf(m_dir.path() + QStringLiteral("/window.log"));
+    }
+
+private:
+    QTemporaryDir m_dir;
+    ScopedEnv m_log;
+    ScopedEnv m_presets;
+    ScopedEnv m_state;
+};
+
+[[nodiscard]] QString testClapFile()
+{
+    return QStringLiteral(RB_TEST_CLAP_DIR "/rb-test-clap.clap");
+}
+
+} // namespace
+
+TEST_F(PluginHosts, AClapPluginsOwnWindowAndTheEngineFollowEachOther)
+{
+    // **The tests' CLAP plugin, whose window is a stand-in needing no
+    // display**: it runs on the host's timers and watches a descriptor
+    // through it, as a real window's toolkit does, and moves the gain as a
+    // person would.
+    const ClapFolder folder;
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(
+        host, 0, QString::fromLatin1(kTestClap), QStringLiteral("clap"), QStringLiteral("dualMono"), testClapFile());
+
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return said.opened == 1; }, 2s)) << said.closed.join(u',').toStdString();
+    ASSERT_TRUE(spinUntil([&] { return said.heard.size() >= 4; }, 3s)) << said.heard.join(u',').toStdString();
+    EXPECT_EQ(
+        said.heard,
+        (QStringList{
+            QStringLiteral("1 begin"), QStringLiteral("1=0.25"), QStringLiteral("1=0.3"), QStringLiteral("1 end")}));
+    EXPECT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.3f) < 1e-3f; }, 1s))
+        << "heard at " << m_chain->m_ratio.load();
+    EXPECT_TRUE(folder.told().contains(QStringLiteral("fd"))) << folder.told().join(u',').toStdString();
+
+    // The panel's change reaches the plugin, and so its window.
+    ASSERT_TRUE(host.setParam(0, 0.5f));
+    EXPECT_TRUE(spinUntil([&] { return folder.told().contains(QStringLiteral("gain 0.5")); }, 2s))
+        << folder.told().join(u',').toStdString();
+    EXPECT_EQ(said.heard.size(), 4);
+
+    // Closed by a person, then opened and closed by the engine.
+    QFile closing(folder.path() + QStringLiteral("/window.log.close"));
+    ASSERT_TRUE(closing.open(QIODevice::WriteOnly));
+    closing.close();
+    ASSERT_TRUE(spinUntil([&] { return said.closed.size() == 1; }, 2s));
+    EXPECT_EQ(said.closed.front(), QStringLiteral("closed"));
+    ASSERT_TRUE(QFile::remove(closing.fileName()));
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return said.opened == 2; }, 2s));
+    host.closeUi();
+    ASSERT_TRUE(spinUntil([&] { return said.closed.size() == 2; }, 2s));
+    EXPECT_EQ(folder.told().count(QStringLiteral("destroyed")), 2);
+}
+
+TEST_F(PluginHosts, AClapPluginsOwnPresetsAreListedAndPutIn)
+{
+    const ClapFolder folder;
+    QFile loud(folder.path() + QStringLiteral("/presets/Loud.rbgain"));
+    ASSERT_TRUE(loud.open(QIODevice::WriteOnly));
+    loud.write("2\n");
+    loud.close();
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(
+        host, 0, QString::fromLatin1(kTestClap), QStringLiteral("clap"), QStringLiteral("dualMono"), testClapFile());
+
+    host.listPresets();
+    ASSERT_TRUE(spinUntil([&] { return said.listed == 1; }, 2s));
+    ASSERT_EQ(said.presets.size(), 2);
+    EXPECT_EQ(said.presets[0].second, QStringLiteral("Half"));
+    EXPECT_EQ(said.presets[1].second, QStringLiteral("Loud"));
+
+    host.loadPreset(said.presets[1].first);
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 2.0f) < 1e-3f; }, 2s))
+        << "heard at " << m_chain->m_ratio.load();
+    ASSERT_TRUE(spinUntil([&] { return !said.shown.isEmpty() && said.shown.back() == said.presets[1].first; }, 1s));
+    ASSERT_FALSE(said.values.isEmpty());
+    EXPECT_TRUE(said.values.back().first);
+    EXPECT_FLOAT_EQ(said.values.back().second.front().second, 2.0f);
+
+    // A value moved away from it: no preset's.
+    ASSERT_TRUE(host.setParam(0, 1.0f));
+    ASSERT_TRUE(spinUntil([&] { return said.shown.back().isEmpty(); }, 1s));
+}
+
+TEST_F(PluginHosts, ThousandsOfPresetsArriveWhole)
+{
+    // **More than a socket takes as one message**: 2000 presets with long
+    // names and long paths, about half a megabyte of list.
+    constexpr int kPresets = 2000;
+    const ClapFolder folder;
+    const QString longName = QString(60, u'n');
+    for (int at = 0; at < kPresets; ++at) {
+        QFile file(folder.path()
+                   + QStringLiteral("/presets/%1 %2.rbgain").arg(longName).arg(at, 4, 10, QLatin1Char('0')));
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+        file.write("1\n");
+    }
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(
+        host, 0, QString::fromLatin1(kTestClap), QStringLiteral("clap"), QStringLiteral("dualMono"), testClapFile());
+    host.listPresets();
+    ASSERT_TRUE(spinUntil([&] { return said.listed == 1; }, 10s)) << "the list never arrived";
+    EXPECT_EQ(said.presets.size(), kPresets + 1) << "the files and the plugin's own";
+}
+
+TEST_F(PluginHosts, AnLspClapPluginsWindowNeedsADisplay)
+{
+    if (!QFileInfo::exists(QStringLiteral("/usr/lib64/clap/lsp-plugins.clap"))) {
+        GTEST_SKIP() << "LSP's CLAP plugins are not installed (lsp-plugins-clap)";
+    }
+    // **No display, no window**: LSP's CLAP window is an X11 one. Showing
+    // it is the owner's desktop check.
+    const ScopedEnv noDisplay("DISPLAY", std::nullopt);
+    const ScopedEnv noWayland("WAYLAND_DISPLAY", std::nullopt);
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(host,
+               0,
+               QStringLiteral("in.lsp-plug.compressor_stereo"),
+               QStringLiteral("clap"),
+               QStringLiteral("dualMono"),
+               QStringLiteral("/usr/lib64/clap/lsp-plugins.clap"));
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return !said.closed.isEmpty(); }, 3s));
+    EXPECT_TRUE(said.closed.front() == QStringLiteral("unavailable") || said.closed.front() == QStringLiteral("failed"))
+        << said.closed.front().toStdString();
+    EXPECT_EQ(said.opened, 0);
+    EXPECT_TRUE(host.isRunning()) << "a window that cannot be shown takes nothing else down";
+}
+
+#endif
 
 namespace
 {

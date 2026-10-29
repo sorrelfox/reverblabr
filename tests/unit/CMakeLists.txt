@@ -238,6 +238,13 @@ add_dependencies(reverblabr-plugin-test rb-test-ladspa)
 # The tests' LV2 plugin and its window, from tests/lv2.
 target_compile_definitions(reverblabr-plugin-test PRIVATE RB_TEST_LV2_DIR="${RB_TEST_LV2_DIR}")
 add_dependencies(reverblabr-plugin-test rb-test-lv2 rb-test-lv2-ui)
+# The tests' CLAP plugin and its stand-in window, where the build hosts CLAP
+# plugins.
+if(RB_BUILD_CLAP)
+    target_sources(reverblabr-plugin-test PRIVATE plugin/test_clapwindow.cpp)
+    target_compile_definitions(reverblabr-plugin-test PRIVATE RB_TEST_CLAP_DIR="${RB_TEST_CLAP_DIR}")
+    add_dependencies(reverblabr-plugin-test rb-test-clap)
+endif()
 
 rb_add_gtest(reverblabr-graph-test
     LAYER graph

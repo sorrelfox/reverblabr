@@ -7,6 +7,8 @@
 
 #include "clapplugin.h"
 
+#include "x11window.h"
+
 #include <dlfcn.h>
 
 #include <algorithm>
@@ -16,6 +18,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string_view>
 
 namespace rb::pluginhost
@@ -331,24 +334,68 @@ const clap_event_header *eventAt(const clap_input_events *list, std::uint32_t in
 }
 
 /// **What the plugin says back**: a value it changed itself is taken as
-/// what the setting now is. Anything else it says is not needed.
+/// what the setting now is. While its window listens, the first instance's
+/// values and the gestures round them go on to the main thread too, and a
+/// mono plugin run twice has the other instance hear them next cycle.
 struct OutputEvents {
     clap_output_events events{};
     const std::vector<std::pair<clap_id, std::uint32_t>> *byId = nullptr;
     std::vector<std::atomic<float>> *values = nullptr;
+    /// Where what a person did in the window goes, or null.
+    rt::SpscQueue<ClapSaid> *said = nullptr;
+    /// The parameters changed this cycle, for the other instance; or null.
+    std::vector<std::uint8_t> *changed = nullptr;
+    std::vector<std::uint32_t> *changedList = nullptr;
+    std::uint32_t *changedCount = nullptr;
 };
 
-bool pushed(const clap_output_events *list, const clap_event_header *event) noexcept
+/// The index of the parameter the plugin calls \a id, or nothing.
+[[nodiscard]] std::optional<std::uint32_t> indexOf(const OutputEvents &out, clap_id id) noexcept RB_NONBLOCKING
+{
+    const auto found = std::ranges::lower_bound(
+        *out.byId, id, {}, [](const std::pair<clap_id, std::uint32_t> &entry) noexcept { return entry.first; });
+    if (found != out.byId->end() && found->first == id) {
+        return found->second;
+    }
+    return std::nullopt;
+}
+
+bool pushed(const clap_output_events *list, const clap_event_header *event) noexcept RB_NONBLOCKING
 {
     const auto *out = static_cast<const OutputEvents *>(list->ctx);
-    if (event->space_id != CLAP_CORE_EVENT_SPACE_ID || event->type != CLAP_EVENT_PARAM_VALUE) {
+    if (event->space_id != CLAP_CORE_EVENT_SPACE_ID) {
+        return true;
+    }
+    if (event->type == CLAP_EVENT_PARAM_GESTURE_BEGIN || event->type == CLAP_EVENT_PARAM_GESTURE_END) {
+        const auto *gesture = reinterpret_cast<const clap_event_param_gesture *>(event);
+        if (const std::optional<std::uint32_t> index = indexOf(*out, gesture->param_id);
+            index && out->said != nullptr) {
+            (void)out->said->tryPush(ClapSaid{
+                event->type == CLAP_EVENT_PARAM_GESTURE_BEGIN ? ClapSaid::Begin : ClapSaid::End, *index, 0.0f});
+        }
+        return true;
+    }
+    if (event->type != CLAP_EVENT_PARAM_VALUE) {
         return true;
     }
     const auto *change = reinterpret_cast<const clap_event_param_value *>(event);
-    const auto found = std::ranges::lower_bound(
-        *out->byId, change->param_id, {}, [](const std::pair<clap_id, std::uint32_t> &entry) { return entry.first; });
-    if (found != out->byId->end() && found->first == change->param_id) {
-        (*out->values)[found->second].store(static_cast<float>(change->value), std::memory_order_relaxed);
+    const std::optional<std::uint32_t> index = indexOf(*out, change->param_id);
+    if (!index) {
+        return true;
+    }
+    const auto value = static_cast<float>(change->value);
+    // **Only a value that moved**: one the host sent and the plugin says
+    // back is no news, and would come back to the engine as a person's.
+    const float before = (*out->values)[*index].exchange(value, std::memory_order_relaxed);
+    if (before == value) {
+        return true;
+    }
+    if (out->said != nullptr) {
+        (void)out->said->tryPush(ClapSaid{ClapSaid::Value, *index, value});
+    }
+    if (out->changed != nullptr && (*out->changed)[*index] == 0) {
+        (*out->changed)[*index] = 1;
+        (*out->changedList)[(*out->changedCount)++] = *index;
     }
     return true;
 }
@@ -401,6 +448,15 @@ const clap_plugin_descriptor *ClapLibrary::descriptorAt(std::uint32_t index) con
     return m_factory->get_plugin_descriptor(m_factory, index);
 }
 
+const clap_preset_discovery_factory *ClapLibrary::presetFactory() const
+{
+    const void *factory = m_entry->get_factory(CLAP_PRESET_DISCOVERY_FACTORY_ID);
+    if (factory == nullptr) {
+        factory = m_entry->get_factory(CLAP_PRESET_DISCOVERY_FACTORY_ID_COMPAT);
+    }
+    return static_cast<const clap_preset_discovery_factory *>(factory);
+}
+
 const clap_plugin *ClapLibrary::create(const clap_host *host, std::string_view id) const
 {
     const std::string wanted{id};
@@ -434,9 +490,85 @@ ClapHost::ClapHost()
     m_host.request_callback = [](const clap_host *host) { self(host)->m_callback.store(true); };
 }
 
+ClapHost::~ClapHost()
+{
+    setLoop(nullptr);
+}
+
 ClapHost *ClapHost::self(const clap_host *host)
 {
     return static_cast<ClapHost *>(host->host_data);
+}
+
+void ClapHost::setLoop(MainLoop *loop)
+{
+    if (m_loop != nullptr) {
+        for (auto &[id, timer] : m_timers) {
+            if (timer.watch) {
+                m_loop->remove(*timer.watch);
+            }
+            timer.watch.reset();
+        }
+        for (auto &[fd, watched] : m_fds) {
+            if (watched.watch) {
+                m_loop->remove(*watched.watch);
+            }
+            watched.watch.reset();
+        }
+    }
+    m_loop = loop;
+    if (m_loop != nullptr) {
+        for (auto &[id, timer] : m_timers) {
+            watchTimer(id, timer);
+        }
+        for (auto &[fd, watched] : m_fds) {
+            watchFd(fd, watched);
+        }
+    }
+}
+
+void ClapHost::watchTimer(clap_id id, Timer &timer)
+{
+    if (m_loop == nullptr || timer.watch) {
+        return;
+    }
+    timer.watch = m_loop->addTimer(std::chrono::milliseconds{std::max<std::uint32_t>(timer.period, 1)}, [this, id] {
+        const auto *support = m_plugin != nullptr
+            ? static_cast<const clap_plugin_timer_support *>(m_plugin->get_extension(m_plugin, CLAP_EXT_TIMER_SUPPORT))
+            : nullptr;
+        if (support != nullptr && support->on_timer != nullptr) {
+            support->on_timer(m_plugin, id);
+        }
+    });
+}
+
+void ClapHost::watchFd(int fd, Fd &watched)
+{
+    if (m_loop == nullptr || watched.watch) {
+        return;
+    }
+    std::uint32_t events = 0;
+    events |= (watched.flags & CLAP_POSIX_FD_READ) != 0 ? std::uint32_t{MainLoop::Readable} : 0U;
+    events |= (watched.flags & CLAP_POSIX_FD_WRITE) != 0 ? std::uint32_t{MainLoop::Writable} : 0U;
+    watched.watch = m_loop->addFd(fd, events, [this, fd](std::uint32_t found) {
+        const auto *support = m_plugin != nullptr ? static_cast<const clap_plugin_posix_fd_support *>(
+                                                        m_plugin->get_extension(m_plugin, CLAP_EXT_POSIX_FD_SUPPORT))
+                                                  : nullptr;
+        if (support == nullptr || support->on_fd == nullptr) {
+            return;
+        }
+        clap_posix_fd_flags_t flags = 0;
+        flags |= (found & MainLoop::Readable) != 0 ? clap_posix_fd_flags_t{CLAP_POSIX_FD_READ} : 0U;
+        flags |= (found & MainLoop::Writable) != 0 ? clap_posix_fd_flags_t{CLAP_POSIX_FD_WRITE} : 0U;
+        flags |= (found & MainLoop::Failed) != 0 ? clap_posix_fd_flags_t{CLAP_POSIX_FD_ERROR} : 0U;
+        support->on_fd(m_plugin, fd, flags);
+    });
+}
+
+std::optional<std::string> ClapHost::takeLoaded()
+{
+    const std::lock_guard lock(m_loadedLock);
+    return std::exchange(m_loaded, std::nullopt);
 }
 
 ClapHost::ActingAsAudio::ActingAsAudio()
@@ -459,7 +591,15 @@ const void *ClapHost::extension(const clap_host *, const char *id)
     static const clap_host_thread_check threads{
         [](const clap_host *host) { return !t_actingAsAudio && std::this_thread::get_id() == self(host)->m_main; },
         [](const clap_host *host) { return t_actingAsAudio || std::this_thread::get_id() != self(host)->m_main; }};
-    static const clap_host_params params{[](const clap_host *, clap_param_rescan_flags) { },
+    static const clap_host_params params{[](const clap_host *host, clap_param_rescan_flags flags) {
+                                             // **Its values moved by themselves**, a preset in its window:
+                                             // read again on the main thread's next turn. A plugin whose
+                                             // parameters themselves changed would need to be described
+                                             // again, which a restart of its host does.
+                                             if ((flags & (CLAP_PARAM_RESCAN_VALUES | CLAP_PARAM_RESCAN_ALL)) != 0) {
+                                                 self(host)->m_rescan.store(true);
+                                             }
+                                         },
                                          [](const clap_host *, clap_id, clap_param_clear_flags) { },
                                          [](const clap_host *) {
                                              // The host's node always runs, so a change is flushed with the
@@ -472,6 +612,95 @@ const void *ClapHost::extension(const clap_host *, const char *id)
     static const clap_host_state state{[](const clap_host *) { }};
     static const clap_host_audio_ports ports{[](const clap_host *, std::uint32_t) { return false; },
                                              [](const clap_host *, std::uint32_t) { }};
+    // **The window's**, asked on the main thread.
+    static const clap_host_gui gui{
+        [](const clap_host *host) {
+            if (self(host)->resizeHintsChanged) {
+                self(host)->resizeHintsChanged();
+            }
+        },
+        [](const clap_host *host, std::uint32_t width, std::uint32_t height) {
+            return self(host)->requestResize ? self(host)->requestResize(width, height) : false;
+        },
+        [](const clap_host *host) { return self(host)->requestShow ? self(host)->requestShow(true) : false; },
+        [](const clap_host *host) { return self(host)->requestShow ? self(host)->requestShow(false) : false; },
+        [](const clap_host *host, bool) {
+            // A person closed its floating window: taken down on the main
+            // thread's next turn, not from inside the plugin's own call.
+            self(host)->m_closed.store(true);
+        }};
+    static const clap_host_timer_support timers{[](const clap_host *host, std::uint32_t period, clap_id *timerId) {
+                                                    ClapHost *me = self(host);
+                                                    const clap_id made = ++me->m_nextTimer;
+                                                    Timer &timer = me->m_timers[made];
+                                                    timer.period = period;
+                                                    me->watchTimer(made, timer);
+                                                    *timerId = made;
+                                                    return true;
+                                                },
+                                                [](const clap_host *host, clap_id timerId) {
+                                                    ClapHost *me = self(host);
+                                                    const auto found = me->m_timers.find(timerId);
+                                                    if (found == me->m_timers.end()) {
+                                                        return false;
+                                                    }
+                                                    if (found->second.watch && me->m_loop != nullptr) {
+                                                        me->m_loop->remove(*found->second.watch);
+                                                    }
+                                                    me->m_timers.erase(found);
+                                                    return true;
+                                                }};
+    static const clap_host_posix_fd_support fds{
+        [](const clap_host *host, int fd, clap_posix_fd_flags_t flags) {
+            ClapHost *me = self(host);
+            if (fd < 0 || me->m_fds.contains(fd)) {
+                return false;
+            }
+            Fd &watched = me->m_fds[fd];
+            watched.flags = flags;
+            me->watchFd(fd, watched);
+            return true;
+        },
+        [](const clap_host *host, int fd, clap_posix_fd_flags_t flags) {
+            ClapHost *me = self(host);
+            const auto found = me->m_fds.find(fd);
+            if (found == me->m_fds.end()) {
+                return false;
+            }
+            found->second.flags = flags;
+            if (found->second.watch && me->m_loop != nullptr) {
+                std::uint32_t events = 0;
+                events |= (flags & CLAP_POSIX_FD_READ) != 0 ? std::uint32_t{MainLoop::Readable} : 0U;
+                events |= (flags & CLAP_POSIX_FD_WRITE) != 0 ? std::uint32_t{MainLoop::Writable} : 0U;
+                return me->m_loop->changeFd(*found->second.watch, events);
+            }
+            return true;
+        },
+        [](const clap_host *host, int fd) {
+            ClapHost *me = self(host);
+            const auto found = me->m_fds.find(fd);
+            if (found == me->m_fds.end()) {
+                return false;
+            }
+            if (found->second.watch && me->m_loop != nullptr) {
+                me->m_loop->remove(*found->second.watch);
+            }
+            me->m_fds.erase(found);
+            return true;
+        }};
+    static const clap_host_preset_load presetLoad{
+        [](const clap_host *, std::uint32_t, const char *location, const char *, std::int32_t, const char *message) {
+            std::fprintf(stderr,
+                         "plugin: a preset at %s was not put in: %s\n",
+                         location != nullptr ? location : "(the plugin)",
+                         message != nullptr ? message : "");
+        },
+        [](const clap_host *host, std::uint32_t kind, const char *location, const char *key) {
+            ClapHost *me = self(host);
+            const std::lock_guard lock(me->m_loadedLock);
+            me->m_loaded = std::to_string(kind) + "\n" + (location != nullptr ? location : "") + "\n"
+                + (key != nullptr ? key : "");
+        }};
     const std::string_view wanted{id};
     if (wanted == CLAP_EXT_LOG) {
         return &log;
@@ -490,6 +719,18 @@ const void *ClapHost::extension(const clap_host *, const char *id)
     }
     if (wanted == CLAP_EXT_AUDIO_PORTS) {
         return &ports;
+    }
+    if (wanted == CLAP_EXT_GUI) {
+        return &gui;
+    }
+    if (wanted == CLAP_EXT_TIMER_SUPPORT) {
+        return &timers;
+    }
+    if (wanted == CLAP_EXT_POSIX_FD_SUPPORT) {
+        return &fds;
+    }
+    if (wanted == CLAP_EXT_PRESET_LOAD || wanted == CLAP_EXT_PRESET_LOAD_COMPAT) {
+        return &presetLoad;
     }
     return nullptr;
 }
@@ -595,13 +836,16 @@ ClapPlugin::ClapPlugin(std::shared_ptr<ClapLibrary> library, std::string id, Mon
     : m_library(std::move(library))
     , m_id(std::move(id))
     , m_mono(mono)
-    , m_host(std::make_unique<ClapHost>())
 {
-    const clap_plugin *first = m_library->create(m_host->host(), m_id);
+    m_hosts.push_back(std::make_unique<ClapHost>());
+    const clap_plugin *first = m_library->create(m_hosts.front()->host(), m_id);
     if (first == nullptr) {
         return;
     }
+    m_hosts.front()->setPlugin(first);
+    hookWindow(*m_hosts.front());
     m_instances.push_back(first);
+    m_name = first->desc != nullptr && first->desc->name != nullptr ? first->desc->name : m_id;
     m_params = clapParams(first, &m_ids, &m_cookies);
     m_values = std::vector<std::atomic<float>>(m_params.size());
     for (std::uint32_t index = 0; index < m_params.size(); ++index) {
@@ -631,7 +875,14 @@ ClapPlugin::ClapPlugin(std::shared_ptr<ClapLibrary> library, std::string id, Mon
 
 ClapPlugin::~ClapPlugin()
 {
+    closeUi();
+    if (m_tick && loop() != nullptr) {
+        loop()->remove(*m_tick);
+    }
     freeInstances();
+    // The hosts after their instances: a plugin lets go of its timers as it
+    // goes.
+    m_hosts.clear();
 }
 
 void ClapPlugin::freeInstances()
@@ -667,9 +918,15 @@ std::expected<void, dsp::BlockError> ClapPlugin::prepare(const dsp::PrepareSpec 
     // **Twice for a mono plugin on a stereo lane, once a side**, unless it
     // is to hear the two sides mixed — or makes more than one side itself.
     if (m_audioIns == 1 && m_audioOuts <= 1 && m_mono == Mono::DualMono) {
-        const clap_plugin *second = m_library->create(m_host->host(), m_id);
+        m_hosts.push_back(std::make_unique<ClapHost>());
+        const clap_plugin *second = m_library->create(m_hosts.back()->host(), m_id);
         if (second == nullptr) {
+            m_hosts.pop_back();
             return std::unexpected(dsp::BlockError::UnsupportedSpec);
+        }
+        m_hosts.back()->setPlugin(second);
+        if (loop() != nullptr) {
+            m_hosts.back()->setLoop(loop());
         }
         m_instances.push_back(second);
     }
@@ -849,6 +1106,14 @@ void ClapPlugin::process(dsp::ProcessContext &context) noexcept RB_NONBLOCKING
         process.audio_outputs_count = static_cast<std::uint32_t>(m_outBuffers[which].size());
         process.in_events = &in.events;
         process.out_events = &out.events;
+        // **What the first instance's window does**, for the main thread
+        // while it listens, and for the other instance of a mono plugin
+        // run twice.
+        const bool first = which == 0;
+        out.said = first && m_windowListens.load(std::memory_order_acquire) ? &m_said : nullptr;
+        out.changed = first && dual ? &m_changed : nullptr;
+        out.changedList = &m_changedList;
+        out.changedCount = &m_changedCount;
         if (processOf(instance, &process) == CLAP_PROCESS_ERROR) {
             silenceOutputs();
             return;
@@ -1022,12 +1287,436 @@ void ClapPlugin::refreshLatency() noexcept
 
 bool ClapPlugin::idle()
 {
-    if (m_host->takeCallback()) {
-        for (const clap_plugin *instance : m_instances) {
-            instance->on_main_thread(instance);
+    bool restart = false;
+    for (std::size_t which = 0; which < m_hosts.size() && which < m_instances.size(); ++which) {
+        if (m_hosts[which]->takeCallback()) {
+            m_instances[which]->on_main_thread(m_instances[which]);
+        }
+        restart = m_hosts[which]->takeRestart() || restart;
+    }
+    return restart;
+}
+
+// --- the plugin's own window ---
+
+void ClapPlugin::onAttached()
+{
+    for (const std::unique_ptr<ClapHost> &host : m_hosts) {
+        host->setLoop(loop());
+        // What the plugin said while it was being made is not a person's
+        // doing: a state loaded then is the engine's.
+        (void)host->takeRescan();
+        (void)host->takeLoaded();
+    }
+    if (!m_tick && loop() != nullptr) {
+        m_tick = loop()->addTimer(std::chrono::milliseconds{33}, [this] { editorTick(); });
+    }
+}
+
+void ClapPlugin::hookWindow(ClapHost &host)
+{
+    host.requestResize = [this](std::uint32_t width, std::uint32_t height) {
+        if (!m_window) {
+            return false; // a floating window resizes itself
+        }
+        m_window->resize(static_cast<int>(width), static_cast<int>(height));
+        return true;
+    };
+    host.requestShow = [this](bool show) {
+        if (m_gui == nullptr) {
+            return false;
+        }
+        const clap_plugin *first = m_instances.front();
+        return show ? m_gui->show(first) : m_gui->hide(first);
+    };
+    host.resizeHintsChanged = [this] {
+        if (m_window && m_gui != nullptr) {
+            m_window->setResizable(m_gui->can_resize(m_instances.front()));
+        }
+    };
+}
+
+bool ClapPlugin::hasUi() const
+{
+    if (m_instances.empty()) {
+        return false;
+    }
+    const clap_plugin *first = m_instances.front();
+    const auto *gui = static_cast<const clap_plugin_gui *>(first->get_extension(first, CLAP_EXT_GUI));
+    if (gui == nullptr) {
+        return false;
+    }
+    const char *wayland = std::getenv("WAYLAND_DISPLAY");
+    return gui->is_api_supported(first, CLAP_WINDOW_API_X11, true)
+        || (wayland != nullptr && *wayland != '\0' && gui->is_api_supported(first, CLAP_WINDOW_API_WAYLAND, true))
+        || (haveDisplay() && gui->is_api_supported(first, CLAP_WINDOW_API_X11, false));
+}
+
+Editable::Opened ClapPlugin::openUi()
+{
+    if (m_gui != nullptr) {
+        return Opened::Open;
+    }
+    if (!hasUi() || loop() == nullptr) {
+        return Opened::Unavailable;
+    }
+    const clap_plugin *first = m_instances.front();
+    const auto *gui = static_cast<const clap_plugin_gui *>(first->get_extension(first, CLAP_EXT_GUI));
+    // **Which window**: one the host makes, which opens where it was last,
+    // when there is a display and the plugin can be put in one; otherwise
+    // the plugin's own floating window, Wayland's where it offers one.
+    const char *wayland = std::getenv("WAYLAND_DISPLAY");
+    const bool embedded = haveDisplay() && gui->is_api_supported(first, CLAP_WINDOW_API_X11, false);
+    const bool waylandFloating = !embedded && wayland != nullptr && *wayland != '\0'
+        && gui->is_api_supported(first, CLAP_WINDOW_API_WAYLAND, true);
+    const char *api = waylandFloating ? CLAP_WINDOW_API_WAYLAND : CLAP_WINDOW_API_X11;
+    if (!gui->create(first, api, !embedded)) {
+        return Opened::Failed;
+    }
+    m_gui = gui;
+    m_floating = !embedded;
+    ClapSaid stale;
+    while (m_said.tryPop(stale)) { }
+    m_windowListens.store(true, std::memory_order_release);
+    if (embedded) {
+        std::uint32_t width = 0;
+        std::uint32_t height = 0;
+        (void)gui->get_size(first, &width, &height);
+        const std::string key = "clap " + m_id;
+        m_window = X11Window::open(
+            *loop(),
+            m_name,
+            key,
+            static_cast<int>(width),
+            static_cast<int>(height),
+            [this](bool failed) {
+                closeUi();
+                if (events() != nullptr && events()->closed) {
+                    events()->closed(failed ? "failed" : "closed");
+                }
+            },
+            [this](int newWidth, int newHeight) {
+                if (m_gui == nullptr || !m_gui->can_resize(m_instances.front())) {
+                    return;
+                }
+                auto w = static_cast<std::uint32_t>(newWidth);
+                auto h = static_cast<std::uint32_t>(newHeight);
+                if (m_gui->adjust_size(m_instances.front(), &w, &h)) {
+                    (void)m_gui->set_size(m_instances.front(), w, h);
+                }
+            });
+        if (!m_window) {
+            gui->destroy(first);
+            m_gui = nullptr;
+            m_windowListens.store(false, std::memory_order_release);
+            return Opened::Unavailable;
+        }
+        const bool resizable = gui->can_resize(first);
+        m_window->setResizable(resizable);
+        if (const std::optional<WindowPlace> kept = placeOf(key); kept && resizable) {
+            // Its size from last time, as near as the plugin takes it.
+            auto w = static_cast<std::uint32_t>(kept->width);
+            auto h = static_cast<std::uint32_t>(kept->height);
+            if (gui->adjust_size(first, &w, &h) && gui->set_size(first, w, h)) {
+                m_window->resize(static_cast<int>(w), static_cast<int>(h));
+            }
+        } else if (width > 0 && height > 0) {
+            m_window->resize(static_cast<int>(width), static_cast<int>(height));
+        }
+        clap_window parent{};
+        parent.api = CLAP_WINDOW_API_X11;
+        parent.x11 = m_window->id();
+        if (!gui->set_parent(first, &parent)) {
+            closeUi();
+            return Opened::Failed;
+        }
+        m_window->show();
+    } else {
+        gui->suggest_title(first, m_name.c_str());
+    }
+    if (!gui->show(first)) {
+        closeUi();
+        return Opened::Failed;
+    }
+    return Opened::Open;
+}
+
+void ClapPlugin::closeUi()
+{
+    m_windowListens.store(false, std::memory_order_release);
+    if (m_gui != nullptr) {
+        const clap_plugin *first = m_instances.front();
+        (void)m_gui->hide(first);
+        m_gui->destroy(first);
+        m_gui = nullptr;
+    }
+    // The plugin's window first, then the one it was in.
+    m_window.reset();
+}
+
+void ClapPlugin::editorTick()
+{
+    if (m_instances.empty()) {
+        return;
+    }
+    // **What a person did in the window**: values, and the hold and the
+    // letting go round them.
+    ClapSaid said;
+    while (m_said.tryPop(said)) {
+        if (events() == nullptr || m_gui == nullptr) {
+            continue;
+        }
+        if (said.kind == ClapSaid::Value && events()->changed) {
+            events()->changed(said.index, said.value);
+        } else if (said.kind != ClapSaid::Value && events()->gesture) {
+            events()->gesture(said.index, said.kind == ClapSaid::Begin);
         }
     }
-    return m_host->takeRestart();
+    // **A floating window a person closed**: taken down here, not inside
+    // the plugin's own call that said so.
+    bool closed = false;
+    bool rescanned = false;
+    std::optional<std::string> loaded;
+    for (const std::unique_ptr<ClapHost> &host : m_hosts) {
+        closed = host->takeClosed() || closed;
+        rescanned = host->takeRescan() || rescanned;
+        if (std::optional<std::string> said = host->takeLoaded(); said && !loaded) {
+            loaded = std::move(said);
+        }
+    }
+    if (closed && m_gui != nullptr) {
+        closeUi();
+        if (events() != nullptr && events()->closed) {
+            events()->closed("closed");
+        }
+    }
+    // **Values the plugin changed itself**: a preset asked for here, or one
+    // chosen in its own window. Read once they are in: when it says so, or
+    // a few turns after it was asked, for a plugin that does not say.
+    const bool waited = m_loading && ++m_loadingFor >= 3;
+    if (rescanned || loaded || waited) {
+        readValues();
+        std::string shown;
+        if (loaded) {
+            const std::size_t first = loaded->find('\n');
+            const std::size_t second = loaded->find('\n', first + 1);
+            shown = presetId(static_cast<std::uint32_t>(std::strtoul(loaded->c_str(), nullptr, 10)),
+                             loaded->substr(first + 1, second - first - 1),
+                             loaded->substr(second + 1));
+        } else if (m_loading) {
+            shown = *m_loading;
+        }
+        const bool ours = m_loading.has_value();
+        m_loading.reset();
+        m_loadingFor = 0;
+        if (events() != nullptr) {
+            if ((ours || m_gui != nullptr) && events()->valuesChanged) {
+                events()->valuesChanged(true);
+            }
+            if (!shown.empty() && events()->presetShown) {
+                events()->presetShown(shown);
+            }
+        }
+    }
+}
+
+// --- presets ---
+
+std::string ClapPlugin::presetId(std::uint32_t kind, const std::string &location, const std::string &key)
+{
+    // **Readable, and the same on every listing**: where the preset is,
+    // and which of the presets there.
+    std::string id = kind == CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN ? std::string{"plugin:"} : location;
+    if (!key.empty()) {
+        id += "#" + key;
+    }
+    return id;
+}
+
+namespace
+{
+
+/// What the preset discovery says while one provider is asked.
+struct Discovery {
+    std::string pluginId;
+    std::vector<std::string> extensions;
+    std::vector<clap_preset_discovery_location> locations;
+    std::vector<std::string> locationPaths;
+    /// The presets of the file or location being read now, and whether each
+    /// is for this plugin.
+    struct Preset {
+        std::string name;
+        std::string key;
+        bool ours = false;
+    };
+    std::vector<Preset> presets;
+};
+
+} // namespace
+
+std::vector<plugin::PresetEntry> ClapPlugin::presets()
+{
+    std::vector<plugin::PresetEntry> listed;
+    m_found.clear();
+    const clap_preset_discovery_factory *factory = m_library->presetFactory();
+    if (factory == nullptr) {
+        return listed;
+    }
+    for (std::uint32_t index = 0; index < factory->count(factory); ++index) {
+        const clap_preset_discovery_provider_descriptor *descriptor = factory->get_descriptor(factory, index);
+        if (descriptor == nullptr || descriptor->id == nullptr) {
+            continue;
+        }
+        Discovery discovery;
+        discovery.pluginId = m_id;
+        clap_preset_discovery_indexer indexer{};
+        indexer.clap_version = CLAP_VERSION;
+        indexer.name = "Reverblabr";
+        indexer.vendor = "Reverblabr";
+        indexer.url = "";
+        indexer.version = "1";
+        indexer.indexer_data = &discovery;
+        indexer.declare_filetype = [](const clap_preset_discovery_indexer *self,
+                                      const clap_preset_discovery_filetype *filetype) {
+            auto *found = static_cast<Discovery *>(self->indexer_data);
+            found->extensions.emplace_back(filetype->file_extension != nullptr ? filetype->file_extension : "");
+            return true;
+        };
+        indexer.declare_location = [](const clap_preset_discovery_indexer *self,
+                                      const clap_preset_discovery_location *location) {
+            auto *found = static_cast<Discovery *>(self->indexer_data);
+            found->locations.push_back(*location);
+            found->locationPaths.emplace_back(location->location != nullptr ? location->location : "");
+            return true;
+        };
+        indexer.declare_soundpack = [](const clap_preset_discovery_indexer *, const clap_preset_discovery_soundpack *) {
+            return true;
+        };
+        indexer.get_extension = [](const clap_preset_discovery_indexer *, const char *) -> const void * {
+            return nullptr;
+        };
+        const clap_preset_discovery_provider *provider = factory->create(factory, &indexer, descriptor->id);
+        if (provider == nullptr) {
+            continue;
+        }
+        if (!provider->init(provider)) {
+            provider->destroy(provider);
+            continue;
+        }
+        clap_preset_discovery_metadata_receiver receiver{};
+        receiver.receiver_data = &discovery;
+        receiver.on_error = [](const clap_preset_discovery_metadata_receiver *, std::int32_t, const char *) { };
+        receiver.begin_preset = [](const clap_preset_discovery_metadata_receiver *self,
+                                   const char *name,
+                                   const char *key) {
+            auto *found = static_cast<Discovery *>(self->receiver_data);
+            found->presets.push_back(Discovery::Preset{name != nullptr ? name : "", key != nullptr ? key : "", false});
+            return true;
+        };
+        receiver.add_plugin_id = [](const clap_preset_discovery_metadata_receiver *self,
+                                    const clap_universal_plugin_id *pluginId) {
+            auto *found = static_cast<Discovery *>(self->receiver_data);
+            if (!found->presets.empty() && pluginId != nullptr && pluginId->abi != nullptr && pluginId->id != nullptr
+                && std::string_view{pluginId->abi} == "clap" && pluginId->id == found->pluginId) {
+                found->presets.back().ours = true;
+            }
+        };
+        receiver.set_soundpack_id = [](const clap_preset_discovery_metadata_receiver *, const char *) { };
+        receiver.set_flags = [](const clap_preset_discovery_metadata_receiver *, std::uint32_t) { };
+        receiver.add_creator = [](const clap_preset_discovery_metadata_receiver *, const char *) { };
+        receiver.set_description = [](const clap_preset_discovery_metadata_receiver *, const char *) { };
+        receiver.set_timestamps = [](const clap_preset_discovery_metadata_receiver *, clap_timestamp, clap_timestamp) {
+        };
+        receiver.add_feature = [](const clap_preset_discovery_metadata_receiver *, const char *) { };
+        receiver.add_extra_info = [](const clap_preset_discovery_metadata_receiver *, const char *, const char *) { };
+
+        const auto read = [&](std::uint32_t kind, const std::string &location) {
+            discovery.presets.clear();
+            if (!provider->get_metadata(provider,
+                                        kind,
+                                        kind == CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN ? nullptr : location.c_str(),
+                                        &receiver)) {
+                return;
+            }
+            for (const Discovery::Preset &preset : discovery.presets) {
+                if (!preset.ours) {
+                    continue;
+                }
+                const std::string id = presetId(kind, location, preset.key);
+                if (m_found.emplace(id, Found{kind, location, preset.key}).second) {
+                    listed.push_back(plugin::PresetEntry{id, preset.name.empty() ? id : preset.name});
+                }
+            }
+        };
+        // **A file location is a file or a folder of them**, the ones of the
+        // types the provider declared; the plugin's own are asked of it.
+        for (std::size_t at = 0; at < discovery.locations.size(); ++at) {
+            const clap_preset_discovery_location &location = discovery.locations[at];
+            const std::string &path = discovery.locationPaths[at];
+            if (location.kind == CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN) {
+                read(location.kind, {});
+                continue;
+            }
+            std::error_code error;
+            if (std::filesystem::is_regular_file(path, error)) {
+                read(location.kind, path);
+                continue;
+            }
+            for (std::filesystem::recursive_directory_iterator walk(
+                     path, std::filesystem::directory_options::skip_permission_denied, error);
+                 !error && walk != std::filesystem::recursive_directory_iterator();
+                 walk.increment(error)) {
+                if (!walk->is_regular_file(error)) {
+                    continue;
+                }
+                const std::string file = walk->path().string();
+                const bool wanted = discovery.extensions.empty()
+                    || std::ranges::any_of(discovery.extensions, [&file](const std::string &extension) {
+                                        return extension.empty() || file.ends_with("." + extension);
+                                    });
+                if (wanted) {
+                    read(location.kind, file);
+                }
+            }
+        }
+        provider->destroy(provider);
+    }
+    std::ranges::sort(listed, [](const plugin::PresetEntry &left, const plugin::PresetEntry &right) {
+        return left.name != right.name ? left.name < right.name : left.id < right.id;
+    });
+    return listed;
+}
+
+bool ClapPlugin::loadPreset(const std::string &id)
+{
+    if (!m_found.contains(id)) {
+        (void)presets(); // a preset listed by an earlier host
+    }
+    const auto found = m_found.find(id);
+    if (found == m_found.end() || !m_active) {
+        return false;
+    }
+    // Every instance: a mono plugin run twice is one plugin to the person.
+    for (const clap_plugin *instance : m_instances) {
+        const auto *load =
+            static_cast<const clap_plugin_preset_load *>(instance->get_extension(instance, CLAP_EXT_PRESET_LOAD));
+        if (load == nullptr) {
+            load = static_cast<const clap_plugin_preset_load *>(
+                instance->get_extension(instance, CLAP_EXT_PRESET_LOAD_COMPAT));
+        }
+        if (load == nullptr
+            || !load->from_location(
+                instance,
+                found->second.kind,
+                found->second.kind == CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN ? nullptr : found->second.location.c_str(),
+                found->second.key.empty() ? nullptr : found->second.key.c_str())) {
+            return false;
+        }
+    }
+    // Its values are read once it says they are in (editorTick()).
+    m_loading = id;
+    m_loadingFor = 0;
+    return true;
 }
 
 } // namespace rb::pluginhost

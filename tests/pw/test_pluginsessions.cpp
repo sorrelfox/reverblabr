@@ -22,6 +22,7 @@
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/pluginscanner.h"
+#include "core/presetstore.h"
 #include "core/sessionruntime.h"
 #include "core/sessionstore.h"
 #include "dsp/blockregistry.h"
@@ -1307,6 +1308,169 @@ TEST_F(PluginSessions, AnLv2PresetPutInFromThePanelIsOneUndoStateAndAll)
     EXPECT_EQ(undoCode, u"edit.setParam"_s) << "the gain set before it is the step under it";
     engine.closeSession(sessionId);
 }
+
+#ifdef RB_HAVE_CLAP
+
+namespace
+{
+
+constexpr const char *kTestClap = "org.reverblabr.test.gain";
+
+/// **The tests' CLAP plugin, scanned**, with a folder of the test's own for
+/// its notes and its window's place.
+class TestClapCatalogue : public PluginCatalogue
+{
+public:
+    TestClapCatalogue()
+        : PluginCatalogue(plugin::kClapDefaultPathVariable, RB_TEST_CLAP_DIR)
+    {
+        qputenv("RB_TEST_CLAP_LOG", (m_folder.path() + u"/window.log"_s).toUtf8());
+    }
+
+    ~TestClapCatalogue()
+    {
+        qunsetenv("RB_TEST_CLAP_LOG");
+    }
+
+    TestClapCatalogue(const TestClapCatalogue &) = delete;
+    TestClapCatalogue &operator=(const TestClapCatalogue &) = delete;
+
+private:
+    QTemporaryDir m_folder;
+    StateHome m_state{m_folder.path() + u"/state"_s};
+};
+
+/// A session of the devices and one CLAP block of the tests' plugin, made
+/// through the engine as a window makes one, and started.
+[[nodiscard]] QString startClapSession(Engine &engine, Pump &pump, const QString &name, const QString &blockId)
+{
+    QString sessionId;
+    const QMetaObject::Connection opened =
+        QObject::connect(&engine, &EngineFacade::sessionOpened, &engine, [&](const QString &id) { sessionId = id; });
+    engine.createSession(name);
+    QObject::disconnect(opened);
+    const Session built = SessionBuilder{}
+                              .clap(blockId, QString::fromLatin1(kTestClap))
+                              .wire(u"in"_s, blockId)
+                              .wire(blockId, u"out"_s)
+                              .session();
+    QJsonArray commands;
+    for (const BlockInstance &block : built.blocks) {
+        AddBlock add;
+        add.block = block;
+        commands.append(editCommandToJson(add));
+    }
+    for (const Wire &wire : built.wires) {
+        commands.append(editCommandToJson(Connect{wire, -1}));
+    }
+    engine.applyEdit(sessionId, QString::fromUtf8(QJsonDocument(commands).toJson()));
+    engine.start(sessionId);
+    SessionRuntime *runtime = engine.runtimeOf(sessionId);
+    if (runtime == nullptr
+        || !pump.pumpUntil([&] { return runtime->pluginHealth(blockId) == PluginHealth::Running; })) {
+        return {};
+    }
+    return sessionId;
+}
+
+} // namespace
+
+TEST_F(PluginSessions, AClapPluginsOwnWindowMovesTheBlocksSettingWithItsGesture)
+{
+    const TestClapCatalogue catalogue;
+    QStringList heard;
+    SessionRuntime runtime(m_pump->connection(), m_pump->mirror(), m_registry);
+    QObject::connect(&runtime,
+                     &SessionRuntime::pluginParamChanged,
+                     &runtime,
+                     [&](const QString &, const QString &paramId, const QJsonValue &value) {
+                         heard.append(u"%1=%2"_s.arg(paramId).arg(value.toDouble()));
+                     });
+    QObject::connect(
+        &runtime, &SessionRuntime::pluginGesture, &runtime, [&](const QString &, const QString &paramId, bool begin) {
+            heard.append(u"%1 %2"_s.arg(paramId, begin ? u"begin"_s : u"end"_s));
+        });
+    const Session session = SessionBuilder{}
+                                .clap(u"c"_s, QString::fromLatin1(kTestClap))
+                                .wire(u"in"_s, u"c"_s)
+                                .wire(u"c"_s, u"out"_s)
+                                .session();
+    run(runtime, session);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return runtime.pluginHealth(u"c"_s) == PluginHealth::Running; }));
+    ASSERT_TRUE(runtime.setPluginWindow(u"c"_s, true).has_value());
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return heard.size() >= 4; })) << heard.join(u',').toStdString();
+    EXPECT_EQ(heard, (QStringList{u"1 begin"_s, u"1=0.25"_s, u"1=0.3"_s, u"1 end"_s}));
+    EXPECT_NEAR(runtime.blockState().value(u"c"_s).value(u"1"_s).toDouble(), 0.3, 1e-6);
+    runtime.stop();
+}
+
+TEST_F(PluginSessions, AClapPresetSavedFromABlockIsListedForThatPluginElsewhereAndPutsItsSettingsBack)
+{
+    QTemporaryDir sessions;
+    QTemporaryDir presets;
+    ASSERT_TRUE(sessions.isValid() && presets.isValid());
+    // What the engine says is kept in these, which outlive it.
+    QList<QPair<QString, QJsonArray>> listed;
+    QStringList errors;
+    Engine engine(m_registry, SessionStore{sessions.path()}, PresetStore{presets.path()});
+    const TestClapCatalogue catalogue;
+    QObject::connect(&engine, &EngineFacade::presetsListed, &engine, [&](const QString &typeId, const QString &json) {
+        listed.append({typeId, QJsonDocument::fromJson(json.toUtf8()).array()});
+    });
+    QObject::connect(&engine, &EngineFacade::error, &engine, [&](const QString &code, const QString &args) {
+        errors.append(code + u' ' + args);
+    });
+    engine.connectToPipeWire();
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return engine.isConnected(); }));
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kInput)).has_value());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kOutput)).has_value());
+
+    // **Kept from one session**: the plugin at three quarters.
+    const QString first = startClapSession(engine, *m_pump, u"First"_s, u"p"_s);
+    ASSERT_FALSE(first.isEmpty()) << errors.join(u'\n').toStdString();
+    engine.setParam(first, u"p"_s, u"1"_s, u"[0.75]"_s);
+    engine.savePreset(first, u"p"_s, u"Three quarters"_s, false);
+    ASSERT_TRUE(errors.isEmpty()) << errors.join(u'\n').toStdString();
+    ASSERT_FALSE(listed.isEmpty());
+    EXPECT_EQ(listed.back().first, u"plugin.clap"_s);
+    QJsonObject saved;
+    for (const QJsonValue &preset : listed.back().second) {
+        if (preset.toObject().value(u"name"_s).toString() == u"Three quarters"_s) {
+            saved = preset.toObject();
+        }
+    }
+    ASSERT_FALSE(saved.isEmpty());
+    const QJsonObject params = saved.value(u"params"_s).toObject();
+    // **The plugin's id and its state**, with its settings beside them.
+    EXPECT_EQ(params.value(u"plugin"_s).toString(), QString::fromLatin1(kTestClap));
+    EXPECT_FALSE(params.value(u"state"_s).toString().isEmpty());
+    EXPECT_NEAR(params.value(u"1"_s).toDouble(), 0.75, 1e-6);
+    engine.closeSession(first);
+
+    // **Listed in another session, for the same plugin, and put on**: the
+    // plugin is at three quarters again, and the session says so.
+    const QString second = startClapSession(engine, *m_pump, u"Second"_s, u"q"_s);
+    ASSERT_FALSE(second.isEmpty());
+    SessionRuntime *runtime = engine.runtimeOf(second);
+    EXPECT_NEAR(runtime->blockState().value(u"q"_s).value(u"1"_s).toDouble(), 1.0, 1e-6);
+    listed.clear();
+    engine.listPresets(u"plugin.clap"_s);
+    ASSERT_FALSE(listed.isEmpty());
+    EXPECT_TRUE(std::ranges::any_of(listed.back().second, [&](const QJsonValue &preset) {
+        return preset.toObject().value(u"id"_s) == saved.value(u"id"_s);
+    }));
+    engine.applyPreset(second, u"q"_s, saved.value(u"id"_s).toString());
+    ASSERT_TRUE(errors.isEmpty()) << errors.join(u'\n').toStdString();
+    EXPECT_TRUE(m_pump->pumpUntil(
+        [&] { return std::abs(runtime->blockState().value(u"q"_s).value(u"1"_s).toDouble() - 0.75) < 1e-6; }));
+    // **And taken back**, state and all.
+    engine.undo(second);
+    EXPECT_TRUE(m_pump->pumpUntil(
+        [&] { return std::abs(runtime->blockState().value(u"q"_s).value(u"1"_s).toDouble() - 1.0) < 1e-6; }));
+    engine.closeSession(second);
+}
+
+#endif
 
 TEST_F(PluginSessions, AnLv2EqualizerPlaysInASessionAndItsStateIsSavedAndPutBack)
 {
