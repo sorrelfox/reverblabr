@@ -214,7 +214,7 @@ rb_check_layering(
     REASON "The real-time, DSP, block, graph and recording layers are plain C++23, so they can run on the real-time thread (or beside it) and be tested offline."
 )
 rb_check_layering(
-    TARGETS reverblabr-telemetry reverblabr-pwconf reverblabr-pw reverblabr-engine reverblabr-enginebus reverblabr-daemon-core reverblabrd
+    TARGETS reverblabr-telemetry reverblabr-pwconf reverblabr-pw reverblabr-mpris reverblabr-engine reverblabr-enginebus reverblabr-daemon-core reverblabrd
     FORBID kf qt-gui
     REASON "The engine uses only QtCore, QtDBus, QtSql and PipeWire, so it can later run as a headless daemon."
 )

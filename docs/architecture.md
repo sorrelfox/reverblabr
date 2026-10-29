@@ -56,12 +56,13 @@ This document describes how the pieces fit together and the rules that keep them
 | `engine/blocks` | `reverblabr-blocks` | `dsp`, `rt`, `plugin` (what the built-in plugins are) | Qt, KDE Frameworks, libpipewire |
 | `engine/pw` | `reverblabr-pw` | `graph`, `blocks`, `plugin`, `dsp`, `rt`, libpipewire, QtCore | KDE Frameworks, Qt GUI modules |
 | `engine/pw` (the drop-in code) | `reverblabr-pwconf` | QtCore, SPA's JSON headers | KDE Frameworks, Qt GUI modules, the libpipewire library |
+| `engine/mpris` | `reverblabr-mpris` | QtCore, QtDBus | KDE Frameworks, Qt GUI modules |
 | `engine/core` | `reverblabr-engine` | all engine layers, QtCore, QtDBus, QtSql | KDE Frameworks, Qt GUI modules |
 | `engine/bus` | `reverblabr-enginebus` | `reverblabr-engine`'s facade, QtCore, QtDBus | KDE Frameworks, Qt GUI modules |
 | `notify` | `reverblabr-notify` | QtCore, QtDBus, gettext | KDE Frameworks, Qt GUI modules, PipeWire |
 | `daemon` | `reverblabrd` | `reverblabr-enginebus`, `reverblabr-engine`, `reverblabr-notify`, QtCore, QtDBus | KDE Frameworks, Qt GUI modules |
 | `ctl` | `reverblabr-ctl`, `reverblabr-ctl-core` | QtCore, QtDBus, gettext from the C library | KDE Frameworks, Qt GUI modules, PipeWire, the engine |
-| `app` | `reverblabr` | `reverblabr-engine`, `reverblabr-enginebus`, Qt Quick, Kirigami, KDE Frameworks | the engine internals (`pw`, `graph`, `dsp`, `rt`) |
+| `app` | `reverblabr` | `reverblabr-engine`, `reverblabr-enginebus`, `reverblabr-mpris` (the media players to list), Qt Quick, Kirigami, KDE Frameworks | the engine internals (`pw`, `graph`, `dsp`, `rt`) |
 | `pluginhost` | `reverblabr-plugin-host` | `plugin`, `dsp`, `rt`, libpipewire | Qt, KDE Frameworks |
 | `helper` | `reverblabr-helper-action`, `reverblabr-virtualdevices-helper` | `reverblabr-pwconf`, QtCore; the executable also KAuth | KDE Frameworks (the action), Qt GUI modules (the action), PipeWire |
 

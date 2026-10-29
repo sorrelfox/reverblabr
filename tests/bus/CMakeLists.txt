@@ -281,3 +281,23 @@ set_tests_properties(bus.krunner PROPERTIES
     TIMEOUT 120
     ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;PIPEWIRE_REMOTE=rb-test-no-such-socket;LC_ALL=en_US.UTF-8;LANGUAGE=en_US"
 )
+
+# **The media players on the session bus** (MPRIS), as a Broadcast block's
+# title follows them: the watcher and a stream's feed, against players the
+# test starts, each a process of its own, on the same private bus and in
+# the same PID namespace as bus.engine. On a desktop's bus they would read
+# the person's own players, which both the test and the fake player refuse.
+add_executable(reverblabr-fake-mpris-player fakemprisplayer.cpp)
+target_link_libraries(reverblabr-fake-mpris-player PRIVATE Qt6::DBus)
+add_executable(reverblabr-mpris-bus-test test_mpris.cpp)
+target_link_libraries(reverblabr-mpris-bus-test PRIVATE reverblabr-mpris Qt6::DBus Qt6::Test GTest::gtest)
+target_compile_definitions(reverblabr-mpris-bus-test PRIVATE
+    RB_FAKE_MPRIS_PLAYER="$<TARGET_FILE:reverblabr-fake-mpris-player>")
+add_dependencies(reverblabr-mpris-bus-test reverblabr-fake-mpris-player)
+add_test(NAME bus.mpris
+         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+                 -- $<TARGET_FILE:reverblabr-mpris-bus-test>)
+set_tests_properties(bus.mpris PROPERTIES
+    TIMEOUT 120
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime"
+)

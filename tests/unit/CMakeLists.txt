@@ -212,6 +212,15 @@ rb_add_gtest(reverblabr-stream-test
 )
 set_target_properties(reverblabr-stream-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
+# What a media player says, and which one a stream's title follows,
+# without a bus; the players on one are tests/bus.
+rb_add_gtest(reverblabr-mpris-test
+    LAYER mpris
+    SOURCES
+        mpris/test_player.cpp
+    LIBRARIES reverblabr-mpris
+)
+
 # What an engine and a plugin host share, and one cycle of the host.
 rb_add_gtest(reverblabr-plugin-test
     LAYER plugin
