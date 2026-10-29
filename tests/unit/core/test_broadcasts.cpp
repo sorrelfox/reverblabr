@@ -9,6 +9,7 @@
 // off it, the status the facade carries, where its password is kept, and
 // the password going to a store and never into the session.
 
+#include "blocks/applicationsource.h"
 #include "blocks/broadcast.h"
 #include "core/broadcasts.h"
 #include "core/editcommand.h"
@@ -80,6 +81,34 @@ TEST(BroadcastsTest, TheStreamsSettingsAreTheBlocksButThePassword)
     ASSERT_TRUE(block.setParam("nowPlaying", dsp::ParamValue::ofEnum("file")).has_value());
     settings = broadcastSettings(block, u"Show"_s);
     EXPECT_EQ(QString::fromStdString(settings.nowPlayingFile.string()), QDir::homePath() + u"/now.txt"_s);
+}
+
+TEST(BroadcastsTest, ATitleFollowsAPlayerOnlyWhenItIsToldTo)
+{
+    blocks::Broadcast block;
+    EXPECT_FALSE(broadcastPlayer(block).has_value());
+    ASSERT_TRUE(block.setParam("nowPlayingPlayer", dsp::ParamValue::ofString("vlc")).has_value());
+    EXPECT_FALSE(broadcastPlayer(block).has_value()) << "a player named while the title comes from nowhere";
+    ASSERT_TRUE(block.setParam("nowPlaying", dsp::ParamValue::ofEnum("player")).has_value());
+    EXPECT_EQ(broadcastPlayer(block), u"vlc"_s);
+    ASSERT_TRUE(block.setParam("nowPlayingPlayer", dsp::ParamValue::ofString(" ")).has_value());
+    EXPECT_EQ(broadcastPlayer(block), QString()) << "empty is the one the session captures";
+    // A player's title never reads a file.
+    ASSERT_TRUE(block.setParam("nowPlayingFile", dsp::ParamValue::ofString("~/now.txt")).has_value());
+    EXPECT_TRUE(broadcastSettings(block, u"Show"_s).nowPlayingFile.empty());
+
+    blocks::ApplicationSource source;
+    ASSERT_TRUE(source.setParam("binary", dsp::ParamValue::ofString("elisa")).has_value());
+    ASSERT_TRUE(source.setParam("flatpakId", dsp::ParamValue::ofString("org.kde.elisa")).has_value());
+    const mpris::CapturedApplication captured = capturedApplication(source);
+    EXPECT_EQ(captured.binary, u"elisa"_s);
+    EXPECT_EQ(captured.flatpakId, u"org.kde.elisa"_s);
+    EXPECT_TRUE(captured.name.isEmpty());
+
+    const stream::Track track = streamTrack({u"Sigur Rós"_s, u"Svefn-g-englar"_s, u"Ágætis byrjun"_s});
+    EXPECT_EQ(track.artist, "Sigur Rós");
+    EXPECT_EQ(track.title, "Svefn-g-englar");
+    EXPECT_EQ(track.album, "Ágætis byrjun");
 }
 
 TEST(BroadcastsTest, TheStatusIsWhatTheInterfaceXmlDescribes)

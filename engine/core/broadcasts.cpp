@@ -92,6 +92,27 @@ stream::BroadcastSettings broadcastSettings(const dsp::Block &block, const QStri
     return settings;
 }
 
+std::optional<QString> broadcastPlayer(const dsp::Block &block)
+{
+    if (block.param("nowPlaying").text() != blocks::Broadcast::kNowPlayingPlayer) {
+        return std::nullopt;
+    }
+    return QString::fromStdString(block.param("nowPlayingPlayer").text()).trimmed();
+}
+
+mpris::CapturedApplication capturedApplication(const dsp::Block &applicationSource)
+{
+    const auto name = [&applicationSource](const char *id) {
+        return QString::fromStdString(applicationSource.param(id).text()).trimmed();
+    };
+    return mpris::CapturedApplication{name("binary"), name("flatpakId"), name("name")};
+}
+
+stream::Track streamTrack(const mpris::Track &track)
+{
+    return stream::Track{track.artist.toStdString(), track.title.toStdString(), track.album.toStdString()};
+}
+
 QString broadcastSecretKey(const QString &sessionId, const QString &blockId)
 {
     return u"broadcast/%1/%2"_s.arg(sessionId, blockId);

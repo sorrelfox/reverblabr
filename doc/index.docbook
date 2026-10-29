@@ -527,7 +527,17 @@ and <literal>%session</literal> is the session's name. Text between two of
 them is left out when either is empty, so <literal>%artist - %title</literal>
 with no artist is the title alone. What is playing can come from a text file
 whose first line is the title, which many players can write; it is read again
-whenever it changes.</para></listitem></varlistentry>
+whenever it changes. Or it can come from a media player, such as Elisa or
+VLC: choose <guilabel>A media player</guilabel>, then the player. <guilabel>The
+one this session captures</guilabel> follows a player the session's
+Application blocks capture, so that the title is that of the music listeners
+hear; a session that captures no application, such as one taking a device or
+everything the computer plays, follows the player that is playing. Of several
+that fit, one that is playing comes before one that is paused, and the one
+that started playing last before the others. A player you name is followed
+whatever the session captures, and is kept as the choice while it is not
+running. A new title reaches the stream within a couple of seconds; a stopped
+player leaves only what the template says without it.</para></listitem></varlistentry>
 <varlistentry><term><guilabel>Status</guilabel></term>
 <listitem><para>How long it has been connected, how much it has sent, the bit
 rate it is sending at, how many times it has connected again, and what last
@@ -1724,8 +1734,13 @@ which sends a running session to the radio server you name, with the station
 details you give it; nothing else goes there. Its password is kept in your
 desktop's password store (&kwallet; on &plasma;), not in the session file, and
 it travels to the server the way the server's protocol sends it, which is in
-the clear unless the server is on a network you trust. An Application block
-can be set to open a web
+the clear unless the server is on a network you trust. When a Broadcast
+block's title comes from a media player, &reverblabr; reads what the players
+on your session bus say they are playing (artist, title and album), their
+names, and which program each one is, while that session runs, and the window
+reads their names to list them; it never controls a player, keeps none of it,
+and sends nothing but the title the template makes, to that block's server.
+An Application block can be set to open a web
 address when its session starts, but that address is opened by your browser or
 player, not by &reverblabr;. When you copy diagnostics for a bug report, your
 home folder, user name and computer name are left out, but please read the

@@ -24,7 +24,7 @@ QtObject {
     /// The rates a stream can be asked for, in kilobits a second.
     readonly property var bitrates: [32, 48, 64, 96, 128, 160, 192, 256, 320]
     readonly property var channelChoices: ["stereo", "mono"]
-    readonly property var nowPlayingChoices: ["none", "file"]
+    readonly property var nowPlayingChoices: ["none", "file", "player"]
     /// The title template a block is given until somebody changes it.
     readonly property string defaultTemplate: "%artist - %title"
 
@@ -58,8 +58,27 @@ QtObject {
             return KI18n.i18nc("@item where a stream's title comes from", "Only the template");
         case "file":
             return KI18n.i18nc("@item where a stream's title comes from", "A text file");
+        case "player":
+            return KI18n.i18nc("@item where a stream's title comes from", "A media player");
         }
         return id;
+    }
+
+    /// The media players a title can follow, for the list: the automatic
+    /// choice first, then \a running as MediaPlayers has them, then \a chosen
+    /// when it is a player that is not running now, so that what the block
+    /// holds is always one of them. `[{id, name}]`.
+    function playerChoices(running: var, chosen: string): var {
+        const choices = [{ id: "", name: KI18n.i18nc("@item the media player a stream's title follows",
+                                                      "The one this session captures") }];
+        for (const player of running) {
+            choices.push({ id: player.id, name: player.name });
+        }
+        if (chosen !== "" && !running.some(player => player.id === chosen)) {
+            choices.push({ id: chosen, name: KI18n.i18nc("@item %1 is a media player that is not running now",
+                                                         "%1 (not running)", chosen) });
+        }
+        return choices;
     }
 
     /// The state line above the tabs.

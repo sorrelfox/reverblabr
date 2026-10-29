@@ -54,11 +54,13 @@ public:
     static constexpr std::string_view kChannelsStereo = "stereo";
     static constexpr std::string_view kChannelsMono = "mono";
 
-    /// Where the title comes from. **A media player that says what it is
-    /// playing is the next source**: it hands the stream a track
-    /// through BroadcastStream::setNowPlaying(), and gets a choice here.
+    /// Where the title comes from: nowhere but the template, a text file,
+    /// or a media player on the session bus, which the engine follows and
+    /// hands the stream a track from through
+    /// BroadcastStream::setNowPlaying().
     static constexpr std::string_view kNowPlayingNone = "none";
     static constexpr std::string_view kNowPlayingFile = "file";
+    static constexpr std::string_view kNowPlayingPlayer = "player";
 
     /// What listeners see when the template is left as it is.
     static constexpr std::string_view kDefaultTitleTemplate = "%artist - %title";
@@ -87,6 +89,10 @@ public:
         NowPlaying,
         /// The text file the title is read from, for NowPlaying "file".
         NowPlayingFile,
+        /// The media player the title follows, for NowPlaying "player": a
+        /// player key (mpris::playerKey()), or empty for the one the
+        /// session captures.
+        NowPlayingPlayer,
     };
 
     Broadcast();

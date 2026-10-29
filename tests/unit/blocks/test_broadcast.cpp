@@ -192,6 +192,9 @@ TEST(BroadcastTest, WhatWasChosenIsWhatComesBackAndNoneOfItIsAPassword)
     ASSERT_TRUE(block.setParam("stationName", ParamValue::ofString("Night Shift")).has_value());
     ASSERT_TRUE(block.setParam("nowPlaying", ParamValue::ofEnum("file")).has_value());
     ASSERT_TRUE(block.setParam("nowPlayingFile", ParamValue::ofString("~/now.txt")).has_value());
+    EXPECT_EQ(block.param("nowPlayingPlayer").text(), "") << "a player is the session's own until one is named";
+    ASSERT_TRUE(block.setParam("nowPlaying", ParamValue::ofEnum("player")).has_value());
+    ASSERT_TRUE(block.setParam("nowPlayingPlayer", ParamValue::ofString("vlc")).has_value());
     EXPECT_FALSE(block.setParam("port", ParamValue::ofInt(70000)).has_value());
     EXPECT_FALSE(block.setParam("format", ParamValue::ofEnum("wav")).has_value());
     EXPECT_FALSE(block.setParam("password", ParamValue::ofString("hackme")).has_value())
@@ -205,6 +208,8 @@ TEST(BroadcastTest, WhatWasChosenIsWhatComesBackAndNoneOfItIsAPassword)
     EXPECT_EQ(opened.param("format").text(), "opus");
     EXPECT_EQ(opened.param("stationName").text(), "Night Shift");
     EXPECT_EQ(opened.param("nowPlayingFile").text(), "~/now.txt");
+    EXPECT_EQ(opened.param("nowPlaying").text(), "player");
+    EXPECT_EQ(opened.param("nowPlayingPlayer").text(), "vlc");
     for (const auto &[id, value] : block.saveState()) {
         EXPECT_EQ(id.find("password"), std::string::npos) << id;
     }
@@ -212,5 +217,6 @@ TEST(BroadcastTest, WhatWasChosenIsWhatComesBackAndNoneOfItIsAPassword)
         EXPECT_TRUE(descriptor.flags.automatable) << descriptor.id;
     }
     EXPECT_EQ(block.params()[Broadcast::NowPlayingFile].id, "nowPlayingFile");
+    EXPECT_EQ(block.params()[Broadcast::NowPlayingPlayer].id, "nowPlayingPlayer");
     EXPECT_EQ(block.params()[Broadcast::Server].id, "server");
 }

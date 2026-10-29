@@ -87,6 +87,12 @@ endif()
 if(RB_BUILD_BROADCAST)
     target_sources(reverblabr-pw-session-test PRIVATE test_broadcast.cpp)
     target_include_directories(reverblabr-pw-session-test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../unit/stream)
+    # Its title from a media player of the test's own, on the harness's
+    # private bus (tests/bus).
+    target_compile_definitions(reverblabr-pw-session-test PRIVATE
+        RB_FAKE_MPRIS_PLAYER="$<TARGET_FILE:reverblabr-fake-mpris-player>")
+    add_dependencies(reverblabr-pw-session-test reverblabr-fake-mpris-player)
+    target_link_libraries(reverblabr-pw-session-test PRIVATE Qt6::DBus)
 endif()
 # The CLAP sessions, where the build hosts CLAP plugins.
 if(RB_BUILD_CLAP)

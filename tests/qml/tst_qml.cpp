@@ -11,6 +11,7 @@
 #include "core/mockengine.h"
 #include "diagnostics.h"
 #include "fileactions.h"
+#include "mediaplayers.h"
 #include "recentapplications.h"
 #include "sessions.h"
 #include "systemdevicewriter.h"
@@ -220,6 +221,20 @@ private:
     QString m_lastAction;
     QString m_lastPath;
     QString m_failNext;
+};
+
+/// **The media players a test says are running**: never the ones on the
+/// session bus of whatever desktop the suite happens to run on.
+class FakeMediaPlayers : public QObject
+{
+    Q_OBJECT
+
+public:
+    /// `[{id, name, playing}]`, as ui::MediaPlayers has them.
+    Q_INVOKABLE void set(const QVariantList &players)
+    {
+        ui::MediaPlayers::instance()->setPlayersForTesting(players);
+    }
 };
 
 /// **Where the diagnostics bundle goes in a test**: never the
@@ -579,6 +594,7 @@ public Q_SLOTS:
             });
         FakeClipboard *clipboard = &m_clipboard;
         ui::Diagnostics::setClipboardSinkForTesting([clipboard](const QString &text) { clipboard->set(text); });
+        ui::MediaPlayers::instance()->setPlayersForTesting({});
         FakeHelper *helper = m_helper.get();
         ui::SystemDeviceWriter::setRunnerForTesting(
             [helper](const QVariantMap &arguments, QWindow *, ui::SystemDeviceWriter::Done done) {
@@ -598,6 +614,7 @@ public Q_SLOTS:
         engine->rootContext()->setContextProperty(u"TestHelper"_s, m_helper.get());
         engine->rootContext()->setContextProperty(u"TestFiles"_s, m_files.get());
         engine->rootContext()->setContextProperty(u"TestClipboard"_s, &m_clipboard);
+        engine->rootContext()->setContextProperty(u"TestPlayers"_s, &m_players);
         engine->rootContext()->setContextProperty(u"TestAccessibility"_s, &m_accessibility);
     }
 
@@ -607,6 +624,7 @@ private:
     std::unique_ptr<FakeHelper> m_helper;
     std::unique_ptr<FakeFileActions> m_files;
     FakeClipboard m_clipboard;
+    FakeMediaPlayers m_players;
     AccessibilityAudit m_accessibility;
     QTemporaryDir m_stateDirectory;
     KSharedConfig::Ptr m_state;

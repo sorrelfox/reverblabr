@@ -90,8 +90,14 @@ std::vector<ParamDescriptor> Broadcast::makeDescriptors()
     descriptors.push_back(std::move(listed));
 
     text("titleTemplate", kDefaultTitleTemplate);
-    choice("nowPlaying", {std::string{kNowPlayingNone}, std::string{kNowPlayingFile}}, kNowPlayingNone);
+    choice("nowPlaying",
+           {std::string{kNowPlayingNone}, std::string{kNowPlayingFile}, std::string{kNowPlayingPlayer}},
+           kNowPlayingNone);
     text("nowPlayingFile", {});
+    // **The player the session captures, unless one is named**: what
+    // somebody streaming the music they play means, and it follows them
+    // from one player to another.
+    text("nowPlayingPlayer", {});
     return descriptors;
 }
 

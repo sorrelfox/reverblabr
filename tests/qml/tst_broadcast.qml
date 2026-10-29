@@ -7,8 +7,9 @@
 
 // The Broadcast block's panel: every control writing the parameter it
 // names, the password going to the engine and never into the session, the
-// formats this system cannot make said so, and the state line and Status
-// tab following what the engine says the stream is doing.
+// formats this system cannot make said so, the media player a title
+// follows chosen from the ones running, and the state line and Status tab
+// following what the engine says the stream is doing.
 
 import QtQuick
 import QtQuick.Window
@@ -71,7 +72,8 @@ TestCase {
         TestEngine.stop(testCase.sessionId);
         TestEngine.setBroadcastPassword(testCase.sessionId, "air", "");
         SessionModel.setParams("air", [["server", "icecast"], ["format", "mp3"], ["bitrate", 128],
-                                       ["channels", "stereo"], ["nowPlaying", "none"]]);
+                                       ["channels", "stereo"], ["nowPlaying", "none"], ["nowPlayingPlayer", ""]]);
+        TestPlayers.set([]);
     }
 
     function test_itIsAnOutputWithAPanelOfItsOwn() {
@@ -196,6 +198,46 @@ TestCase {
         fields.genre.text = "Ambient";
         fields.genre.editingFinished();
         compare(SessionModel.param("air", "genre"), "Ambient");
+    }
+
+    // **A player from the ones running**, by the name it gives itself, the
+    // block holding its key; the automatic choice first, and a named
+    // player that has quit still shown as the block's choice.
+    function test_theTitleCanFollowAMediaPlayer() {
+        TestPlayers.set([{ id: "vlc", name: "VLC media player", playing: false },
+                         { id: "org.kde.elisa", name: "Elisa", playing: true }]);
+        const panel = testCase.makePanel();
+        panel.section = "metadata";
+        verify(!panel.playerBox.visible, "a player to follow, with the title from nowhere");
+        panel.nowPlayingBox.activated(panel.words.nowPlayingChoices.indexOf("player"));
+        compare(SessionModel.param("air", "nowPlaying"), "player");
+        tryVerify(() => panel.playerBox.visible, 1000);
+        verify(!panel.nowPlayingFileField.visible);
+        compare(panel.playerBox.model, ["The one this session captures", "VLC media player", "Elisa"]);
+        compare(panel.playerBox.currentIndex, 0);
+        verify(panel.playerLine.visible, "nothing says which player the automatic choice is");
+
+        panel.playerBox.activated(2);
+        compare(SessionModel.param("air", "nowPlayingPlayer"), "org.kde.elisa");
+        tryVerify(() => !panel.playerLine.visible, 1000);
+        compare(panel.playerBox.currentIndex, 2);
+
+        // Elisa quits and another player starts: the box still says Elisa.
+        TestPlayers.set([{ id: "vlc", name: "VLC media player", playing: true },
+                         { id: "spotify", name: "Spotify", playing: false }]);
+        tryCompare(panel.playerBox, "model", ["The one this session captures", "VLC media player", "Spotify",
+                                              "org.kde.elisa (not running)"]);
+        tryCompare(panel.playerBox, "currentIndex", 3);
+        panel.playerBox.activated(0);
+        compare(SessionModel.param("air", "nowPlayingPlayer"), "");
+        tryCompare(panel.playerBox, "model", ["The one this session captures", "VLC media player", "Spotify"]);
+
+        // A change from elsewhere (an undo, a second window) puts the box
+        // back with the block.
+        SessionModel.setParams("air", [["nowPlayingPlayer", "vlc"]]);
+        tryCompare(panel.playerBox, "currentIndex", 1);
+        panel.nowPlayingBox.activated(panel.words.nowPlayingChoices.indexOf("none"));
+        tryVerify(() => !panel.playerBox.visible && !panel.playerLine.visible, 1000);
     }
 
     function test_theStateLineAndTheStatusTabFollowTheStream() {

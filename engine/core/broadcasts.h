@@ -8,11 +8,14 @@
 #pragma once
 
 #include "core/blockcatalogue.h"
+#include "mpris/player.h"
 #include "stream/broadcaststream.h"
 #include "stream/streamencoder.h"
 
 #include <QJsonObject>
 #include <QString>
+
+#include <optional>
 
 namespace rb::dsp
 {
@@ -27,6 +30,18 @@ namespace rb::core
 /// the home folder, and is looked at only while the block's title comes
 /// from a file.
 [[nodiscard]] stream::BroadcastSettings broadcastSettings(const dsp::Block &block, const QString &sessionName);
+
+/// **The media player \a block's title follows**: a player key, or empty
+/// for the one the session captures (mpris::choosePlayer()). Nothing when
+/// its title does not come from a player.
+[[nodiscard]] std::optional<QString> broadcastPlayer(const dsp::Block &block);
+
+/// What an Application block captures, by the three names it stores, for
+/// choosing the player a title follows.
+[[nodiscard]] mpris::CapturedApplication capturedApplication(const dsp::Block &applicationSource);
+
+/// A player's track as a stream takes it.
+[[nodiscard]] stream::Track streamTrack(const mpris::Track &track);
 
 /// **Where a Broadcast block's password is kept** in the secret store:
 /// under the session and the block, so that two sessions streaming to two

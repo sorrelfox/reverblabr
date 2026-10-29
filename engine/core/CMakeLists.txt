@@ -102,6 +102,8 @@ target_link_libraries(reverblabr-engine
     # GUI in it, as the daemon the engine becomes allows.
     PRIVATE Qt6::Sql
     PRIVATE reverblabr-pw reverblabr-blocks reverblabr-record reverblabr-stream reverblabr-pluginproto reverblabr-version
+    # A Broadcast block's title, from the media player it follows.
+    PRIVATE reverblabr-mpris
 )
 # A Broadcast block's password, in the desktop's secret store (ADR-0026).
 if(RB_BUILD_BROADCAST)

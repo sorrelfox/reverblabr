@@ -39,6 +39,11 @@ ColumnLayout {
     readonly property bool icecast: panel.server === "icecast"
     readonly property string format: panel.params.format ?? "mp3"
     readonly property string nowPlaying: panel.params.nowPlaying ?? "none"
+    readonly property string nowPlayingPlayer: panel.params.nowPlayingPlayer ?? ""
+    /// The players a title can follow. **The bus is read only while the
+    /// title is to come from one**: until then MediaPlayers is never asked.
+    readonly property var playerChoices: words.playerChoices(
+        panel.nowPlaying === "player" ? MediaPlayers.players : [], panel.nowPlayingPlayer)
     readonly property bool mono: (panel.params.channels ?? "stereo") === "mono"
     /// **Only the rates the format takes for so many channels**, which the
     /// engine says: Vorbis wants more than 32 kbit/s for stereo and takes
@@ -84,6 +89,8 @@ ColumnLayout {
     readonly property alias templateField: templateControl
     readonly property alias nowPlayingBox: nowPlayingControl
     readonly property alias nowPlayingFileField: nowPlayingFileControl
+    readonly property alias playerBox: playerControl
+    readonly property alias playerLine: playerHint
     readonly property alias titleLine: titleText
     readonly property alias statusGrid: statusGrid
     readonly property alias sentLabel: sentText
@@ -664,6 +671,45 @@ ColumnLayout {
                 QQC2.ToolTip.visible: hovered
                 onClicked: fileDialog.open()
             }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: AppMetrics.labelSpacing
+            visible: panel.nowPlaying === "player"
+
+            FieldLabel {
+                text: KI18n.i18nc("@label:listbox the media player a stream's title follows", "Player")
+            }
+
+            QQC2.ComboBox {
+                id: playerControl
+
+                Layout.preferredWidth: 1
+                Layout.fillWidth: true
+                model: panel.playerChoices.map(choice => choice.name)
+                Accessible.name: KI18n.i18nc("@label:listbox", "Player")
+                onActivated: index => panel.set("nowPlayingPlayer", panel.playerChoices[index].id)
+                // **A player that comes or goes is a new list**, which puts
+                // the box back to its first line whatever the block holds.
+                onModelChanged: Qt.callLater(playerBound.settle)
+
+                SessionBound {
+                    id: playerBound
+
+                    control: playerControl
+                    property: "currentIndex"
+                    value: panel.playerChoices.findIndex(choice => choice.id === panel.nowPlayingPlayer)
+                }
+            }
+        }
+
+        InfoLine {
+            id: playerHint
+
+            visible: panel.nowPlaying === "player" && panel.nowPlayingPlayer === ""
+            text: KI18n.i18nc("@info how a stream's title picks the media player it follows",
+                              "A player this session's Application blocks capture, or the one playing when they capture none.")
         }
 
         InfoLine {

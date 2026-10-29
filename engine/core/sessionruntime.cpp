@@ -18,6 +18,8 @@
 #include "graph/compiledgraph.h"
 #include "graph/graphdiff.h"
 #include "graph/segments.h"
+#include "mpris/playerwatcher.h"
+#include "mpris/trackfeed.h"
 #include "plugin/formats.h"
 #include "pw/connection.h"
 #include "pw/feedbackguard.h"
@@ -29,6 +31,7 @@
 #include "rt/meter.h"
 #include "stream/broadcaststream.h"
 
+#include <QDBusConnection>
 #include <QElapsedTimer>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -392,6 +395,12 @@ public:
     /// **After what they report to, so they go first**: a stream's thread
     /// says it has stopped as it stops.
     std::map<std::uint64_t, std::unique_ptr<stream::BroadcastStream>> broadcasts;
+    /// **The media players on the session bus, only while a stream's title
+    /// follows one**, and what each such stream follows, by its key. The
+    /// feeds hand their tracks to the streams, so they go before them, and
+    /// they listen to the watcher, so they go before it too.
+    std::unique_ptr<mpris::PlayerWatcher> players;
+    std::map<std::uint64_t, std::unique_ptr<mpris::TrackFeed>> feeds;
 
     /// **Last, so it goes first**: its thread may still be reporting while
     /// it finishes, and what it reports to must outlive it.
@@ -954,6 +963,58 @@ public:
             }
             broadcasts.emplace(key, std::move(made));
         }
+        followPlayers();
+    }
+
+    /// **Gives every stream whose title follows a media player a feed of
+    /// its own, and tells each which player that is**: the one its block
+    /// names, or one of those the session's Application blocks capture.
+    /// The players are watched only while there is a feed. A stream whose
+    /// title stops following a player forgets the player's last track,
+    /// unless a file has taken over already.
+    void followPlayers()
+    {
+        std::vector<mpris::CapturedApplication> captured;
+        for (const Instance &instance : instances) {
+            if (instance.enabled && instance.type.toStdString() == blocks::ApplicationSource::kTypeId) {
+                captured.push_back(capturedApplication(*instance.block));
+            }
+        }
+        for (const Instance &instance : instances) {
+            if (instance.broadcastKey == 0) {
+                continue;
+            }
+            const std::uint64_t key = instance.broadcastKey;
+            const std::optional<QString> wanted = broadcastPlayer(*instance.block);
+            auto feed = feeds.find(key);
+            if (!wanted) {
+                if (feed != feeds.end()) {
+                    feeds.erase(feed);
+                    if (broadcastSettings(*instance.block, session.name).nowPlayingFile.empty()) {
+                        broadcasts.at(key)->setNowPlaying({});
+                    }
+                }
+                continue;
+            }
+            if (feed == feeds.end()) {
+                if (!players) {
+                    players = std::make_unique<mpris::PlayerWatcher>(QDBusConnection::sessionBus());
+                }
+                auto made = std::make_unique<mpris::TrackFeed>(*players);
+                QObject::connect(
+                    made.get(), &mpris::TrackFeed::trackChanged, q, [this, key](const mpris::Track &track) {
+                        if (const auto found = broadcasts.find(key); found != broadcasts.end()) {
+                            found->second->setNowPlaying(streamTrack(track));
+                        }
+                    });
+                feed = feeds.emplace(key, std::move(made)).first;
+            }
+            feed->second->setChoice(*wanted, captured);
+        }
+        std::erase_if(feeds, [this](const auto &entry) { return !broadcasts.contains(entry.first); });
+        if (feeds.empty()) {
+            players.reset();
+        }
     }
 
     /// Stops the streams of Broadcast blocks that have been switched off or
@@ -985,7 +1046,11 @@ public:
             }
         }
         for (const std::uint64_t key : keys) {
+            feeds.erase(key);
             broadcasts.erase(key);
+        }
+        if (feeds.empty()) {
+            players.reset();
         }
     }
 
@@ -1933,6 +1998,11 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     // connection.
     if (d->running && instance->broadcastKey != 0) {
         d->broadcasts.at(instance->broadcastKey)->configure(broadcastSettings(*instance->block, d->session.name));
+    }
+    // And to the player its title follows, which an Application block's
+    // names can change too.
+    if (d->running && (instance->broadcastKey != 0 || !d->feeds.empty())) {
+        d->followPlayers();
     }
 
     // **A parameter the session plan reads is not queued.** Nothing on the

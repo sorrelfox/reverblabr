@@ -391,6 +391,8 @@ target_sources(reverblabr-ui PRIVATE
     recordingstatus.h
     broadcaststatus.cpp
     broadcaststatus.h
+    mediaplayers.cpp
+    mediaplayers.h
     sessionoverview.cpp
     sessionoverview.h
     trayicon.cpp
@@ -429,6 +431,8 @@ target_link_libraries(reverblabr-ui
         # The bit rates a Broadcast block's format takes, from the stream's
         # own table.
         reverblabr-stream
+        # The media players a Broadcast block's title can follow.
+        reverblabr-mpris
         # What is worth a desktop notification, and its words, shared
         # with the daemon; the notifier's header is one main.cpp includes.
         reverblabr-notify
