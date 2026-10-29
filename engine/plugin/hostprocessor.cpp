@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <thread>
 
 namespace rb::plugin
 {
@@ -68,11 +69,25 @@ void HostProcessor::process(std::span<float *const> inputs,
         silence(outputs, frames);
         return;
     }
+    // **Held**: the main thread is changing the plugin in place. Said busy
+    // first and the hold read after, so either this cycle sees the hold or
+    // the main thread sees this cycle, never neither.
+    m_busy.store(true);
+    if (m_held.load()) {
+        m_busy.store(false);
+        silence(outputs, frames);
+        return;
+    }
 
     // Every change that arrived before this cycle, heard from its first
-    // sample.
+    // sample: the engine's, then the plugin window's.
     ParamChange change;
     while (popParam(m_shared, change)) {
+        if (change.index < m_paramCount) {
+            m_block->applyParam(change.index, change.value);
+        }
+    }
+    while (m_fromHost.tryPop(change)) {
         if (change.index < m_paramCount) {
             m_block->applyParam(change.index, change.value);
         }
@@ -88,6 +103,30 @@ void HostProcessor::process(std::span<float *const> inputs,
                                 dsp::AudioBlock{out.data(), static_cast<std::uint32_t>(outCount), frames},
                                 frames};
     m_block->process(context);
+    m_busy.store(false, std::memory_order_release);
+}
+
+bool HostProcessor::pushFromHost(const ParamChange &change) noexcept
+{
+    return m_fromHost.tryPush(change);
+}
+
+bool HostProcessor::fromHostDrained() const noexcept
+{
+    return m_fromHost.isEmpty();
+}
+
+void HostProcessor::hold() noexcept
+{
+    m_held.store(true);
+    while (m_busy.load()) {
+        std::this_thread::yield();
+    }
+}
+
+void HostProcessor::release() noexcept
+{
+    m_held.store(false);
 }
 
 } // namespace rb::plugin

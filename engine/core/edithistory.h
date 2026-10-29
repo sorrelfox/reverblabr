@@ -67,6 +67,8 @@ public:
     static constexpr std::size_t kLimit = 200;
     /// How long after an edit a like edit still belongs to the same gesture.
     static constexpr std::chrono::milliseconds kGesture{500};
+    /// The longest rest inside a gesture somebody said has started.
+    static constexpr std::chrono::milliseconds kHeldGesture{30000};
 
     EditHistory();
 
@@ -89,6 +91,16 @@ public:
     /// Ends the gesture under way, so that the next edit starts a step of
     /// its own however soon it arrives.
     void endGesture();
+
+    /// **Starts a gesture somebody said has started**: a plugin's own
+    /// window says when a control is taken hold of and let go of, which is
+    /// better than guessing from time. Until it is said to end, every turn
+    /// of parameter \a key of \a blockId is one step, however long the hand
+    /// rests in the middle, up to kHeldGesture between two turns: a window
+    /// that never says it let go does not hold the history for ever.
+    void beginGesture(const QString &blockId, const QString &key);
+    /// Ends that gesture; an end for another parameter is ignored.
+    void endGesture(const QString &blockId, const QString &key);
 
     [[nodiscard]] bool canUndo() const;
     [[nodiscard]] bool canRedo() const;
@@ -129,6 +141,9 @@ private:
     std::function<std::int64_t()> m_clock;
     std::int64_t m_lastEdit = 0;
     bool m_open = false; ///< Whether a gesture is under way.
+    bool m_said = false; ///< Whether it was begun by beginGesture().
+    QString m_saidBlock; ///< Which parameter of which block it holds.
+    QString m_saidKey;
 };
 
 /// What a client is told about the stacks, and what the engine keeps so

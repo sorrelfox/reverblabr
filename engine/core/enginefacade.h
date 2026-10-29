@@ -145,6 +145,21 @@ public Q_SLOTS:
     /// **Starts a plugin block's plugin again**, after its host
     /// crashed or stopped responding. Refused with plugin.restartRefused.
     virtual void restartPlugin(const QString &sessionId, const QString &blockId) = 0;
+    /// **Shows or closes a plugin block's own window**, which its host
+    /// makes as a window of its own. Answered by pluginWindowChanged().
+    virtual void setPluginWindow(const QString &sessionId, const QString &blockId, bool open) = 0;
+    /// **A plugin block's own presets**, its format's, as
+    /// pluginPresetsListed(). Refused with plugin.presetRefused.
+    virtual void listPluginPresets(const QString &sessionId, const QString &blockId) = 0;
+    /// Puts one of them on the block, as **one undoable edit**: its
+    /// values arrive as patches, and pluginPresetShown() names it.
+    virtual void loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId) = 0;
+    /// Keeps what the plugin is set to as a preset of its format called
+    /// \a name, where other hosts of that format find it (an LV2 plugin's
+    /// in ~/.lv2). Answered by pluginPresetsListed() with it in, or
+    /// plugin.presetRefused. A format that has no such place keeps its
+    /// presets with ours, through savePreset().
+    virtual void savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name) = 0;
     /// **Takes \a blockId's live spectra and band values into the session's
     /// telemetry** from now on, or nobody's when it is empty:
     /// the spectrum after the block and the one before it, of \a channel —
@@ -334,6 +349,15 @@ Q_SIGNALS:
     /// A timer has started its session (\a started), or found it running
     /// already and left it to whoever started it.
     void timerFired(const QString &timerId, const QString &sessionId, bool started);
+    /// **A plugin block's own window was shown, or has gone**: \a reason
+    /// says why it is not showing — "closed", "unavailable" (the plugin has
+    /// none that can be shown here), "failed", "crashed" or "notRunning".
+    void pluginWindowChanged(const QString &sessionId, const QString &blockId, bool open, const QString &reason);
+    /// A plugin block's own presets, as a JSON array of `{id, name}`.
+    void pluginPresetsListed(const QString &sessionId, const QString &blockId, const QString &presetsJson);
+    /// The plugin's own preset a block's settings are, or empty when they
+    /// are none of its presets.
+    void pluginPresetShown(const QString &sessionId, const QString &blockId, const QString &presetId);
     /// A dotted code and its arguments as a JSON object, **never text for a
     /// person to read**: the engine has no idea what language anybody
     /// speaks. The GUI holds the messages.

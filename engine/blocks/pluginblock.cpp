@@ -14,6 +14,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <utility>
 
 namespace rb::blocks
@@ -252,6 +253,46 @@ std::optional<std::uint32_t> PluginBlock::pluginParamIndex(std::uint32_t index) 
         return std::nullopt;
     }
     return index - kOwnParams;
+}
+
+std::optional<ParamValue> PluginBlock::valueFromPlugin(std::string_view id, float value) const
+{
+    const auto found = std::ranges::find_if(m_descriptors, [id](const ParamDescriptor &d) { return d.id == id; });
+    if (found == m_descriptors.end() || std::distance(m_descriptors.begin(), found) < kOwnParams
+        || !std::isfinite(value)) {
+        return std::nullopt;
+    }
+    const ParamDescriptor &descriptor = *found;
+    switch (descriptor.type) {
+    case ParamType::Bool:
+        return ParamValue::ofBool(value >= 0.5f);
+    case ParamType::Int: {
+        const std::int64_t low = descriptor.minimum.asInt().value_or(0);
+        const std::int64_t high = descriptor.maximum.asInt().value_or(0);
+        return ParamValue::ofInt(std::clamp(static_cast<std::int64_t>(std::lround(value)), low, high));
+    }
+    case ParamType::Float: {
+        const auto low = static_cast<float>(descriptor.minimum.asNumber().value_or(value));
+        const auto high = static_cast<float>(descriptor.maximum.asNumber().value_or(value));
+        return ParamValue::ofFloat(std::clamp(value, std::min(low, high), std::max(low, high)));
+    }
+    case ParamType::Enum: {
+        // The choices are the plugin's values, written as the scan wrote
+        // them: the nearest is the one the plugin is on.
+        const std::string *nearest = nullptr;
+        float distance = 0.0f;
+        for (const std::string &choice : descriptor.choices) {
+            const float away = std::abs(std::strtof(choice.c_str(), nullptr) - value);
+            if (nearest == nullptr || away < distance) {
+                nearest = &choice;
+                distance = away;
+            }
+        }
+        return nearest != nullptr ? std::optional{ParamValue::ofEnum(*nearest)} : std::nullopt;
+    }
+    default:
+        return std::nullopt;
+    }
 }
 
 std::expected<void, BlockError> PluginBlock::prepare(const PrepareSpec &spec)

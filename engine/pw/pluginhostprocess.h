@@ -7,7 +7,9 @@
 
 #pragma once
 
+#include <QList>
 #include <QObject>
+#include <QPair>
 #include <QString>
 
 #include <chrono>
@@ -118,6 +120,19 @@ public:
     /// the host says meanwhile is still said, as signals.
     [[nodiscard]] std::optional<QString> stateNow(std::chrono::milliseconds timeout = std::chrono::milliseconds{250});
 
+    /// **The plugin's own window**, shown and closed by the host. Answered
+    /// by uiOpened(), or uiClosed() when it cannot be shown.
+    void openUi();
+    void closeUi();
+
+    /// **The plugin's own presets**: listed (presetsListed()), one put in
+    /// (its values arrive as valuesChanged(), then presetShown()), and the
+    /// settings kept as one where other hosts of the format find them
+    /// (presetSaved()).
+    void listPresets();
+    void loadPreset(const QString &presetId);
+    void savePreset(const QString &name);
+
     /// **Watches for a host that has stopped running.** \a upstreamCycles
     /// says how many cycles the audio feeding the host has run; when it
     /// moves on by \a stalledCycles while the host's heartbeat stands still,
@@ -158,6 +173,28 @@ Q_SIGNALS:
     void exited(int exitCode, bool crashed);
     /// Its heartbeat stopped while the audio feeding it went on.
     void hung();
+
+    /// The plugin's window is showing.
+    void uiOpened();
+    /// It has gone, or could not be shown: \a reason is "closed",
+    /// "unavailable" or "failed" (also when no answer came in time).
+    void uiClosed(const QString &reason);
+    /// **A person moved a control in the plugin's window**: \a paramId is
+    /// \a value as the plugin has it. The plugin has it already.
+    void paramChanged(const QString &paramId, float value);
+    /// A person took hold of that control, or let go of it.
+    void paramGesture(const QString &paramId, bool begin);
+    /// **The plugin's values, changed together**: \a edit when a person
+    /// did it, otherwise what something asked of the host led to.
+    void valuesChanged(bool edit, const QList<QPair<QString, float>> &values);
+    /// The plugin's own presets, `{id, name}` each.
+    void presetsListed(const QList<QPair<QString, QString>> &presets);
+    /// The host could not send them (too many), or did not answer.
+    void presetsRefused();
+    /// The plugin's preset its settings are now, or empty for none.
+    void presetShown(const QString &presetId);
+    /// The id of the preset savePreset() wrote, or empty when it could not.
+    void presetSaved(const QString &presetId);
 
 private:
     class Private;

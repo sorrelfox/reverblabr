@@ -17,6 +17,7 @@
 #include <KLazyLocalizedString>
 #include <KLocalizedString>
 #include <QDateTime>
+#include <QHash>
 #include <QJSValue>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -108,6 +109,14 @@ public:
     bool canRedo = false;
     QString undoCode;
     QString redoCode;
+
+    /// What the engine last said of each plugin block's own window and
+    /// presets, by block id.
+    int pluginRevision = 0;
+    QHash<QString, bool> windowOpen;
+    QHash<QString, QString> windowReason;
+    QHash<QString, QVariantList> pluginPresets;
+    QHash<QString, QString> presetShown;
 
     void send(const QString &blockId, const QString &paramId, const QVariant &raw)
     {
@@ -256,6 +265,41 @@ void SessionModel::attach(core::EngineFacade *facade)
             });
 
     connect(facade,
+            &core::EngineFacade::pluginWindowChanged,
+            this,
+            [this](const QString &id, const QString &blockId, bool open, const QString &reason) {
+                if (id != d->sessionId) {
+                    return;
+                }
+                d->windowOpen.insert(blockId, open);
+                d->windowReason.insert(blockId, reason);
+                ++d->pluginRevision;
+                Q_EMIT pluginChanged();
+            });
+    connect(facade,
+            &core::EngineFacade::pluginPresetsListed,
+            this,
+            [this](const QString &id, const QString &blockId, const QString &presetsJson) {
+                if (id != d->sessionId) {
+                    return;
+                }
+                d->pluginPresets.insert(blockId, QJsonDocument::fromJson(presetsJson.toUtf8()).array().toVariantList());
+                ++d->pluginRevision;
+                Q_EMIT pluginChanged();
+            });
+    connect(facade,
+            &core::EngineFacade::pluginPresetShown,
+            this,
+            [this](const QString &id, const QString &blockId, const QString &presetId) {
+                if (id != d->sessionId) {
+                    return;
+                }
+                d->presetShown.insert(blockId, presetId);
+                ++d->pluginRevision;
+                Q_EMIT pluginChanged();
+            });
+
+    connect(facade,
             &core::EngineFacade::undoStateChanged,
             this,
             [this](const QString &id, bool canUndo, const QString &undoCode, bool canRedo, const QString &redoCode) {
@@ -292,6 +336,11 @@ void SessionModel::setSessionId(const QString &sessionId)
     d->canRedo = false;
     d->undoCode.clear();
     d->redoCode.clear();
+    d->windowOpen.clear();
+    d->windowReason.clear();
+    d->pluginPresets.clear();
+    d->presetShown.clear();
+    ++d->pluginRevision;
     if (d->facade && !sessionId.isEmpty()) {
         d->facade->resynchronise(sessionId);
         d->facade->getUndoState(sessionId);
@@ -299,6 +348,7 @@ void SessionModel::setSessionId(const QString &sessionId)
     Q_EMIT sessionChanged();
     Q_EMIT changed();
     Q_EMIT undoStateChanged();
+    Q_EMIT pluginChanged();
 }
 
 bool SessionModel::canUndo() const
@@ -330,6 +380,59 @@ void SessionModel::restartPlugin(const QString &blockId)
     if (d->facade && !d->sessionId.isEmpty()) {
         d->facade->restartPlugin(d->sessionId, blockId);
     }
+}
+
+int SessionModel::pluginRevision() const
+{
+    return d->pluginRevision;
+}
+
+void SessionModel::setPluginWindow(const QString &blockId, bool open)
+{
+    if (d->facade && !d->sessionId.isEmpty()) {
+        d->facade->setPluginWindow(d->sessionId, blockId, open);
+    }
+}
+
+bool SessionModel::pluginWindowOpen(const QString &blockId) const
+{
+    return d->windowOpen.value(blockId, false);
+}
+
+QString SessionModel::pluginWindowReason(const QString &blockId) const
+{
+    return d->windowReason.value(blockId);
+}
+
+void SessionModel::listPluginPresets(const QString &blockId)
+{
+    if (d->facade && !d->sessionId.isEmpty()) {
+        d->facade->listPluginPresets(d->sessionId, blockId);
+    }
+}
+
+QVariantList SessionModel::pluginPresets(const QString &blockId) const
+{
+    return d->pluginPresets.value(blockId);
+}
+
+void SessionModel::loadPluginPreset(const QString &blockId, const QString &presetId)
+{
+    if (d->facade && !d->sessionId.isEmpty()) {
+        d->facade->loadPluginPreset(d->sessionId, blockId, presetId);
+    }
+}
+
+void SessionModel::savePluginPreset(const QString &blockId, const QString &name)
+{
+    if (d->facade && !d->sessionId.isEmpty() && !name.trimmed().isEmpty()) {
+        d->facade->savePluginPreset(d->sessionId, blockId, name.trimmed());
+    }
+}
+
+QString SessionModel::pluginPresetShown(const QString &blockId) const
+{
+    return d->presetShown.value(blockId);
 }
 
 void SessionModel::undo()

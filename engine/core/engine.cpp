@@ -8,6 +8,7 @@
 #include "core/engine.h"
 
 #include "blocks/broadcast.h"
+#include "blocks/pluginblock.h"
 #include "buildversion.h"
 #include "core/audiosystem.h"
 #include "core/blockcatalogue.h"
@@ -109,6 +110,9 @@ public:
         /// What was last said about the history, so that a drag of a knob
         /// does not send the same answer a hundred times.
         UndoState announced;
+        /// The blocks whose plugin's own preset was asked for, and whose
+        /// values have not come back yet: what comes is that edit.
+        QSet<QString> loadingPreset;
     };
 
     Engine *q = nullptr;
@@ -472,14 +476,71 @@ public:
     /// recompile per command.
     void pushParam(Open &session, const EditCommand &command)
     {
-        const auto *param = std::get_if<SetParam>(&command);
-        if (param == nullptr || !session.runtime) {
+        if (!session.runtime) {
             return;
         }
-        if (const std::expected<ParamEffect, dsp::BlockError> set =
-                session.runtime->setParam(param->blockId, param->key, param->value);
-            !set) {
-            fail(ErrorCode::EditRefused, {asText(dsp::blockErrorName(set.error()))});
+        const auto push = [this, &session](const QString &blockId, const QString &key, const QJsonValue &value) {
+            if (const std::expected<ParamEffect, dsp::BlockError> set = session.runtime->setParam(blockId, key, value);
+                !set) {
+                fail(ErrorCode::EditRefused, {asText(dsp::blockErrorName(set.error()))});
+            }
+        };
+        if (const auto *param = std::get_if<SetParam>(&command); param != nullptr) {
+            push(param->blockId, param->key, param->value);
+            return;
+        }
+        // **A preset reaches the running block too**, every value it sets
+        // and every one it clears (nothing, which is the default). Which
+        // plugin first, then its state, then the rest: a plugin block's
+        // settings mean something only for its plugin, and the values
+        // after a state are held back until it is in.
+        const auto *preset = std::get_if<ApplyPreset>(&command);
+        if (preset == nullptr) {
+            return;
+        }
+        QStringList keys = preset->params.keys();
+        std::ranges::stable_partition(keys, [](const QString &key) { return key == "plugin"_L1 || key == "state"_L1; });
+        if (keys.size() > 1 && keys.at(0) == "state"_L1 && keys.at(1) == "plugin"_L1) {
+            keys.swapItemsAt(0, 1);
+        }
+        for (const QString &key : keys) {
+            push(preset->blockId, key, preset->params.value(key));
+        }
+        for (const QString &key : preset->clear) {
+            push(preset->blockId, key, QJsonValue{QJsonValue::Null});
+        }
+    }
+
+    /// **Values from a plugin's own side**, into the session: the plugin
+    /// and the block have them already, so nothing is sent back to the
+    /// host, but every client is told, one patch per command. \a edit puts
+    /// them on the undo stack as one step, or into the gesture under way —
+    /// a control dragged in the plugin's window; otherwise they only follow
+    /// what something else did (a state put back) and are nobody's edit.
+    void takeFromPlugin(Open &session, const std::vector<EditCommand> &commands, bool edit)
+    {
+        if (commands.empty()) {
+            return;
+        }
+        const QString id = session.session.id.toString(QUuid::WithoutBraces);
+        const std::uint64_t startedAt = session.session.revision;
+        Session trial = session.session;
+        const std::expected<EditInverse, EditBatchError> applied = applyEdits(trial, commands);
+        if (!applied) {
+            return; // a block the session no longer has
+        }
+        session.session = std::move(trial);
+        if (edit) {
+            if (commands.size() == 1) {
+                session.history.record(commands.front(), *applied);
+            } else {
+                session.history.record(commands, *applied);
+            }
+            announceUndo(session);
+        }
+        markUnsaved(id);
+        for (std::size_t index = 0; index < commands.size(); ++index) {
+            Q_EMIT q->sessionPatch(id, startedAt + index + 1, asJson(editCommandToJson(commands[index])));
         }
     }
 
@@ -981,6 +1042,13 @@ void Engine::applyPreset(const QString &sessionId, const QString &blockId, const
         d->fail(ErrorCode::PresetRefused, {presetId, asText(presetErrorName(PresetError::NotFound))});
         return;
     }
+    // **What a plugin holds now is taken first**, so that undoing the
+    // preset puts back the plugin's own state as it was, not as it was when
+    // the session was last saved.
+    if (blocks::PluginBlock::isPluginType(block->type.toStdString())) {
+        d->collectBlockState(*session);
+        block = session->session.findBlock(blockId);
+    }
     const std::expected<Preset, PresetError> preset = d->presets.preset(block->type, presetId);
     if (!preset) {
         d->fail(ErrorCode::PresetRefused, {presetId, asText(presetErrorName(preset.error()))});
@@ -1003,6 +1071,11 @@ void Engine::savePreset(const QString &sessionId, const QString &blockId, const 
     Private::Open *session = d->require(sessionId);
     if (session == nullptr) {
         return;
+    }
+    // A plugin's state as it is now, for a preset of a plugin block.
+    if (const BlockInstance *block = session->session.findBlock(blockId);
+        block != nullptr && blocks::PluginBlock::isPluginType(block->type.toStdString())) {
+        d->collectBlockState(*session);
     }
     const std::expected<Preset, PresetError> preset = presetOfBlock(d->registry, session->session, blockId, name);
     if (!preset) {
@@ -1313,6 +1386,65 @@ void Engine::restartPlugin(const QString &sessionId, const QString &blockId)
     }
 }
 
+void Engine::setPluginWindow(const QString &sessionId, const QString &blockId, bool open)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    // **Refused as a window that is not showing**, with the reason: a
+    // panel's button follows the answer whatever it is.
+    const std::expected<void, QString> done =
+        session->runtime ? session->runtime->setPluginWindow(blockId, open) : std::unexpected(u"NotRunning"_s);
+    if (!done) {
+        Q_EMIT pluginWindowChanged(
+            sessionId, blockId, false, done.error() == "NotRunning"_L1 ? u"notRunning"_s : u"unavailable"_s);
+    }
+}
+
+void Engine::listPluginPresets(const QString &sessionId, const QString &blockId)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    const std::expected<void, QString> done =
+        session->runtime ? session->runtime->listPluginPresets(blockId) : std::unexpected(u"NotRunning"_s);
+    if (!done) {
+        d->fail(ErrorCode::PluginPresetRefused, {QString{}, done.error()}, blockId);
+    }
+}
+
+void Engine::loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    // The plugin's state as it is now, in the session, for the undo.
+    d->collectBlockState(*session);
+    const std::expected<void, QString> done =
+        session->runtime ? session->runtime->loadPluginPreset(blockId, presetId) : std::unexpected(u"NotRunning"_s);
+    if (!done) {
+        d->fail(ErrorCode::PluginPresetRefused, {presetId, done.error()}, blockId);
+        return;
+    }
+    session->loadingPreset.insert(blockId);
+}
+
+void Engine::savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    const std::expected<void, QString> done =
+        session->runtime ? session->runtime->savePluginPreset(blockId, name) : std::unexpected(u"NotRunning"_s);
+    if (!done) {
+        d->fail(ErrorCode::PluginPresetRefused, {name, done.error()}, blockId);
+    }
+}
+
 void Engine::analyse(const QString &sessionId, const QString &blockId, int channel)
 {
     Private::Open *session = d->require(sessionId);
@@ -1402,6 +1534,93 @@ void Engine::start(const QString &sessionId)
                     d->fail(reason == "hung"_L1 ? ErrorCode::PluginStoppedResponding : ErrorCode::PluginCrashed,
                             {plugin},
                             blockId);
+                });
+        // **A plugin's own window, and what is done in it.**
+        connect(session->runtime.get(),
+                &SessionRuntime::pluginWindowChanged,
+                this,
+                [this, sessionId](const QString &blockId, bool open, const QString &reason) {
+                    // **A window that has gone lets go of what it held**:
+                    // closed, failed or its host down, it will never say.
+                    if (Private::Open *session = d->find(sessionId); session != nullptr && !open) {
+                        session->history.endGesture();
+                    }
+                    Q_EMIT pluginWindowChanged(sessionId, blockId, open, reason);
+                });
+        connect(session->runtime.get(),
+                &SessionRuntime::pluginParamChanged,
+                this,
+                [this, sessionId](const QString &blockId, const QString &paramId, const QJsonValue &value) {
+                    if (Private::Open *open = d->find(sessionId); open != nullptr) {
+                        d->takeFromPlugin(*open, {SetParam{blockId, paramId, value}}, true);
+                    }
+                });
+        connect(session->runtime.get(),
+                &SessionRuntime::pluginGesture,
+                this,
+                [this, sessionId](const QString &blockId, const QString &paramId, bool begin) {
+                    if (Private::Open *open = d->find(sessionId); open != nullptr) {
+                        if (begin) {
+                            open->history.beginGesture(blockId, paramId);
+                        } else {
+                            open->history.endGesture(blockId, paramId);
+                        }
+                    }
+                });
+        connect(session->runtime.get(),
+                &SessionRuntime::pluginValuesChanged,
+                this,
+                [this, sessionId](const QString &blockId, const QJsonObject &values, bool edit) {
+                    Private::Open *open = d->find(sessionId);
+                    if (open == nullptr) {
+                        return;
+                    }
+                    std::vector<EditCommand> commands;
+                    // **A preset put in is undone with the plugin's state**:
+                    // what a preset sets beyond the settings (an LSP
+                    // plugin's files and graphs) comes back only with it.
+                    // The state before was taken when it was asked for.
+                    if (edit && open->loadingPreset.remove(blockId) && open->runtime) {
+                        const QJsonValue state = open->runtime->blockState().value(blockId).value(u"state"_s);
+                        if (state.isString()) {
+                            commands.emplace_back(SetParam{blockId, u"state"_s, state});
+                        }
+                    }
+                    for (auto value = values.begin(); value != values.end(); ++value) {
+                        commands.emplace_back(SetParam{blockId, value.key(), value.value()});
+                    }
+                    d->takeFromPlugin(*open, commands, edit);
+                });
+        connect(session->runtime.get(),
+                &SessionRuntime::pluginPresetsListed,
+                this,
+                [this, sessionId](const QString &blockId, const QJsonArray &presets) {
+                    Q_EMIT pluginPresetsListed(sessionId, blockId, asJson(presets));
+                });
+        connect(session->runtime.get(), &SessionRuntime::pluginPresetsRefused, this, [this](const QString &blockId) {
+            d->fail(ErrorCode::PluginPresetRefused, {QString{}, u"notListed"_s}, blockId);
+        });
+        connect(session->runtime.get(),
+                &SessionRuntime::pluginPresetShown,
+                this,
+                [this, sessionId](const QString &blockId, const QString &presetId) {
+                    // Said after the values, or instead of them when it was
+                    // refused: no longer waited for either way.
+                    if (Private::Open *open = d->find(sessionId); open != nullptr) {
+                        open->loadingPreset.remove(blockId);
+                    }
+                    Q_EMIT pluginPresetShown(sessionId, blockId, presetId);
+                });
+        connect(session->runtime.get(),
+                &SessionRuntime::pluginPresetSaved,
+                this,
+                [this, sessionId](const QString &blockId, const QString &presetId) {
+                    if (presetId.isEmpty()) {
+                        d->fail(ErrorCode::PluginPresetRefused, {QString{}, u"notSaved"_s}, blockId);
+                        return;
+                    }
+                    // The list with it in, which is what a panel shows.
+                    listPluginPresets(sessionId, blockId);
                 });
         connect(session->runtime.get(),
                 &SessionRuntime::noticed,

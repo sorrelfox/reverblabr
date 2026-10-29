@@ -1406,6 +1406,85 @@ void MockEngine::restartPlugin(const QString &sessionId, const QString &blockId)
     }
 }
 
+namespace
+{
+
+/// Why the engine would refuse to ask \a blockId's host anything, in the
+/// engine's words, or empty when it would ask.
+[[nodiscard]] QString hostRefusal(const QString &state, const BlockInstance *block)
+{
+    if (state != sessionState::running) {
+        return u"NotRunning"_s;
+    }
+    if (block == nullptr) {
+        return u"blockNotFound"_s;
+    }
+    if (!block->type.startsWith("plugin."_L1) || !block->enabled) {
+        return u"notAHostedPlugin"_s;
+    }
+    return {};
+}
+
+} // namespace
+
+void MockEngine::setPluginWindow(const QString &sessionId, const QString &blockId, bool open)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    // **A window the mock has none of is said to show**, so an interface
+    // can follow the answer as it would the engine's.
+    const QString refused = hostRefusal(session->state, session->session.findBlock(blockId));
+    if (!refused.isEmpty()) {
+        Q_EMIT pluginWindowChanged(
+            sessionId, blockId, false, refused == "NotRunning"_L1 ? u"notRunning"_s : u"unavailable"_s);
+        return;
+    }
+    Q_EMIT pluginWindowChanged(sessionId, blockId, open, open ? QString{} : u"closed"_s);
+}
+
+void MockEngine::listPluginPresets(const QString &sessionId, const QString &blockId)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    if (const QString refused = hostRefusal(session->state, session->session.findBlock(blockId)); !refused.isEmpty()) {
+        d->fail(ErrorCode::PluginPresetRefused, {QString{}, refused}, blockId);
+        return;
+    }
+    Q_EMIT pluginPresetsListed(sessionId, blockId, asJson(QJsonArray{}));
+}
+
+void MockEngine::loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    if (const QString refused = hostRefusal(session->state, session->session.findBlock(blockId)); !refused.isEmpty()) {
+        d->fail(ErrorCode::PluginPresetRefused, {presetId, refused}, blockId);
+        return;
+    }
+    Q_EMIT pluginPresetShown(sessionId, blockId, presetId);
+}
+
+void MockEngine::savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    if (const QString refused = hostRefusal(session->state, session->session.findBlock(blockId)); !refused.isEmpty()) {
+        d->fail(ErrorCode::PluginPresetRefused, {name, refused}, blockId);
+        return;
+    }
+    const QString id = u"mock:"_s + name;
+    Q_EMIT pluginPresetsListed(sessionId, blockId, asJson(QJsonArray{QJsonObject{{u"id"_s, id}, {u"name"_s, name}}}));
+    Q_EMIT pluginPresetShown(sessionId, blockId, id);
+}
+
 void MockEngine::controlRecording(const QString &sessionId, const QString &blockId, const QString &action)
 {
     Private::Open *session = d->require(sessionId);

@@ -78,6 +78,24 @@ void EditHistory::setClock(std::function<std::int64_t()> clock)
 void EditHistory::endGesture()
 {
     m_open = false;
+    m_said = false;
+}
+
+void EditHistory::beginGesture(const QString &blockId, const QString &key)
+{
+    // A new step, whatever came just before it.
+    m_open = false;
+    m_said = true;
+    m_saidBlock = blockId;
+    m_saidKey = key;
+}
+
+void EditHistory::endGesture(const QString &blockId, const QString &key)
+{
+    if (m_said && (blockId != m_saidBlock || key != m_saidKey)) {
+        return; // the end of a gesture that is not the one held
+    }
+    endGesture();
 }
 
 bool EditHistory::continues(const EditStep &step, const EditCommand &command) const
@@ -85,7 +103,10 @@ bool EditHistory::continues(const EditStep &step, const EditCommand &command) co
     if (!m_open || step.redo.empty()) {
         return false;
     }
-    if (m_clock() - m_lastEdit > kGesture.count()) {
+    const auto *held = std::get_if<SetParam>(&command);
+    const bool saidHeld = m_said && held != nullptr && held->blockId == m_saidBlock && held->key == m_saidKey;
+    const std::int64_t rest = m_clock() - m_lastEdit;
+    if (rest > (saidHeld ? kHeldGesture : kGesture).count()) {
         return false; // the hand stopped; whatever comes now is a new thing
     }
     const EditCommand &last = step.redo.back();
@@ -237,6 +258,7 @@ std::optional<EditStep> EditHistory::takeUndo()
     m_redo.push_back(step);
     // Undoing ends any gesture: the next edit is a thing of its own.
     m_open = false;
+    m_said = false;
     return step;
 }
 
@@ -249,6 +271,7 @@ std::optional<EditStep> EditHistory::takeRedo()
     m_redo.pop_back();
     m_undo.push_back(step);
     m_open = false;
+    m_said = false;
     return step;
 }
 

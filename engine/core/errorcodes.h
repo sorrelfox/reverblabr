@@ -42,6 +42,7 @@ enum class ErrorCode {
     PluginCrashed,
     PluginStoppedResponding,
     PluginRestartRefused,
+    PluginPresetRefused,
     RecordingPreviewFailed,
     RecordingNotFound,
     RecordingRenameRefused,
@@ -129,6 +130,11 @@ inline constexpr std::array kErrorCodes{
     // no such block, or it is not a plugin that runs in a host. Names the
     // block.
     ErrorCodeInfo{ErrorCode::PluginRestartRefused, "plugin.restartRefused", {"reason"}},
+    // A plugin's own preset could not be listed, put in or written: the
+    // session is not running, there is no such block or it is not a plugin
+    // in a host ("NotRunning" and so on), or the host could not write it
+    // ("notSaved"), or list them ("notListed"). Names the block.
+    ErrorCodeInfo{ErrorCode::PluginPresetRefused, "plugin.presetRefused", {"preset", "reason"}},
     // A recording could not be listened to: the file cannot be read
     // ("unreadable"), there is no audio system ("noAudioSystem"), or the
     // server took the preview's stream down (what it said). Nothing else is

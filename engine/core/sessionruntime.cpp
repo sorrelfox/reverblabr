@@ -302,6 +302,8 @@ public:
         /// Since this host was started, which decides whether its failure is
         /// worth starting another for.
         QElapsedTimer started;
+        /// Whether the plugin's own window is showing.
+        bool windowOpen = false;
     };
     /// By block id.
     std::map<QString, Host> hosts;
@@ -710,8 +712,121 @@ public:
             }
             next.emplace(instance.id, startHost(instance.id, spec, false));
         }
+        // **A window goes with its host**: the block removed, switched
+        // off, or another plugin chosen.
+        for (const auto &[blockId, host] : hosts) {
+            if (host.windowOpen) {
+                Q_EMIT q->pluginWindowChanged(blockId, false, u"closed"_s);
+            }
+        }
         hosts = std::move(next);
         publishHealth();
+    }
+
+    /// Lets go of every host, and says so of every window that was showing.
+    void dropHosts()
+    {
+        const std::map<QString, Host> gone = std::exchange(hosts, {});
+        for (const auto &[blockId, host] : gone) {
+            if (host.windowOpen) {
+                Q_EMIT q->pluginWindowChanged(blockId, false, u"closed"_s);
+            }
+        }
+    }
+
+    /// **Whether \a blockId's host runs the plugin the block has now.**
+    /// Between another plugin being chosen and the host being replaced, the
+    /// old host is still there: what it says belongs to the plugin before,
+    /// whose settings may share ids with the new one's, and what the block
+    /// now holds is not for it.
+    [[nodiscard]] bool hostIsCurrent(const QString &blockId) const
+    {
+        const Instance *instance = findConst(blockId);
+        const auto host = hosts.find(blockId);
+        if (instance == nullptr || host == hosts.end() || !isPlugin(instance->type)) {
+            return false;
+        }
+        const auto *plugin = static_cast<const blocks::PluginBlock *>(instance->block.get());
+        return host->second.spec.plugin == QString::fromStdString(plugin->pluginId())
+            && host->second.spec.format == fromStd(plugin->format())
+            && host->second.spec.monoMode == QString::fromStdString(plugin->monoMode());
+    }
+
+    /// \a blockId's host, ready to be asked something; or why not.
+    [[nodiscard]] std::expected<Host *, QString> askable(const QString &blockId)
+    {
+        if (!running) {
+            return std::unexpected(u"NotRunning"_s);
+        }
+        if (findConst(blockId) == nullptr) {
+            return std::unexpected(u"blockNotFound"_s);
+        }
+        const auto host = hosts.find(blockId);
+        if (host == hosts.end() || host->second.bypassed || !host->second.process->isReady()) {
+            return std::unexpected(u"notAHostedPlugin"_s);
+        }
+        return &host->second;
+    }
+
+    /// **A value from the plugin's side**, into the block: not sent back,
+    /// since the plugin has it. Remembered as set since the state, so a
+    /// restarted host gets it after the state. Nothing for a value the
+    /// block has no setting for.
+    [[nodiscard]] std::optional<QJsonValue> takeFromPlugin(const QString &blockId, const QString &paramId, float value)
+    {
+        Instance *instance = find(blockId);
+        if (instance == nullptr || !isPlugin(instance->type) || !hostIsCurrent(blockId)) {
+            return std::nullopt;
+        }
+        auto *plugin = static_cast<blocks::PluginBlock *>(instance->block.get());
+        const std::string id = paramId.toStdString();
+        const std::optional<dsp::ParamValue> taken = plugin->valueFromPlugin(id, value);
+        if (!taken || !plugin->setParam(id, *taken)) {
+            return std::nullopt;
+        }
+        const std::span<const dsp::ParamDescriptor> params = plugin->params();
+        const auto descriptor =
+            std::ranges::find_if(params, [&id](const dsp::ParamDescriptor &entry) { return entry.id == id; });
+        setSinceState[blockId].insert(static_cast<std::uint32_t>(std::distance(params.begin(), descriptor)));
+        return valueToJson(*taken);
+    }
+
+    /// The plugin's values, changed together: into the block, and on to
+    /// the session. **What the session set since the state was taken is
+    /// newer** than a state put back by a restart, and is left as it is.
+    void takeValuesFromPlugin(const QString &blockId, bool edit, const QList<QPair<QString, float>> &values)
+    {
+        Instance *instance = find(blockId);
+        if (instance == nullptr || !isPlugin(instance->type) || !hostIsCurrent(blockId)) {
+            return;
+        }
+        const QSet<std::uint32_t> since = setSinceState.value(blockId);
+        const std::span<const dsp::ParamDescriptor> params = instance->block->params();
+        QJsonObject taken;
+        for (const auto &[paramId, value] : values) {
+            const std::string id = paramId.toStdString();
+            const auto descriptor =
+                std::ranges::find_if(params, [&id](const dsp::ParamDescriptor &entry) { return entry.id == id; });
+            if (descriptor == params.end()) {
+                continue;
+            }
+            const auto index = static_cast<std::uint32_t>(std::distance(params.begin(), descriptor));
+            if (!edit && since.contains(index)) {
+                continue;
+            }
+            // Only what changed: a state put back says every value, and the
+            // session need hear only of the ones it did not have.
+            const dsp::ParamValue before = instance->block->param(id);
+            if (const std::optional<QJsonValue> json = takeFromPlugin(blockId, paramId, value);
+                json && instance->block->param(id) != before) {
+                taken.insert(paramId, *json);
+            }
+        }
+        // A person's preset is said even when it moved no setting: what
+        // it changed may be the plugin's own state alone.
+        if (!taken.isEmpty() || edit) {
+            Q_EMIT q->pluginValuesChanged(blockId, taken, edit);
+        }
     }
 
     /// A new host for \a blockId, linked around from the start when \a
@@ -740,6 +855,60 @@ public:
         QObject::connect(host.process.get(), &pw::PluginHostProcess::hung, q, [this, blockId] {
             hostFailed(blockId, PluginHealth::Hung);
         });
+        // **The plugin's own window, and what a person does in it.**
+        QObject::connect(host.process.get(), &pw::PluginHostProcess::uiOpened, q, [this, blockId] {
+            if (const auto found = hosts.find(blockId); found != hosts.end()) {
+                found->second.windowOpen = true;
+            }
+            Q_EMIT q->pluginWindowChanged(blockId, true, {});
+        });
+        QObject::connect(
+            host.process.get(), &pw::PluginHostProcess::uiClosed, q, [this, blockId](const QString &reason) {
+                if (const auto found = hosts.find(blockId); found != hosts.end()) {
+                    found->second.windowOpen = false;
+                }
+                Q_EMIT q->pluginWindowChanged(blockId, false, reason);
+            });
+        QObject::connect(host.process.get(),
+                         &pw::PluginHostProcess::paramChanged,
+                         q,
+                         [this, blockId](const QString &paramId, float value) {
+                             if (const std::optional<QJsonValue> taken = takeFromPlugin(blockId, paramId, value)) {
+                                 Q_EMIT q->pluginParamChanged(blockId, paramId, *taken);
+                             }
+                         });
+        QObject::connect(
+            host.process.get(),
+            &pw::PluginHostProcess::paramGesture,
+            q,
+            [this, blockId](const QString &paramId, bool begin) { Q_EMIT q->pluginGesture(blockId, paramId, begin); });
+        QObject::connect(host.process.get(),
+                         &pw::PluginHostProcess::valuesChanged,
+                         q,
+                         [this, blockId](bool edit, const QList<QPair<QString, float>> &values) {
+                             takeValuesFromPlugin(blockId, edit, values);
+                         });
+        QObject::connect(host.process.get(),
+                         &pw::PluginHostProcess::presetsListed,
+                         q,
+                         [this, blockId](const QList<QPair<QString, QString>> &presets) {
+                             QJsonArray list;
+                             for (const auto &[id, name] : presets) {
+                                 list.append(QJsonObject{{u"id"_s, id}, {u"name"_s, name}});
+                             }
+                             Q_EMIT q->pluginPresetsListed(blockId, list);
+                         });
+        QObject::connect(host.process.get(), &pw::PluginHostProcess::presetsRefused, q, [this, blockId] {
+            Q_EMIT q->pluginPresetsRefused(blockId);
+        });
+        QObject::connect(host.process.get(),
+                         &pw::PluginHostProcess::presetShown,
+                         q,
+                         [this, blockId](const QString &presetId) { Q_EMIT q->pluginPresetShown(blockId, presetId); });
+        QObject::connect(host.process.get(),
+                         &pw::PluginHostProcess::presetSaved,
+                         q,
+                         [this, blockId](const QString &presetId) { Q_EMIT q->pluginPresetSaved(blockId, presetId); });
         if (!host.process->start(spec)) {
             qWarning("the plugin host of %s could not be started", qPrintable(blockId));
             host.health = PluginHealth::Crashed;
@@ -777,6 +946,9 @@ public:
         Host &failed = host->second;
         failed.bypassed = true;
         failed.health = health;
+        if (std::exchange(failed.windowOpen, false)) {
+            Q_EMIT q->pluginWindowChanged(blockId, false, u"crashed"_s);
+        }
         failed.process->unwatch();
         if (health == PluginHealth::Hung) {
             failed.process->kill();
@@ -812,6 +984,9 @@ public:
         }
         const pw::PluginHostSpec spec = host->second.spec;
         const bool wasBypassed = host->second.bypassed;
+        if (host->second.windowOpen) {
+            Q_EMIT q->pluginWindowChanged(blockId, false, u"closed"_s);
+        }
         // The old one goes first: it is killed if it is still there, and its
         // node with it, so the new one's name is free.
         hosts.erase(host);
@@ -1822,7 +1997,7 @@ void SessionRuntime::stop()
     d->stopSegments();
     // The hosts go with the session: letting go of one kills it, and its
     // node goes with it.
-    d->hosts.clear();
+    d->dropHosts();
     // **Once no cycle can reach the taps**, so everything the session heard
     // is in the files by the time it is said to have stopped.
     d->finishRecordings();
@@ -1963,6 +2138,10 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     if (descriptor == params.end()) {
         return std::unexpected(dsp::BlockError::UnknownParam);
     }
+    // **Copied, not pointed at**: setting a plugin block's plugin makes its
+    // parameters again, and the list this came from goes with them.
+    const dsp::ParamDescriptor chosen = *descriptor;
+    const auto index = static_cast<std::uint32_t>(std::distance(params.begin(), descriptor));
     // **Nothing is the default.** A session holds only the parameters that
     // were set, so undoing the first turn of a knob asks for a value that
     // was never there; what the block had then is what its descriptor says.
@@ -1975,10 +2154,19 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     if (const std::expected<void, dsp::BlockError> set = instance->block->setParam(wanted, *parsed); !set) {
         return std::unexpected(set.error());
     }
-    if (isPlugin(instance->type)) {
+    if (isPlugin(instance->type) && wanted == blocks::PluginBlock::kStateParam) {
+        // **A state put on the block goes to its plugin** — a preset of
+        // ours applied, or one taken back — and what was set before it is
+        // in it. The values it holds come back from the host.
+        d->setSinceState.remove(blockId);
+        if (const auto host = d->hosts.find(blockId); d->running && host != d->hosts.end() && !host->second.bypassed
+            && host->second.process->isReady() && d->hostIsCurrent(blockId)) {
+            host->second.process->setState(QString::fromStdString(parsed->text()));
+        }
+    } else if (isPlugin(instance->type)) {
         // Remembered for a host that gets the block's state later: this goes
         // after it.
-        d->setSinceState[blockId].insert(static_cast<std::uint32_t>(std::distance(params.begin(), descriptor)));
+        d->setSinceState[blockId].insert(index);
     }
     // A source that now keeps its pauses, or leaves them out, changes what
     // the Recorders after it write.
@@ -2011,7 +2199,7 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     // recompile that is about to follow may give to another block. The
     // block itself has the value already, which is what the recompile then
     // builds the graph around.
-    if (!descriptor->flags.automatable) {
+    if (!chosen.flags.automatable) {
         return ParamEffect::NeedsReplan;
     }
 
@@ -2035,16 +2223,18 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     // on one — the Input Switch starting a crossfade — has to hear it in
     // order with the numbers sent beside it, and a choice written into the
     // block from this thread alone arrives before any of them.
-    const std::optional<double> number = audioNumber(*descriptor, *parsed);
+    const std::optional<double> number = audioNumber(chosen, *parsed);
     if (!d->running || !number) {
         return effect;
     }
-    const auto index = static_cast<std::uint32_t>(std::distance(params.begin(), descriptor));
     // **A plugin's parameter goes to its host**, through the ring the host's
     // audio thread reads (ADR-0014); the graph never runs the plugin.
     if (runsInAHost(instance->type, instance->enabled, *instance->block)) {
         const std::optional<std::uint32_t> hostIndex = blocks::PluginBlock::pluginParamIndex(index);
-        if (const auto host = d->hosts.find(blockId); host != d->hosts.end() && hostIndex) {
+        // Only to a host of the plugin the block has: one being replaced
+        // would take a value meant for another plugin's setting.
+        if (const auto host = d->hosts.find(blockId);
+            host != d->hosts.end() && hostIndex && d->hostIsCurrent(blockId)) {
             (void)host->second.process->setParam(*hostIndex, static_cast<float>(*number));
         }
         return effect;
@@ -2150,6 +2340,56 @@ PluginHealth SessionRuntime::pluginHealth(const QString &blockId) const
 std::expected<void, QString> SessionRuntime::restartPlugin(const QString &blockId)
 {
     return d->restart(blockId);
+}
+
+std::expected<void, QString> SessionRuntime::setPluginWindow(const QString &blockId, bool open)
+{
+    const std::expected<Private::Host *, QString> host = d->askable(blockId);
+    if (!host) {
+        return std::unexpected(host.error());
+    }
+    if (open) {
+        (*host)->process->openUi();
+    } else {
+        (*host)->process->closeUi();
+    }
+    return {};
+}
+
+bool SessionRuntime::pluginWindowOpen(const QString &blockId) const
+{
+    const auto found = d->hosts.find(blockId);
+    return found != d->hosts.end() && found->second.windowOpen;
+}
+
+std::expected<void, QString> SessionRuntime::listPluginPresets(const QString &blockId)
+{
+    const std::expected<Private::Host *, QString> host = d->askable(blockId);
+    if (!host) {
+        return std::unexpected(host.error());
+    }
+    (*host)->process->listPresets();
+    return {};
+}
+
+std::expected<void, QString> SessionRuntime::loadPluginPreset(const QString &blockId, const QString &presetId)
+{
+    const std::expected<Private::Host *, QString> host = d->askable(blockId);
+    if (!host) {
+        return std::unexpected(host.error());
+    }
+    (*host)->process->loadPreset(presetId);
+    return {};
+}
+
+std::expected<void, QString> SessionRuntime::savePluginPreset(const QString &blockId, const QString &name)
+{
+    const std::expected<Private::Host *, QString> host = d->askable(blockId);
+    if (!host) {
+        return std::unexpected(host.error());
+    }
+    (*host)->process->savePreset(name);
+    return {};
 }
 
 void SessionRuntime::setPluginRestartWindow(std::chrono::milliseconds window)

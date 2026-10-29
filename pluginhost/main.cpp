@@ -17,6 +17,7 @@
 
 #include "buildversion.h"
 #include "dsp/block.h"
+#include "editor.h"
 #include "ladspaplugin.h"
 #include "lv2plugin.h"
 #ifdef RB_HAVE_CLAP
@@ -35,6 +36,7 @@
 
 #include <atomic>
 #include <charconv>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -126,6 +128,131 @@ struct Port {
     return io != nullptr && io->status == SPA_STATUS_HAVE_DATA;
 }
 
+/// **The main loop a plugin's window runs on**: the host's PipeWire main
+/// loop, which is where the plugin's main thread already is.
+class PwMainLoop final : public pluginhost::MainLoop
+{
+public:
+    explicit PwMainLoop(pw_main_loop *const *loop)
+        : m_loop(loop)
+    {
+    }
+
+    ~PwMainLoop() override
+    {
+        if (*m_loop == nullptr) {
+            return; // its sources went with it
+        }
+        for (auto &[id, entry] : m_entries) {
+            pw_loop_destroy_source(pw_main_loop_get_loop(*m_loop), entry->source);
+        }
+    }
+
+    PwMainLoop(const PwMainLoop &) = delete;
+    PwMainLoop &operator=(const PwMainLoop &) = delete;
+
+    std::optional<Id> addTimer(std::chrono::milliseconds period, std::function<void()> tick) override
+    {
+        if (*m_loop == nullptr || period.count() <= 0) {
+            return std::nullopt;
+        }
+        auto entry = std::make_unique<Entry>();
+        entry->tick = std::move(tick);
+        pw_loop *loop = pw_main_loop_get_loop(*m_loop);
+        entry->source =
+            pw_loop_add_timer(loop, [](void *data, std::uint64_t) { static_cast<Entry *>(data)->tick(); }, entry.get());
+        if (entry->source == nullptr) {
+            return std::nullopt;
+        }
+        timespec every{static_cast<time_t>(period.count() / 1000),
+                       static_cast<long>((period.count() % 1000) * 1'000'000)};
+        pw_loop_update_timer(loop, entry->source, &every, &every, false);
+        return keep(std::move(entry));
+    }
+
+    std::optional<Id> addFd(int fd, std::uint32_t events, std::function<void(std::uint32_t)> ready) override
+    {
+        if (*m_loop == nullptr || fd < 0) {
+            return std::nullopt;
+        }
+        auto entry = std::make_unique<Entry>();
+        entry->ready = std::move(ready);
+        entry->source = pw_loop_add_io(
+            pw_main_loop_get_loop(*m_loop),
+            fd,
+            mask(events),
+            false,
+            [](void *data, int, std::uint32_t found) {
+                std::uint32_t said = 0;
+                said |= (found & SPA_IO_IN) != 0 ? Readable : 0U;
+                said |= (found & SPA_IO_OUT) != 0 ? Writable : 0U;
+                said |= (found & (SPA_IO_ERR | SPA_IO_HUP)) != 0 ? Failed : 0U;
+                static_cast<Entry *>(data)->ready(said);
+            },
+            entry.get());
+        if (entry->source == nullptr) {
+            return std::nullopt;
+        }
+        return keep(std::move(entry));
+    }
+
+    bool changeFd(Id id, std::uint32_t events) override
+    {
+        const auto found = m_entries.find(id);
+        if (found == m_entries.end() || *m_loop == nullptr) {
+            return false;
+        }
+        return pw_loop_update_io(pw_main_loop_get_loop(*m_loop), found->second->source, mask(events)) >= 0;
+    }
+
+    void remove(Id id) override
+    {
+        const auto found = m_entries.find(id);
+        if (found == m_entries.end() || *m_loop == nullptr) {
+            return;
+        }
+        pw_loop_destroy_source(pw_main_loop_get_loop(*m_loop), found->second->source);
+        // **Kept until sweep()**: a timer may remove itself from inside
+        // its own call, which is still running.
+        m_retired.push_back(std::move(found->second));
+        m_entries.erase(found);
+    }
+
+    /// Lets go of what remove() took out. From a call that is none of
+    /// theirs: the host's own timer.
+    void sweep()
+    {
+        m_retired.clear();
+    }
+
+private:
+    struct Entry {
+        spa_source *source = nullptr;
+        std::function<void()> tick;
+        std::function<void(std::uint32_t)> ready;
+    };
+
+    [[nodiscard]] static std::uint32_t mask(std::uint32_t events)
+    {
+        std::uint32_t found = SPA_IO_ERR | SPA_IO_HUP;
+        found |= (events & Readable) != 0 ? SPA_IO_IN : 0U;
+        found |= (events & Writable) != 0 ? SPA_IO_OUT : 0U;
+        return found;
+    }
+
+    Id keep(std::unique_ptr<Entry> entry)
+    {
+        const Id id = ++m_next;
+        m_entries.emplace(id, std::move(entry));
+        return id;
+    }
+
+    pw_main_loop *const *m_loop;
+    std::map<Id, std::unique_ptr<Entry>> m_entries;
+    std::vector<std::unique_ptr<Entry>> m_retired;
+    Id m_next = 0;
+};
+
 /// The host: its node, the plugin in it, and the two channels to the engine.
 struct Host {
     Options options;
@@ -137,6 +264,14 @@ struct Host {
     std::vector<Port *> outputs;
     std::vector<float *> inputBuffers;
     std::vector<float *> outputBuffers;
+    /// What the plugin's window and presets run on, and tell. **Before the
+    /// plugin**, so they outlive it: a plugin lets go of its timers as it
+    /// goes, on whichever path the host leaves by.
+    PwMainLoop mainLoop{&loop};
+    pluginhost::EditorEvents events;
+    /// Values the plugin's window set that its queue to the audio thread had
+    /// no room for, the latest of each, sent again on the next turn.
+    std::map<std::uint32_t, float> toAudioLater;
     /// The plugin the data thread is running, owned here.
     std::unique_ptr<dsp::Block> block;
     /// LV2's world, loaded once, for a host of an LV2 plugin.
@@ -149,17 +284,126 @@ struct Host {
     std::uint32_t reportedLatency = 0;
     std::string nodeName;
     bool announced = false;
+    /// **The plugin's own preset its settings are**, as last told to the
+    /// engine, and the values it had when it was: a value moved away from
+    /// those, by anybody, makes the settings nobody's preset.
+    std::string shownPreset;
+    std::vector<float> shownValues;
+    bool shownPending = false;
 
     explicit Host(Options given, plugin::SharedMemory memory)
         : options(std::move(given))
         , shared(std::move(memory))
         , processor(shared.block())
     {
+        events.changed = [this](std::uint32_t index, float value) {
+            if (index < block->params().size()) {
+                send(plugin::MessageType::ParamChanged,
+                     plugin::pairText(block->params()[index].id, plugin::valueText(value)));
+            }
+        };
+        events.gesture = [this](std::uint32_t index, bool begin) {
+            if (index < block->params().size()) {
+                send(plugin::MessageType::ParamGesture,
+                     plugin::pairText(block->params()[index].id, begin ? "begin" : "end"));
+            }
+        };
+        events.valuesChanged = [this](bool edit) { sendValues(edit ? "edit" : "follow"); };
+        events.presetShown = [this](const std::string &id) { showPreset(id); };
+        events.closed = [this](const char *why) { send(plugin::MessageType::UiClosed, why); };
+        events.toAudio = [this](std::uint32_t index, float value) {
+            // **Never dropped**: a full queue (a held plugin, a long drag)
+            // keeps the latest value of each, for the next turn.
+            sendLaterToAudio();
+            if (!toAudioLater.empty() || !processor.pushFromHost(plugin::ParamChange{index, value})) {
+                toAudioLater[index] = value;
+            }
+        };
+        events.whileHeld = [this](const std::function<void()> &change) {
+            processor.hold();
+            change();
+            processor.release();
+        };
+    }
+
+    /// What the queue to the audio thread had no room for, in order of
+    /// parameter, as far as there is room now.
+    void sendLaterToAudio()
+    {
+        while (!toAudioLater.empty()) {
+            const auto first = toAudioLater.begin();
+            if (!processor.pushFromHost(plugin::ParamChange{first->first, first->second})) {
+                return;
+            }
+            toAudioLater.erase(first);
+        }
+    }
+
+    [[nodiscard]] pluginhost::Editable *editable() const
+    {
+        return dynamic_cast<pluginhost::Editable *>(block.get());
+    }
+
+    /// Every value the plugin has now, for the engine.
+    void sendValues(std::string_view why)
+    {
+        std::vector<plugin::NamedValue> values;
+        for (const dsp::ParamDescriptor &descriptor : block->params()) {
+            if (const std::optional<double> number = block->param(descriptor.id).asNumber()) {
+                values.push_back(plugin::NamedValue{descriptor.id, static_cast<float>(*number)});
+            }
+        }
+        send(plugin::MessageType::Values, plugin::valuesText(why, values));
+    }
+
+    [[nodiscard]] std::vector<float> valuesNow() const
+    {
+        std::vector<float> values;
+        for (const dsp::ParamDescriptor &descriptor : block->params()) {
+            values.push_back(static_cast<float>(block->param(descriptor.id).asNumber().value_or(0.0)));
+        }
+        return values;
+    }
+
+    void showPreset(const std::string &id)
+    {
+        shownPreset = id;
+        shownValues.clear();
+        // The values are taken a moment later: a plugin may say which
+        // preset it loaded before it says what that changed.
+        shownPending = !id.empty();
+        send(plugin::MessageType::PresetShown, id);
+    }
+
+    /// Whether the settings are still the preset's, a few times a second.
+    void checkShownPreset()
+    {
+        if (shownPreset.empty()) {
+            return;
+        }
+        if (shownPending) {
+            shownPending = false;
+            shownValues = valuesNow();
+            return;
+        }
+        const std::vector<float> now = valuesNow();
+        bool same = now.size() == shownValues.size();
+        for (std::size_t index = 0; same && index < now.size(); ++index) {
+            same = std::abs(now[index] - shownValues[index]) <= 1e-6f * std::max(1.0f, std::abs(now[index]));
+        }
+        if (!same) {
+            showPreset({});
+        }
     }
 
     void send(plugin::MessageType type, std::string payload = {})
     {
-        (void)plugin::sendMessage(options.controlFd, plugin::Message{type, std::move(payload)});
+        if (!plugin::sendMessage(options.controlFd, plugin::Message{type, std::move(payload)})) {
+            // **Not sent whole**, too large: said, so nobody waits for it.
+            (void)plugin::sendMessage(
+                options.controlFd,
+                plugin::Message{plugin::MessageType::Refused, std::to_string(static_cast<std::uint32_t>(type))});
+        }
     }
 
     /// A plugin made and prepared for \a rate, with \a state — the text a
@@ -247,6 +491,17 @@ struct Host {
             swap->previous = swap->processor->exchange(swap->next, swap->rate, swap->paramCount);
             return 0;
         };
+        // **A window open on the plugin being replaced** is closed with it
+        // and opened again on the new one, so a person sees the same
+        // window, with what the new plugin holds.
+        pluginhost::Editable *before = editable();
+        const bool reopen = before != nullptr && before->uiOpen();
+        if (reopen) {
+            before->closeUi();
+        }
+        if (auto *after = dynamic_cast<pluginhost::Editable *>(next.get()); after != nullptr) {
+            after->attach(mainLoop, events);
+        }
         if (filter != nullptr) {
             pw_loop_invoke(pw_filter_get_data_loop(filter), run, 0, nullptr, 0, true, &swap);
         } else {
@@ -254,6 +509,12 @@ struct Host {
         }
         block = std::move(next); // the one the data thread gave back goes with the old owner
         shared.block().latencySamples.store(block->info().latencySamples, std::memory_order_relaxed);
+        if (reopen) {
+            pluginhost::Editable *now = editable();
+            if (now == nullptr || now->openUi() != pluginhost::Editable::Opened::Open) {
+                send(plugin::MessageType::UiClosed, "failed");
+            }
+        }
     }
 
     [[nodiscard]] std::string stateText() const
@@ -356,6 +617,64 @@ struct Host {
             // holds back the changes made meanwhile, because through the
             // ring they would reach the plugin being replaced and be lost.
             send(plugin::MessageType::StateLoaded, loaded ? "ok" : "refused");
+            if (loaded) {
+                // What the state holds, for the engine's panel; it asked.
+                sendValues("follow");
+                if (!shownPreset.empty()) {
+                    showPreset({});
+                }
+            }
+            break;
+        }
+        case plugin::MessageType::OpenUi: {
+            pluginhost::Editable *plugin = editable();
+            if (plugin != nullptr && plugin->uiOpen()) {
+                send(plugin::MessageType::UiOpened);
+                break;
+            }
+            const pluginhost::Editable::Opened opened =
+                plugin != nullptr ? plugin->openUi() : pluginhost::Editable::Opened::Unavailable;
+            switch (opened) {
+            case pluginhost::Editable::Opened::Open:
+                send(plugin::MessageType::UiOpened);
+                break;
+            case pluginhost::Editable::Opened::Unavailable:
+                send(plugin::MessageType::UiClosed, "unavailable");
+                break;
+            case pluginhost::Editable::Opened::Failed:
+                send(plugin::MessageType::UiClosed, "failed");
+                break;
+            }
+            break;
+        }
+        case plugin::MessageType::CloseUi:
+            if (pluginhost::Editable *plugin = editable(); plugin != nullptr && plugin->uiOpen()) {
+                plugin->closeUi();
+            }
+            send(plugin::MessageType::UiClosed, "closed");
+            break;
+        case plugin::MessageType::ListPresets: {
+            pluginhost::Editable *plugin = editable();
+            send(plugin::MessageType::Presets,
+                 plugin::presetsText(plugin != nullptr ? plugin->presets() : std::vector<plugin::PresetEntry>{}));
+            break;
+        }
+        case plugin::MessageType::LoadPreset: {
+            pluginhost::Editable *plugin = editable();
+            if (plugin == nullptr || !plugin->loadPreset(message.payload)) {
+                // Refused: the settings are what they were.
+                send(plugin::MessageType::PresetShown, shownPreset);
+            }
+            break;
+        }
+        case plugin::MessageType::SavePreset: {
+            pluginhost::Editable *plugin = editable();
+            const std::optional<std::string> saved =
+                plugin != nullptr ? plugin->savePreset(message.payload) : std::nullopt;
+            send(plugin::MessageType::PresetSaved, saved.value_or(std::string{}));
+            if (saved) {
+                showPreset(*saved);
+            }
             break;
         }
         default:
@@ -476,6 +795,9 @@ void onRateCheck(void *data, std::uint64_t)
         }
     }
 #endif
+    host->checkShownPreset();
+    host->sendLaterToAudio();
+    host->mainLoop.sweep();
     const std::uint32_t wanted = host->shared.block().rateWanted.load(std::memory_order_relaxed);
     if (wanted == 0) {
         return;
@@ -590,8 +912,15 @@ int main(int argc, char **argv)
     }
     pw_main_loop_run(host.loop);
 
+    // The window first, while the loop its timers are on is still there.
+    if (pluginhost::Editable *plugin = host.editable(); plugin != nullptr && plugin->uiOpen()) {
+        plugin->closeUi();
+    }
     pw_filter_destroy(host.filter);
+    // The plugin before the loop: it may let go of timers on its way out.
+    host.block.reset();
     pw_main_loop_destroy(host.loop);
+    host.loop = nullptr;
     pw_deinit();
     return 0;
 }

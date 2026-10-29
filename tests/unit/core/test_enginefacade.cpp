@@ -119,6 +119,10 @@ public:
     void setBroadcastPassword(const QString &, const QString &, const QString &) override { }
     void getBroadcastStatus(const QString &, const QString &) override { }
     void restartPlugin(const QString &, const QString &) override { }
+    void setPluginWindow(const QString &, const QString &, bool) override { }
+    void listPluginPresets(const QString &, const QString &) override { }
+    void loadPluginPreset(const QString &, const QString &, const QString &) override { }
+    void savePluginPreset(const QString &, const QString &, const QString &) override { }
     void analyse(const QString &, const QString &, int) override { }
     void start(const QString &) override { }
     void stop(const QString &) override { }

@@ -21,7 +21,10 @@
 #include <unistd.h>
 
 #include <array>
+#include <atomic>
+#include <chrono>
 #include <memory>
+#include <thread>
 #include <vector>
 
 using namespace rb;
@@ -128,6 +131,9 @@ TEST(PluginMessages, AMessageArrivesWholeAndAlone)
 {
     int pair[2];
     ASSERT_EQ(::socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, pair), 0);
+    // As the engine makes them: nobody reads until all three are sent.
+    widenSocket(pair[0]);
+    widenSocket(pair[1]);
 
     const std::string big(200000, 'x');
     ASSERT_TRUE(sendMessage(pair[0], Message{MessageType::Ready, "reverblabr.plugin.one\n128"}));
@@ -157,6 +163,54 @@ TEST(PluginMessages, AMessageArrivesWholeAndAlone)
     ::close(pair[1]);
 }
 
+TEST(PluginMessages, AMessageMuchLargerThanASocketTakesArrivesWhole)
+{
+    // **Far past what a SOCK_SEQPACKET socket takes as one packet** (about
+    // 208 KiB here), as a list of thousands of presets or a large state is:
+    // sent while the other end reads, so the sender waits on a full socket
+    // as well, and put together whole at the other end.
+    int pair[2];
+    ASSERT_EQ(::socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, pair), 0);
+    std::string big(900 * 1024, '\0');
+    for (std::size_t at = 0; at < big.size(); ++at) {
+        big[at] = static_cast<char>('a' + at % 26);
+    }
+    bool sent = false;
+    std::thread sender([&] {
+        sent = sendMessage(pair[0], Message{MessageType::Presets, big});
+        sent = sent && sendMessage(pair[0], Message{MessageType::Quit, {}});
+    });
+    const auto first = receiveMessage(pair[1], true);
+    const auto second = receiveMessage(pair[1], true);
+    sender.join();
+    EXPECT_TRUE(sent);
+    ASSERT_TRUE(first.has_value());
+    EXPECT_EQ(first->type, MessageType::Presets);
+    EXPECT_EQ(first->payload.size(), big.size());
+    EXPECT_TRUE(first->payload == big) << "not the message that was sent";
+    ASSERT_TRUE(second.has_value());
+    EXPECT_EQ(second->type, MessageType::Quit);
+
+    // And one exactly at the limit, between widened sockets.
+    widenSocket(pair[0]);
+    widenSocket(pair[1]);
+    std::thread atLimit(
+        [&] { sent = sendMessage(pair[0], Message{MessageType::State, std::string(kMaxMessageBytes, 'x')}); });
+    const auto limit = receiveMessage(pair[1], true);
+    atLimit.join();
+    EXPECT_TRUE(sent);
+    ASSERT_TRUE(limit.has_value());
+    EXPECT_EQ(limit->payload.size(), kMaxMessageBytes);
+    ::close(pair[0]);
+    ::close(pair[1]);
+}
+
+TEST(PluginMessages, APresetListKeepsItsFramingWhateverTheNames)
+{
+    const std::vector<PresetEntry> listed{{"a\tb", "Tabbed id"}, {"ok", "Two\nlines\tand a tab"}};
+    EXPECT_EQ(parsePresets(presetsText(listed)), (std::vector<PresetEntry>{{"ok", "Two lines and a tab"}}));
+}
+
 TEST(PluginMessages, AMessageLargerThanTheLimitIsNotSent)
 {
     int pair[2];
@@ -164,6 +218,37 @@ TEST(PluginMessages, AMessageLargerThanTheLimitIsNotSent)
     EXPECT_FALSE(sendMessage(pair[0], Message{MessageType::SetState, std::string(kMaxMessageBytes + 1, 'x')}));
     ::close(pair[0]);
     ::close(pair[1]);
+}
+
+TEST(PluginMessages, WhatAPluginsWindowSaysComesBackAsItWasSaid)
+{
+    // **A value read back is the float written**, however many digits it
+    // takes: a knob in the plugin's window and the panel's must agree to
+    // the last bit, or each would tell the other it moved.
+    for (const float value : {0.0f, 1.0f, -6.02f, 0.833007812f, 1.0e-7f, 123456.789f}) {
+        const std::optional<float> back = parseValue(valueText(value));
+        ASSERT_TRUE(back.has_value()) << valueText(value);
+        EXPECT_EQ(*back, value);
+    }
+    EXPECT_FALSE(parseValue("loud").has_value());
+    EXPECT_FALSE(parseValue("1.5x").has_value());
+
+    const auto pair = parsePair(pairText("g_out", "begin"));
+    ASSERT_TRUE(pair.has_value());
+    EXPECT_EQ(pair->first, "g_out");
+    EXPECT_EQ(pair->second, "begin");
+    EXPECT_FALSE(parsePair("no line").has_value());
+
+    const std::vector<NamedValue> values{{"g_out", 0.5f}, {"12", -3.25f}};
+    const auto parsed = parseValues(valuesText("edit", values));
+    ASSERT_TRUE(parsed.has_value());
+    EXPECT_EQ(parsed->first, "edit");
+    EXPECT_EQ(parsed->second, values);
+    EXPECT_FALSE(parseValues("follow\ng_out=loud\n").has_value());
+
+    const std::vector<PresetEntry> presets{{"file:///home/x/.lv2/a.preset.lv2/a.ttl", "Gentle"}, {"7", "Hard knee"}};
+    EXPECT_EQ(parsePresets(presetsText(presets)), presets);
+    EXPECT_TRUE(parsePresets("").empty());
 }
 
 TEST(PluginHostProcessor, EveryCycleBeatsTheHeartEvenWithNoPlugin)
@@ -198,6 +283,113 @@ TEST(PluginHostProcessor, AParameterIsHeardFromTheFirstSampleOfTheNextCycle)
     EXPECT_FLOAT_EQ(after.outL[0], 1.0f);
     EXPECT_FLOAT_EQ(after.outR[127], 1.0f);
     EXPECT_EQ(shared.engine.block().paramRead.load(), 2U);
+}
+
+TEST(PluginHostProcessor, AChangeFromThePluginsWindowIsHeardAfterTheEnginesInTheSameCycle)
+{
+    TwoMappings shared = mapTwice();
+    HostProcessor processor(shared.host.block());
+    std::unique_ptr<dsp::Block> gain = preparedGain();
+    (void)processor.exchange(gain.get(), 48000, gain->params().size());
+
+    // Both arrived before the cycle: the window's is the later word.
+    ASSERT_TRUE(pushParam(shared.engine.block(), ParamChange{TestGain::Gain, 3.0f}));
+    ASSERT_TRUE(processor.pushFromHost(ParamChange{TestGain::Gain, 2.0f}));
+    EXPECT_FALSE(processor.fromHostDrained());
+    Buffers buffers(64, 0.5f);
+    processor.process(buffers.in, buffers.out, 64, 48000);
+    EXPECT_FLOAT_EQ(buffers.outL[0], 1.0f);
+    EXPECT_TRUE(processor.fromHostDrained());
+}
+
+TEST(PluginHostProcessor, AHeldPluginIsNotRunAndItsCyclesAreSilent)
+{
+    TwoMappings shared = mapTwice();
+    HostProcessor processor(shared.host.block());
+    std::unique_ptr<dsp::Block> gain = preparedGain();
+    (void)processor.exchange(gain.get(), 48000, gain->params().size());
+
+    processor.hold();
+    // A change waits for the plugin, rather than reaching it while held.
+    ASSERT_TRUE(pushParam(shared.engine.block(), ParamChange{TestGain::Gain, 2.0f}));
+    Buffers held(64, 0.5f);
+    processor.process(held.in, held.out, 64, 48000);
+    EXPECT_EQ(held.outL[0], 0.0f);
+    EXPECT_EQ(shared.engine.block().paramRead.load(), 0U);
+    EXPECT_EQ(shared.engine.block().cycles.load(), 1U) << "a held host is still alive";
+
+    processor.release();
+    Buffers after(64, 0.5f);
+    processor.process(after.in, after.out, 64, 48000);
+    EXPECT_FLOAT_EQ(after.outL[0], 1.0f);
+}
+
+TEST(PluginHostProcessor, AHoldWaitsForTheCycleInsideThePlugin)
+{
+    // A cycle is inside the plugin when the hold is asked for: hold() comes
+    // back only once that cycle has left it.
+    TwoMappings shared = mapTwice();
+    HostProcessor processor(shared.host.block());
+    struct Slow final : public dsp::Block {
+        dsp::BlockInfo m_info;
+        std::atomic<bool> inside{false};
+        std::atomic<bool> letGo{false};
+        [[nodiscard]] const dsp::BlockInfo &info() const noexcept override
+        {
+            return m_info;
+        }
+        [[nodiscard]] std::span<const dsp::ParamDescriptor> params() const noexcept override
+        {
+            return {};
+        }
+        [[nodiscard]] std::expected<void, dsp::BlockError> prepare(const dsp::PrepareSpec &) override
+        {
+            return {};
+        }
+        void process(dsp::ProcessContext &) noexcept RB_NONBLOCKING override
+        {
+            inside.store(true);
+            while (!letGo.load()) { }
+        }
+        void reset() noexcept RB_NONBLOCKING override { }
+        void applyParam(std::uint32_t, float) noexcept RB_NONBLOCKING override { }
+        [[nodiscard]] std::expected<void, dsp::BlockError> setParam(std::string_view, const dsp::ParamValue &) override
+        {
+            return {};
+        }
+        [[nodiscard]] dsp::ParamValue param(std::string_view) const override
+        {
+            return {};
+        }
+        [[nodiscard]] dsp::ParamValueMap saveState() const override
+        {
+            return {};
+        }
+        [[nodiscard]] std::expected<void, dsp::BlockError> loadState(const dsp::ParamValueMap &) override
+        {
+            return {};
+        }
+    } slow;
+    (void)processor.exchange(&slow, 48000, 0);
+    std::thread audio([&processor] {
+        Buffers buffers(64, 0.5f);
+        processor.process(buffers.in, buffers.out, 64, 48000);
+    });
+    while (!slow.inside.load()) {
+        std::this_thread::yield();
+    }
+    std::atomic<bool> held{false};
+    std::thread holder([&processor, &held] {
+        processor.hold();
+        held.store(true);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds{30});
+    EXPECT_FALSE(held.load()) << "the hold came back while a cycle was still in the plugin";
+    slow.letGo.store(true);
+    holder.join();
+    audio.join();
+    EXPECT_TRUE(held.load());
+    processor.release();
 }
 
 TEST(PluginHostProcessor, ACycleAtAnotherRateIsSilentAndAsksForThatRate)
@@ -236,6 +428,8 @@ TEST(PluginHostProcessor, ACycleTouchesTheAllocatorNotAtAll)
         const NoAllocations guard(NoAllocations::OnAllocation::Count);
         for (int cycle = 0; cycle < 100; ++cycle) {
             (void)pushParam(shared.engine.block(), ParamChange{TestGain::Gain, 0.01f * static_cast<float>(cycle)});
+            // And one from the plugin's window, through the host's own queue.
+            (void)processor.pushFromHost(ParamChange{TestGain::Gain, 0.02f * static_cast<float>(cycle)});
             processor.process(buffers.in, buffers.out, 256, 48000);
             processor.process(buffers.in, buffers.out, 256, 44100);
         }

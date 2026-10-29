@@ -236,6 +236,9 @@ QVariantList Presets::forType(const QString &typeId)
             {u"id"_s, preset.id},
             {u"name"_s, preset.name},
             {u"factory"_s, preset.factory},
+            // Which plugin a plugin block's preset is for: one plugin's
+            // settings mean nothing to another.
+            {u"plugin"_s, preset.params.value(u"plugin"_s).toString()},
         });
     }
     return rows;
@@ -261,9 +264,17 @@ QString Presets::shownBy(const QString &typeId, const QString &marker, const QVa
         current.insert(value.key(), QJsonValue::fromVariant(value.value()));
     }
 
-    const auto matches = [&current](const Known &known) {
+    // **A plugin's state is not compared**: it is the plugin's own bytes,
+    // which may differ for the very same settings, and are taken from the
+    // plugin only when the session is saved. Its settings are compared
+    // instead, which a preset of a plugin block holds every one of.
+    const bool plugin = typeId.startsWith("plugin."_L1);
+    const auto matches = [&current, plugin](const Known &known) {
         core::Preset preset;
         preset.params = known.params;
+        if (plugin) {
+            preset.params.remove(u"state"_s);
+        }
         return core::presetMatches(preset, current);
     };
 

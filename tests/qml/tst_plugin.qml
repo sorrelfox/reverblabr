@@ -171,6 +171,36 @@ TestCase {
         TestEngine.clearFakePlugins();
     }
 
+    function test_thePluginsOwnWindowAndPresetsFollowTheEnginesAnswers() {
+        TestEngine.addFakePlugin("lv2", "urn:test:own", "Own Side", "Somebody", 2, 2, testCase.lv2Params);
+        const blockId = addLv2("lv2own", "urn:test:own");
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.blockId = blockId;
+        panel.published = [2];
+        verify(panel.windowButton.visible, "an LV2 plugin offers its window");
+        verify(panel.windowButton.enabled, "a running one can show it");
+
+        // Not running: the engine says so, and the button stays up.
+        panel.windowButton.clicked();
+        tryVerify(() => SessionModel.pluginWindowReason(blockId) === "notRunning", 1000, "no answer");
+        compare(panel.windowButton.checked, false);
+
+        TestEngine.start(testCase.sessionId);
+        panel.windowButton.clicked();
+        tryVerify(() => panel.windowButton.checked, 1000, "the window the engine said was showing");
+        panel.windowButton.clicked();
+        tryVerify(() => !panel.windowButton.checked, 1000, "the window the engine said had closed");
+        compare(panel.windowNote.visible, false, "a window closed by a person needs no words");
+
+        // The plugin's own presets: one saved is listed, and shown.
+        SessionModel.savePluginPreset(blockId, "Gentle");
+        tryVerify(() => panel.ownPresets.length === 1, 1000, "the saved preset is not listed");
+        compare(panel.pluginPresetChooser.currentText, "Gentle");
+        verify(panel.savePluginPresetButton.visible, "an LV2 plugin's presets can be saved here");
+        TestEngine.stop(testCase.sessionId);
+        TestEngine.clearFakePlugins();
+    }
+
     // --- CLAP ---
 
     function test_aClapPluginsBlockIsThePluginPanelAndFaceWithItsSettings() {

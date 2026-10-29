@@ -211,6 +211,74 @@ TEST(EditHistoryTest, AHandThatStopsEndsTheGesture)
     EXPECT_EQ(history.undoSize(), 3U);
 }
 
+TEST(EditHistoryTest, AGestureSomebodySaidStartedLastsUntilItIsSaidToEnd)
+{
+    // A plugin's own window says when a knob is taken hold of and let go
+    // of: a hand that rests in the middle is still the same drag.
+    Session session = rb::test::fullSession();
+    EditHistory history;
+    Hand hand;
+    history.setClock(hand.clock());
+
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.1}));
+    hand.wind(16);
+    history.beginGesture(u"b1"_s, u"gain"_s);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.2}));
+    hand.wind(EditHistory::kGesture.count() * 4);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.4}));
+    hand.wind(EditHistory::kGesture.count() * 4);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.6}));
+    // The end of another control's gesture is not this one's.
+    history.endGesture(u"b1"_s, u"pan"_s);
+    hand.wind(EditHistory::kGesture.count() * 4);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.6}));
+    history.endGesture(u"b1"_s, u"gain"_s);
+    EXPECT_EQ(history.undoSize(), 2U) << "the said gesture should be one step of its own";
+
+    // One Ctrl+Z takes the whole drag back, to before it began.
+    ASSERT_TRUE(undoOne(session, history));
+    EXPECT_EQ(session.findBlock(u"b1"_s)->params.value(u"gain"_s).toDouble(), 0.1);
+
+    // And once it has been said to end, time decides again.
+    hand.wind(1);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.3}));
+    hand.wind(EditHistory::kGesture.count() + 1);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.5}));
+    EXPECT_EQ(history.undoSize(), 3U);
+}
+
+TEST(EditHistoryTest, AGestureThatNeverEndsHoldsNothingForEver)
+{
+    // A window that never said it let go: another knob is another step,
+    // a long rest ends it anyway, and so does an undo.
+    Session session = rb::test::fullSession();
+    EditHistory history;
+    Hand hand;
+    history.setClock(hand.clock());
+
+    history.beginGesture(u"b1"_s, u"gain"_s);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.2}));
+    hand.wind(16);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"pan"_s, 0.5}));
+    EXPECT_EQ(history.undoSize(), 2U) << "another control joined the held one";
+    hand.wind(16);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.3}));
+    EXPECT_EQ(history.undoSize(), 3U);
+    hand.wind(EditHistory::kHeldGesture.count() + 1);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.4}));
+    EXPECT_EQ(history.undoSize(), 4U) << "a gesture held past the longest rest";
+
+    history.beginGesture(u"b1"_s, u"gain"_s);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.5}));
+    ASSERT_TRUE(undoOne(session, history));
+    hand.wind(EditHistory::kGesture.count() * 4);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.6}));
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.7}));
+    hand.wind(EditHistory::kGesture.count() * 4);
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b1"_s, u"gain"_s, 0.8}));
+    EXPECT_EQ(history.undoSize(), 6U) << "an undo did not end the held gesture";
+}
+
 TEST(EditHistoryTest, TwoKnobsAreTwoSteps)
 {
     Session session = rb::test::fullSession();

@@ -84,6 +84,10 @@ class SessionModel : public QObject
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY undoStateChanged)
     Q_PROPERTY(QString undoText READ undoText NOTIFY undoStateChanged)
     Q_PROPERTY(QString redoText READ redoText NOTIFY undoStateChanged)
+    /// Counts up whenever what is known of a plugin block's own window or
+    /// presets changes: **what a binding reads** to follow
+    /// pluginWindowOpen() and the rest.
+    Q_PROPERTY(int pluginRevision READ pluginRevision NOTIFY pluginChanged)
 
 public:
     /// How often a parameter being dragged is sent. Sixty a second is what
@@ -123,6 +127,26 @@ public:
     /// Starts a plugin block's plugin again after its host failed.
     /// Not an edit: nothing about the session changes, so nothing to undo.
     Q_INVOKABLE void restartPlugin(const QString &blockId);
+
+    [[nodiscard]] int pluginRevision() const;
+    /// **A plugin block's own window**, which its host shows. Not an edit;
+    /// what it is now arrives from the engine, and pluginWindowOpen() says
+    /// it, with why it is not showing when it is not.
+    Q_INVOKABLE void setPluginWindow(const QString &blockId, bool open);
+    [[nodiscard]] Q_INVOKABLE bool pluginWindowOpen(const QString &blockId) const;
+    /// "closed", "unavailable", "failed", "crashed", "notRunning", or empty
+    /// when it has never been asked for.
+    [[nodiscard]] Q_INVOKABLE QString pluginWindowReason(const QString &blockId) const;
+    /// **A plugin block's own presets**, its format's: asked for, then
+    /// read as `{id, name}` each once the engine has answered. Putting one
+    /// in is an edit, which undo takes back; saving one writes it where
+    /// the format's other hosts find it.
+    Q_INVOKABLE void listPluginPresets(const QString &blockId);
+    [[nodiscard]] Q_INVOKABLE QVariantList pluginPresets(const QString &blockId) const;
+    Q_INVOKABLE void loadPluginPreset(const QString &blockId, const QString &presetId);
+    Q_INVOKABLE void savePluginPreset(const QString &blockId, const QString &name);
+    /// The plugin's own preset its settings are, or empty for none.
+    [[nodiscard]] Q_INVOKABLE QString pluginPresetShown(const QString &blockId) const;
 
     /// What a block is: its type id, what it is called, whether it is on,
     /// and where its tile sits.
@@ -337,6 +361,7 @@ Q_SIGNALS:
     void sessionChanged();
     void changed();
     void undoStateChanged();
+    void pluginChanged();
 
 private:
     class Private;

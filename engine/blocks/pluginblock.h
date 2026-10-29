@@ -119,6 +119,12 @@ public:
         m_info.latencySamples = samples;
     }
 
+    /// **A value the plugin reports, as the block's setting \a id holds
+    /// it**: a switch on from a half up, a whole number rounded, a choice
+    /// the one nearest the value. Nothing for a setting the plugin has not
+    /// got, or one of the block's own.
+    [[nodiscard]] std::optional<dsp::ParamValue> valueFromPlugin(std::string_view id, float value) const;
+
     /// The host's index of the block's parameter \a index, or nothing for
     /// one of the block's own.
     [[nodiscard]] static std::optional<std::uint32_t> pluginParamIndex(std::uint32_t index) noexcept;

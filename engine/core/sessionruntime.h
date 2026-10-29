@@ -15,6 +15,7 @@
 #include "rt/meter.h"
 
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QObject>
@@ -177,6 +178,22 @@ public:
     /// reason it was refused: NotRunning, blockNotFound or notAHostedPlugin.
     [[nodiscard]] std::expected<void, QString> restartPlugin(const QString &blockId);
 
+    /// **Shows or closes a plugin block's own window**, which its host
+    /// makes. Answered by pluginWindowChanged(). The error is the reason it
+    /// was refused: NotRunning, blockNotFound or notAHostedPlugin.
+    [[nodiscard]] std::expected<void, QString> setPluginWindow(const QString &blockId, bool open);
+    /// Whether \a blockId's window is showing.
+    [[nodiscard]] bool pluginWindowOpen(const QString &blockId) const;
+
+    /// **A plugin block's own presets**, its format's: listed
+    /// (pluginPresetsListed()), one put in (its values arrive as
+    /// pluginValuesChanged(), then pluginPresetShown()), and the settings
+    /// kept as one where other hosts of the format find them. Refused as
+    /// setPluginWindow() is.
+    [[nodiscard]] std::expected<void, QString> listPluginPresets(const QString &blockId);
+    [[nodiscard]] std::expected<void, QString> loadPluginPreset(const QString &blockId, const QString &presetId);
+    [[nodiscard]] std::expected<void, QString> savePluginPreset(const QString &blockId, const QString &name);
+
     /// How long a host has to have run for its failure to start another by
     /// itself; one that fails sooner is left for somebody to restart. Ten
     /// seconds; tests change it.
@@ -253,6 +270,31 @@ Q_SIGNALS:
     /// **A plugin's host failed, and the block is linked around**:
     /// \a reason is "crashed" or "hung". Once a failure.
     void pluginFailed(const QString &blockId, const QString &reason);
+
+    /// **A plugin's own window was shown, or has gone**: \a reason says
+    /// why it closed or could not open — "closed", "unavailable", "failed",
+    /// or "crashed" when its host went.
+    void pluginWindowChanged(const QString &blockId, bool open, const QString &reason);
+    /// **A person moved a control in a plugin's own window**: the block
+    /// holds \a value already, and the plugin has it; only the session has
+    /// still to be told. Never sent back to the host.
+    void pluginParamChanged(const QString &blockId, const QString &paramId, const QJsonValue &value);
+    /// A person took hold of a control in the plugin's window, or let go:
+    /// what comes between is one edit.
+    void pluginGesture(const QString &blockId, const QString &paramId, bool begin);
+    /// **The plugin's values changed together**, already held by the
+    /// block: \a edit when a person did it (a preset), otherwise what
+    /// the session asked for led to (a state put back).
+    void pluginValuesChanged(const QString &blockId, const QJsonObject &values, bool edit);
+    /// The plugin's own presets, as a JSON array of `{id, name}`.
+    void pluginPresetsListed(const QString &blockId, const QJsonArray &presets);
+    /// The plugin's own presets could not be listed: too many to send, or
+    /// no answer.
+    void pluginPresetsRefused(const QString &blockId);
+    /// The plugin's own preset its settings are, or empty for none.
+    void pluginPresetShown(const QString &blockId, const QString &presetId);
+    /// What savePluginPreset() wrote, or empty when it could not.
+    void pluginPresetSaved(const QString &blockId, const QString &presetId);
 
     /// **The session gave way to keep its data loop alive**: its
     /// cycles were taking so long that the loop never slept, and the kernel

@@ -44,6 +44,8 @@ constexpr int kSharedFd = 4;
 constexpr std::chrono::milliseconds kWatchInterval{5};
 /// A look this long after the last means the watch itself was held up.
 constexpr std::chrono::milliseconds kLongestLookGap{100};
+/// How long a window or a list of presets is waited for.
+constexpr std::chrono::milliseconds kAnswerWithin{15000};
 
 } // namespace
 
@@ -68,6 +70,12 @@ public:
     std::unique_ptr<QSocketNotifier> exitNotifier;
     QTimer watchdog;
     QTimer killTimer;
+    /// **An answer that never came** is taken as a refusal after this
+    /// long, so a panel never waits on a host that has not said: a window
+    /// a plugin takes long to make, or a host of another build that does
+    /// not know the question.
+    QTimer uiAnswer;
+    QTimer presetsAnswer;
     std::function<std::uint64_t()> upstream;
     std::uint32_t stalledCycles = 3;
     std::chrono::milliseconds stalledFor{40};
@@ -145,6 +153,56 @@ public:
         case plugin::MessageType::Error:
             Q_EMIT q->failed(payload);
             break;
+        case plugin::MessageType::UiOpened:
+            uiAnswer.stop();
+            Q_EMIT q->uiOpened();
+            break;
+        case plugin::MessageType::UiClosed:
+            uiAnswer.stop();
+            Q_EMIT q->uiClosed(payload);
+            break;
+        case plugin::MessageType::Refused:
+            if (payload.toUInt() == static_cast<std::uint32_t>(plugin::MessageType::Presets)) {
+                presetsAnswer.stop();
+                Q_EMIT q->presetsRefused();
+            }
+            break;
+        case plugin::MessageType::ParamChanged:
+            if (const auto pair = plugin::parsePair(message.payload)) {
+                if (const std::optional<float> value = plugin::parseValue(pair->second)) {
+                    Q_EMIT q->paramChanged(QString::fromStdString(pair->first), *value);
+                }
+            }
+            break;
+        case plugin::MessageType::ParamGesture:
+            if (const auto pair = plugin::parsePair(message.payload)) {
+                Q_EMIT q->paramGesture(QString::fromStdString(pair->first), pair->second == "begin");
+            }
+            break;
+        case plugin::MessageType::Values:
+            if (const auto values = plugin::parseValues(message.payload)) {
+                QList<QPair<QString, float>> list;
+                for (const plugin::NamedValue &value : values->second) {
+                    list.append({QString::fromStdString(value.id), value.value});
+                }
+                Q_EMIT q->valuesChanged(values->first == "edit", list);
+            }
+            break;
+        case plugin::MessageType::Presets: {
+            presetsAnswer.stop();
+            QList<QPair<QString, QString>> list;
+            for (const plugin::PresetEntry &preset : plugin::parsePresets(message.payload)) {
+                list.append({QString::fromStdString(preset.id), QString::fromStdString(preset.name)});
+            }
+            Q_EMIT q->presetsListed(list);
+            break;
+        }
+        case plugin::MessageType::PresetShown:
+            Q_EMIT q->presetShown(payload);
+            break;
+        case plugin::MessageType::PresetSaved:
+            Q_EMIT q->presetSaved(payload);
+            break;
         default:
             break;
         }
@@ -201,6 +259,12 @@ PluginHostProcess::PluginHostProcess(QObject *parent)
     d->q = this;
     d->watchdog.setInterval(kWatchInterval);
     connect(&d->watchdog, &QTimer::timeout, this, [this] { d->onWatch(); });
+    d->uiAnswer.setSingleShot(true);
+    d->uiAnswer.setInterval(kAnswerWithin);
+    connect(&d->uiAnswer, &QTimer::timeout, this, [this] { Q_EMIT uiClosed(u"failed"_s); });
+    d->presetsAnswer.setSingleShot(true);
+    d->presetsAnswer.setInterval(kAnswerWithin);
+    connect(&d->presetsAnswer, &QTimer::timeout, this, [this] { Q_EMIT presetsRefused(); });
     d->killTimer.setSingleShot(true);
     connect(&d->killTimer, &QTimer::timeout, this, [this] {
         if (d->pid > 0) {
@@ -234,6 +298,8 @@ bool PluginHostProcess::start(const PluginHostSpec &spec)
     if (::socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, pair) != 0) {
         return false;
     }
+    plugin::widenSocket(pair[0]);
+    plugin::widenSocket(pair[1]);
 
     // Everything the child needs, made before fork: after it, only calls
     // that are safe in a copy of a threaded process.
@@ -416,6 +482,10 @@ std::optional<QString> PluginHostProcess::stateNow(std::chrono::milliseconds tim
         if (message->type == plugin::MessageType::State) {
             return QString::fromStdString(message->payload);
         }
+        if (message->type == plugin::MessageType::Refused
+            && message->payload == std::to_string(static_cast<std::uint32_t>(plugin::MessageType::State))) {
+            return std::nullopt; // a state too large to send: the last one stands
+        }
         // Anything else that arrived meanwhile is said as it would have been.
         d->handle(*message);
     }
@@ -427,6 +497,48 @@ void PluginHostProcess::setState(const QString &state)
     if (d->control >= 0
         && plugin::sendMessage(d->control, plugin::Message{plugin::MessageType::SetState, state.toStdString()})) {
         d->loadingState = true;
+        return;
+    }
+    // Said, rather than lost: the plugin before it runs on.
+    QMetaObject::invokeMethod(this, [this] { Q_EMIT stateLoaded(false); }, Qt::QueuedConnection);
+}
+
+void PluginHostProcess::openUi()
+{
+    if (d->control >= 0 && plugin::sendMessage(d->control, plugin::Message{plugin::MessageType::OpenUi, {}})) {
+        d->uiAnswer.start();
+    } else {
+        Q_EMIT uiClosed(u"failed"_s);
+    }
+}
+
+void PluginHostProcess::closeUi()
+{
+    if (d->control >= 0) {
+        (void)plugin::sendMessage(d->control, plugin::Message{plugin::MessageType::CloseUi, {}});
+    }
+}
+
+void PluginHostProcess::listPresets()
+{
+    if (d->control >= 0 && plugin::sendMessage(d->control, plugin::Message{plugin::MessageType::ListPresets, {}})) {
+        d->presetsAnswer.start();
+    } else {
+        Q_EMIT presetsRefused();
+    }
+}
+
+void PluginHostProcess::loadPreset(const QString &presetId)
+{
+    if (d->control >= 0) {
+        (void)plugin::sendMessage(d->control, plugin::Message{plugin::MessageType::LoadPreset, presetId.toStdString()});
+    }
+}
+
+void PluginHostProcess::savePreset(const QString &name)
+{
+    if (d->control >= 0) {
+        (void)plugin::sendMessage(d->control, plugin::Message{plugin::MessageType::SavePreset, name.toStdString()});
     }
 }
 

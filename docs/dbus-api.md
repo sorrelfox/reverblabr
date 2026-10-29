@@ -140,6 +140,10 @@ The released surface is written down line by line in [`dbus/io.github.reverblabr
 | `SetBroadcastPassword(s sessionId, s blockId, s password)` | a Broadcast block's password, kept in the desktop's password store (KWallet, or the Secret Service) and never in the session; empty removes it. A running stream tries again with it at once | `BroadcastStatusChanged`, or `broadcast.passwordNotSaved` |
 | `GetBroadcastStatus(s sessionId, s blockId)` | where a Broadcast block's stream stands, and whether it has a password | `BroadcastStatusChanged` |
 | `RestartPlugin(s sessionId, s blockId)` | starts a plugin block's plugin again in a host of its own | `plugin.restartRefused` if it cannot |
+| `SetPluginWindow(s sessionId, s blockId, b open)` | shows or closes a plugin block's own window, which its host makes | `PluginWindowChanged` |
+| `ListPluginPresets(s sessionId, s blockId)` | a plugin block's own presets, its format's | `PluginPresetsListed`, or `plugin.presetRefused` |
+| `LoadPluginPreset(s sessionId, s blockId, s presetId)` | puts one of them on the block, as one edit to undo | `SessionPatch` for each value it changed, then `PluginPresetShown` |
+| `SavePluginPreset(s sessionId, s blockId, s name)` | keeps the plugin's settings as a preset of its format, where its other hosts find it (an LV2 plugin's in `~/.lv2`); a CLAP plugin's go with the application's own, through `SavePreset` | `PluginPresetsListed`, or `plugin.presetRefused` |
 | `Analyse(s sessionId, s blockId, i channel)` | takes one block's live spectra into the session's levels (for the window's curves; an empty `blockId` stops) | not answered: the spectra travel with the levels |
 
 ### What is out there
@@ -221,6 +225,9 @@ The all-users devices are written by a privileged helper the window asks through
 | `BroadcastStatusChanged(s sessionId, s blockId, s statusJson)` | where a Broadcast block's stream stands: `{state, error, connectedSince, bytesSent, kbps, reconnects, retryIn, title, sampleRate, passwordStored}`, described in the interface XML; when it changes, and once a second while it is on the air |
 | `PluginsChanged(s pluginsJson)` | the installed plugins, whether a scan runs, the blocklisted ones, and the files a scan got only part of the way through (`incomplete`) |
 | `PluginDescribed(s format, s id, s descriptionJson)` | one plugin's settings |
+| `PluginWindowChanged(s sessionId, s blockId, b open, s reason)` | a plugin block's own window was shown, or has gone: `closed`, `unavailable`, `failed`, `crashed` or `notRunning` |
+| `PluginPresetsListed(s sessionId, s blockId, s presetsJson)` | a plugin block's own presets, `{id, name}` each |
+| `PluginPresetShown(s sessionId, s blockId, s presetId)` | the plugin's own preset a block's settings are, or empty when they are none |
 | `RecordingsChanged(s sessionId, s recordingsJson)` | a session's recordings, newest first |
 | `RecordingDetails(s path, s detailsJson)` | one recording in full |
 | `RecordingRenamed(s oldPath, s newPath)` | a recording's file was renamed |
@@ -267,6 +274,7 @@ Each is the `code` of an `Error` signal. Its arguments arrive by name in `argsJs
 | `plugin.restartRefused` | reason | a plugin could not be restarted (*block*) |
 | `timer.notFound` | timer | `FireTimer` named a timer no session has; nothing was started |
 | `timer.late` | timer | a scheduled `FireTimer` came more than two minutes after the timer's time, as after a sleep; nothing was started |
+| `plugin.presetRefused` | preset, reason | a plugin's own preset could not be listed, put in or written (*block*) |
 
 ## Notice codes
 
@@ -305,6 +313,7 @@ Every action a person takes on the engine from the window is one of these calls.
 | A Recorder's Pause, Resume and Split | `ControlRecording` |
 | A Broadcast block's password and its Status tab | `SetBroadcastPassword`, `GetBroadcastStatus` |
 | Restarting a plugin | `RestartPlugin` |
+| A plugin's own window, and its own presets | `SetPluginWindow`, `ListPluginPresets`, `LoadPluginPreset`, `SavePluginPreset`; a control moved in the window arrives as `SessionPatch`, and a whole drag of it is one `Undo` |
 | A curve with the sound drawn behind it | `Analyse` |
 | The block library | `GetBlockCatalogue` |
 | The application and device pickers | `GetInventory` |

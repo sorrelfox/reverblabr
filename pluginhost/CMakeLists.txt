@@ -20,7 +20,7 @@ target_include_directories(reverblabr-pluginhost-ladspa PUBLIC ${CMAKE_CURRENT_S
 target_link_libraries(reverblabr-pluginhost-ladspa PUBLIC reverblabr-pluginproto PRIVATE ${CMAKE_DL_LIBS})
 set_target_properties(reverblabr-pluginhost-ladspa PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
-add_executable(reverblabr-plugin-host main.cpp lv2plugin.cpp lv2plugin.h scan.cpp scan.h)
+add_executable(reverblabr-plugin-host main.cpp editor.h lv2plugin.cpp lv2plugin.h scan.cpp scan.h)
 target_link_libraries(reverblabr-plugin-host PRIVATE reverblabr-version reverblabr-pluginproto reverblabr-pluginhost-ladspa
                                                      PkgConfig::PIPEWIRE PkgConfig::LILV)
 # CLAP's plugins, where the build has the CLAP SDK: loaded with dlopen,

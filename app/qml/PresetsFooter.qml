@@ -33,7 +33,16 @@ RowLayout {
 
     readonly property string typeId: SessionModel.blockType(footer.blockId)
     /// Every preset for this kind of block, shipped ones first.
-    readonly property var presets: Presets.revision >= 0 ? Presets.forType(footer.typeId) : []
+    readonly property var presets: {
+        const all = Presets.revision >= 0 ? Presets.forType(footer.typeId) : [];
+        // **A plugin block's presets are its plugin's**: another plugin's
+        // settings, under the same kind of block, mean nothing to this one.
+        if (!footer.typeId.startsWith("plugin.")) {
+            return all;
+        }
+        const plugin = SessionModel.revision >= 0 ? (SessionModel.param(footer.blockId, "plugin") ?? "") : "";
+        return all.filter(preset => preset.plugin === plugin);
+    }
     /// The one the block is showing, or empty for Manual. **Read through the
     /// session's revision** so that it is worked out again after every edit,
     /// which is how turning one knob changes the word in the box.
@@ -60,6 +69,16 @@ RowLayout {
             }
             const set = SessionModel.param(footer.blockId, descriptor.id);
             values[descriptor.id] = set === undefined ? descriptor.default : set;
+        }
+        // A plugin block's settings are its plugin's, which the catalogue
+        // cannot list: what the session holds of them.
+        if (footer.typeId.startsWith("plugin.")) {
+            const held = SessionModel.params(footer.blockId);
+            for (const id in held) {
+                if (!(id in values)) {
+                    values[id] = held[id];
+                }
+            }
         }
         return values;
     }

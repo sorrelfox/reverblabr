@@ -15,7 +15,9 @@
 
 #include <QJsonObject>
 
+#include <algorithm>
 #include <memory>
+#include <span>
 
 using namespace Qt::StringLiterals;
 
@@ -77,6 +79,16 @@ presetOfBlock(const dsp::BlockRegistry &registry, const Session &session, const 
         // A block type this build does not have: its parameters are whatever
         // the file held, and this build has no idea which of them matter.
         return std::unexpected(PresetError::WrongType);
+    }
+
+    // **A block whose settings depend on which plugin it runs** is made
+    // with that plugin, so its settings are the plugin's and the preset
+    // holds every one of them, set or not.
+    if (const QJsonValue plugin = block->params.value("plugin"_L1); plugin.isString()) {
+        const std::span<const dsp::ParamDescriptor> own = (*made)->params();
+        if (std::ranges::any_of(own, [](const dsp::ParamDescriptor &d) { return d.id == "plugin"; })) {
+            (void)(*made)->setParam("plugin", dsp::ParamValue::ofString(plugin.toString().toStdString()));
+        }
     }
 
     Preset preset;

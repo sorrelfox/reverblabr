@@ -122,6 +122,22 @@ public:
     {
         record("restartPlugin", {sessionId, blockId});
     }
+    void setPluginWindow(const QString &sessionId, const QString &blockId, bool open) override
+    {
+        record("setPluginWindow", {sessionId, blockId, open});
+    }
+    void listPluginPresets(const QString &sessionId, const QString &blockId) override
+    {
+        record("listPluginPresets", {sessionId, blockId});
+    }
+    void loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId) override
+    {
+        record("loadPluginPreset", {sessionId, blockId, presetId});
+    }
+    void savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name) override
+    {
+        record("savePluginPreset", {sessionId, blockId, name});
+    }
     void analyse(const QString &sessionId, const QString &blockId, int channel) override
     {
         record("analyse", {sessionId, blockId, channel});

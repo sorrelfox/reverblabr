@@ -85,6 +85,8 @@ constexpr std::array kMessages{
                     "Plugin stopped responding: %1 was closed, and the sound now goes around it. Restart it from its "
                     "panel.")},
     Message{"plugin.restartRefused", kli18nc("@info", "The plugin wasn't restarted: %1.")},
+    Message{"plugin.presetRefused",
+            kli18nc("@info %1 is a plugin preset's name; %2 is why", "The plugin preset %1 wasn't used: %2.")},
     Message{
         "recording.previewFailed",
         kli18nc("@info %1 is a recording's file, with its folder; %2 is why", "The recording %1 can't be played: %2.")},
@@ -161,6 +163,9 @@ constexpr std::array kReasons{
     Message{"blockNotFound", kli18nc("@info a reason an edit was refused", "the block it names isn't in the session")},
     Message{"notAHostedPlugin",
             kli18nc("@info a reason a plugin was not restarted", "it isn't a plugin that is switched on")},
+    Message{"notSaved", kli18nc("@info a reason a plugin preset was refused", "it couldn't be written")},
+    Message{"notListed",
+            kli18nc("@info a reason a plugin preset was refused", "the plugin's presets couldn't be listed")},
     Message{"blockIdInUse", kli18nc("@info a reason an edit was refused", "another block already has that name")},
     Message{"wireToItself", kli18nc("@info a reason an edit was refused", "a block can't be connected to itself")},
     Message{"wireAlreadyExists", kli18nc("@info a reason an edit was refused", "that connection is already there")},

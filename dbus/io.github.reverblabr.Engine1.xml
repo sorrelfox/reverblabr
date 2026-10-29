@@ -222,6 +222,42 @@ SPDX-License-Identifier: MIT
       <arg name="blockId" type="s" direction="in"/>
     </method>
 
+    <!-- Shows (open true) or closes a plugin block's own window, which its
+         host makes as a window of its own. Answered by
+         PluginWindowChanged. -->
+    <method name="SetPluginWindow">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="open" type="b" direction="in"/>
+    </method>
+
+    <!-- A plugin block's own presets, its format's (an LV2 plugin's
+         pset:Preset, a CLAP plugin's from its preset discovery). Answered
+         by PluginPresetsListed, or Error plugin.presetRefused. -->
+    <method name="ListPluginPresets">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+    </method>
+
+    <!-- Puts one of them on the block, as one undoable edit: its values
+         arrive as SessionPatch, and PluginPresetShown names it. -->
+    <method name="LoadPluginPreset">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="presetId" type="s" direction="in"/>
+    </method>
+
+    <!-- Keeps what the plugin is set to as a preset of its own format,
+         where other hosts of that format find it (an LV2 plugin's in
+         ~/.lv2). Answered by PluginPresetsListed with it in, or Error
+         plugin.presetRefused. A CLAP plugin's settings are kept with the
+         application's own presets, through SavePreset. -->
+    <method name="SavePluginPreset">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+    </method>
+
     <!-- Takes the live spectra of one block into the
          session's telemetry from now on, or nobody's when blockId is
          empty: after the block and before it, with the band values it
@@ -765,6 +801,35 @@ SPDX-License-Identifier: MIT
       <arg name="format" type="s"/>
       <arg name="id" type="s"/>
       <arg name="descriptionJson" type="s"/>
+    </signal>
+
+    <!-- A plugin block's own window was shown (open true), or has gone.
+         reason says why it is not showing: "closed", "unavailable" (the
+         plugin has no window that can be shown here, or there is no
+         display), "failed", "crashed" or "notRunning". -->
+    <signal name="PluginWindowChanged">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="open" type="b"/>
+      <arg name="reason" type="s"/>
+    </signal>
+
+    <!-- A plugin block's own presets, in answer to ListPluginPresets: a
+         JSON array of { "id": "…", "name": "…" }. The id is the format's
+         own (an LV2 preset's URI) and means nothing outside that plugin. -->
+    <signal name="PluginPresetsListed">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="presetsJson" type="s"/>
+    </signal>
+
+    <!-- The plugin's own preset a block's settings are, or empty when they
+         are none of its presets: sent when one is put in or saved, and when
+         a setting moves away from it. -->
+    <signal name="PluginPresetShown">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="presetId" type="s"/>
     </signal>
 
     <!-- The recordings sessionId has made, newest first, as a JSON array

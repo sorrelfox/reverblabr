@@ -157,6 +157,10 @@ public Q_SLOTS:
     void setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password) override;
     void getBroadcastStatus(const QString &sessionId, const QString &blockId) override;
     void restartPlugin(const QString &sessionId, const QString &blockId) override;
+    void setPluginWindow(const QString &sessionId, const QString &blockId, bool open) override;
+    void listPluginPresets(const QString &sessionId, const QString &blockId) override;
+    void loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId) override;
+    void savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name) override;
     void analyse(const QString &sessionId, const QString &blockId, int channel) override;
     void start(const QString &sessionId) override;
     void stop(const QString &sessionId) override;

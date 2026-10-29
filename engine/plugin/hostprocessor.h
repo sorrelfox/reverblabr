@@ -10,7 +10,9 @@
 #include "dsp/block.h"
 #include "plugin/shared.h"
 #include "rt/realtime.h"
+#include "rt/spscqueue.h"
 
+#include <atomic>
 #include <cstdint>
 #include <span>
 
@@ -48,11 +50,41 @@ public:
                  std::uint32_t frames,
                  std::uint32_t rate) noexcept RB_NONBLOCKING;
 
+    /// **A change made in the host itself**, by the plugin's own window:
+    /// heard from the next cycle on, like one from the engine, after the
+    /// engine's. The host's main thread only; false when the queue is full.
+    bool pushFromHost(const ParamChange &change) noexcept;
+    /// Whether every change pushFromHost() queued has reached the plugin.
+    [[nodiscard]] bool fromHostDrained() const noexcept;
+
+    /// **Keeps the audio thread away from the plugin**, for a change the
+    /// plugin cannot take while it runs: a state put back in place, which
+    /// LV2 asks never to happen during run(). Returns once no cycle is in
+    /// the plugin; until release(), every cycle is silent. The host's main
+    /// thread only. A cycle takes a few hundred microseconds at most, so the
+    /// wait is that long at most.
+    ///
+    /// **The silence is heard**: a preset put in this way is a short gap in
+    /// the sound, as long as the plugin takes to read its state (a few
+    /// milliseconds for LSP's), the way other LV2 hosts do it. LV2's
+    /// state:threadSafeRestore would let some plugins skip it, but restoring
+    /// also writes the control values the audio thread reads, so it would
+    /// need those handed over through the queue as well; not done yet.
+    /// Changes that arrive meanwhile wait in the rings and are heard after.
+    void hold() noexcept;
+    void release() noexcept;
+
 private:
     SharedBlock &m_shared;
     dsp::Block *m_block = nullptr;
     std::uint32_t m_rate = 0;
     std::size_t m_paramCount = 0;
+    rt::SpscQueue<ParamChange> m_fromHost{kParamSlots};
+    /// The hold's two sides: what the main thread asks, and whether a cycle
+    /// is inside the plugin now. Sequentially consistent, both, so that one
+    /// of the two threads always sees the other's flag.
+    std::atomic<bool> m_held{false};
+    std::atomic<bool> m_busy{false};
 };
 
 } // namespace rb::plugin

@@ -597,6 +597,44 @@ TEST_F(PluginHosts, TheStateComesBackAndGoesBackIn)
     ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.25f) < 1e-3f; }, 1s));
 }
 
+TEST_F(PluginHosts, APluginWithNoWindowOrPresetsSaysSoAndRunsOn)
+{
+    // The built-in plugin has neither, and the answers say so, where a
+    // plugin of a format that has them would show its window: the
+    // messages, with no window anywhere.
+    PluginHostProcess host;
+    startChain(host);
+    std::optional<QString> closed;
+    bool opened = false;
+    std::optional<QList<QPair<QString, QString>>> presets;
+    std::optional<QString> shown;
+    std::optional<QList<QPair<QString, float>>> values;
+    QObject::connect(&host, &PluginHostProcess::uiOpened, &host, [&] { opened = true; });
+    QObject::connect(&host, &PluginHostProcess::uiClosed, &host, [&](const QString &why) { closed = why; });
+    QObject::connect(&host, &PluginHostProcess::presetsListed, &host, [&](const auto &list) { presets = list; });
+    QObject::connect(&host, &PluginHostProcess::presetShown, &host, [&](const QString &id) { shown = id; });
+    QObject::connect(&host, &PluginHostProcess::valuesChanged, &host, [&](bool, const auto &list) { values = list; });
+
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return closed.has_value(); }, 1s));
+    EXPECT_EQ(*closed, QStringLiteral("unavailable"));
+    EXPECT_FALSE(opened);
+    host.listPresets();
+    ASSERT_TRUE(spinUntil([&] { return presets.has_value(); }, 1s));
+    EXPECT_TRUE(presets->isEmpty());
+    host.loadPreset(QStringLiteral("nothing"));
+    ASSERT_TRUE(spinUntil([&] { return shown.has_value(); }, 1s));
+    EXPECT_TRUE(shown->isEmpty());
+
+    // **A state put back says what it holds**, for the engine's panel.
+    host.setState(QStringLiteral("gain=0.5\n"));
+    ASSERT_TRUE(spinUntil([&] { return values.has_value(); }, 1s));
+    ASSERT_EQ(values->size(), 1);
+    EXPECT_EQ(values->front().first, QStringLiteral("gain"));
+    EXPECT_FLOAT_EQ(values->front().second, 0.5f);
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.5f) < 1e-3f; }, 1s));
+}
+
 TEST_F(PluginHosts, APluginTheHostDoesNotHaveIsAFailureItSays)
 {
     PluginHostProcess host;

@@ -496,6 +496,26 @@ void RemoteEngine::restartPlugin(const QString &sessionId, const QString &blockI
     d->call(u"RestartPlugin"_s, {sessionId, blockId});
 }
 
+void RemoteEngine::setPluginWindow(const QString &sessionId, const QString &blockId, bool open)
+{
+    d->call(u"SetPluginWindow"_s, {sessionId, blockId, open});
+}
+
+void RemoteEngine::listPluginPresets(const QString &sessionId, const QString &blockId)
+{
+    d->call(u"ListPluginPresets"_s, {sessionId, blockId});
+}
+
+void RemoteEngine::loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId)
+{
+    d->call(u"LoadPluginPreset"_s, {sessionId, blockId, presetId});
+}
+
+void RemoteEngine::savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name)
+{
+    d->call(u"SavePluginPreset"_s, {sessionId, blockId, name});
+}
+
 void RemoteEngine::analyse(const QString &sessionId, const QString &blockId, int channel)
 {
     d->call(u"Analyse"_s, {sessionId, blockId, channel});
