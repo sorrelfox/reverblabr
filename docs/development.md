@@ -243,6 +243,21 @@ sudo xargs rm -v < build/debug/install_manifest_authhelper.txt
 
 The devices it wrote stay in `/etc/pipewire/pipewire.conf.d/90-reverblabr-virtual-devices-system.conf` until they are deleted in the app, or the file is.
 
+### Trying the panel widget
+
+The panel widget ([ADR-0024](adr/0024-panel-widget.md)) is a Plasma package in `build/debug/plasmoid/package` and a QML module in `build/debug/bin/io/github/reverblabr/plasmoid`. It talks to the background engine, so it needs an installed one ([Installing](installing.md)); a build tree has none on your session bus. To try it in a window of its own, put the package where Plasma looks for your own widgets and show the module to Qt:
+
+```sh
+cmake --build --preset debug
+kpackagetool6 --type Plasma/Applet --upgrade build/debug/plasmoid/package \
+  || kpackagetool6 --type Plasma/Applet --install build/debug/plasmoid/package
+QML_IMPORT_PATH="$PWD/build/debug/bin" plasmawindowed io.github.reverblabr.sessions
+```
+
+To try it in the panel, Plasma's shell has to find the module too: start it again with the same `QML_IMPORT_PATH` (`QML_IMPORT_PATH="$PWD/build/debug/bin" plasmashell --replace &`), or install the whole build. `kpackagetool6 --type Plasma/Applet --remove io.github.reverblabr.sessions` takes the package away again.
+
+`plasmoid.list` and `plasmoid.representations` test it offscreen against an engine of the test's own on a private bus; `plasmoid.package` checks the package with `kpackagetool6`.
+
 ## Looking inside PipeWire
 
 Reverblabr's nodes are named `reverblabr.<session-id>.seg<N>`, and their description is `Reverblabr — <session name>`.

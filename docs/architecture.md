@@ -692,7 +692,7 @@ The window turns it into one block of **English, untranslated** text, the way `r
 
 ## Internationalization
 
-- Every user-visible string goes through KI18n: `i18nc()` with a context marker in C++, and `KI18n.i18nc()` from `org.kde.ki18n` in QML. The notifications' words, which the daemon says too, are marked `RB_I18NC(context, text)` in `notify/` and looked up with gettext in the same catalog.
+- Every user-visible string goes through KI18n: `i18nc()` with a context marker in C++, and `KI18n.i18nc()` from `org.kde.ki18n` in QML. The panel widget's QML is the exception: Plasma gives each widget its own translation domain through the global `i18nc()`, so it uses that ([ADR-0024](adr/0024-panel-widget.md)). The notifications' words, which the daemon says too, are marked `RB_I18NC(context, text)` in `notify/` and looked up with gettext in the same catalog.
 - The engine produces codes, not text (see [Errors](#errors)).
 - Stored data is locale-independent; screens format with `QLocale`.
 - Version 1.0 ships in English only, but adding a language must need no code changes.

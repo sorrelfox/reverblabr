@@ -130,6 +130,14 @@ add_subdirectory(notify)
 add_subdirectory(daemon)
 add_subdirectory(ctl)
 add_subdirectory(app)
+# **The panel widget** (ADR-0024). Nothing of Plasma is needed to build it,
+# only to show it, so it is built by default; a build for a desktop that is
+# not Plasma can leave it out.
+option(RB_BUILD_PLASMOID "Build the Plasma panel widget, Reverblabr Sessions" ON)
+add_feature_info(PlasmaWidget RB_BUILD_PLASMOID "the Plasma panel widget, Reverblabr Sessions")
+if(RB_BUILD_PLASMOID)
+    add_subdirectory(plasmoid)
+endif()
 
 # Translations: every po/<language>/reverblabr.po is compiled and installed, so
 # adding a language needs no code change. The template is regenerated with
@@ -170,7 +178,7 @@ rb_check_layering(
     REASON "The real-time, DSP, block, graph and recording layers are plain C++23, so they can run on the real-time thread (or beside it) and be tested offline."
 )
 rb_check_layering(
-    TARGETS reverblabr-pwconf reverblabr-pw reverblabr-engine reverblabr-enginebus reverblabr-daemon-core reverblabrd
+    TARGETS reverblabr-telemetry reverblabr-pwconf reverblabr-pw reverblabr-engine reverblabr-enginebus reverblabr-daemon-core reverblabrd
     FORBID kf qt-gui
     REASON "The engine uses only QtCore, QtDBus, QtSql and PipeWire, so it can later run as a headless daemon."
 )
@@ -184,6 +192,13 @@ rb_check_layering(
     FORBID kf qt-gui pipewire
     REASON "reverblabr-ctl is a client of the public D-Bus API: QtCore and QtDBus, so it runs from a terminal, a script or cron, with nothing of the engine or the window in it."
 )
+if(RB_BUILD_PLASMOID)
+    rb_check_layering(
+        TARGETS reverblabr-plasmoidplugin
+        FORBID kf pipewire
+        REASON "The panel widget's plugin runs inside the desktop shell: it talks to the engine over the bus and reads the levels from the engine's memory, with QtCore, QtDBus and QtQml, and takes in nothing of the engine or the window."
+    )
+endif()
 rb_check_layering(
     TARGETS reverblabr-plugin-host
     FORBID qt kf

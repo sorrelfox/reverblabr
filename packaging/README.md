@@ -56,6 +56,17 @@ It goes with the engine, though a package may split it off; it talks to the engi
 | bash completion | `/usr/share/bash-completion/completions/reverblabr-ctl` |
 | zsh completion | `/usr/share/zsh/site-functions/_reverblabr-ctl` |
 
+## The panel widget
+
+Reverblabr Sessions, the Plasma panel widget ([ADR-0024](../docs/adr/0024-panel-widget.md)). It is built unless `RB_BUILD_PLASMOID` is off, and needs nothing of Plasma to build; Plasma loads it at run time. Its two parts go together:
+
+| File | Where |
+|---|---|
+| the widget's package: `metadata.json` and `contents/ui/` | `/usr/share/plasma/plasmoids/io.github.reverblabr.sessions/` |
+| its QML module: `qmldir`, `libreverblabr-plasmoidplugin.so` and its type description | `/usr/lib64/qt6/qml/io/github/reverblabr/plasmoid/` (Qt's QML folder; `/usr/lib/x86_64-linux-gnu/qt6/qml/` on Debian-based systems) |
+
+The widget talks to the background engine, so it is no use without it. A package should not require Plasma for it: on another desktop the files simply sit unused. Its words are in a catalog of their own, `plasma_applet_io.github.reverblabr.sessions`, installed beside `reverblabr`'s once there are translations ([i18n.md](../docs/i18n.md)). `kpackagetool6 --appstream-metainfo` describes the widget for a software centre, if a distribution wants that.
+
 ## The all-users helper
 
 Built when KF6Auth is found. Its four files are the `authhelper` install component, listed in [docs/development.md](../docs/development.md#trying-the-all-users-helper). They are what lets Reverblabr make virtual devices for every user after asking for an administrator's password.
@@ -73,7 +84,7 @@ rpmlint -r packaging/rpm/reverblabr.rpmlintrc dist/reverblabr.spec dist/*.rpm ~/
 
 The script takes the spec from the tarball, not from the tree it runs in, so a package is always built the way its release says. `@VERSION@` comes from the tarball's name, and the changelog's date from the release's entry in the AppStream data, so one tarball always makes the same spec. The tarball is the one the release workflow makes, `git archive` with the prefix `reverblabr-X.Y.Z/`.
 
-One package holds everything on this page, the all-users helper included. Its `%check` validates the desktop entry and the AppStream data and runs the tests of the engine's layers, which need nothing but the build. The tests that start a private PipeWire, a session bus or a window can't run in a build root, so they run in the project's CI and before every change instead.
+One package holds everything on this page, the all-users helper and the panel widget included. Its `%check` validates the desktop entry and the AppStream data and runs the tests of the engine's layers, which need nothing but the build. The tests that start a private PipeWire, a session bus or a window can't run in a build root, so they run in the project's CI and before every change instead.
 
 [`rpm/install-check.sh`](rpm/install-check.sh) installs the packages in a throwaway Fedora container, runs every program's `--version`, checks the files above are where they belong and that the engine's unit is not enabled, and removes the package again:
 

@@ -89,6 +89,10 @@ python3
 # no glyphs for. A Plasma desktop has both; a container image has neither.
 plasma-integration
 dejavu-sans-fonts
+# The panel widget's tests draw it with Plasma's own QML controls, and check
+# its package with kpackagetool6 (kf6-kpackage, which libplasma brings).
+# A Plasma desktop has both; a container image has neither.
+libplasma
 
 # Translation catalogs (xgettext, msgfmt), and a real locale, without which
 # gettext loads no catalogs (container images only have C.UTF-8)

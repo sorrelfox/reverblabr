@@ -108,7 +108,8 @@ and a command-line tool runs and changes them from a terminal or a script.
 %cmake_install
 # po/ has no catalogs yet, and an empty file list is an error. Once it has
 # some, the build stops on them as unpackaged files: then this gets
-# "%%find_lang %%{name}" and %%files gets "-f %%{name}.lang".
+# "%%find_lang %%{name}" and %%files gets "-f %%{name}.lang", and the same
+# for the panel widget's catalog, plasma_applet_io.github.reverblabr.sessions.
 
 
 %check
@@ -116,14 +117,15 @@ desktop-file-validate %{buildroot}%{_kf6_datadir}/applications/io.github.reverbl
 appstreamcli validate --no-net %{buildroot}%{_metainfodir}/io.github.reverblabr.Reverblabr.metainfo.xml
 # The tests of the engine's layers, which run offline: real-time, DSP,
 # blocks, graph, recording, plugins, notifications, the helper's action and
-# the command line's lookups. A build root has no PipeWire, no session bus,
-# no display and no git repository, so the rest (pw, bus, ctl's daemon
-# tests, qml, i18n, tools, cmake) run in the project's own CI instead. The
+# the command line's lookups, and the panel widget's package. A build root
+# has no PipeWire, no session bus, no display and no git repository, so the
+# rest (pw, bus, ctl's daemon tests, qml, the panel widget's list and
+# representations, i18n, tools, cmake) run in the project's own CI instead. The
 # cost tests ("costs less than N %% of a core") hold the code to the
 # developer's machine, and a builder is slower and busier than that.
 export LC_ALL=en_US.UTF-8
 export QT_QPA_PLATFORM=offscreen
-%ctest -R '^(rt|dsp|blocks|graph|record|plugin|helper|notify|ctl\.Lookup)\.' \
+%ctest -R '^((rt|dsp|blocks|graph|record|plugin|helper|notify|ctl\.Lookup)\.|plasmoid\.package$)' \
        -E 'Costs?(LessThan|Little|Under|NoMore)|FitQuantum'
 
 
@@ -166,6 +168,16 @@ export QT_QPA_PLATFORM=offscreen
 %{_kf6_datadir}/dbus-1/system.d/io.github.reverblabr.virtualdevices.conf
 %{_kf6_datadir}/dbus-1/system-services/io.github.reverblabr.virtualdevices.service
 %{_kf6_datadir}/polkit-1/actions/io.github.reverblabr.virtualdevices.policy
+# The panel widget, which Plasma loads: its package and its QML module.
+# Plasma owns the folder widgets go in, and the package does not require
+# Plasma, so it shares that folder and the module's parents.
+%dir %{_kf6_datadir}/plasma
+%dir %{_kf6_datadir}/plasma/plasmoids
+%{_kf6_datadir}/plasma/plasmoids/io.github.reverblabr.sessions/
+%dir %{_kf6_qmldir}/io
+%dir %{_kf6_qmldir}/io/github
+%dir %{_kf6_qmldir}/io/github/reverblabr
+%{_kf6_qmldir}/io/github/reverblabr/plasmoid/
 
 
 %changelog

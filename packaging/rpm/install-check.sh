@@ -65,6 +65,10 @@ expected=(
     /usr/share/dbus-1/system.d/io.github.reverblabr.virtualdevices.conf
     /usr/share/dbus-1/system-services/io.github.reverblabr.virtualdevices.service
     /usr/share/polkit-1/actions/io.github.reverblabr.virtualdevices.policy
+    /usr/share/plasma/plasmoids/io.github.reverblabr.sessions/metadata.json
+    /usr/share/plasma/plasmoids/io.github.reverblabr.sessions/contents/ui/main.qml
+    /usr/lib64/qt6/qml/io/github/reverblabr/plasmoid/qmldir
+    /usr/lib64/qt6/qml/io/github/reverblabr/plasmoid/libreverblabr-plasmoidplugin.so
 )
 listed=$(rpm -ql reverblabr)
 for file in "${expected[@]}"; do

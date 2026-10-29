@@ -39,7 +39,7 @@ export XGETTEXT podir
 cd "$repo_root"
 bash ./Messages.sh
 # Every entry has one msgid line; the first one is the header.
-for template in reverblabr reverblabr-ctl reverblabr-data; do
+for template in reverblabr reverblabr-ctl plasma_applet_io.github.reverblabr.sessions reverblabr-data; do
     messages=$(($(grep -c '^msgid ' "$podir/$template.pot") - 1))
     printf 'Wrote %s with %d messages.\n' "$podir/$template.pot" "$messages"
 done

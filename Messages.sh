@@ -6,8 +6,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #
-# Extracts the GUI's translatable strings into $podir/reverblabr.pot, and
-# reverblabr-ctl's into $podir/reverblabr-ctl.pot.
+# Extracts the GUI's translatable strings into $podir/reverblabr.pot,
+# reverblabr-ctl's into $podir/reverblabr-ctl.pot, and the panel widget's into
+# $podir/plasma_applet_io.github.reverblabr.sessions.pot.
 #
 # This follows KDE's Messages.sh convention: the caller sets $XGETTEXT (xgettext
 # with the KI18n keywords) and $podir. Run tools/extract-messages.sh, or build
@@ -20,6 +21,10 @@
 $XGETTEXT $(find app notify daemon -name '*.cpp' -o -name '*.h' -o -name '*.qml' | sort) -o "$podir/reverblabr.pot"
 # reverblabr-ctl has a catalog of its own: it translates with plain gettext,
 # through ctlTr(context, text) and ctlTrn(context, singular, plural, n).
+# **The panel widget has a catalog of its own**, named as Plasma looks it up:
+# plasma_applet_ and the widget's id. Plasma gives the widget's i18n calls
+# that domain, not the window's (docs/adr/0024).
+$XGETTEXT $(find plasmoid/package -name '*.qml' -o -name '*.js' | sort) -o "$podir/plasma_applet_io.github.reverblabr.sessions.pot"
 $XGETTEXT -kctlTr:1c,2 -kctlTrn:1c,2,3 $(find ctl -name '*.cpp' -o -name '*.h' | sort) -o "$podir/reverblabr-ctl.pot"
 # **The words the desktop shows before Reverblabr runs**: the desktop
 # entry's name, comment, keywords and actions, the notification events System

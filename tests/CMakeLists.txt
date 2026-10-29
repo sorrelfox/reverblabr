@@ -17,6 +17,9 @@ add_subdirectory(qml)   # Qt Quick Test for the QML user interface
 add_subdirectory(pw)    # PipeWire integration tests in a private instance
 add_subdirectory(bus)   # the engine on a private session bus, and the daemon behind it
 add_subdirectory(ctl)   # reverblabr-ctl against the daemon, on private buses
+if(RB_BUILD_PLASMOID)
+    add_subdirectory(plasmoid) # the panel widget, against an engine of its own on a private bus
+endif()
 add_subdirectory(cmake) # build-system checks
 add_subdirectory(tools) # repository tooling such as the git hooks
 add_subdirectory(i18n)  # translation catalogs, string extraction and the literal-string lint

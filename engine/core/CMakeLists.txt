@@ -5,6 +5,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+# **A session's telemetry in shared memory** (ADR-0018), on its own: the
+# panel widget reads the levels from it too, inside the desktop shell's
+# process, and must not take the engine in with it. Position-independent,
+# because the widget's QML plugin is a shared library.
+add_library(reverblabr-telemetry STATIC
+    sharedtelemetry.cpp
+    sharedtelemetry.h
+)
+target_include_directories(reverblabr-telemetry PUBLIC ${PROJECT_SOURCE_DIR}/engine)
+# telemetry.h, which the region is laid out from, declares QObjects; the
+# real-time headers it includes need nothing built.
+target_link_libraries(reverblabr-telemetry PUBLIC Qt6::Core)
+set_target_properties(reverblabr-telemetry PROPERTIES AUTOMOC OFF AUTORCC OFF POSITION_INDEPENDENT_CODE ON)
+
 # Session model and engine facade: the only engine API the GUI uses. QtCore
 # (and later QtDBus) only, no KDE Frameworks, so it can move into a daemon.
 add_library(reverblabr-engine STATIC
@@ -65,8 +79,6 @@ add_library(reverblabr-engine STATIC
     session.h
     sessionstore.cpp
     sessionstore.h
-    sharedtelemetry.cpp
-    sharedtelemetry.h
     telemetry.cpp
     telemetry.h
     virtualdevices.cpp
@@ -75,7 +87,7 @@ add_library(reverblabr-engine STATIC
 )
 target_include_directories(reverblabr-engine PUBLIC ${PROJECT_SOURCE_DIR}/engine)
 target_link_libraries(reverblabr-engine
-    PUBLIC Qt6::Core
+    PUBLIC Qt6::Core reverblabr-telemetry
     # The recordings index is SQLite, through Qt: a Qt module with no
     # GUI in it, as the daemon the engine becomes allows.
     PRIVATE Qt6::Sql

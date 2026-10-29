@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # On the desktop
 
-Reverblabr is meant to sit in the background and get on with it: sessions keep running with the window closed, the tray shows what's going on, and shortcuts work from anywhere. Most of this needs an installed Reverblabr, because a build started from the source tree has no background engine (see [Installing](installing.md#run-it-from-the-build)).
+Reverblabr is meant to sit in the background and get on with it: sessions keep running with the window closed, the tray and a panel widget show what's going on, and shortcuts work from anywhere. Most of this needs an installed Reverblabr, because a build started from the source tree has no background engine (see [Installing](installing.md#run-it-from-the-build)).
 
 ## All your sessions at once
 
@@ -35,6 +35,19 @@ While Reverblabr runs, its icon sits in the system tray. With nothing running it
 - **A red dot** on the icon means something is being recorded. **A warning sign** means something went wrong; click the icon to read what.
 
 Closing the main window doesn't quit Reverblabr while there is a tray. Your sessions keep running and the icon stays. To quit, use **Quit** in the icon's menu. Sessions running in the background engine keep going even then; only sessions running inside the window stop.
+
+## The panel widget
+
+**Reverblabr Sessions** puts your sessions in a Plasma panel, whether the window is open or not. Right-click the panel, choose **Add or Manage Widgets…**, and drag **Reverblabr Sessions** onto the panel (or onto the desktop).
+
+- **In the panel** it is Reverblabr's icon. A green dot means a session is running, a red dot that something is being recorded. Hover over it to read how many sessions run.
+- **Click it** to see every saved session, with **Run** or **Stop** and how loud each one is. A session that wasn't open is opened in the background engine as it starts; the window doesn't have to be running.
+- The dots and the bars take their colours from your Plasma theme, light or dark.
+- In the system tray, the widget waits among the hidden icons while nothing runs, like the window's tray icon.
+
+The widget costs nothing while nothing runs: it reads the levels only while its list is open and a session is running. It doesn't start the background engine by being in the panel. Opening its list does, if the engine isn't running yet, to ask it for the sessions, and the engine leaves again a minute later if you don't start anything.
+
+If the widget starts while a session is already recording, when you add it or when Plasma starts, it shows the red dot from that session's next recording on. The widget needs an installed Reverblabr; with no background engine installed, its list says so.
 
 ## Global shortcuts
 

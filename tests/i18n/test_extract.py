@@ -48,6 +48,13 @@ EXPECTED_CTL = [
     ("@info session state", "running", "ctl/commands.cpp"),
 ]
 
+# The panel widget's own template, in the domain Plasma gives it.
+EXPECTED_PLASMOID = [
+    ("@title the panel widget's name", "Reverblabr Sessions", "plasmoid/package/contents/ui/main.qml"),
+    ("@action:button stop the session", "Stop", "plasmoid/package/contents/ui/SessionRow.qml"),
+    ("@info:status", "No session is running", "plasmoid/package/contents/ui/status.js"),
+]
+
 
 def check(entries, expected, failures):
     for context, text, source in expected:
@@ -66,10 +73,15 @@ def main():
         subprocess.run([str(REPO_ROOT / "tools" / "extract-messages.sh"), output], check=True, capture_output=True)
         entries = list(parse_pot((pathlib.Path(output) / "reverblabr.pot").read_text(encoding="utf-8")))
         ctl_entries = list(parse_pot((pathlib.Path(output) / "reverblabr-ctl.pot").read_text(encoding="utf-8")))
+        plasmoid_entries = list(parse_pot(
+            (pathlib.Path(output) / "plasma_applet_io.github.reverblabr.sessions.pot").read_text(encoding="utf-8")))
 
     failures = []
     check(entries, EXPECTED, failures)
     check(ctl_entries, EXPECTED_CTL, failures)
+    check(plasmoid_entries, EXPECTED_PLASMOID, failures)
+    if any(any(ref.startswith("plasmoid/") for ref in refs) for refs, _, _ in entries):
+        failures.append("the panel widget's words are in the window's template; Plasma looks them up in its own")
     if any(any(ref.startswith("ctl/") for ref in refs) for refs, _, _ in entries):
         failures.append("reverblabr-ctl's words are in the window's template; they belong in reverblabr-ctl.pot")
 
@@ -77,7 +89,8 @@ def main():
         print("FAIL:", failure)
     if failures:
         return 1
-    print(f"PASS: extraction ({len(entries)} messages, {len(ctl_entries)} of reverblabr-ctl's)")
+    print(f"PASS: extraction ({len(entries)} messages, {len(ctl_entries)} of reverblabr-ctl's, "
+          f"{len(plasmoid_entries)} of the panel widget's)")
     return 0
 
 

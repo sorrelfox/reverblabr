@@ -19,6 +19,15 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Reverblabr contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
+# The panel widget's metadata, which Plasma reads as plain JSON with no room
+# for a comment: data that describes the widget, free to copy like the
+# factory presets.
+[[annotations]]
+path = "plasmoid/package/metadata.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Reverblabr contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
 # The two typefaces the Reverblabr appearance draws with, bundled so
 # the window looks the same on every machine rather than on the ones that
 # happen to have them. Unmodified copies of the upstream files; see

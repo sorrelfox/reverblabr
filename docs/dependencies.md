@@ -123,6 +123,7 @@ None of these are needed to use Reverblabr. They are what [Development](developm
 |---|---|---|---|
 | A real locale | `glibc-langpack-en` | (installed) | the translation tests; without a locale gettext loads no catalogs |
 | KDE's platform theme, DejaVu Sans | `plasma-integration`, `dejavu-sans-fonts` | (installed) | the pseudo-locale check, which measures text as a Plasma desktop draws it; DejaVu Sans draws the `⟦ ⟧` that Noto Sans has no glyphs for |
+| Plasma's QML controls, kpackagetool6 | `libplasma` | (installed) | the panel widget's tests, which draw it with Plasma's controls and check its package with `kpackagetool6`; without them the representations' test is left out and the package is checked without `kpackagetool6` |
 | Clang and its sanitizer runtimes | `clang`, `llvm`, `compiler-rt` | `clang`, `llvm`, `libclang-rt-dev` | the `rtsan` preset |
 | GCC's sanitizer runtimes | `libasan`, `libubsan`, `libtsan` | part of `g++` | the `asan` preset |
 | clang-format, clang-tidy | `clang-tools-extra` | `clang-format`, `clang-tidy` | the format check and lint |

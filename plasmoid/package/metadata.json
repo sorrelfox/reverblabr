@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Reverblabr contributors"
+            }
+        ],
+        "BugReportUrl": "https://github.com/sorrelfox/reverblabr/issues",
+        "Category": "Multimedia",
+        "Description": "Run and stop your Reverblabr sessions, and see how loud each one is",
+        "EnabledByDefault": true,
+        "Icon": "io.github.reverblabr.Reverblabr",
+        "Id": "io.github.reverblabr.sessions",
+        "License": "MPL-2.0",
+        "Name": "Reverblabr Sessions",
+        "Version": "@RB_VERSION@",
+        "Website": "https://github.com/sorrelfox/reverblabr"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
