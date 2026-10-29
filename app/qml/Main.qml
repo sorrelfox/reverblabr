@@ -426,8 +426,9 @@ QQC2.ApplicationWindow {
     }
 
     // **What a launch asks for**: the desktop entry's New Session and
-    // All Sessions, and launching Reverblabr again while it runs, which hands
-    // its arguments to this one rather than opening a second window.
+    // All Sessions, KRunner's Open, and launching Reverblabr again while it
+    // runs, which hands its arguments to this one rather than opening a
+    // second window.
     Connections {
         target: LaunchRequests
 
@@ -442,6 +443,11 @@ QQC2.ApplicationWindow {
 
         function onSessionsWindowRequested() {
             root.showSessionsWindow();
+        }
+
+        function onOpenSessionRequested(sessionId: string) {
+            root.showWindow();
+            Sessions.openSession(sessionId);
         }
     }
 

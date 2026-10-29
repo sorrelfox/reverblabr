@@ -6,9 +6,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // **What a launch asks for reaches the window**: the desktop entry's
-// New Session and All Sessions, and a plain launch while Reverblabr runs,
-// arrive as LaunchRequests.deliver() calls with the launch's command line,
-// exactly as main() makes them.
+// New Session and All Sessions, KRunner's Open, and a plain launch while
+// Reverblabr runs, arrive as LaunchRequests.deliver() calls with the
+// launch's command line, exactly as main() makes them.
 
 import QtQuick
 import QtTest
@@ -50,6 +50,21 @@ TestCase {
         tryVerify(() => window.sessionsWindow !== null && window.sessionsWindow.visible, 2000,
                   "All Sessions did not open the Sessions window");
         window.sessionsWindow.close();
+
+        // **KRunner's Open**: that session, in front, with the window
+        // hidden in the tray brought back for it.
+        Sessions.create("Opened from KRunner");
+        tryVerify(() => Sessions.open.length === before + 1, 2000);
+        const asked = Sessions.currentId;
+        Sessions.currentId = front;
+        window.close();
+        tryVerify(() => !window.visible, 1000);
+        LaunchRequests.deliver(["reverblabr", "--open-session", asked]);
+        tryVerify(() => Sessions.currentId === asked, 2000, "Open did not bring the session to the front");
+        verify(window.visible, "Open left the window hidden");
+        compare(Sessions.open.length, before + 1, "Open made a second tab for a session already open");
+        Sessions.closeSession(asked);
+        tryVerify(() => Sessions.open.length === before, 2000);
 
         // **A plain launch** brings the window forward.
         window.close();

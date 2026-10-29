@@ -215,7 +215,7 @@ Run it from a Plasma Wayland session. To see debug logging, enable the categorie
 QT_LOGGING_RULES='reverblabr.*.debug=true' build/debug/bin/reverblabr
 ```
 
-Only one Reverblabr runs at a time. Starting it again hands the new launch's options to the running one (`--new-session` opens a session there, `--sessions` the Sessions window, nothing at all brings its window forward), and the new process exits. So with an installed Reverblabr open, `build/debug/bin/reverblabr` only raises the installed one's window; quit that first. `--mock` is the exception: it opens a window of its own next to whatever else runs, with a mock engine and no PipeWire. `bus.launch` checks both.
+Only one Reverblabr runs at a time. Starting it again hands the new launch's options to the running one (`--new-session` opens a session there, `--sessions` the Sessions window, `--open-session <id>` that saved session, nothing at all brings its window forward), and the new process exits. So with an installed Reverblabr open, `build/debug/bin/reverblabr` only raises the installed one's window; quit that first. `--mock` is the exception: it opens a window of its own next to whatever else runs, with a mock engine and no PipeWire. `bus.launch` checks both.
 
 ### Trying the all-users helper
 

@@ -39,28 +39,60 @@ TEST(LaunchRequestsTest, ACommandLineSaysWhatItWants)
     EXPECT_EQ(LaunchRequests::requestOf({}), Request::Show);
 }
 
+TEST(LaunchRequestsTest, KRunnersOpenNamesTheSession)
+{
+    const QString id = u"6f1c2a52-3d1e-4c7b-9a51-0d2b8e7f4a10"_s;
+    // As the daemon starts the window, and as main()'s parser also takes it.
+    EXPECT_EQ(LaunchRequests::requestOf({u"reverblabr"_s, u"--open-session"_s, id}), Request::OpenSession);
+    EXPECT_EQ(LaunchRequests::sessionOf({u"reverblabr"_s, u"--open-session"_s, id}), id);
+    EXPECT_EQ(LaunchRequests::sessionOf({u"reverblabr"_s, u"--open-session="_s + id}), id);
+    // **Over the Sessions window**, which is the less particular request;
+    // New Session still wins over both.
+    EXPECT_EQ(LaunchRequests::requestOf({u"reverblabr"_s, u"--sessions"_s, u"--open-session"_s, id}),
+              Request::OpenSession);
+    EXPECT_EQ(LaunchRequests::requestOf({u"reverblabr"_s, u"--open-session"_s, id, u"--new-session"_s}),
+              Request::NewSession);
+    // **The option's value is never read as an option**, as main()'s parser
+    // reads it too.
+    EXPECT_EQ(LaunchRequests::requestOf({u"reverblabr"_s, u"--open-session"_s, u"--new-session"_s}),
+              Request::OpenSession);
+    EXPECT_EQ(LaunchRequests::sessionOf({u"reverblabr"_s, u"--open-session"_s, u"--new-session"_s}),
+              u"--new-session"_s);
+    EXPECT_EQ(LaunchRequests::requestOf({u"reverblabr"_s, u"--open-session="_s + id, u"--sessions"_s}),
+              Request::OpenSession);
+    // No id, or one after "--", is no session.
+    EXPECT_EQ(LaunchRequests::requestOf({u"reverblabr"_s, u"--open-session"_s}), Request::Show);
+    EXPECT_EQ(LaunchRequests::requestOf({u"reverblabr"_s, u"--"_s, u"--open-session"_s, id}), Request::Show);
+    EXPECT_TRUE(LaunchRequests::sessionOf({u"reverblabr"_s}).isEmpty());
+}
+
 TEST(LaunchRequestsTest, EachRequestReachesTheWindowAsItsOwnSignal)
 {
     LaunchRequests requests;
     QSignalSpy shown(&requests, &LaunchRequests::showRequested);
     QSignalSpy made(&requests, &LaunchRequests::newSessionRequested);
     QSignalSpy listed(&requests, &LaunchRequests::sessionsWindowRequested);
+    QSignalSpy opened(&requests, &LaunchRequests::openSessionRequested);
 
     requests.deliver({u"reverblabr"_s, u"--new-session"_s});
     requests.deliver({u"reverblabr"_s, u"--sessions"_s});
     requests.deliver({u"reverblabr"_s});
+    requests.deliver({u"reverblabr"_s, u"--open-session"_s, u"some-id"_s});
 
     EXPECT_EQ(made.count(), 1);
     EXPECT_EQ(listed.count(), 1);
     EXPECT_EQ(shown.count(), 1);
+    ASSERT_EQ(opened.count(), 1);
+    EXPECT_EQ(opened.first().first().toString(), u"some-id"_s);
 }
 
 TEST(LaunchRequestsTest, MainTakesTheOptionsTheDesktopEntryUses)
 {
     QCommandLineParser parser;
     LaunchRequests::addOptions(parser);
-    ASSERT_TRUE(parser.parse({u"reverblabr"_s, u"--new-session"_s, u"--sessions"_s}))
+    ASSERT_TRUE(parser.parse({u"reverblabr"_s, u"--new-session"_s, u"--sessions"_s, u"--open-session"_s, u"id"_s}))
         << parser.errorText().toStdString();
+    EXPECT_EQ(parser.value(QString(LaunchRequests::kOpenSessionOption)), u"id"_s);
 
     // **Every action's Exec line is something main() takes**: an action
     // whose option main() refused would start nothing at all.

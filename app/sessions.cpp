@@ -87,6 +87,9 @@ public:
     /// file again, so by the time they are all in, the file no longer says
     /// what it said.
     QString wantedFront;
+    /// A session asked for while the restore is going on, which takes the
+    /// front from wantedFront once it has opened.
+    QString askedFront;
 
     /// Whether every session a restore asked for has either arrived or been
     /// refused.
@@ -158,6 +161,10 @@ void Sessions::attach(core::EngineFacade *facade)
 
     connect(d->facade, &core::EngineFacade::sessionOpened, this, [this](const QString &sessionId) {
         d->awaited.removeAll(sessionId);
+        if (d->restoring && !d->askedFront.isEmpty() && sessionId == d->askedFront) {
+            d->wantedFront = sessionId;
+            d->askedFront.clear();
+        }
         if (d->openIds.contains(sessionId)) {
             setCurrentId(sessionId); // asked for again: brought to the front
             return;
@@ -411,6 +418,7 @@ void Sessions::finishRestore()
     // there; otherwise the first one.
     const QString front = d->wantedFront;
     d->wantedFront.clear();
+    d->askedFront.clear();
     setCurrentId(d->openIds.contains(front) ? front : d->openIds.constFirst());
     remember();
 }
@@ -426,6 +434,21 @@ void Sessions::openSession(const QString &sessionId)
 {
     if (!d->facade) {
         return;
+    }
+    // **Asked for while the window is still putting its tabs back**, as
+    // KRunner's Open does when it starts the window: this one is what was
+    // asked for, so it is the one in front once the restore is done.
+    if (d->restoring) {
+        if (d->openIds.contains(sessionId)) {
+            d->wantedFront = sessionId;
+            return;
+        }
+        // **In front only once it has opened**: one that never does leaves
+        // the front to the tab that had it.
+        d->askedFront = sessionId;
+        if (d->awaited.contains(sessionId)) {
+            return; // on its way already, as part of the restore
+        }
     }
     if (d->openIds.contains(sessionId)) {
         setCurrentId(sessionId);

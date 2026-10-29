@@ -30,6 +30,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <utility>
 
 using namespace rb;
 using namespace Qt::StringLiterals;
@@ -342,6 +343,60 @@ TEST_F(SessionsFixture, OpeningOneThatIsAlreadyOpenBringsItToTheFront)
     held->openSession(ids.at(0));
     EXPECT_EQ(held->currentId(), ids.at(0));
     EXPECT_EQ(held->open().size(), 2) << "the same session was opened twice";
+}
+
+TEST_F(SessionsFixture, ASessionAskedForDuringTheRestoreEndsUpInFront)
+{
+    ui::Sessions *first = relaunch();
+    first->restore(u"Untitled"_s);
+    first->create(u"Second"_s);
+    const QStringList remembered = idsOf(first->open());
+    sessions.reset();
+    // A session the window did not have open, as KRunner's Open asks for
+    // when it starts the window.
+    QSignalSpy made(&engine, &core::EngineFacade::sessionOpened);
+    engine.createSession(u"From KRunner"_s);
+    ASSERT_EQ(made.count(), 1);
+    const QString asked = made.first().first().toString();
+
+    // **Asked for while the tabs are still coming back**: the request is
+    // delivered once the window is up, which may be before every
+    // remembered session has arrived.
+    ui::Sessions *again = relaunch();
+    bool askedOnce = false;
+    QObject::connect(again, &ui::Sessions::opened, again, [&](const QString &) {
+        if (!std::exchange(askedOnce, true)) {
+            again->openSession(asked);
+        }
+    });
+    again->restore(u"Untitled"_s);
+
+    EXPECT_EQ(idsOf(again->open()), remembered + QStringList{asked}) << "the remembered tabs lost their places";
+    EXPECT_EQ(again->currentId(), asked) << "the restore put its own front tab over the one asked for";
+}
+
+TEST_F(SessionsFixture, ASessionAskedForDuringTheRestoreThatNeverOpensLeavesTheFrontAlone)
+{
+    ui::Sessions *first = relaunch();
+    first->restore(u"Untitled"_s);
+    first->create(u"Second"_s);
+    first->create(u"Third"_s);
+    const QStringList remembered = idsOf(first->open());
+    first->setCurrentId(remembered.at(1));
+    sessions.reset();
+
+    ui::Sessions *again = relaunch();
+    bool askedOnce = false;
+    QObject::connect(again, &ui::Sessions::opened, again, [&](const QString &) {
+        if (!std::exchange(askedOnce, true)) {
+            again->openSession(u"00000000-0000-4000-8000-000000000000"_s); // no such session
+        }
+    });
+    again->restore(u"Untitled"_s);
+
+    EXPECT_EQ(idsOf(again->open()), remembered);
+    EXPECT_EQ(again->currentId(), remembered.at(1))
+        << "a session that never opened took the front from the one that had it";
 }
 
 TEST_F(SessionsFixture, TabsCanBeReorderedAndTheOrderIsRemembered)

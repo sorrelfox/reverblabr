@@ -49,12 +49,15 @@ void LaunchRequests::addOptions(QCommandLineParser &parser)
         QCommandLineOption(QString(kNewSessionOption), i18nc("@info:shell", "Open a new, untitled session")));
     parser.addOption(QCommandLineOption(QString(kSessionsOption),
                                         i18nc("@info:shell", "Open the window listing every saved session")));
+    parser.addOption(QCommandLineOption(QString(kOpenSessionOption),
+                                        i18nc("@info:shell", "Open the saved session with this id"),
+                                        i18nc("@info:shell value of --open-session", "id")));
 }
 
 LaunchRequests::Request LaunchRequests::requestOf(const QStringList &arguments)
 {
     // **Read by hand rather than with a parser of their own**: a parser that
-    // knew only these two would refuse the rest, and whether it still
+    // knew only these would refuse the rest, and whether it still
     // records what it knows after refusing is not something to lean on.
     // Everything here arrives as the long form, the way the desktop entry
     // writes it and the way main()'s parser accepts it.
@@ -73,8 +76,36 @@ LaunchRequests::Request LaunchRequests::requestOf(const QStringList &arguments)
         if (argument == sessions) {
             wantsSessions = true;
         }
+        // **The option's value is not an option**, whatever it says.
+        if (argument == u"--"_s + kOpenSessionOption) {
+            ++index;
+        }
+    }
+    if (!sessionOf(arguments).isEmpty()) {
+        return Request::OpenSession;
     }
     return wantsSessions ? Request::Sessions : Request::Show;
+}
+
+QString LaunchRequests::sessionOf(const QStringList &arguments)
+{
+    // `--open-session <id>` as the daemon writes it, and `--open-session=<id>`
+    // as main()'s parser also takes it.
+    const QString option = u"--"_s + kOpenSessionOption;
+    const QString joined = option + u'=';
+    for (qsizetype index = 1; index < arguments.size(); ++index) {
+        const QString &argument = arguments.at(index);
+        if (argument == "--"_L1) {
+            break;
+        }
+        if (argument == option && index + 1 < arguments.size()) {
+            return arguments.at(index + 1);
+        }
+        if (argument.startsWith(joined)) {
+            return argument.mid(joined.size());
+        }
+    }
+    return {};
 }
 
 void LaunchRequests::deliver(const QStringList &arguments)
@@ -91,6 +122,9 @@ void LaunchRequests::deliver(const QStringList &arguments)
         break;
     case Request::Sessions:
         Q_EMIT sessionsWindowRequested();
+        break;
+    case Request::OpenSession:
+        Q_EMIT openSessionRequested(sessionOf(arguments));
         break;
     }
 }
