@@ -154,6 +154,8 @@ find_package(Qt6 QUIET OPTIONAL_COMPONENTS WaylandClientPrivate)
 report(Qt6WaylandClientPrivate "${Qt6WaylandClientPrivate_VERSION}")
 find_package(KF6Auth QUIET CONFIG)
 report(KF6Auth "${KF6Auth_VERSION}")
+find_package(KF6DocTools QUIET CONFIG)
+report(KF6DocTools "${KF6DocTools_VERSION}")
 find_package(GTest QUIET CONFIG)
 report(GTest "${GTest_VERSION}")
 EOF
@@ -190,6 +192,8 @@ done
 # Optional: without KAuth the app builds without the all-users virtual
 # devices helper, and a device for all users is refused as needing it.
 check optional "KF6 Auth (virtual devices for all users)" "${probe[KF6Auth]:-}" "$MIN_KF"
+# Optional: without KDocTools there is no handbook for F1 to open.
+check optional "KF6 DocTools (the handbook)" "${probe[KF6DocTools]:-}" "$MIN_KF"
 if command -v pkaction >/dev/null 2>&1; then
     check optional "polkit (the administrator's password prompt)" "found"
 else

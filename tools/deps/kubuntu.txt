@@ -61,6 +61,9 @@ libqt6sql6-sqlite
 # password prompt. polkitd asks for the password.
 libkf6auth-dev
 polkitd
+# Optional: the handbook, opened with F1 (meinproc6, checkXML6 and KDE's
+# DocBook style)
+libkf6doctools-dev
 qml6-module-org-kde-coreaddons
 qml6-module-org-kde-desktop
 

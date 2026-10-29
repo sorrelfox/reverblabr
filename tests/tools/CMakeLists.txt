@@ -61,6 +61,22 @@ add_test(NAME tools.ctl-documented
          COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_ctl_documented.py)
 set_tests_properties(tools.ctl-documented PROPERTIES PASS_REGULAR_EXPRESSION "PASS: ctl documented")
 
+# **The handbook follows the library**: every block has a section under
+# the name the library gives it, and none describes a block that is gone.
+add_test(NAME tools.handbook-blocks
+         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_handbook.py blocks)
+set_tests_properties(tools.handbook-blocks PROPERTIES PASS_REGULAR_EXPRESSION "PASS: handbook blocks")
+# **The handbook is valid DocBook**, checked even in a build that does not
+# build it, as long as KDocTools' checker is there; skipped where it is not.
+find_program(RB_CHECKXML6 checkXML6)
+add_test(NAME tools.handbook-valid
+         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_handbook.py valid "$<$<BOOL:${RB_CHECKXML6}>:${RB_CHECKXML6}>")
+set_tests_properties(tools.handbook-valid PROPERTIES
+    PASS_REGULAR_EXPRESSION "PASS: handbook valid"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 60
+)
+
 # **The version is VERSION's**: the release tools in a throwaway
 # repository, and every program's --version against the file.
 add_test(NAME tools.release COMMAND ${RB_BASH} ${CMAKE_CURRENT_SOURCE_DIR}/test_release.sh)

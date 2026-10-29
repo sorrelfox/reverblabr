@@ -1,0 +1,1911 @@
+<?xml version="1.0" ?>
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<!DOCTYPE book PUBLIC "-//KDE//DTD DocBook XML V4.5-Based Variant V1.1//EN" "dtd/kdedbx45.dtd" [
+  <!ENTITY reverblabr "<application>Reverblabr</application>">
+  <!ENTITY ctl "<command>reverblabr-ctl</command>">
+  <!ENTITY % addindex "IGNORE">
+  <!ENTITY % English "INCLUDE">
+]>
+
+<!--
+The handbook that Help → Handbook (F1) opens in KHelpCenter. The pages in
+docs/ say the same for readers on GitHub; a change to how Reverblabr is used
+goes into both. Every block in the library has a section here whose id is
+"block-" and its type id with dashes for dots, titled with the name the
+library gives it: tools.handbook-blocks holds the two to each other.
+-->
+
+<book id="reverblabr" lang="&language;">
+
+<bookinfo>
+<title>The &reverblabr; Handbook</title>
+
+<authorgroup>
+<corpauthor>The &reverblabr; contributors</corpauthor>
+<!-- TRANS:ROLES_OF_TRANSLATORS -->
+</authorgroup>
+
+<copyright>
+<year>2026</year>
+<holder>Reverblabr contributors</holder>
+</copyright>
+
+<legalnotice>
+<para>This handbook may be copied, changed and shared under the terms of the
+Creative Commons Attribution-ShareAlike 4.0 International licence; see
+<xref linkend="credits"/>.</para>
+</legalnotice>
+
+<!-- The day and the version the handbook was last brought up to date
+     with. -->
+<date>2026-10-29</date>
+<releaseinfo>&reverblabr; 0.1</releaseinfo>
+
+<abstract>
+<para>&reverblabr; takes sound from your applications, microphones and other
+devices, runs it through effects and meters, and sends it where you want it:
+to your speakers, to a file, or to another program. It runs on &plasma;, with
+PipeWire.</para>
+</abstract>
+
+<keywordset>
+<keyword>KDE</keyword>
+<keyword>Reverblabr</keyword>
+<keyword>audio</keyword>
+<keyword>PipeWire</keyword>
+<keyword>recording</keyword>
+<keyword>effects</keyword>
+<keyword>virtual device</keyword>
+<keyword>hearing</keyword>
+</keywordset>
+</bookinfo>
+
+<!-- ================================================================ -->
+<chapter id="introduction">
+<title>Introduction</title>
+
+<para>In &reverblabr; you build <emphasis>sessions</emphasis> out of
+<emphasis>blocks</emphasis>. A session takes sound from sources, runs it
+through effects and meters, and sends it to outputs. You drag blocks onto a
+canvas, wire them together, and change anything while the sound is
+playing.</para>
+
+<itemizedlist>
+<listitem><para><emphasis role="strong">Sources:</emphasis> a single
+application, a microphone or another input device, or everything the computer
+plays.</para></listitem>
+<listitem><para><emphasis role="strong">Effects:</emphasis> volume,
+compressors and limiters, equalisers, filters, reverb, echo, pitch shift,
+noise and hum removal, and more. LV2, CLAP and LADSPA plugins work
+too.</para></listitem>
+<listitem><para><emphasis role="strong">Meters:</emphasis> peak, RMS and VU
+meters at any point in a session.</para></listitem>
+<listitem><para><emphasis role="strong">Outputs:</emphasis> any sound card, a
+file, or a virtual device that another program records
+from.</para></listitem>
+</itemizedlist>
+
+<para>Several sessions can run at the same time, in a background engine, with
+the window closed. The tray icon shows what is running, global shortcuts
+control sessions from anywhere, a session can start by itself when you log
+in, and &ctl; runs and changes sessions from a terminal or a script.</para>
+
+<para>&reverblabr; can also make <link linkend="virtual-devices">virtual
+devices</link>: sound cards with no hardware behind them, so that you can put
+a session between your programs and your real speakers or microphone. And the
+blocks of the <link linkend="hearing">Hearing</link> group shape the sound for
+each ear on its own, for people who hear part of the sound poorly.</para>
+
+<sect1 id="first-session">
+<title>A first session</title>
+
+<para>This walks you through a first session: the sound of one application,
+measured, turned up or down, compressed, measured again and sent to your
+speakers. It takes about five minutes.</para>
+
+<para>Start &reverblabr; from a &plasma; Wayland session. It opens with one
+empty session called <guilabel>Untitled</guilabel>. Start something playing
+too: a video in your browser, or music in any player.</para>
+
+<procedure>
+<title>Building the session</title>
+<step><para>Add these blocks one after another, by clicking each in the
+library on the left. A block you click is added after the selected block, and
+with automatic connections on (they are, to begin with) it is wired up as
+well:</para>
+<orderedlist>
+<listitem><para><guilabel>Application</guilabel>, under
+<guilabel>Sources</guilabel></para></listitem>
+<listitem><para><guilabel>Peak/RMS</guilabel>, under
+<guilabel>Meters</guilabel></para></listitem>
+<listitem><para><guilabel>Volume</guilabel>, under <guilabel>Built-in
+Effects</guilabel></para></listitem>
+<listitem><para><guilabel>Dynamics Processor</guilabel>, under
+<guilabel>Built-in Effects</guilabel></para></listitem>
+<listitem><para><guilabel>Peak/RMS</guilabel> again</para></listitem>
+<listitem><para><guilabel>Output Device</guilabel>, under
+<guilabel>Outputs</guilabel></para></listitem>
+</orderedlist>
+<para>That is one lane of six blocks, wired from left to right. The canvas
+scrolls to keep each new block in view, and
+<menuchoice><guimenu>View</guimenu><guimenuitem>Fit to
+Window</guimenuitem></menuchoice>
+(<keycombo action="simul">&Ctrl;<keycap>9</keycap></keycombo>) shows the
+whole session at once.</para></step>
+
+<step><para>The Application block does not know which program to listen to
+yet: its tile says <guilabel>Choose an app</guilabel>. Double-click the tile,
+or right-click it and choose <guimenuitem>Settings</guimenuitem>, and its
+settings open next to it.</para></step>
+
+<step><para>Click <guibutton>Choose an app</guibutton> and pick your browser
+or player. The list has the programs that are playing now and the ones that
+played recently, and you can type the name of one that is not running
+yet.</para></step>
+
+<step><para>Under <guilabel>Audio device selection</guilabel>, leave
+<guilabel>Capture audio played to the default output device</guilabel>.
+That is what most people mean by <quote>the sound of an
+application</quote>. Press &Esc;, or click an empty part of the canvas, to
+close the settings.</para></step>
+
+<step><para>The Output Device block starts on <guilabel>Default
+output</guilabel>, which is whatever your desktop plays to, and follows along
+if you change that. Press <guibutton>Run</guibutton>, or &Space;.</para></step>
+</procedure>
+
+<para>The button turns orange and says <guibutton>Stop</guibutton>, and the
+clock starts. The two meters show the level before and after the processing,
+the Dynamics tile draws its curve with a dot where the sound is on it, and
+the wires turn orange while sound goes through them.</para>
+
+<para>You now hear the application twice. &reverblabr; takes a copy of an
+application's sound and leaves the original alone, so the program goes on
+playing as it always did. To hear only the processed sound:</para>
+
+<orderedlist>
+<listitem><para>In the Application block's settings, under <guilabel>Audio
+device selection</guilabel>, choose <guilabel>Capture audio played to all
+output devices</guilabel>.</para></listitem>
+<listitem><para>In the &plasma; audio applet, move the application to an
+output you are not listening to, such as an HDMI output with nothing plugged
+in.</para></listitem>
+<listitem><para>Leave the session's Output Device on your
+speakers.</para></listitem>
+</orderedlist>
+
+<para>Do not turn down the application's own volume instead: PipeWire applies
+that volume before &reverblabr; gets the sound, so the copy would go quiet too.
+A cleaner way, especially for several programs at once, is a <link
+linkend="virtual-devices">virtual device</link>.</para>
+
+<para>Everything can be changed while the session runs, without clicks or
+gaps. Drag the slider on the Volume tile, or open its settings to type a
+number: 200 % is twice the level, and overdrive takes it further. In the
+Dynamics Processor's settings, drag the handles on the curve: the upper one is
+where compression starts, the lower one where the expander starts.</para>
+
+<para>Press <guibutton>Stop</guibutton> when you are done. Sessions are saved
+as you work, so this one will be there the next time you start &reverblabr;.
+It comes back stopped: a session never starts making sound just because
+&reverblabr; was opened.</para>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="window">
+<title>The window</title>
+
+<para>The main window has four parts.</para>
+
+<variablelist>
+<varlistentry>
+<term>The top row</term>
+<listitem><para>Your sessions, one tab each, with a <guibutton>+</guibutton>
+for a new one. On the right it shows what the session in front is doing, how
+long it has been running, and the <guibutton>Run</guibutton> button. This row
+is also the window's title bar: drag its empty part to move the window,
+double-click it to maximise. At the right end are the dark and light switch,
+the <guibutton>☰</guibutton> button with all the menus, the
+<guibutton>Virtual Devices</guibutton> button and the usual window buttons.
+<keycombo action="simul">&Ctrl;<keycap>M</keycap></keycombo> shows the menus
+as a menu bar instead.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>The sidebar</term>
+<listitem><para>On the left, with three tabs: <guilabel>Blocks</guilabel>,
+the library of blocks you can add, grouped by what they do
+(<keycombo action="simul">&Ctrl;<keycap>1</keycap></keycombo>);
+<guilabel>Files</guilabel>, what the session has recorded (<keycombo
+action="simul">&Ctrl;<keycap>2</keycap></keycombo>, see <xref
+linkend="files-tab"/>); and <guilabel>Info</guilabel>, the session's title,
+notes and settings, and the audio system (<keycombo
+action="simul">&Ctrl;<keycap>3</keycap></keycombo>, see <xref
+linkend="info-tab"/>).</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>The canvas</term>
+<listitem><para>In the middle, where a session's blocks and the wires between
+them live.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>The status bar</term>
+<listitem><para>At the bottom: the rate and buffer size the audio system runs
+at, how busy the session is, and how many times it missed its deadline (an
+<quote>xrun</quote>, heard as a dropout).</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>To have &reverblabr; look like the rest of your desktop, choose
+<menuchoice><guimenu>Settings</guimenu><guisubmenu>Appearance</guisubmenu><guimenuitem>Follow
+System</guimenuitem></menuchoice>. The window then takes your colours, fonts
+and title bar from &plasma;, starting the next time &reverblabr; opens.
+<guimenuitem>Reverblabr Dark</guimenuitem> and <guimenuitem>Reverblabr
+Light</guimenuitem> are its own looks. In them, text and every mark that means
+something (a state dot, a wire, a meter, the keyboard focus) meet the contrast
+levels of WCAG 2.1 AA; with Follow System you get your colour scheme's own
+colours as they are.</para>
+
+<sect1 id="canvas">
+<title>The canvas</title>
+
+<sect2 id="adding-blocks">
+<title>Adding and moving blocks</title>
+
+<para>Clicking a block in the library adds it after the selected block. A
+block dragged from the library onto a spot on the canvas lands where you
+dropped it and is not wired to anything: you picked the place, so &reverblabr;
+does not guess. <keycombo action="simul">&Ctrl;<keycap>F</keycap></keycombo>
+(<menuchoice><guimenu>Edit</guimenu><guimenuitem>Find
+Block…</guimenuitem></menuchoice>) jumps to the library's search: type part of
+a name and press &Enter; for the first match.</para>
+
+<para>Drag a block by its title to move it. The rest of the tile is for its
+controls, like the Volume slider. To take a block out, select it and press
+&Del;.</para>
+
+<para>The canvas zooms with
+<menuchoice><guimenu>View</guimenu><guimenuitem>Zoom In</guimenuitem></menuchoice>
+and <guimenuitem>Zoom Out</guimenuitem>; <guimenuitem>Actual Size</guimenuitem>
+(<keycombo action="simul">&Ctrl;<keycap>0</keycap></keycombo>) goes back to
+100 %, and <guimenuitem>Fit to Window</guimenuitem> (<keycombo
+action="simul">&Ctrl;<keycap>9</keycap></keycombo>) shows the whole
+session.</para>
+</sect2>
+
+<sect2 id="wiring">
+<title>Wiring blocks together</title>
+
+<para>The switch at the top left of the canvas says how a session is wired;
+<menuchoice><guimenu>Session</guimenu><guimenuitem>Automatic
+Connections</guimenuitem></menuchoice> is the same switch.</para>
+
+<itemizedlist>
+<listitem><para>With <emphasis>automatic connections</emphasis>, a block you
+add by clicking is wired after the selected one, and taking a block out of the
+middle of a lane joins the lane up again behind it. It is the quick way to
+build a lane.</para></listitem>
+<listitem><para>With <emphasis>manual connections</emphasis>, nothing is wired
+for you.</para></listitem>
+</itemizedlist>
+
+<para>Either way, you can wire blocks by hand: hold &Ctrl; and drag from a
+block's output connector on its right edge to another block's input connector
+on its left edge. The connectors that would accept the wire light up while you
+drag. Several wires can go into one input, and they are mixed there; a ring
+around the connector shows that. Several sources can feed one lane this way.
+To remove a wire, click it and press &Del;.</para>
+
+<para>&reverblabr; refuses a connection that would feed a session's sound back
+into its own input, and tells you so, because that sound would go round and
+round, louder every time.</para>
+</sect2>
+
+<sect2 id="colours">
+<title>What the colours mean</title>
+
+<para>The colours follow your &plasma; colour scheme, so they work in light
+and dark themes. Orange is the exception: it is &reverblabr;'s own colour and
+always means that sound is going through.</para>
+
+<itemizedlist>
+<listitem><para><emphasis role="strong">Wires</emphasis> are orange and moving
+while sound goes through them, and grey when nothing does (the session is
+stopped, or the lane is silent).</para></listitem>
+<listitem><para><emphasis role="strong">The dot</emphasis> in a tile's top
+right corner is orange when the block is on and sound goes through it, green
+when it is on but nothing goes through at the moment, and grey when the block
+is off.</para></listitem>
+<listitem><para><emphasis role="strong">Connectors</emphasis>, the rings on the
+edges of a tile, are orange when their block has sound going through
+it.</para></listitem>
+<listitem><para><emphasis role="strong">Meters</emphasis> show the level in
+decibels and say <guilabel>Idle</guilabel> when no sound reaches them. A meter
+that clips lights up and stays lit until you click it.</para></listitem>
+</itemizedlist>
+
+<para>The switch at the top of a block's settings turns the block on and off.
+A block that is off is drawn faded. In the middle of a lane the sound simply
+goes past it, as if it were not there. At the start or the end of a lane there
+is nothing to go past, so it is silent instead: a source that is off produces
+nothing, and an Output Device that is off sends silence to its device. A
+source keeps listening while it is off, so switching it back on is
+instant.</para>
+</sect2>
+
+<sect2 id="settings-and-presets">
+<title>A block's settings, presets and undo</title>
+
+<para>Double-click a tile, press &Enter; on it, or right-click it and choose
+<guimenuitem>Settings</guimenuitem>, and its settings open next to it.
+&Esc; closes them. The window button at the top of the settings pulls them off
+the block into a window of their own, which stays where you put it while you
+work on other blocks; the pin button puts it back.</para>
+
+<para>The row at the bottom of a block's settings holds its presets. Some
+blocks come with presets, and <menuchoice><guimenu>⋮</guimenu><guimenuitem>Save
+as Preset…</guimenuitem></menuchoice> keeps your own.</para>
+
+<para><keycombo action="simul">&Ctrl;<keycap>Z</keycap></keycombo> takes back
+any change, including moving a block or a wire, and the
+<guimenu>Edit</guimenu> menu tells you which change it would undo.</para>
+</sect2>
+
+<sect2 id="keyboard">
+<title>Without a mouse</title>
+
+<para>Everything in a session can be done from the keyboard, and the canvas
+works with a screen reader.</para>
+
+<variablelist>
+<varlistentry>
+<term>Add a block</term>
+<listitem><para><keycombo action="simul">&Ctrl;<keycap>F</keycap></keycombo>
+jumps to the library's search. Type part of a name and press &Enter; for the
+first match, or walk the list with the arrow keys.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Move between blocks</term>
+<listitem><para>&Tab; and <keycombo action="simul">&Shift;&Tab;</keycombo> go
+from block to block. A screen reader says each block's name, whether it is on
+and what it is wired to.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Wire two blocks</term>
+<listitem><para>On a block, press <keycap>C</keycap>. The wire aims at the
+first input that would take it, the arrow keys move it to the next one,
+&Enter; connects and &Esc; cancels.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Remove a wire</term>
+<listitem><para>On a block, press <keycap>D</keycap>, pick the wire with the
+arrow keys and press &Enter; or &Del;.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Settings</term>
+<listitem><para>&Enter; on a block opens its settings, &Esc; closes
+them.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Run and stop</term>
+<listitem><para>&Space;.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>The session as a list</term>
+<listitem><para><menuchoice><guimenu>View</guimenu><guimenuitem>Show as
+List</guimenuitem></menuchoice> replaces the canvas with a list of the blocks,
+lane by lane, which is often easier to follow with a screen reader. The same
+keys work there, and the choice is remembered.</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>Meters are read out as progress bars named after their block, and a
+clipping meter is announced once, not on every hit.</para>
+</sect2>
+</sect1>
+
+<sect1 id="info-tab">
+<title>The Info tab</title>
+
+<para>The <guilabel>Info</guilabel> tab of the sidebar (<keycombo
+action="simul">&Ctrl;<keycap>3</keycap></keycombo>) holds what a session is
+and how it runs:</para>
+
+<itemizedlist>
+<listitem><para><guilabel>Title</guilabel> and <guilabel>Notes</guilabel>, for
+what the session is for.</para></listitem>
+<listitem><para><guilabel>Automatic connections</guilabel> and <guilabel>Show
+as list</guilabel>, the same switches as in the menus.</para></listitem>
+<listitem><para><guilabel>Sample rate</guilabel>, which is always the audio
+system's, with the rate in use now beside it, and
+<guilabel>Latency</guilabel>, how little delay the session asks the audio
+system for: <guilabel>Default</guilabel>, <guilabel>Low</guilabel> or
+<guilabel>Very low</guilabel>.</para></listitem>
+<listitem><para><guilabel>Auto Run</guilabel>, which starts the session when
+you log in; see <xref linkend="auto-run"/>.</para></listitem>
+<listitem><para><guilabel>Audio system</guilabel>: the audio server, its
+session manager, the rate and cycle the graph runs at, and whether
+&reverblabr; can reach it, with <guilabel>Diagnostics</guilabel> underneath;
+see <xref linkend="diagnostics"/>.</para></listitem>
+</itemizedlist>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="blocks">
+<title>Blocks</title>
+
+<para>A session is made of blocks: sources that bring sound in, effects and
+meters in the middle, and outputs at the end. This chapter lists them in the
+order the library groups them. Every block has settings of its own, which open
+next to it on the canvas, and every block can save presets.</para>
+
+<sect1 id="blocks-sources">
+<title>Sources</title>
+
+<sect2 id="block-source-application">
+<title>Application</title>
+<para>The sound of one program while it plays. Under <guilabel>Audio device
+selection</guilabel> it takes everything the program plays, only what it
+plays to the default output, or only what it plays to devices you choose. The
+program keeps playing to its own device as before, so you hear it twice unless
+you move it elsewhere (see <xref linkend="first-session"/>). The program can
+be one that is not running yet: the block picks it up when it starts.</para>
+<para>An Application block can also be set to open a web address when its
+session starts. That address is opened by your browser or player, not by
+&reverblabr;.</para>
+</sect2>
+
+<sect2 id="block-source-device">
+<title>Input Device</title>
+<para>A microphone or any other recording device, or a <link
+linkend="virtual-devices">virtual output</link> that other programs play into.
+<guilabel>Default input</guilabel> follows whatever your desktop records from;
+choose a device by name to keep it fixed. Virtual devices are listed at the
+end, under <guilabel>Virtual devices</guilabel>.</para>
+</sect2>
+
+<sect2 id="block-source-system">
+<title>System Audio</title>
+<para>Everything the computer plays, in one block. You can leave programs out
+in its settings. Alert sounds are left out unless you ask for them.</para>
+</sect2>
+</sect1>
+
+<sect1 id="blocks-outputs">
+<title>Outputs</title>
+
+<sect2 id="block-output-wave">
+<title>Wave</title>
+<para>A test tone (sine, square, triangle or sawtooth, 20 Hz to 20 kHz) or
+white or pink noise, at the level you set, on the left, the right or both.
+Wire it to an Output Device to check a speaker or a cable.</para>
+</sect2>
+
+<sect2 id="block-output-device">
+<title>Output Device</title>
+<para>Where a lane is heard: the default output (followed when it changes), a
+device you choose, or a virtual microphone that other programs record from.
+It has a volume of its own. When the session records from a virtual device,
+choose your real speakers by name here: left on <guilabel>Default
+output</guilabel>, it could follow the default to the very device the session
+records from, and &reverblabr; refuses that connection.</para>
+</sect2>
+
+<sect2 id="block-output-recorder">
+<title>Recorder</title>
+<para>Writes what reaches it to a file and passes the sound on unchanged. See
+<xref linkend="recording"/>.</para>
+</sect2>
+</sect1>
+
+<sect1 id="blocks-effects">
+<title>Built-in Effects</title>
+
+<sect2 id="block-effect-equalizer10">
+<title>10-Band EQ</title>
+<para>Ten sliders from 31 Hz to 16 kHz, ±12 dB each, with twenty presets, a
+preamp and an option to keep the overall level where it was.</para>
+</sect2>
+
+<sect2 id="block-effect-autolevel">
+<title>Auto Level</title>
+<para>Brings quiet passages up towards a steady loudness and leaves loud ones
+alone, with a limiter so that the lift never clips. For a source whose
+loudness keeps changing.</para>
+</sect2>
+
+<sect2 id="block-effect-balance">
+<title>Balance</title>
+<para>Turns the left or the right side of a stereo lane down against the
+other, all the way to silence.</para>
+</sect2>
+
+<sect2 id="block-effect-basstreble">
+<title>Bass &amp; Treble</title>
+<para>Lifts or cuts the low and the high end by up to 12 dB, to warm a source
+up or brighten it.</para>
+</sect2>
+
+<sect2 id="block-effect-channels">
+<title>Channels</title>
+<para>Swaps the sides, folds to mono, copies one side to both, mutes or
+inverts a side, or keeps only what differs between them, fading from one
+setting to the next.</para>
+</sect2>
+
+<sect2 id="block-effect-dynamics">
+<title>Dynamics Processor</title>
+<para>A compressor for loud sound and an expander for quiet sound, drawn as a
+curve you edit directly. The upper handle is where compression starts, the
+lower one where the expander starts, and a dot shows where the sound is on the
+curve while you draw it.</para>
+</sect2>
+
+<sect2 id="block-effect-echo">
+<title>Echo</title>
+<para>Repeats the sound from a millisecond to two seconds later, each repeat
+quieter and duller than the one before, mixed in behind the original.</para>
+</sect2>
+
+<sect2 id="block-effect-highpass">
+<title>High Pass Filter</title>
+<para>Rolls off rumble, handling noise and the thump of a room below a cutoff
+between 20 Hz and 2 kHz, at 12 or 24 dB per octave.</para>
+</sect2>
+
+<sect2 id="block-effect-limiter">
+<title>Limiter</title>
+<para>Keeps a lane under a ceiling between −12 and 0 dB, including peaks that
+fall between samples, and shows how hard it is working.</para>
+</sect2>
+
+<sect2 id="block-effect-lowpass">
+<title>Low Pass Filter</title>
+<para>Rolls off hiss and other high noise above a cutoff, at 12 or 24 dB per
+octave.</para>
+</sect2>
+
+<sect2 id="block-effect-monoenhancer">
+<title>Mono Enhancer</title>
+<para>Gives a mono recording some width above a frequency you choose, keeps
+the bass in the middle, and still sounds right when played back in
+mono.</para>
+</sect2>
+
+<sect2 id="block-effect-multibandcompressor">
+<title>Multiband Compressor</title>
+<para>Three compressors side by side, for the lows, the middle and the highs.
+A loud bass does not pull the voice down with it, and a harsh
+<quote>s</quote> can be tamed on its own. Drag the lines between the bands to
+move where they meet. With every ratio at 1:1, the sound comes out as it went
+in.</para>
+</sect2>
+
+<sect2 id="block-effect-pan">
+<title>Pan</title>
+<para>Places a lane anywhere between left and right. The sound is folded to
+mono first and keeps the same loudness wherever you put it.</para>
+</sect2>
+
+<sect2 id="block-effect-pitchshift">
+<title>Pitch Shift</title>
+<para>Moves the pitch up or down by up to an octave without making the sound
+faster or slower. <guilabel>Semitones</guilabel> moves it in whole steps, like
+the keys of a piano. <guilabel>Cents</guilabel> are hundredths of a semitone on
+top, for tuning one sound to another. The sound comes out about 60 ms late,
+and a new setting fades in over a few tens of milliseconds, so a change never
+clicks.</para>
+</sect2>
+
+<sect2 id="block-effect-reverb">
+<title>Reverb</title>
+<para>Puts the sound in a room. Start from one of the presets in its settings
+(<guilabel>Small room</guilabel>, <guilabel>Hall</guilabel> or
+<guilabel>Plate</guilabel>), then adjust:</para>
+<itemizedlist>
+<listitem><para><guilabel>Decay</guilabel> is how long the room rings after
+the sound stops, from a tenth of a second to twenty seconds.</para></listitem>
+<listitem><para><guilabel>Size</guilabel> is how big the room is. Small rooms
+ring densely and close, large ones spread out.</para></listitem>
+<listitem><para><guilabel>Damping</guilabel> makes the top end of the ring
+fade sooner, the way soft walls and air do.</para></listitem>
+<listitem><para><guilabel>Pre-delay</guilabel> holds the room back for up to a
+quarter of a second, so you hear the sound clearly before the room joins
+in.</para></listitem>
+<listitem><para><guilabel>Width</guilabel> spreads the room from the middle
+out to both sides, and <guilabel>Mix</guilabel> sets how loud it is against
+the original.</para></listitem>
+</itemizedlist>
+<para>The original goes straight through, so a Reverb does not delay the
+lane.</para>
+</sect2>
+
+<sect2 id="block-effect-simplecompressor">
+<title>Simple Compressor</title>
+<para>Steadies the level with one choice (<guilabel>Gentle</guilabel>,
+<guilabel>Moderate</guilabel>, <guilabel>Heavy</guilabel>,
+<guilabel>Voice</guilabel> or <guilabel>Broadcast</guilabel>) instead of six
+controls, and shows what that choice sets.</para>
+</sect2>
+
+<sect2 id="block-effect-volume">
+<title>Volume</title>
+<para>Turns a lane up or down, to match it to the others. Drag the slider on
+its tile, or open its settings to type a number: 200 % is twice the level, and
+with overdrive on it goes up to 400 %, with a limiter that keeps it from
+clipping.</para>
+</sect2>
+</sect1>
+
+<sect1 id="blocks-meters">
+<title>Meters</title>
+
+<para>Either meter can also be shown in the system tray: tick <guilabel>Show in
+system tray</guilabel> in its settings (see <xref linkend="tray"/>).</para>
+
+<sect2 id="block-meter-peakrms">
+<title>Peak/RMS</title>
+<para>A level meter for any point in a lane, with peak hold and clip
+lights.</para>
+</sect2>
+
+<sect2 id="block-meter-vu">
+<title>VU</title>
+<para>A pair of needles that follow the average level, the way a tape
+machine's meters did, against a reference level you choose.</para>
+</sect2>
+</sect1>
+
+<sect1 id="blocks-advanced">
+<title>Advanced</title>
+
+<sect2 id="block-advanced-declick">
+<title>Declick</title>
+<para>Takes out clicks, pops and crackle (from a record, a bad cable or a
+digital dropout) and fills in what was underneath from the sound on either
+side.</para>
+</sect2>
+
+<sect2 id="block-advanced-dehum">
+<title>Dehum</title>
+<para>Removes the 50 or 60 Hz hum of the mains and the whine of its harmonics,
+and leaves everything in between alone. With <guilabel>Auto</guilabel> on, it
+follows a hum whose frequency drifts.</para>
+</sect2>
+
+<sect2 id="block-advanced-denoise">
+<title>Denoise</title>
+<para>Listens to a few seconds of a steady noise on its own (a fan, hiss, an
+air conditioner), then removes that noise from everything that follows. The
+noise it learned is saved with the session.</para>
+</sect2>
+
+<sect2 id="block-advanced-ducking">
+<title>Ducking</title>
+<para>Turns a background source down while the main one (usually a voice) is
+heard, and back up when it stops. Its tile has two inputs: main and
+background.</para>
+</sect2>
+
+<sect2 id="block-advanced-firfilter">
+<title>FIR Filter</title>
+<para>Applies an impulse response from a file: the sound of a room, a speaker
+cabinet, or a correction for a pair of headphones. Mono, stereo or true
+stereo, resampled to the session's rate, with about 5 ms of delay.</para>
+</sect2>
+
+<sect2 id="block-advanced-inputswitch">
+<title>Input Switch</title>
+<para>Passes one of two inputs, A or B, and crossfades to the other at a
+click: half a second, or two seconds with &Shift;. A <link
+linkend="global-shortcuts">global shortcut</link> or &ctl; can switch it
+too.</para>
+</sect2>
+
+<sect2 id="block-advanced-mixer">
+<title>Mixer</title>
+<para>Five inputs on five strips with volume up to 200 %, mute, solo, balance
+and timed fades, under one master, plus five scenes to save and recall a set
+of levels.</para>
+</sect2>
+
+<sect2 id="block-advanced-parametriceq">
+<title>Parametric EQ</title>
+<para>Up to ten bands you place yourself (bells, shelves, pass filters,
+notches), dragged along the curve they draw, with the live spectrum behind
+it.</para>
+</sect2>
+
+<sect2 id="block-advanced-speechdenoise">
+<title>Speech Denoise</title>
+<para>Clears the background from a voice without learning anything first,
+using RNNoise, a model trained on speech. It works at 48 kHz and adds 30 ms of
+delay. It is only there where the distribution packages RNNoise, which Fedora
+does.</para>
+</sect2>
+
+<sect2 id="block-advanced-sync">
+<title>Sync</title>
+<para>Holds a lane back by an exact number of milliseconds, up to two seconds,
+to line its sound up with a picture or with another lane.</para>
+</sect2>
+
+<sect2 id="block-advanced-timeshift">
+<title>Time Shift</title>
+<para>Pauses and rewinds sound that is still arriving, such as a radio stream
+or a call. Jump back 3, 10 or 30 seconds, forward again, or straight back to
+live. It keeps up to an hour: ten minutes in memory, the rest on
+disk.</para>
+</sect2>
+</sect1>
+
+<sect1 id="blocks-hearing">
+<title>Hearing</title>
+
+<para>These blocks work on one ear at a time. <xref linkend="hearing"/>
+describes them in full.</para>
+
+<sect2 id="block-hearing-compensation16">
+<title>Hearing Compensation 16</title>
+<para>Lifts soft sound for one ear in sixteen bands, a lot for soft sound and
+little for loud sound, under a ceiling nothing goes above. It can be set band
+by band or from an audiogram. See <xref
+linkend="hearing-compensation-16"/>.</para>
+</sect2>
+
+<sect2 id="block-hearing-compensation64">
+<title>Hearing Compensation 64</title>
+<para>The same in sixty-four bands, set with points on smooth curves, for
+steep slopes and narrow dips. See <xref
+linkend="hearing-compensation-64"/>.</para>
+</sect2>
+
+<sect2 id="block-hearing-frequencylowering">
+<title>Frequency Lowering</title>
+<para>Moves sound from a high range the ear does not hear into a lower one it
+does, so that the hiss of s, sh and f comes back, with about 21 ms of delay.
+See <xref linkend="frequency-lowering"/>.</para>
+</sect2>
+
+<sect2 id="block-hearing-frequencyraising">
+<title>Frequency Raising</title>
+<para>The other way round: moves sound from a low or middle range up into one
+the ear hears, with about 43 ms of delay, or 85 ms while a move starts below
+250 Hz. Experimental in parts. See <xref linkend="frequency-raising"/>.</para>
+</sect2>
+
+<sect2 id="block-hearing-joinlr">
+<title>Join L/R</title>
+<para>Puts two lanes back together as one stereo pair, the left side of one
+and the right side of the other, lined up in time, so that each ear can have
+its own blocks. See <xref linkend="one-ear"/>.</para>
+</sect2>
+</sect1>
+
+<sect1 id="blocks-plugins">
+<title>Plugins</title>
+
+<para>&reverblabr; can run plugins that are already installed on your
+computer: <emphasis role="strong">LV2</emphasis>, <emphasis
+role="strong">CLAP</emphasis> (where the build has the CLAP SDK) and
+<emphasis role="strong">LADSPA</emphasis>. The plugin row of the library lists
+what it found, and <guibutton>Look for plugins again</guibutton> looks again
+after you install something new. LSP's plugins are a good first set to
+try.</para>
+
+<para>Every plugin runs in a separate process, so a plugin that crashes or
+hangs takes nothing else down with it. Its block is bypassed, the sound goes
+on without it, and the block shows a button to restart it. A plugin's settings
+appear in a panel built from the parameters it offers.</para>
+
+<para><guilabel>Test Plugin</guilabel> in the same group is a plain gain built
+into &reverblabr;, which runs the way every plugin does. It is there to check
+that plugins run on your computer at all.</para>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="recording">
+<title>Recording</title>
+
+<sect1 id="recorder">
+<title>The Recorder block</title>
+
+<para>Put a <guilabel>Recorder</guilabel> (under
+<guilabel>Outputs</guilabel>) anywhere in a lane. It writes what reaches it
+to a file and passes the sound on unchanged, so the lane can continue to your
+speakers after it. Several Recorders can hang off the same sound, each writing
+its own file.</para>
+
+<variablelist>
+<varlistentry>
+<term>It records while the session runs</term>
+<listitem><para>The tile shows the format, a red <guilabel>REC</guilabel> with
+the time, and <guibutton>Pause</guibutton> and <guibutton>Split</guibutton>
+buttons. Split ends the current file and starts the next one, numbered on.
+Pause leaves the paused time out and joins the two parts.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>The file name</term>
+<listitem><para>Built from <guilabel>Session</guilabel>,
+<guilabel>Date</guilabel>, <guilabel>Time</guilabel> and
+<guilabel>Counter</guilabel> pieces plus your own text, and the settings show
+what the next file will be called. Files go to a Reverblabr folder in your
+Music folder unless you choose another.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Quality</term>
+<listitem><para><guilabel>Voice</guilabel> (Opus), <guilabel>Standard
+MP3</guilabel>, <guilabel>High-quality MP3</guilabel>,
+<guilabel>High-quality AAC</guilabel>, <guilabel>Lossless</guilabel> (FLAC)
+and <guilabel>Uncompressed</guilabel> (WAV). The format options let you set
+the bit rate, bit depth, sample rate and mono by hand. AAC and Apple Lossless
+are only offered if your system's FFmpeg can write them; on Fedora the full
+FFmpeg comes from RPM Fusion. FLAC and the other formats always
+work.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Tags</term>
+<listitem><para>Title, artist, album and so on are written into each file when
+it is finished. The name pieces work in tags too, so a Track of
+<userinput>%counter</userinput> numbers the files of a split
+recording.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Limits</term>
+<listitem><para>Start a new file every so many minutes, hours or megabytes,
+stop the recording after a while, or act on silence: leave it out, start a
+new file after it, or stop.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>A crash does not cost you the recording</term>
+<listitem><para>The file plays as it is up to the last few seconds, and
+&reverblabr; restores the rest the next time it starts.</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>A <link linkend="global-shortcuts">global shortcut</link> and
+<userinput>reverblabr-ctl split</userinput> start a new file too. Before you
+record anyone but yourself, read <xref linkend="privacy"/>.</para>
+</sect1>
+
+<sect1 id="files-tab">
+<title>The Files tab</title>
+
+<para>The <guilabel>Files</guilabel> tab of the sidebar (<keycombo
+action="simul">&Ctrl;<keycap>2</keycap></keycombo>) lists what the session has
+recorded, newest first, with each file's name, its outline, its length, format
+and size. A file still being recorded has a red dot.</para>
+
+<para>To listen to a recording, select it and press its play button, or
+&Space;. Click the outline to listen from that point. It plays on your default
+output like any music player would, and a running session carries on as it
+was. Right-click a recording for more:</para>
+
+<variablelist>
+<varlistentry>
+<term><guimenuitem>Open Containing Folder</guimenuitem></term>
+<listitem><para>Opens your file manager with the file
+selected.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><guimenuitem>Open With…</guimenuitem></term>
+<listitem><para>Offers the programs that can open it, such as an audio
+editor.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><guimenuitem>Move to Trash</guimenuitem></term>
+<listitem><para>Moves it to the trash, where you can restore it from. &Del;
+does the same.</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>Double-click a recording, or press &Enter;, to open it in the
+<guilabel>Recording Inspector</guilabel>, a window of its own. You can rename
+the file there, fill in its tags and press <guibutton>Save Tags</guibutton> to
+write them into the file. &Space; plays and pauses, and the &Left; and &Right;
+arrow keys jump five seconds back or forward.</para>
+
+<para>A file you delete or move in your file manager disappears from the list
+the next time you open the tab.</para>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="desktop">
+<title>On the desktop</title>
+
+<para>&reverblabr; is meant to sit in the background and get on with it:
+sessions keep running with the window closed, the tray and a panel widget
+show what is going on, and shortcuts work from anywhere. Most of this needs an installed
+&reverblabr;, because a build started from the source tree has no background
+engine.</para>
+
+<sect1 id="all-sessions">
+<title>All your sessions at once</title>
+
+<para><menuchoice><guimenu>Session</guimenu><guimenuitem>All
+Sessions…</guimenuitem></menuchoice> opens a window listing every session you
+have saved, open or not: what each one captures, how many recordings it has
+made, how loud it is now, and how long it has been running.</para>
+
+<itemizedlist>
+<listitem><para><guibutton>Run</guibutton> or <guibutton>Stop</guibutton> a
+session with the button at the end of its row. To start several together,
+select them (&Ctrl;-click or &Shift;-click) and press
+<guibutton>Run</guibutton> at the top. A session that was not open opens in a
+tab of the main window as it starts.</para></listitem>
+<listitem><para>Double-click a session to open it in the main window.
+<guibutton>New Session</guibutton> makes one, and
+<guibutton>Delete…</guibutton> deletes the selected one after
+asking.</para></listitem>
+<listitem><para>Click a column header to sort by it, drag a header to move its
+column, and choose which columns show with <guibutton>Columns</guibutton>.
+The window remembers all of it.</para></listitem>
+</itemizedlist>
+
+<para>The launcher knows about this too: right-click &reverblabr; in the
+application launcher or the task manager for <guimenuitem>New
+Session</guimenuitem> and <guimenuitem>All Sessions</guimenuitem>. There is
+only ever one &reverblabr; running, so starting it again just brings its
+window forward.</para>
+</sect1>
+
+<sect1 id="auto-run">
+<title>Sessions that run when you log in</title>
+
+<para>Some sessions you want running all the time, such as a microphone chain
+for calls or a hearing setup. Switch on <guilabel>Auto Run: Run when I log
+in</guilabel> in the session's <link linkend="info-tab">Info</link> tab, or
+tick it in <guimenuitem>All Sessions…</guimenuitem>.</para>
+
+<itemizedlist>
+<listitem><para>From then on, the background engine starts that session when
+you log in, without opening the window, and again if the engine crashes and
+has to restart. Closing the window leaves it running.</para></listitem>
+<listitem><para>Stopping the session stops it until the next login, even when
+the engine is started again later by the window, by &ctl; or by &krunner;.
+Undo takes the setting back like any other change.</para></listitem>
+<listitem><para>When no session is set to run at login, nothing of
+&reverblabr; starts when you log in.</para></listitem>
+<listitem><para>It needs an installed &reverblabr;. In a build run from the
+source tree, the Info tab says Auto Run cannot work there, and the session
+keeps the setting for later.</para></listitem>
+</itemizedlist>
+</sect1>
+
+<sect1 id="scheduling">
+<title>Timers</title>
+<!-- A placeholder until timers and the Schedule tab are there: replace it
+     with how they are used, and say the same in docs/. -->
+<para>Not available yet. Timers that start and stop a session at the times
+you set, and a <guilabel>Schedule</guilabel> tab to manage them, are planned.
+Until then, <link linkend="auto-run">Auto Run</link> starts a session when you
+log in, and &ctl; started from cron or a systemd timer starts and stops one at
+any time.</para>
+</sect1>
+
+<sect1 id="tray">
+<title>The tray icon</title>
+
+<para>While &reverblabr; runs, its icon sits in the system tray. With nothing
+running it waits among the hidden icons, and it moves into view while a
+session runs.</para>
+
+<itemizedlist>
+<listitem><para><emphasis role="strong">Click it</emphasis> to see every saved
+session, how loud each one is, and <guibutton>Run</guibutton> or
+<guibutton>Stop</guibutton> for each. Meters you marked <guilabel>Show in
+system tray</guilabel> in a Peak/RMS or VU meter's settings are listed there
+as well.</para></listitem>
+<listitem><para><emphasis role="strong">Middle-click it</emphasis> to show or
+hide the main window. Its menu has <guimenuitem>Show Reverblabr</guimenuitem>,
+<guimenuitem>All Sessions…</guimenuitem> and
+<guimenuitem>Quit</guimenuitem>.</para></listitem>
+<listitem><para><emphasis role="strong">A red dot</emphasis> on the icon means
+something is being recorded. <emphasis role="strong">A warning
+sign</emphasis> means something went wrong; click the icon to read
+what.</para></listitem>
+</itemizedlist>
+
+<para>Closing the main window does not quit &reverblabr; while there is a
+tray. Your sessions keep running and the icon stays. To quit, use
+<guimenuitem>Quit</guimenuitem> in the icon's menu. Sessions running in the
+background engine keep going even then; only sessions running inside the
+window stop.</para>
+</sect1>
+
+<sect1 id="panel-widget">
+<title>The panel widget</title>
+
+<para><guilabel>Reverblabr Sessions</guilabel> puts your sessions in a &plasma;
+panel, whether the window is open or not. Right-click the panel, choose
+<guimenuitem>Add or Manage Widgets…</guimenuitem>, and drag
+<guilabel>Reverblabr Sessions</guilabel> onto the panel (or onto the
+desktop).</para>
+
+<itemizedlist>
+<listitem><para><emphasis role="strong">In the panel</emphasis> it is
+&reverblabr;'s icon. A green dot means a session is running, a red dot that
+something is being recorded. Hover over it to read how many sessions
+run.</para></listitem>
+<listitem><para><emphasis role="strong">Click it</emphasis> to see every saved
+session, with <guibutton>Run</guibutton> or <guibutton>Stop</guibutton> and how
+loud each one is. A session that was not open is opened in the background
+engine as it starts; the window does not have to be running.</para></listitem>
+<listitem><para>The dots and the bars take their colours from your &plasma;
+theme, light or dark.</para></listitem>
+<listitem><para>In the system tray, the widget waits among the hidden icons
+while nothing runs, like the window's tray icon.</para></listitem>
+</itemizedlist>
+
+<para>The widget costs nothing while nothing runs: it reads the levels only
+while its list is open and a session is running. Being in the panel does not
+start the background engine. Opening its list does, if the engine is not
+running yet, to ask it for the sessions, and the engine leaves again a minute
+later if you do not start anything.</para>
+
+<para>If the widget starts while a session is already recording, when you add
+it or when &plasma; starts, it shows the red dot from that session's next
+recording on. The widget needs an installed &reverblabr;; with no background
+engine installed, its list says so.</para>
+</sect1>
+
+<sect1 id="global-shortcuts">
+<title>Global shortcuts</title>
+
+<para>&reverblabr;'s global shortcuts work while the window is in the
+background or hidden in the tray. They start out with no keys assigned, so
+nothing clashes with your desktop's own shortcuts. Set the keys you want in
+&systemsettings;, under <menuchoice><guimenu>Keyboard</guimenu><guisubmenu>Shortcuts</guisubmenu><guimenuitem>Reverblabr</guimenuitem></menuchoice>.</para>
+
+<variablelist>
+<varlistentry>
+<term><guilabel>Run or stop "<replaceable>name</replaceable>"</guilabel></term>
+<listitem><para>One for every saved session. The shortcut follows its
+session: renaming the session keeps the key, deleting it removes the key. A
+session that is not open is opened and started.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><guilabel>Show Reverblabr</guilabel></term>
+<listitem><para>Brings the main window to the front.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term>Blocks</term>
+<listitem><para><guilabel>Input Switch: play A</guilabel> and <guilabel>play
+B</guilabel>; <guilabel>Time Shift: pause or play</guilabel>, <guilabel>back
+10 seconds</guilabel>, <guilabel>forward 10 seconds</guilabel> and
+<guilabel>back to live</guilabel>; <guilabel>Recorder: start a new
+file</guilabel>. These act on every block of that kind in the session the
+main window shows (or showed last, while it is hidden).</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>The shortcuts belong to the window's process, so they work while it
+runs, open or hidden in the tray. Quitting from the tray ends them, even if
+sessions keep running in the background engine.</para>
+</sect1>
+
+<sect1 id="krunner">
+<title>&krunner;</title>
+
+<para>Press <keycombo action="simul">&Alt;&Space;</keycombo> (or start typing
+on the desktop) and type <userinput>rb</userinput> followed by part of a
+session's name:</para>
+
+<itemizedlist>
+<listitem><para><userinput>rb podcast</userinput> offers <guilabel>Run
+“Podcast”</guilabel>, or <guilabel>Stop “Podcast”</guilabel> while it runs,
+with what it is doing now underneath. Press &Enter; to run or stop it. A
+session that is not open is opened in the background engine and run, and stays
+open there.</para></listitem>
+<listitem><para>The button beside it, <guibutton>Open in
+Reverblabr</guibutton>, opens the session in the main window and brings the
+window forward, starting &reverblabr; if it is not running.</para></listitem>
+<listitem><para><userinput>rb</userinput> on its own lists every saved
+session.</para></listitem>
+<listitem><para><userinput>rb rec</userinput> (or any longer start of
+<quote>recording</quote>) says which sessions are recording now, or that
+nothing is. Pick one to open it in the main window.</para></listitem>
+</itemizedlist>
+
+<para>All of this works with the window closed: &krunner; talks to the
+background engine, and starts it if it is not running. Looking something up
+does not keep the engine running; it goes away again after a minute if
+nothing is running. &krunner; lists it as <guilabel>Reverblabr
+Sessions</guilabel> in &systemsettings;, under
+<menuchoice><guimenu>Search</guimenu><guimenuitem>Plasma
+Search</guimenuitem></menuchoice>, where you can turn it off. It needs an
+installed &reverblabr;.</para>
+</sect1>
+
+<sect1 id="notifications">
+<title>Notifications</title>
+
+<para>&reverblabr; tells your desktop about things you would otherwise
+miss:</para>
+
+<itemizedlist>
+<listitem><para>a recording finished, with <guibutton>Open</guibutton> and
+<guibutton>Show in Folder</guibutton></para></listitem>
+<listitem><para>a device disconnected while a session was using it (the
+session waits for it and carries on when it is back)</para></listitem>
+<listitem><para>an application a session captures stopped playing, and started
+again</para></listitem>
+<listitem><para>a plugin stopped (its block is bypassed until you restart
+it)</para></listitem>
+<listitem><para>the disk under a recording is nearly full</para></listitem>
+<listitem><para>a connection that would have fed a session's sound back into
+itself was refused</para></listitem>
+</itemizedlist>
+
+<para>A device that comes back within a few seconds, or an application that
+pauses briefly between two sounds, is not worth a notification, so you will
+not hear about it. The same thing about the same block is reported at most
+once a minute.</para>
+
+<para>Each kind of notification is listed under <guilabel>Reverblabr</guilabel>
+in &systemsettings;, under <guimenuitem>Notifications</guimenuitem>, where you
+can turn it off or give it a sound. Do Not Disturb silences them like any
+other.</para>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="virtual-devices">
+<title>Virtual devices</title>
+
+<para>A virtual device is a sound card with no hardware behind it. Other
+programs see it in their device lists like any other sound card, and a
+&reverblabr; session can record from it or play into it. That is what lets
+you put a session between your programs and your real sound card, in either
+direction:</para>
+
+<itemizedlist>
+<listitem><para><emphasis role="strong">A virtual output</emphasis> is
+something programs play into. Send your browser, your music player or every
+program at once to it, and a session picks the sound up, runs it through
+whatever blocks you like, and plays the result on your real speakers or
+headphones.</para></listitem>
+<listitem><para><emphasis role="strong">A virtual input</emphasis> is a
+microphone that programs record from. A session takes your real microphone,
+cleans it up and plays it into the virtual one, and your call or recording
+program uses that as its microphone.</para></listitem>
+</itemizedlist>
+
+<sect1 id="virtual-devices-window">
+<title>Making and deleting devices</title>
+
+<para>Open the <guilabel>Virtual Devices</guilabel> window with its button at
+the right end of the top row, or with
+<menuchoice><guimenu>Settings</guimenu><guimenuitem>Virtual
+Devices…</guimenuitem></menuchoice>. It has two lists,
+<guilabel>Outputs</guilabel> and <guilabel>Inputs</guilabel>.</para>
+
+<itemizedlist>
+<listitem><para><guibutton>Add Device…</guibutton> asks for a name, the kind
+(<guilabel>Output</guilabel> or <guilabel>Input</guilabel>),
+<guilabel>Stereo</guilabel> or <guilabel>Mono</guilabel>, and who the device
+is for (see <xref linkend="all-users"/>).</para></listitem>
+<listitem><para>Each row has a switch, a button to rename the device (or
+double-click the name, or press <keycap>F2</keycap>) and a button to delete
+it.</para></listitem>
+<listitem><para>A device that is switched off stays in the list, but programs
+cannot see it. Programs that were using it move to another
+device.</para></listitem>
+</itemizedlist>
+
+<para>Virtual devices belong to your desktop, not to a session and not to
+&reverblabr;. They stay until you delete them, whether &reverblabr; is running
+or not, and come back after a restart. Renaming one does not break anything:
+programs playing into it carry on, and blocks that use it keep using it.</para>
+
+<para>They are silent on their own. Sound sent to a virtual output goes
+nowhere until a running session picks it up and plays it somewhere.
+&reverblabr; never starts a session by itself, so when no session is running,
+move your programs back to your real sound card, or set a session to <link
+linkend="auto-run">run at login</link>.</para>
+</sect1>
+
+<sect1 id="process-programs">
+<title>Process the sound of your programs</title>
+
+<procedure>
+<step><para>In <guilabel>Virtual Devices</guilabel>, add an
+<guilabel>Output</guilabel>, for example <quote>Every
+app</quote>.</para></step>
+<step><para>In the &plasma; audio applet, make it your default output, or move
+only the programs you want to process onto it.</para></step>
+<step><para>In a session, add an <guilabel>Input Device</guilabel> block, and
+in its settings choose your new device. Virtual devices are listed at the
+end, under <guilabel>Virtual devices</guilabel>.</para></step>
+<step><para>Add the effects and meters you want after it.</para></step>
+<step><para>End the lane with an <guilabel>Output Device</guilabel>, and choose
+your real speakers or headphones <emphasis>by name</emphasis>. Left on
+<guilabel>Default output</guilabel>, it would follow the default to the
+virtual device, which is the session's own input.</para></step>
+<step><para>Press <guibutton>Run</guibutton>.</para></step>
+</procedure>
+
+<para>Compared with capturing a single application, this way nothing is heard
+twice, and you can process several programs together or set up a different
+session for each.</para>
+</sect1>
+
+<sect1 id="process-microphone">
+<title>Process your microphone for other programs</title>
+
+<procedure>
+<step><para>In <guilabel>Virtual Devices</guilabel>, add an
+<guilabel>Input</guilabel>, for example <quote>Processed voice</quote>.
+<guilabel>Mono</guilabel> is right for a voice.</para></step>
+<step><para>In a session, add an <guilabel>Input Device</guilabel> block and
+choose your real microphone <emphasis>by name</emphasis>. <guilabel>Default
+input</guilabel> would follow the default to the virtual microphone, if you
+made that the default.</para></step>
+<step><para>Add the effects you want, for example a Dynamics Processor or a
+Speech Denoise, and a Peak/RMS meter to watch the level.</para></step>
+<step><para>End the lane with an <guilabel>Output Device</guilabel>, and choose
+your virtual microphone under <guilabel>Virtual devices</guilabel>.</para></step>
+<step><para>Press <guibutton>Run</guibutton>.</para></step>
+<step><para>In your call or recording program, choose the virtual
+microphone.</para></step>
+</procedure>
+
+<para>A session like this is a good candidate for <link
+linkend="auto-run">Auto Run</link>, so that the processed microphone is simply
+there after you log in.</para>
+</sect1>
+
+<sect1 id="all-users">
+<title>Devices for all users</title>
+
+<para><guilabel>Only Me</guilabel> is the usual choice when you add a device,
+and it needs nothing more. <guilabel>All Users</guilabel> makes the device for
+every account on the computer, and asks for an administrator's password. The
+password is remembered for a few minutes, so a few changes in a row only ask
+once. Devices for all users have a padlock in the list. Other users get the
+device the next time they log in.</para>
+
+<para>This needs a small helper that runs as root. A full install includes it;
+until it is installed, choosing All Users only tells you that it is
+missing.</para>
+</sect1>
+
+<sect1 id="removing">
+<title>Removing &reverblabr;</title>
+
+<para>Uninstalling &reverblabr; does not remove its virtual devices: PipeWire
+keeps making them at every login. Delete them in the Virtual Devices window
+first. If &reverblabr; is already gone, delete the files PipeWire makes them
+from, then log out and back in:</para>
+
+<itemizedlist>
+<listitem><para>your own devices:
+<filename>~/.config/pipewire/pipewire.conf.d/90-reverblabr-virtual-devices.conf</filename></para></listitem>
+<listitem><para>devices for all users:
+<filename>/etc/pipewire/pipewire.conf.d/90-reverblabr-virtual-devices-system.conf</filename>
+(as root)</para></listitem>
+</itemizedlist>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="hearing">
+<title>Hearing</title>
+
+<para>The blocks in the <guilabel>Hearing</guilabel> group of the library are
+for people who hear part of the sound poorly: someone who cannot hear the high
+frequencies any more, who has a dip somewhere in the middle, or whose two ears
+hear differently. They work on one ear at a time, so each ear can be set up
+for the way it hears, and they can work from an audiogram.</para>
+
+<warning>
+<para><emphasis role="strong">&reverblabr; is not a medical device.</emphasis>
+It shapes sound for listening and measures nothing about anybody's health. It
+does not replace an audiologist or a hearing aid. If your hearing has changed,
+have it checked.</para>
+<para><emphasis role="strong">Be careful with loud sound.</emphasis> These
+blocks can add a lot of gain. Start with the volume low, especially with
+headphones, raise it slowly, and leave the <guilabel>Output ceiling</guilabel>
+in place.</para>
+</warning>
+
+<sect1 id="one-ear">
+<title>One ear at a time</title>
+
+<para>Every block in the Hearing group has an <guilabel>Ear</guilabel>
+setting, Left or Right, and its tile shows an <guilabel>L</guilabel> (blue) or
+an <guilabel>R</guilabel> (red). The block changes that side only and passes
+the other side through, delayed by exactly as much as its own side, so the two
+ears stay in step. Changing the Ear while the session runs fades across
+instead of clicking. Loading a preset never changes it, so a preset made for
+one ear can be tried on the other.</para>
+
+<para>There are two ways to give each ear blocks of its own:</para>
+
+<itemizedlist>
+<listitem><para><emphasis role="strong">In series, on one lane:</emphasis> a
+block set to Left, then the same kind of block set to Right. It is simple, but
+the delays of every block on the lane add up.</para></listitem>
+<listitem><para><emphasis role="strong">Side by side, on two lanes:</emphasis>
+wire the source to two lanes, one for each ear, and bring them back together
+with <guilabel>Join L/R</guilabel>. Its <guilabel>Left</guilabel> input takes
+the left side of one lane and its <guilabel>Right</guilabel> input the right
+side of the other. &reverblabr; lines the two lanes up where they meet, so the
+ears stay in step even when one lane has more blocks than the other, and the
+session is only as late as the slower lane.</para></listitem>
+</itemizedlist>
+</sect1>
+
+<sect1 id="hearing-compensation-16">
+<title>Hearing Compensation 16</title>
+
+<para>Hearing Compensation 16 gives one ear more of what it hears faintly. In
+each of sixteen bands it has three gains, for <guilabel>soft</guilabel>,
+<guilabel>average</guilabel> and <guilabel>loud</guilabel> sound, and a
+<guilabel>ceiling</guilabel> that nothing in that band goes above. Soft sound
+gets the most lift and loud sound the least, so quiet speech comes up without
+loud sound becoming too much.</para>
+
+<itemizedlist>
+<listitem><para><guilabel>The Gain view</guilabel> draws the three gains and
+the ceiling across the frequencies. Pick <guilabel>Soft</guilabel>,
+<guilabel>Average</guilabel>, <guilabel>Loud</guilabel> or
+<guilabel>Ceiling</guilabel> above it, then drag a band's handle up or down.
+The dark line is the gain each band is giving right now, with the sound
+playing drawn behind it.</para></listitem>
+<listitem><para><guilabel>The Levels view</guilabel> shows where the sound sits
+for this ear: the quietest levels it hears (from the audiogram), the
+ceilings, and the sound going in and coming out.</para></listitem>
+<listitem><para>Click a handle to see that band's settings as
+numbers.</para></listitem>
+<listitem><para><guilabel>Speed</guilabel> decides how quickly the gain follows
+the sound. <guilabel>Syllabic</guilabel> follows speech syllable by syllable,
+<guilabel>Slow</guilabel> keeps the shape of music, and
+<guilabel>Adaptive</guilabel> does both and catches a sudden loud sound at
+once.</para></listitem>
+<listitem><para><guilabel>Loudness</guilabel> turns all bands up or down
+together. <guilabel>Noise floor</guilabel> keeps the lift from bringing up the
+hiss of a recording. <guilabel>Most gain</guilabel> is the most any band ever
+gets. <guilabel>Output ceiling</guilabel> is a limiter at the very
+end.</para></listitem>
+<listitem><para><guibutton>Hold for before</guibutton> plays the sound without
+the block for as long as you hold the button, so you can
+compare.</para></listitem>
+</itemizedlist>
+
+<para>With a block for each ear, each panel draws the other ear's curve
+faintly, and <guibutton>Copy from the Other Ear</guibutton> takes over its
+settings as a starting point.</para>
+
+<sect2 id="audiogram">
+<title>From an audiogram</title>
+
+<para>If you have an audiogram (the chart from a hearing test), you do not
+have to set the bands by hand. Open <guilabel>Audiogram</guilabel>, enter the
+quietest level heard at each frequency, and, if you know them, the levels
+where sound becomes too loud. Then press <guibutton>Fit from
+Audiogram</guibutton>. All bands are set in one step, and one undo takes it
+back.</para>
+
+<para>A band where more gain is unlikely to help is marked. Often a better
+idea there is to move that sound somewhere the ear hears it, with <link
+linkend="frequency-lowering">Frequency Lowering</link>.</para>
+
+<para>The fit follows published fitting rules. Treat the result as a starting
+point and adjust by ear.</para>
+</sect2>
+</sect1>
+
+<sect1 id="hearing-compensation-64">
+<title>Hearing Compensation 64</title>
+
+<para>Hearing Compensation 64 works the same way with sixty-four bands, for a
+steep slope, a narrow dip or a sharp edge that sixteen bands cannot follow.
+Instead of one handle per band you set <emphasis>points</emphasis>, and the
+bands follow smooth curves through them that never overshoot.</para>
+
+<itemizedlist>
+<listitem><para>Drag a point sideways to move it, and up or down to change the
+curve you picked above the view.</para></listitem>
+<listitem><para>Double-click an empty spot to add a point (up to 24). It is
+placed on the curves as they are, so nothing changes until you move it.
+<guibutton>Remove Point</guibutton> takes the selected one
+out.</para></listitem>
+<listitem><para><guibutton>Fit from Audiogram</guibutton> places a point at
+each frequency the audiogram has a level for.</para></listitem>
+</itemizedlist>
+</sect1>
+
+<sect1 id="frequency-lowering">
+<title>Frequency Lowering</title>
+
+<para>Some ears hear nothing in a high range however loud it is, and an
+important part of speech lives up there: the hiss of <quote>s</quote>,
+<quote>sh</quote> and <quote>f</quote>, which is what tells
+<quote>sit</quote> from <quote>fit</quote> and <quote>cat</quote> from
+<quote>cats</quote>. Frequency Lowering moves that sound down into a range the
+ear does hear.</para>
+
+<procedure>
+<step><para>Add it for the ear that needs it and set its
+<guilabel>Ear</guilabel>. Add a second one for the other ear if that one needs
+it too.</para></step>
+<step><para>Its first move is ready to go: sound from 4 to 8 kHz squeezed into
+2.5 to 4 kHz, with the high range emptied. On the
+<guilabel>Arrows</guilabel> view, the shaded range is where the sound comes
+from and the outlined one is where it goes. Drag the ends of either range to
+change them.</para></step>
+<step><para>Choose how each move carries the sound.
+<guilabel>Squeeze</guilabel> fits the whole range into a smaller one lower
+down: use it where the ear hears nothing at all, and
+<guilabel>Empty</guilabel> the range it came from. <guilabel>Copy
+down</guilabel> adds a copy an octave or so lower and keeps the original,
+either <guilabel>As it was</guilabel> or <guilabel>Quieter</guilabel>: use it
+where the ear still hears some of the high range.</para></step>
+<step><para><guilabel>Acts: On s, sh, f</guilabel> moves sound only while the
+high range carries most of it, so vowels and music pass unchanged.
+<guilabel>Always</guilabel> moves everything in the range.</para></step>
+<step><para>Turn on <guilabel>Moved sound only</guilabel> to hear just what
+the moves add while you set their <guilabel>Level</guilabel>, then turn it off
+again.</para></step>
+</procedure>
+
+<para>Up to four moves can work at once, each from its own range. The
+<guilabel>Map</guilabel> view shows each move as a line from the frequency
+that goes in to the one that comes out.</para>
+
+<para>Put Frequency Lowering <emphasis>before</emphasis> any block that sets
+the level of each range, such as Hearing Compensation, so the moved sound gets
+the level of the range it lands in. It delays its ear by about 21 ms, and the
+other ear waits as long.</para>
+</sect1>
+
+<sect1 id="frequency-raising">
+<title>Frequency Raising</title>
+
+<para>Some ears hear the low range faintly or not at all, while the higher
+range is fine. Frequency Raising is Frequency Lowering the other way round: it
+moves sound from a low or middle range up into one the ear hears. The panel,
+the moves and the views are the same.</para>
+
+<procedure>
+<step><para>Add it for the ear that needs it and set its
+<guilabel>Ear</guilabel>.</para></step>
+<step><para>Its first move is ready: sound from 250 to 500 Hz copied two
+octaves up into 1 to 2 kHz, with the original kept.</para></step>
+<step><para>Choose how each move carries the sound. <guilabel>Copy
+up</guilabel> adds a copy higher up and keeps the original.
+<guilabel>Squeeze</guilabel> fits the whole range into another one higher up:
+use it where the ear hears nothing at all in the low range, and
+<guilabel>Empty</guilabel> the range it came from. <guilabel>Add
+harmonics</guilabel> is experimental: instead of raising a voice's pitch, it
+leaves the voice where it is and adds its harmonics (twice its frequency,
+three times, and so on) wherever they fall in the destination. The ear takes
+the pitch from the harmonics, so the voice still sounds like itself. Not much
+is known about how well this helps, so trust your ears.</para></step>
+<step><para><guilabel>Acts: On low sounds</guilabel> moves sound only while
+the low range is louder than everything above it, such as a voice or a hum.
+<guilabel>Always</guilabel> moves everything in the range.</para></step>
+</procedure>
+
+<para>Frequency Raising needs a longer stretch of sound to tell low sounds
+apart, so it delays its ear by as much as its lowest move needs: about 43 ms
+while every move starts at 250 Hz or above, and about 85 ms once a move starts
+lower. A move switched off still counts, so switching it on and off to compare
+does not move the ear in time; take it out of the list to stop it counting.
+The panel's <guilabel>Delay</guilabel> says which it is. When a move crosses
+250 Hz while the session runs, the lane fades out, stays quiet for about as
+long as the new delay, and fades back in: a short gap, not a click. Even 43 ms
+is enough to notice with video (lips move before you hear the voice), so it is
+better kept for listening.</para>
+
+<sect2 id="dip">
+<title>A dip in the middle</title>
+
+<para>Some ears hear the lows and the highs but not a range in the middle. You
+can take the dip apart with both blocks, set to the same ear, one after the
+other. For a dip from 1 to 4 kHz:</para>
+
+<orderedlist>
+<listitem><para><emphasis role="strong">Frequency Lowering</emphasis> moves the
+lower half of the dip down below it: sound from 1 to 2 kHz squeezed into
+500 Hz to 1 kHz.</para></listitem>
+<listitem><para><emphasis role="strong">Frequency Raising</emphasis> moves the
+upper half up above it: sound from 2 to 4 kHz squeezed into 4 to
+8 kHz.</para></listitem>
+</orderedlist>
+
+<para>With the halves split like this, the order does not matter. If the
+ranges overlap, the second block moves what the first one has already moved,
+so put first the move you want the other to work on. Both belong before any
+block that sets the level of each range.</para>
+</sect2>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="ctl">
+<title>&ctl;</title>
+
+<para>&ctl; runs and changes &reverblabr;'s sessions from a terminal, a
+script, cron or a desktop tool. It asks the background engine and waits for
+the answer, so a script does not have to. The engine does the work, so a
+session changed here changes in every open &reverblabr; window at the same
+time. The first call starts the engine if it is installed and not
+running.</para>
+
+<screen><prompt>$</prompt> <userinput>reverblabr-ctl start "Evening radio"</userinput>
+<prompt>$</prompt> <userinput>reverblabr-ctl switch "Evening radio" B</userinput>
+<prompt>$</prompt> <userinput>reverblabr-ctl set "Evening radio" Voice gain 0.5</userinput>
+<prompt>$</prompt> <userinput>reverblabr-ctl split "Evening radio"</userinput></screen>
+
+<variablelist>
+<varlistentry>
+<term><userinput>list</userinput></term>
+<listitem><para>The sessions' names, one a line.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><userinput>status <optional><replaceable>session</replaceable></optional></userinput></term>
+<listitem><para>Every session and its state, or one's.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><userinput>start <replaceable>session</replaceable></userinput></term>
+<listitem><para>Runs it, opening it first if it is only on disk. One already
+running is left as it is.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><userinput>stop <replaceable>session</replaceable></userinput></term>
+<listitem><para>Stops it. One not running is left as it is.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><userinput>split <replaceable>session</replaceable> <optional><replaceable>recorder</replaceable></optional></userinput></term>
+<listitem><para>Ends the file each Recorder of a running session is writing,
+or the named one's, and starts the next with no gap.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><userinput>switch <replaceable>session</replaceable> <optional><replaceable>switch</replaceable></optional> A|B</userinput></term>
+<listitem><para>Turns an Input Switch to A or B. The switch may be left out
+when the session has only one.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><userinput>set <replaceable>session</replaceable> <replaceable>block</replaceable> <replaceable>setting</replaceable> <replaceable>value</replaceable></userinput></term>
+<listitem><para>Changes one setting, as one step the window can undo. A number
+is written with a dot (<userinput>0.5</userinput>, whatever the language), a
+switch takes <userinput>true</userinput> or <userinput>false</userinput>, and
+a choice takes one of its choices.</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>A session is named by its name or its id, and a block by the name given
+it in the window or its id. A name that matches nothing exactly may match
+ignoring case, and a name two sessions or two blocks share is refused, with
+their ids, rather than guessed. <option>--json</option> prints each answer as
+one line of JSON for scripts, and <option>--no-activate</option> asks only an
+engine that is already running.</para>
+
+<para><userinput>man reverblabr-ctl</userinput> describes every command and
+option, the exit status and the JSON. bash and zsh complete the commands and
+the sessions' names.</para>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="privacy">
+<title>Privacy</title>
+
+<para>Linux does not ask for permission before one program listens to another
+program or to your microphone. &reverblabr; can capture any application,
+everything the computer plays and any microphone, and nobody is asked. That
+puts the responsibility on you.</para>
+
+<itemizedlist>
+<listitem><para><emphasis role="strong">Other people's voices.</emphasis> In
+many countries it is against the law to record a phone or video call, or any
+conversation, without the agreement of everyone in it, and the rules differ
+from place to place. Find out what applies where you and the other people
+are, and ask before you record.</para></listitem>
+<listitem><para><emphasis role="strong">What you capture.</emphasis> System
+Audio takes everything that plays, including calls, notifications and
+whatever a browser tab is doing. Leave out the programs you do not mean to
+capture.</para></listitem>
+<listitem><para><emphasis role="strong">Seeing who is listening.</emphasis> A
+running session shows up by name in PipeWire's own tools, such as
+<command>wpctl status</command>, qpwgraph and Helvum, along with what it is
+connected to. The &plasma; audio applet does not list it, so look there if you
+need to know.</para></listitem>
+</itemizedlist>
+
+<para>&reverblabr; itself does not use the network at all: no usage
+statistics, no update checks. An Application block can be set to open a web
+address when its session starts, but that address is opened by your browser or
+player, not by &reverblabr;. When you copy diagnostics for a bug report, your
+home folder, user name and computer name are left out, but please read the
+text before you send it.</para>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="troubleshooting">
+<title>When something goes wrong</title>
+
+<sect1 id="diagnostics">
+<title>Diagnostics</title>
+
+<para>The <guilabel>Info</guilabel> tab (<keycombo
+action="simul">&Ctrl;<keycap>3</keycap></keycombo>) has a
+<guilabel>Diagnostics</guilabel> section under <guilabel>Audio
+system</guilabel>. Unfold it to see how each open session is keeping up: its
+load, how often it was late, and whether it got real-time priority. It also
+lists what &reverblabr; is connected to, which recording formats this computer
+can write, and how many plugins were found.</para>
+
+<para><guibutton>Copy Diagnostics</guibutton> puts all of that on the
+clipboard, together with &reverblabr;'s last log lines, ready to paste into a
+bug report. Your home folder, user name and computer name are left out, but
+read it through before you send it.</para>
+</sect1>
+
+<sect1 id="problems">
+<title>Common problems</title>
+
+<qandaset>
+<qandaentry>
+<question><para>I hear the sound twice.</para></question>
+<answer><para>An Application block takes a copy of a program's sound and
+leaves the original playing. <xref linkend="first-session"/> shows how to hear
+only the processed sound, and <xref linkend="process-programs"/> has the
+cleaner way.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>A banner says the background engine is not
+installed.</para></question>
+<answer><para>That is expected when you run &reverblabr; from the build tree:
+the window runs the engine itself, and sessions stop when it closes. Install
+&reverblabr; to get the background engine.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>The sound drops out.</para></question>
+<answer><para>Look at the xrun counter in the status bar and at <link
+linkend="diagnostics">Diagnostics</link>. A session without real-time priority
+is much more likely to drop out when the computer is busy, and Diagnostics
+says so. Real-time priority comes from rtkit, which Fedora and Kubuntu run by
+default. Heavy plugins, many sessions at once and a very small buffer size in
+PipeWire make dropouts more likely too.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>&reverblabr; refused a connection.</para></question>
+<answer><para>It refuses anything that would feed a session's sound back into
+its own input, because that would howl louder and louder. This usually means
+an Output Device is set to <guilabel>Default output</guilabel> while the
+default is the virtual device the session records from. Choose your real
+speakers by name.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>A block is missing from the library.</para></question>
+<answer><para>Some blocks are only built when their library was found: Speech
+Denoise needs RNNoise, the CLAP block needs the CLAP SDK. Your distribution's
+package, or the build's summary, says what was left out.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>A plugin stopped.</para></question>
+<answer><para>Plugins run in their own process, so a crash only takes the
+plugin down. Its block is bypassed and shows a button to restart it. If it
+keeps happening, try the plugin in another host, and say in a bug report
+whether it works there.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>Starting &reverblabr; only brings the old window
+back.</para></question>
+<answer><para>Only one &reverblabr; runs at a time, and starting it again hands
+over to the one that is running. If an installed &reverblabr; is running, a
+build from the source tree just raises that one, so quit it first from the
+tray icon's menu.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>Virtual devices are still there after
+uninstalling.</para></question>
+<answer><para>They belong to PipeWire. <xref linkend="removing"/> says which
+files to delete.</para></answer>
+</qandaentry>
+</qandaset>
+</sect1>
+
+<sect1 id="logs">
+<title>Logs</title>
+
+<para>To see &reverblabr;'s debug messages, start it from a terminal like
+this:</para>
+
+<screen><prompt>$</prompt> <userinput>QT_LOGGING_RULES='reverblabr.*.debug=true' reverblabr</userinput></screen>
+
+<para>The background engine logs to the journal:</para>
+
+<screen><prompt>$</prompt> <userinput>journalctl --user -u reverblabrd</userinput></screen>
+</sect1>
+
+<sect1 id="reporting-bugs">
+<title>Reporting a bug</title>
+
+<para>Please open an issue at <ulink
+url="https://github.com/sorrelfox/reverblabr/issues">https://github.com/sorrelfox/reverblabr/issues</ulink>.
+Say what you did, what you expected and what happened instead, and paste what
+<guibutton>Copy Diagnostics</guibutton> gives you. Steps that make the problem
+happen again are the most useful thing you can send, and a session file or a
+short recording of the sound can help too.</para>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="commands">
+<title>Menus and shortcuts</title>
+
+<para>The menus are behind the <guibutton>☰</guibutton> button in the top
+row, or in the menu bar that <keycombo
+action="simul">&Ctrl;<keycap>M</keycap></keycombo> shows.</para>
+
+<sect1 id="menu-session">
+<title>The Session menu</title>
+<variablelist>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>N</keycap></keycombo></shortcut><guimenu>Session</guimenu><guimenuitem>New Session</guimenuitem></menuchoice></term>
+<listitem><para>Makes a new, empty session in a tab of its own.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>O</keycap></keycombo></shortcut><guimenu>Session</guimenu><guimenuitem>Open Session…</guimenuitem></menuchoice></term>
+<listitem><para>Opens a saved session that is not open.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Session</guimenu><guimenuitem>All Sessions…</guimenuitem></menuchoice></term>
+<listitem><para>Lists every saved session; see <xref
+linkend="all-sessions"/>.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>W</keycap></keycombo></shortcut><guimenu>Session</guimenu><guimenuitem>Close Session</guimenuitem></menuchoice></term>
+<listitem><para>Closes the session's tab. The session stays saved.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut>&Space;</shortcut><guimenu>Session</guimenu><guimenuitem>Run</guimenuitem></menuchoice></term>
+<listitem><para>Runs the session, or stops it while it runs.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Session</guimenu><guimenuitem>Automatic Connections</guimenuitem></menuchoice></term>
+<listitem><para>Wires new blocks up as they are added; see <xref
+linkend="wiring"/>.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycap>F2</keycap></shortcut><guimenu>Session</guimenu><guimenuitem>Rename Session…</guimenuitem></menuchoice></term>
+<listitem><para>Gives the session another name.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Session</guimenu><guimenuitem>Delete Session…</guimenuitem></menuchoice></term>
+<listitem><para>Deletes the session, after asking.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Session</guimenu><guimenuitem>Export Session…</guimenuitem></menuchoice> and <guimenuitem>Import Session…</guimenuitem></term>
+<listitem><para>Write the session to a file, to keep or to give to someone,
+and bring a session from such a file in, in a tab of its own.</para></listitem>
+</varlistentry>
+</variablelist>
+</sect1>
+
+<sect1 id="menu-edit">
+<title>The Edit menu</title>
+<variablelist>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>Z</keycap></keycombo></shortcut><guimenu>Edit</guimenu><guimenuitem>Undo</guimenuitem></menuchoice></term>
+<listitem><para>Takes back the last change, and says which one it is.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;&Shift;<keycap>Z</keycap></keycombo></shortcut><guimenu>Edit</guimenu><guimenuitem>Redo</guimenuitem></menuchoice></term>
+<listitem><para>Makes the change again.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>F</keycap></keycombo></shortcut><guimenu>Edit</guimenu><guimenuitem>Find Block…</guimenuitem></menuchoice></term>
+<listitem><para>Puts the cursor in the library's search.</para></listitem>
+</varlistentry>
+</variablelist>
+</sect1>
+
+<sect1 id="menu-view">
+<title>The View menu</title>
+<variablelist>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>+</keycap></keycombo></shortcut><guimenu>View</guimenu><guimenuitem>Zoom In</guimenuitem></menuchoice> and <guimenuitem>Zoom Out</guimenuitem> (<keycombo action="simul">&Ctrl;<keycap>-</keycap></keycombo>)</term>
+<listitem><para>Zoom the canvas.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>0</keycap></keycombo></shortcut><guimenu>View</guimenu><guimenuitem>Actual Size</guimenuitem></menuchoice></term>
+<listitem><para>Shows the canvas at 100 %.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>9</keycap></keycombo></shortcut><guimenu>View</guimenu><guimenuitem>Fit to Window</guimenuitem></menuchoice></term>
+<listitem><para>Zooms out until the whole session is on screen.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>View</guimenu><guimenuitem>Show as List</guimenuitem></menuchoice></term>
+<listitem><para>Shows the session's blocks as a list instead of on the
+canvas.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>View</guimenu><guimenuitem>Blocks</guimenuitem></menuchoice>,
+<guimenuitem>Files</guimenuitem> and <guimenuitem>Info</guimenuitem>
+(<keycombo action="simul">&Ctrl;<keycap>1</keycap></keycombo>,
+<keycombo action="simul">&Ctrl;<keycap>2</keycap></keycombo>,
+<keycombo action="simul">&Ctrl;<keycap>3</keycap></keycombo>)</term>
+<listitem><para>Show that tab of the sidebar.</para></listitem>
+</varlistentry>
+</variablelist>
+</sect1>
+
+<sect1 id="menu-settings">
+<title>The Settings menu</title>
+<variablelist>
+<varlistentry>
+<term><menuchoice><guimenu>Settings</guimenu><guisubmenu>Appearance</guisubmenu></menuchoice></term>
+<listitem><para><guimenuitem>Reverblabr Dark</guimenuitem>,
+<guimenuitem>Reverblabr Light</guimenuitem> or <guimenuitem>Follow
+System</guimenuitem>; see <xref linkend="window"/>.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>M</keycap></keycombo></shortcut><guimenu>Settings</guimenu><guimenuitem>Show Menubar</guimenuitem></menuchoice></term>
+<listitem><para>Shows the menus as a menu bar, or hides it again.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Settings</guimenu><guimenuitem>Virtual Devices…</guimenuitem></menuchoice></term>
+<listitem><para>Opens the Virtual Devices window; see <xref
+linkend="virtual-devices"/>.</para></listitem>
+</varlistentry>
+</variablelist>
+</sect1>
+
+<sect1 id="menu-help">
+<title>The Help menu</title>
+<variablelist>
+<varlistentry>
+<term><menuchoice><shortcut><keycap>F1</keycap></shortcut><guimenu>Help</guimenu><guimenuitem>Handbook</guimenuitem></menuchoice></term>
+<listitem><para>Opens this handbook.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Help</guimenu><guimenuitem>Report Bug…</guimenuitem></menuchoice></term>
+<listitem><para>Opens the place to report a bug; see <xref
+linkend="reporting-bugs"/>.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Help</guimenu><guimenuitem>About Reverblabr</guimenuitem></menuchoice></term>
+<listitem><para>The version, the authors and the licences.</para></listitem>
+</varlistentry>
+</variablelist>
+</sect1>
+</chapter>
+
+<!-- ================================================================ -->
+<chapter id="credits">
+<title>Credits and licence</title>
+
+<para>&reverblabr;</para>
+
+<para>Program copyright 2026 Reverblabr contributors. The source code is at
+<ulink url="https://github.com/sorrelfox/reverblabr">https://github.com/sorrelfox/reverblabr</ulink>.</para>
+
+<para>The program is under the Mozilla Public License 2.0. Metadata and
+configuration files are under CC0-1.0, and every file names its licence in
+its header. The two typefaces built into the Reverblabr appearance, Noto Sans
+and JetBrains Mono, are under the SIL Open Font License 1.1.</para>
+
+<para>&reverblabr; is built on the work of many other projects: Qt, &kde;
+Frameworks, PipeWire, and the libraries that write recordings and run
+plugins. <filename>CREDITS.md</filename>, in the source code and among the
+documents a package installs, lists each of them with its licence. The name
+and the logo are covered by <filename>TRADEMARKS.md</filename>.</para>
+
+<!-- TRANS:CREDIT_FOR_TRANSLATORS -->
+
+&underCCBYSA4;
+</chapter>
+
+&documentation.index;
+</book>

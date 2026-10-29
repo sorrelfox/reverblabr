@@ -103,12 +103,13 @@ The build finds these by itself and says in its summary which parts it could not
 | RNNoise | `rnnoise-devel` | not packaged in 26.04 | the **Speech Denoise** block | that block is not in the library. `-DRB_BUILD_SPEECH_DENOISE=OFF` leaves it out on purpose ([ADR-0016](adr/0016-rnnoise-optional.md)) |
 | The CLAP SDK | `clap-devel` | not packaged in 26.04 | **CLAP plugins**: the CLAP block, and CLAP plugins in the library | no CLAP block, and CLAP plugins are not looked for. `-DRB_BUILD_CLAP=OFF` leaves them out on purpose |
 | KAuth and polkit | `kf6-kauth-devel`, `polkit` | `libkf6auth-dev`, `polkitd` | **virtual devices for all users**, after the administrator's password | virtual devices are for your own account only. The password prompt also needs the helper installed once; see [Installing](installing.md#virtual-devices-for-all-users) |
+| KDocTools | `kf6-kdoctools-devel` | `libkf6doctools-dev` | the **handbook** that Help → Handbook (F1) opens in KHelpCenter, and the test that checks it is valid DocBook | no handbook is built or installed, and that test is skipped. `-DRB_BUILD_HANDBOOK=OFF` leaves it out on purpose |
 | Qt's Wayland client internals | `qt6-qtbase-private-devel` | `qt6-base-private-dev` | the **compositor's own window menu** on the title bar | the title bar shows Reverblabr's own menu instead |
 | Qt ShaderTools | `qt6-qtshadertools-devel` | `qt6-shadertools-dev` | nothing yet: listed for shader effects the interface may use | nothing is lost today |
 
 ## Plugins
 
-The plugin blocks host plugins that are already on your machine. Install the plugins you want to use; the block library's plugin row finds them, and **Rescan** finds new ones.
+The plugin blocks host plugins that are already on your machine. Install the plugins you want to use; the block library's plugin row finds them, and **Look for plugins again** finds new ones.
 
 - **LV2** plugins are looked for in `LV2_PATH` when it is set, otherwise in `~/.lv2`, `/usr/local/lib64/lv2`, `/usr/local/lib/lv2`, `/usr/lib64/lv2` and `/usr/lib/lv2`.
 - **CLAP** plugins, where the build has the CLAP SDK (see [Optional](#optional)), are `.clap` files anywhere under `~/.clap`, `/usr/local/lib64/clap`, `/usr/local/lib/clap`, `/usr/lib64/clap` and `/usr/lib/clap`, and under the folders `CLAP_PATH` names. Unlike `LV2_PATH`, `CLAP_PATH` adds to those folders rather than replacing them, as the CLAP specification says.

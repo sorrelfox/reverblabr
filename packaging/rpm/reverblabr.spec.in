@@ -11,7 +11,7 @@ Release:        1%{?dist}
 Summary:        Capture, process and route audio on your desktop
 
 # The code is MPL-2.0, the D-Bus interfaces it is generated from MIT, the
-# icons and the manual page CC-BY-SA-4.0, the desktop entry, the AppStream
+# icons, the manual page and the handbook CC-BY-SA-4.0, the desktop entry, the AppStream
 # data, the notification events and the factory presets CC0-1.0. The two
 # typefaces built into the application are OFL-1.1 (docs/adr/0005).
 License:        MPL-2.0 AND MIT AND CC-BY-SA-4.0 AND CC0-1.0 AND OFL-1.1
@@ -48,6 +48,7 @@ BuildRequires:  kf6-kstatusnotifieritem-devel
 BuildRequires:  kf6-kglobalaccel-devel
 BuildRequires:  kf6-kdbusaddons-devel
 BuildRequires:  kf6-kauth-devel
+BuildRequires:  kf6-kdoctools-devel
 BuildRequires:  pipewire-devel
 BuildRequires:  libsndfile-devel
 BuildRequires:  soxr-devel
@@ -100,7 +101,9 @@ and a command-line tool runs and changes them from a terminal or a script.
 # The tests are built for %%check. Warnings are not errors here, as the
 # presets make them: Fedora's flags differ from the ones the project
 # builds with.
-%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
+# The handbook is asked for by name, so that a missing KDocTools stops the
+# build instead of leaving F1 with nothing to open.
+%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON
 %cmake_build
 
 
@@ -152,6 +155,10 @@ export QT_QPA_PLATFORM=offscreen
 %{_kf6_datadir}/icons/hicolor/scalable/apps/io.github.reverblabr.Reverblabr.svg
 %{_kf6_datadir}/icons/hicolor/16x16/apps/io.github.reverblabr.Reverblabr.svg
 %{_kf6_datadir}/knotifications6/reverblabr.notifyrc
+# The handbook, which F1 opens as help:/reverblabr. Listed as the
+# application's own file rather than %%doc, as KDE packages list theirs;
+# rpm still counts it as documentation for being under %%{_kf6_docdir}.
+%lang(en) %{_kf6_docdir}/HTML/en/reverblabr/
 # The engine, and the plugin host it starts for each plugin
 %{_kf6_bindir}/reverblabrd
 %{_libexecdir}/reverblabr-plugin-host

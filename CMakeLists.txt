@@ -79,6 +79,18 @@ option(RB_BUILD_AUTH_HELPER "Build the all-users virtual devices helper and let 
 if(RB_BUILD_AUTH_HELPER AND NOT KF6Auth_FOUND)
     message(FATAL_ERROR "RB_BUILD_AUTH_HELPER is on, but KF6Auth was not found (kf6-kauth-devel / libkf6auth-dev)")
 endif()
+# **The handbook** that Help → Handbook (F1) opens in KHelpCenter,
+# doc/index.docbook, built with KDocTools. Optional — without it the build
+# has no handbook, and F1 finds none to open.
+find_package(KF6DocTools ${KF_MIN_VERSION} QUIET CONFIG)
+set_package_properties(KF6DocTools PROPERTIES
+    TYPE OPTIONAL
+    PURPOSE "The handbook, opened with F1"
+)
+option(RB_BUILD_HANDBOOK "Build and install the handbook (needs KF6DocTools)" ${KF6DocTools_FOUND})
+if(RB_BUILD_HANDBOOK AND NOT KF6DocTools_FOUND)
+    message(FATAL_ERROR "RB_BUILD_HANDBOOK is on, but KF6DocTools was not found (kf6-kdoctools-devel / libkf6doctools-dev)")
+endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PIPEWIRE REQUIRED IMPORTED_TARGET libpipewire-0.3>=${PIPEWIRE_MIN_VERSION})
 # **Speech Denoise** (ADR-0016): RNNoise, the distribution's. Optional —
@@ -137,6 +149,9 @@ option(RB_BUILD_PLASMOID "Build the Plasma panel widget, Reverblabr Sessions" ON
 add_feature_info(PlasmaWidget RB_BUILD_PLASMOID "the Plasma panel widget, Reverblabr Sessions")
 if(RB_BUILD_PLASMOID)
     add_subdirectory(plasmoid)
+endif()
+if(RB_BUILD_HANDBOOK)
+    add_subdirectory(doc)
 endif()
 
 # Translations: every po/<language>/reverblabr.po is compiled and installed, so

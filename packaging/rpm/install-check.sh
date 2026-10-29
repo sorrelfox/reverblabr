@@ -59,6 +59,8 @@ expected=(
     /usr/share/krunner/dbusplugins/io.github.reverblabr.Runner.desktop
     /usr/lib/systemd/user/reverblabrd.service
     /usr/share/man/man1/reverblabr-ctl.1.gz
+    /usr/share/doc/HTML/en/reverblabr/index.cache.bz2
+    /usr/share/doc/HTML/en/reverblabr/index.docbook
     /usr/share/bash-completion/completions/reverblabr-ctl
     /usr/share/zsh/site-functions/_reverblabr-ctl
     /usr/libexec/kf6/kauth/reverblabr-virtualdevices-helper
@@ -74,8 +76,10 @@ listed=$(rpm -ql reverblabr)
 for file in "${expected[@]}"; do
     grep -qxF "$file" <<<"$listed" || die "the package has no $file"
     # Fedora's container images install no documentation (tsflags=nodocs),
-    # so the manual page is in the package but not on the disk.
-    [ -e "$file" ] || [[ $file == /usr/share/man/* ]] || die "$file is listed but not installed"
+    # so the manual page and the handbook are in the package but not on the
+    # disk.
+    [ -e "$file" ] || [[ $file == /usr/share/man/* || $file == /usr/share/doc/* ]] \
+        || die "$file is listed but not installed"
 done
 grep -q '^Exec=/usr/bin/reverblabrd$' /usr/share/dbus-1/services/io.github.reverblabr.Engine.service \
     || die "the D-Bus activation file does not start /usr/bin/reverblabrd"

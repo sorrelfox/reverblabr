@@ -11,7 +11,7 @@ No packaging file writes the version itself. It comes from [`VERSION`](../VERSIO
 
 This page lists what a package has to contain. `cmake --install build/release --prefix /usr` puts all of it in place, and `DESTDIR` works as usual.
 
-## The desktop entry, the AppStream data and the icon
+## The desktop entry, the AppStream data, the icon and the handbook
 
 Each is installed with its translations merged in ([i18n.md](../docs/i18n.md)):
 
@@ -24,6 +24,8 @@ Each is installed with its translations merged in ([i18n.md](../docs/i18n.md)):
 | `reverblabr.notifyrc` | `/usr/share/knotifications6/` |
 
 `desktop-file-validate` and `appstreamcli validate` accept both files; the tests `tools.desktop-entry` and `i18n.data-translations` check that. The screenshots in the AppStream data are the images in [`docs/images/`](../docs/images/), fetched from the `main` branch on GitHub. The entry's actions, New Session and All Sessions, run `reverblabr --new-session` and `reverblabr --sessions`; a running Reverblabr takes them over.
+
+The handbook, `index.cache.bz2` and `index.docbook` in `/usr/share/doc/HTML/en/reverblabr/`, is what Help → Handbook (F1) opens, as `help:/reverblabr`. It is built when KDocTools is found, and `-DRB_BUILD_HANDBOOK=ON` makes it a requirement, which a package should set. It belongs with the window, not in a separate documentation package: F1 has nothing to open without it.
 
 ## The background engine
 

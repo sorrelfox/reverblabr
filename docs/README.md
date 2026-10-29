@@ -19,6 +19,8 @@ These pages explain how to build Reverblabr, how to use it, and how it is put to
 - [Privacy](privacy.md): what Reverblabr can hear, and recording other people
 - [When something goes wrong](troubleshooting.md): diagnostics, common problems and bug reports
 
+In Reverblabr itself, Help → Handbook (F1) opens the same in KHelpCenter: the handbook, [`doc/index.docbook`](../doc/index.docbook). A change to one of these pages goes into the handbook too, in the same commit; `tools.handbook-blocks` checks that every block in the library has its section there.
+
 ## Scripting
 
 - [reverblabr-ctl](ctl.md): the command-line tool, its commands, its JSON output and its exit codes

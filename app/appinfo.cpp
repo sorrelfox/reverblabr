@@ -25,8 +25,9 @@ KAboutData AppInfo::aboutData() const
 QUrl AppInfo::handbookUrl() const
 {
     // The KDE scheme, so whatever the user has set to read documentation
-    // opens it. There is no handbook yet; the menu item is here so that the
-    // shortcut and its place in the menu are settled.
+    // opens it: KHelpCenter, as a rule. "reverblabr" is the folder
+    // doc/CMakeLists.txt installs the handbook to, under
+    // share/doc/HTML/<language>.
     return QUrl(u"help:/reverblabr"_s);
 }
 

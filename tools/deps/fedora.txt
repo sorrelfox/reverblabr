@@ -49,6 +49,9 @@ kf6-qqc2-desktop-style
 # password prompt. polkit asks for the password.
 kf6-kauth-devel
 polkit
+# Optional: the handbook, opened with F1 (meinproc6, checkXML6 and KDE's
+# DocBook style)
+kf6-kdoctools-devel
 
 # Audio
 pipewire-devel
