@@ -72,4 +72,14 @@ qt_target_qml_sources(reverblabr-style QML_FILES
     Popup.qml
     ToolTip.qml
 )
+# **The menu a right click opens on text** is Qt's own, which Qt 6.11
+# brought; on Qt 6.10 (Kubuntu 26.04) a file of the same name stands in and
+# opens none. One of the two goes into the module, as TextMenu.
+if(Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
+    set(RB_STYLE_TEXT_MENU TextMenu.qml)
+else()
+    set(RB_STYLE_TEXT_MENU qt6.10/TextMenu.qml)
+    set_source_files_properties(${RB_STYLE_TEXT_MENU} PROPERTIES QT_RESOURCE_ALIAS TextMenu.qml)
+endif()
+qt_target_qml_sources(reverblabr-style QML_FILES ${RB_STYLE_TEXT_MENU})
 target_link_libraries(reverblabr-style PRIVATE Qt6::Quick Qt6::QuickControls2)

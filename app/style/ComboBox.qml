@@ -8,7 +8,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Basic.impl
 import QtQuick.Templates as T
 import org.kde.kirigami as Kirigami
 import io.github.reverblabr
@@ -69,6 +68,8 @@ T.ComboBox {
     }
 
     contentItem: T.TextField {
+        id: textInput
+
         implicitHeight: contentHeight + topPadding + bottomPadding
         padding: 0
         topPadding: AppMetrics.fieldVerticalPadding
@@ -97,8 +98,12 @@ T.ComboBox {
         selectedTextColor: AppColors.textOnAccent
         verticalAlignment: Text.AlignVCenter
 
-        ContextMenu.menu: TextEditingContextMenu {
-            editor: parent
+        ContextMenu.menu: textMenu.menu
+
+        TextMenu {
+            id: textMenu
+
+            editor: textInput
         }
     }
 

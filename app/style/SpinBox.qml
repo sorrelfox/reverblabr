@@ -6,7 +6,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import QtQuick
-import QtQuick.Controls.Basic.impl
 import QtQuick.Templates as T
 import io.github.reverblabr
 
@@ -37,6 +36,8 @@ T.SpinBox {
     }
 
     contentItem: TextInput {
+        id: textInput
+
         z: 2
         text: control.displayText
         clip: width < implicitWidth
@@ -61,8 +62,12 @@ T.SpinBox {
         validator: control.validator
         inputMethodHints: control.inputMethodHints
 
-        ContextMenu.menu: TextEditingContextMenu {
-            editor: parent
+        ContextMenu.menu: textMenu.menu
+
+        TextMenu {
+            id: textMenu
+
+            editor: textInput
         }
     }
 

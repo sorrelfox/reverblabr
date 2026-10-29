@@ -7,7 +7,6 @@
 
 import QtQuick
 import QtQuick.Controls.impl
-import QtQuick.Controls.Basic.impl
 import QtQuick.Templates as T
 import io.github.reverblabr
 
@@ -40,7 +39,11 @@ T.TextField {
     placeholderTextColor: AppColors.muted
     verticalAlignment: TextInput.AlignVCenter
 
-    ContextMenu.menu: TextEditingContextMenu {
+    ContextMenu.menu: textMenu.menu
+
+    TextMenu {
+        id: textMenu
+
         editor: control
     }
 
