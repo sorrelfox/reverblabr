@@ -977,7 +977,9 @@ TEST_F(PluginHosts, AnLv2PresetSavedHereIsListedPutBackAndFoundByAnotherHost)
         uri.startsWith(QStringLiteral("file://") + QString::fromStdString(home.home()) + QStringLiteral("/.lv2/")))
         << uri.toStdString();
     EXPECT_TRUE(QFile::exists(QUrl(uri).toLocalFile())) << uri.toStdString();
-    ASSERT_FALSE(said.shown.isEmpty());
+    // PresetShown follows PresetSaved as a message of its own, so it may
+    // not be here yet.
+    ASSERT_TRUE(spinUntil([&] { return !said.shown.isEmpty(); }, 2s));
     EXPECT_EQ(said.shown.back(), uri) << "the settings are the preset just saved";
 
     host.listPresets();
