@@ -293,7 +293,7 @@ Between releases a build says where it is: `0.1.0+42.gabc1234` is 42 commits aft
 A release is two commands, with the release notes and the checks in between. They run on `dev`, and then `main` moves forward to the release:
 
 ```sh
-tools/release.sh prepare 0.2.0   # writes VERSION and adds a dated 0.2.0 release to the AppStream data, with @NOTES@ to fill in
+tools/release.sh prepare 0.2.0   # writes VERSION, adds a dated 0.2.0 release to the AppStream data, with @NOTES@ to fill in, and dates the handbook
 $EDITOR app/io.github.reverblabr.Reverblabr.metainfo.xml   # the notes, in place of @NOTES@
 # the checks from "Before a change goes in"
 tools/release.sh tag             # commits "release: 0.2.0" (signed off) and tags v0.2.0; never pushes
@@ -301,6 +301,6 @@ git switch main && git merge --ff-only dev && git switch dev
 git push origin dev main v0.2.0
 ```
 
-`prepare` refuses a tree with changes, a version that isn't newer, or a tag that already exists. `tag` refuses notes that still say `@NOTES@` and changes to anything but `VERSION` and the AppStream data, and makes nothing when it refuses. `tools.desktop-entry` fails whenever the newest AppStream release isn't `VERSION`'s or its notes are missing, so the two can't drift apart unnoticed.
+`prepare` refuses a tree with changes, a version that isn't newer, or a tag that already exists. `tag` refuses notes that still say `@NOTES@` and changes to anything but `VERSION`, the AppStream data and the handbook, and makes nothing when it refuses. `tools.desktop-entry` fails whenever the newest AppStream release isn't `VERSION`'s or its notes are missing, and `tools.handbook-release` whenever the handbook's `<releaseinfo>` isn't, so none of them can drift apart unnoticed. `prepare` also sets the handbook's `<date>` to the release's day.
 
 The pushed tag starts the release workflow on GitHub ([`.github/workflows/release.yml`](../.github/workflows/release.yml)). It checks the tag with `tools/check-release-tag.sh`, which fails unless the tag is `v` + `VERSION` with that release the newest in the AppStream data and its notes written. Then it builds the source tarball, builds and tests Reverblabr from that tarball on Fedora, builds the Fedora packages from the same tarball and installs them in a clean container ([packaging/README.md](../packaging/README.md#fedora)), and creates a draft release on GitHub with the tarball, the RPMs, the source RPM and their checksums. The draft is published by hand after a last look. Publishing it sends the source RPM to COPR ([`.github/workflows/copr.yml`](../.github/workflows/copr.yml)), which builds and publishes the packages for each Fedora; until the repository has the `COPR_CONFIG` secret, that step says so and does nothing ([COPR](../packaging/README.md#copr)).

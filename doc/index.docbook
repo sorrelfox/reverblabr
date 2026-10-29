@@ -39,10 +39,10 @@ Creative Commons Attribution-ShareAlike 4.0 International licence; see
 <xref linkend="credits"/>.</para>
 </legalnotice>
 
-<!-- The day and the version the handbook was last brought up to date
-     with. -->
+<!-- The release the handbook describes and its day: tools/release.sh
+     writes both, and tools.handbook-release holds the version to VERSION. -->
 <date>2026-10-29</date>
-<releaseinfo>&reverblabr; 0.1</releaseinfo>
+<releaseinfo>&reverblabr; 0.1.0</releaseinfo>
 
 <abstract>
 <para>&reverblabr; takes sound from your applications, microphones and other

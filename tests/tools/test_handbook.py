@@ -16,6 +16,10 @@
         added, renamed or taken out without the handbook following fails.
         Plugin blocks share one section, which this leaves alone.
 
+    test_handbook.py release
+        The handbook's <releaseinfo> names the version in VERSION, which
+        tools/release.sh writes into both.
+
     test_handbook.py valid [CHECKER]
         The handbook against KDE's DocBook DTD, with checkXML6. Exits 77
         (skipped) without a CHECKER: KDocTools is not installed.
@@ -82,6 +86,16 @@ def check_blocks():
     return []
 
 
+def check_release():
+    version = (REPO / "VERSION").read_text().splitlines()[0].strip()
+    found = re.findall(r"<releaseinfo>([^<]*)</releaseinfo>", HANDBOOK.read_text())
+    expected = f"&reverblabr; {version}"
+    if found != [expected]:
+        return [f"the handbook's <releaseinfo> is {found}, VERSION wants [{expected!r}]: "
+                "tools/release.sh prepare writes both"]
+    return []
+
+
 def check_valid(checker):
     if not checker:
         print("SKIP: checkXML6 was not found (KDocTools is not installed)")
@@ -97,10 +111,12 @@ def check_valid(checker):
 
 if len(sys.argv) == 2 and sys.argv[1] == "blocks":
     failures, passed = check_blocks(), "PASS: handbook blocks"
+elif len(sys.argv) == 2 and sys.argv[1] == "release":
+    failures, passed = check_release(), "PASS: handbook release"
 elif len(sys.argv) in (2, 3) and sys.argv[1] == "valid":
     failures, passed = check_valid(sys.argv[2] if len(sys.argv) == 3 else ""), "PASS: handbook valid"
 else:
-    print("usage: test_handbook.py blocks | valid [CHECKER]", file=sys.stderr)
+    print("usage: test_handbook.py blocks | release | valid [CHECKER]", file=sys.stderr)
     sys.exit(2)
 
 if failures:

@@ -7,8 +7,8 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #
 # tools/release.sh and tools/check-release-tag.sh, in a throwaway
-# repository holding copies of VERSION, the AppStream data and the two
-# scripts. Nothing here touches the real repository or pushes anywhere.
+# repository holding copies of VERSION, the AppStream data, the handbook
+# and the two scripts. Nothing here touches the real repository or pushes anywhere.
 
 set -euo pipefail
 
@@ -44,9 +44,11 @@ git config user.name "Release Test"
 git config user.email "release@example.invalid"
 git config commit.gpgsign false
 git config tag.gpgsign false
-mkdir -p app tools
+handbook=doc/index.docbook
+mkdir -p app doc tools
 cp "$tree/VERSION" VERSION
 cp "$tree/$metainfo" "$metainfo"
+cp "$tree/$handbook" "$handbook"
 cp "$tree/tools/release.sh" "$tree/tools/check-release-tag.sh" tools/
 printf '0.1.0\n' >VERSION
 git add -A
@@ -68,6 +70,9 @@ grep -q "<release version=\"0.2.0\" date=\"$(date +%F)\" type=\"stable\">" "$met
 [ "$(grep -m 1 -o '<release version="[^"]*"' "$metainfo")" = '<release version="0.2.0"' ] \
     || fail "the new release is not the newest"
 grep -q '@NOTES@' "$metainfo" || fail "the new release has no @NOTES@ to fill in"
+grep -q "<date>$(date +%F)</date>" "$handbook" || fail "prepare did not date the handbook"
+grep -q '<releaseinfo>&reverblabr; 0.2.0</releaseinfo>' "$handbook" \
+    || fail "the handbook's releaseinfo is not 0.2.0 after prepare"
 
 # nothing_made WHAT: a refused tag left neither a commit nor a tag behind.
 nothing_made() {
@@ -93,6 +98,7 @@ git log -1 --format=%B | grep -q '^Signed-off-by: ' || fail "the release commit 
 [ "$(git describe --tags --exact-match HEAD)" = "v0.2.0" ] || fail "HEAD is not tagged v0.2.0"
 [ "$(git cat-file -t v0.2.0)" = "tag" ] || fail "v0.2.0 is not an annotated tag"
 [ -z "$(git status --porcelain)" ] || fail "tag left changes behind"
+git show --name-only --format= HEAD | grep -qx "$handbook" || fail "the release commit leaves the handbook out"
 refused "the same tag twice" "exists already" -- tools/release.sh tag
 
 # The tag check.

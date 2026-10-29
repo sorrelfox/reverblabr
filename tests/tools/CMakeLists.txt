@@ -66,6 +66,11 @@ set_tests_properties(tools.ctl-documented PROPERTIES PASS_REGULAR_EXPRESSION "PA
 add_test(NAME tools.handbook-blocks
          COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_handbook.py blocks)
 set_tests_properties(tools.handbook-blocks PROPERTIES PASS_REGULAR_EXPRESSION "PASS: handbook blocks")
+# The release the handbook says it describes is VERSION's, as the AppStream
+# data's newest is (tools.desktop-entry).
+add_test(NAME tools.handbook-release
+         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_handbook.py release)
+set_tests_properties(tools.handbook-release PROPERTIES PASS_REGULAR_EXPRESSION "PASS: handbook release")
 # **The handbook is valid DocBook**, checked even in a build that does not
 # build it, as long as KDocTools' checker is there; skipped where it is not.
 find_program(RB_CHECKXML6 checkXML6)

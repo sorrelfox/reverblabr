@@ -10,13 +10,14 @@
 # nowhere else; this is what changes it.
 #
 #   tools/release.sh prepare X.Y.Z
-#       Writes X.Y.Z to VERSION and adds a dated release to the AppStream
-#       data, with @NOTES@ where its notes go. Needs a clean tree and a
-#       version newer than the current one.
+#       Writes X.Y.Z to VERSION, adds a dated release to the AppStream
+#       data, with @NOTES@ where its notes go, and gives the handbook the
+#       release's version and date. Needs a clean tree and a version newer
+#       than the current one.
 #
 #   tools/release.sh tag
-#       Checks the notes were written and that nothing but VERSION and the
-#       AppStream data changed, commits them as "release: X.Y.Z" (signed
+#       Checks the notes were written and that nothing but VERSION, the
+#       AppStream data and the handbook changed, commits them as "release: X.Y.Z" (signed
 #       off) and makes the annotated tag vX.Y.Z. It never pushes: that comes
 #       after the checks (docs/development.md, "Making a release").
 
@@ -25,6 +26,7 @@ set -euo pipefail
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 metainfo=app/io.github.reverblabr.Reverblabr.metainfo.xml
+handbook=doc/index.docbook
 
 die() {
     printf 'release: %s\n' "$*" >&2
@@ -65,6 +67,18 @@ entry = (f'    <release version="{version}" date="{date}" type="stable">\n'
          "    </release>\n")
 open(path, "w", encoding="utf-8").write(text.replace(anchor, anchor + entry))
 EOF
+    # The handbook says which release it describes, and since when.
+    python3 - "$handbook" "$version" "$(date +%F)" <<'EOF'
+import re
+import sys
+path, version, date = sys.argv[1:]
+text = open(path, encoding="utf-8").read()
+for element, value in (("date", date), ("releaseinfo", f"&reverblabr; {version}")):
+    text, count = re.subn(rf"<{element}>[^<]*</{element}>", f"<{element}>{value}</{element}>", text)
+    if count != 1:
+        sys.exit(f"release: no single <{element}> in {path}")
+open(path, "w", encoding="utf-8").write(text)
+EOF
     printf 'VERSION is %s. Now:\n' "$version"
     printf '  1. write the notes in %s, in place of @NOTES@;\n' "$metainfo"
     printf '  2. run the checks (docs/development.md, "Before a change goes in");\n'
@@ -80,12 +94,12 @@ tag() {
     git rev-parse -q --verify "refs/tags/v$version" >/dev/null && die "the tag v$version exists already"
 
     local changed
-    changed=$(git status --porcelain | awk '{print $2}' | grep -v -x -e VERSION -e "$metainfo" || true)
+    changed=$(git status --porcelain | awk '{print $2}' | grep -v -x -e VERSION -e "$metainfo" -e "$handbook" || true)
     [ -z "$changed" ] || die "other files have changes as well: $(echo "$changed" | tr '\n' ' ')"
 
     if [ -n "$(git status --porcelain)" ]; then
-        git add VERSION "$metainfo"
-        git commit -q -s -m "release: $version" -m "The version and its release notes (tools/release.sh)."
+        git add VERSION "$metainfo" "$handbook"
+        git commit -q -s -m "release: $version" -m "The version, its release notes and the handbook's date (tools/release.sh)."
     fi
     git tag -a "v$version" -m "Reverblabr $version"
     "$root/tools/check-release-tag.sh" "v$version"
