@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 Reverblabr contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<!-- Minimise (for the window's own title bar): the prototype's glyph, drawn
+     at 22 pixels in a 28-pixel button. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="1.6"
+     stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 10l5 5 5-5"/>
+</svg>

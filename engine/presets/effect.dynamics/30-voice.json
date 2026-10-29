@@ -1,0 +1,18 @@
+{
+    "schema": 1,
+    "type": "effect.dynamics",
+    "params": {
+        "threshold": -16.0,
+        "ratio": 3.0,
+        "infiniteRatio": false,
+        "knee": 6.0,
+        "expanderThreshold": -45.0,
+        "expanderRatio": 2.0,
+        "expanderRange": 12.0,
+        "expanderHold": 50.0,
+        "attack": 5.0,
+        "release": 120.0,
+        "makeup": 4.0,
+        "detector": "rms"
+    }
+}

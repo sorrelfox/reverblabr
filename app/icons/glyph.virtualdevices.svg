@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 Reverblabr contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<!-- The header's Virtual Devices button: a sound card drawn in dashes,
+     because it is one that exists only in software, with a wave running
+     through it. In the stroke of the header's other glyphs, drawn at 16
+     pixels. The prototype has no such button; this glyph is our own. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="5" width="18" height="14" rx="3" stroke-dasharray="3 3"/>
+  <path d="M7 12Q9.5 7 12 12T17 12"/>
+</svg>

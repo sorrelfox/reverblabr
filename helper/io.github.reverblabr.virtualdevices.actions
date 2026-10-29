@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The polkit action of the all-users virtual devices helper. The
+# build turns this into io.github.reverblabr.virtualdevices.policy.
+# Policy auth_admin with Persistence session is polkit's auth_admin_keep:
+# an administrator's password, remembered for a few minutes. The file is
+# read with QSettings, which takes an unquoted value with a comma in it for a
+# list; so the description is quoted.
+
+[Domain]
+Name=Reverblabr
+Icon=io.github.reverblabr.Reverblabr
+
+[io.github.reverblabr.virtualdevices.write]
+Name=Change the virtual audio devices of all users
+Description="Adding, renaming, switching on or off, or removing a virtual audio device that every user of this computer has needs an administrator's password."
+Policy=auth_admin
+PolicyInactive=no
+Persistence=session

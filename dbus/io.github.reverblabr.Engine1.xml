@@ -1,0 +1,758 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: MIT
+-->
+<!--
+  The engine's whole API. The interface is MIT so that anything may speak it:
+  the interface is not the implementation, and a protocol nobody may reuse is
+  not much of a protocol.
+
+  **This file is the source of truth.** The C++ facade is checked against it
+  (engine.Facade.MatchesTheInterfaceDefinition), so a method that is not here
+  does not exist, and neither does an argument of a type D-Bus cannot carry.
+
+  **This is Reverblabr's public API** (ADR-0020, docs/dbus-api.md).
+  reverblabrd serves it on the session bus under the name
+  io.github.reverblabr.Engine, at /io/github/reverblabr/Engine (ADR-0017).
+  The interface's name carries its version, and within Engine1 things are
+  only ever added: a released method, signal or argument is never removed,
+  renamed or changed. dbus/io.github.reverblabr.Engine1.api pins what has
+  been released, and dbus.public-surface fails on anything that breaks it,
+  or that is added without being pinned and documented.
+
+  **Everything is asynchronous.** No method returns a value: a call says what
+  should happen, and what did happen arrives as a signal. That is what keeps
+  a call from blocking the caller — a GUI thread that waits on the engine is
+  a GUI thread that stutters — and it is the same shape a bus call would
+  have. Failures arrive as Error, never as a return code.
+
+  **Structured data travels as JSON strings.** D-Bus can carry structures,
+  but every change to one is a change to the signature; a JSON string lets a
+  session grow fields without breaking a client that has not learned them
+  yet, so a client ignores a field it does not know. The shapes are in
+  docs/architecture.md.
+-->
+<node name="/io/github/reverblabr/Engine">
+  <interface name="io.github.reverblabr.Engine1">
+
+    <!-- ===== sessions ===== -->
+
+    <!-- Asks for the list of sessions on disk. Answered by SessionsListed. -->
+    <method name="ListSessions"/>
+
+    <!-- Makes a session and opens it. Answered by SessionOpened, then by a
+         snapshot. -->
+    <method name="CreateSession">
+      <arg name="name" type="s" direction="in"/>
+    </method>
+
+    <!-- Opens a session that is on disk. Answered by SessionOpened and a
+         snapshot, or by Error with session.notFound. -->
+    <method name="OpenSession">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Writes a session to disk as it now stands. -->
+    <method name="SaveSession">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Stops a session if it is running and lets go of it. -->
+    <method name="CloseSession">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Closes a session and removes it from disk. -->
+    <method name="DeleteSession">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Writes a session to a file of the caller's choosing, for sending to
+         somebody or keeping outside the sessions directory. The session is
+         saved first, so the file is what is on the screen and not what was
+         last autosaved. Reported as session.notSaved if the path cannot be
+         written. -->
+    <method name="ExportSession">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="path" type="s" direction="in"/>
+    </method>
+
+    <!-- Reads a session file from anywhere, gives it an id of its own and
+         opens it: an import is a copy, so the file that was imported is left
+         exactly as it was and two imports of it are two sessions. Arrives as
+         SessionOpened, or as session.corruptFile if the file will not read.
+         -->
+    <method name="ImportSession">
+      <arg name="path" type="s" direction="in"/>
+    </method>
+
+    <!-- ===== presets ===== -->
+
+    <!-- Every preset for a block type, shipped and the person's own, as
+         PresetsListed. -->
+    <method name="ListPresets">
+      <arg name="typeId" type="s" direction="in"/>
+    </method>
+
+    <!-- Puts a preset's values on a block, as one undoable edit. The engine
+         reads the preset, so a caller never has to carry its values; the
+         edit that results arrives as a patch like any other. -->
+    <method name="ApplyPreset">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="presetId" type="s" direction="in"/>
+    </method>
+
+    <!-- Saves what a block is set to now as a preset of that name. With
+         replace false, saving onto an existing preset is refused as
+         preset.refused/alreadyExists, so a caller can ask first. -->
+    <method name="SavePreset">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="replace" type="b" direction="in"/>
+    </method>
+
+    <!-- Renames or removes one of the person's own presets. Both are refused
+         for a preset that ships with the application. -->
+    <method name="RenamePreset">
+      <arg name="typeId" type="s" direction="in"/>
+      <arg name="presetId" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+    </method>
+
+    <method name="DeletePreset">
+      <arg name="typeId" type="s" direction="in"/>
+      <arg name="presetId" type="s" direction="in"/>
+    </method>
+
+    <!-- ===== editing ===== -->
+
+    <!-- One edit, as the JSON of an edit command (engine/core/editcommand.h),
+         or as a JSON array of them when the edit is one thing a person did
+         that takes more than one command to say — the channels of a stereo
+         link, say. A list applies whole or not at all, arrives as one patch
+         per command, and is one step to take back. The session that results
+         arrives as a patch. The session settings setSessionSetting takes are
+         autoConnect (a bool), sampleRate ("auto" or a rate written out),
+         latency ("default", "low", "high") and autoRun ("off", "login"). -->
+    <method name="ApplyEdit">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="editJson" type="s" direction="in"/>
+    </method>
+
+    <!-- One parameter, by id. The value is JSON so that a number, a string,
+         a bool and a device reference all fit one signature. Parameter
+         changes do not produce a patch: they are too frequent, and the GUI
+         already knows what it sent.
+
+         A parameter the catalogue marks "automatable": false takes effect
+         on a running session too — the engine plans it again — so it is
+         sent once, when the choice is made, and never streamed. -->
+    <method name="SetParam">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="paramId" type="s" direction="in"/>
+      <arg name="valueJson" type="s" direction="in"/>
+    </method>
+
+    <!-- Takes back the last thing a person did, which is a gesture and not
+         an event: a drag of a slider or of a handful of tiles is one step.
+         Every command it applies arrives as a patch, so a client follows an
+         undo exactly as it follows an edit. Nothing to undo is not an
+         error. -->
+    <method name="Undo">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <method name="Redo">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Asks whether there is anything to undo or redo. Answered by
+         UndoStateChanged, which is also sent whenever the answer changes. -->
+    <method name="GetUndoState">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- ===== running ===== -->
+
+    <!-- Pause, resume or split a running Recorder's recording: action is
+         "pause", "resume" or "split". It applies at the frame the Recorder
+         has got to when the engine takes the call, so a pause and a resume
+         leave no gap and nothing twice, and a split ends one file on the
+         frame before the next begins. Answered by RecordingPaused for a
+         pause or a resume, by the files' own signals for a split, and by
+         Error recording.refused when it cannot be done. -->
+    <method name="ControlRecording">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="action" type="s" direction="in"/>
+    </method>
+
+    <!-- Start a plugin block's plugin again in a host of its own:
+         after its host crashed or stopped responding, or to start it
+         fresh. The block stays linked around until the new host is ready,
+         and gets back its state and every value set since. Answered by
+         Error plugin.restartRefused when it cannot be done. -->
+    <method name="RestartPlugin">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+    </method>
+
+    <!-- Takes the live spectra of one block into the
+         session's telemetry from now on, or nobody's when blockId is
+         empty: after the block and before it, with the band values it
+         publishes. One block at a time: the one whose curve a person has
+         open. channel is -1 for both sides mixed, or 0 or 1 for one side.
+         Nothing is copied or worked out for a block nobody asked about.
+         Not answered: the spectra arrive with the meters. -->
+    <method name="Analyse">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="channel" type="i" direction="in"/>
+    </method>
+
+    <method name="Start">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <method name="Stop">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Asks for the state of a session. Answered by StateChanged. -->
+    <method name="GetSessionState">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Asks for the whole session again, when a client has seen a gap in
+         the patch numbering and cannot catch up. Answered by a snapshot. -->
+    <method name="Resynchronise">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- ===== what is out there ===== -->
+
+    <!-- Asks for the applications, inputs, outputs and defaults. Answered by
+         InventoryChanged. -->
+    <method name="GetInventory"/>
+
+    <!-- What blocks this build has, and what each of them can be asked.
+         Answered by BlockCatalogueChanged. The answer does not change while
+         the engine runs, so a client asks once. -->
+    <method name="GetBlockCatalogue"/>
+
+    <!-- Asks where the connection to the audio system stands and what it is
+         made of. Answered by AudioSystemChanged, which is also sent
+         whenever the answer changes. -->
+    <method name="GetAudioSystem"/>
+
+    <!-- Asks for the connection to be tried again now, rather than when the
+         wait between attempts runs out. What comes of it arrives as
+         AudioSystemChanged; a connection that is already up is left alone.
+         This is what a Retry in the interface calls. -->
+    <method name="ReconnectAudioSystem"/>
+
+    <!-- Asks for what the diagnostics page shows and a bug report carries
+. Answered once, by Diagnostics. -->
+    <method name="GetDiagnostics"/>
+
+    <!-- ===== virtual devices (ADR-0013) ===== -->
+
+    <!-- Asks for the virtual devices of both scopes. Answered by
+         VirtualDevicesChanged, which is also sent whenever the list, or
+         where one of its devices stands, changes. -->
+    <method name="ListVirtualDevices"/>
+
+    <!-- Makes one of the user's own devices, enabled:
+
+           { "name": "Every app", "direction": "output", "channels": "stereo" }
+
+         "direction" is output (apps play into it) or input (a microphone
+         apps record from); "channels" is mono or stereo. Answered by
+         VirtualDeviceCreated with its id, then VirtualDevicesChanged; a
+         refusal arrives as device.virtualNotCreated. -->
+    <method name="CreateVirtualDevice">
+      <arg name="deviceJson" type="s" direction="in"/>
+    </method>
+
+    <!-- Rename, switch on or off, and delete. Each is answered by
+         VirtualDevicesChanged, or refused as device.virtualRefused with
+         nothing changed. An all-users device is refused as ReadOnlyScope:
+         only the privileged helper may write its file. -->
+    <method name="RenameVirtualDevice">
+      <arg name="deviceId" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+    </method>
+
+    <method name="SetVirtualDeviceEnabled">
+      <arg name="deviceId" type="s" direction="in"/>
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
+
+    <method name="DeleteVirtualDevice">
+      <arg name="deviceId" type="s" direction="in"/>
+    </method>
+
+    <!-- Reads both scopes' files again and brings the graph in step: for
+         when one was changed from outside, which is what the all-users
+         helper does. Answered by VirtualDevicesChanged. -->
+    <method name="ReloadVirtualDevices"/>
+
+    <!-- ===== recordings ===== -->
+
+    <!-- The recordings a session has made, from the recordings index.
+         Answered by RecordingsChanged. -->
+    <method name="ListRecordings">
+      <arg name="sessionId" type="s" direction="in"/>
+    </method>
+
+    <!-- Checks the index against the disk: a file that has gone (deleted,
+         moved, trashed) leaves the list, and one a crash left in progress
+         is finished. Answered by RecordingsChanged for every session whose
+         list changed. The engine also does this when it starts. -->
+    <method name="RescanRecordings"/>
+
+    <!-- ===== inspecting a recording ===== -->
+
+    <!-- One recording in full: its row as RecordingsChanged gives one,
+         with 512 peaks, and its tags read from the file now. Answered by
+         RecordingDetails, or Error recording.notFound. -->
+    <method name="GetRecording">
+      <arg name="path" type="s" direction="in"/>
+    </method>
+    <!-- Renames the file to name, a file name without its extension, in
+         the folder it is in; it keeps its extension and is never written
+         over. Answered by RecordingRenamed and RecordingsChanged, or Error
+         recording.renameRefused with the reason. A preview of it is
+         stopped first. -->
+    <method name="RenameRecording">
+      <arg name="path" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+    </method>
+    <!-- Writes tagsJson ({title, artist, album, genre, year, track,
+         trackCount, disc, discCount, comment}, each a string) into the
+         file. Answered by RecordingDetails with the tags the file holds
+         now, or Error recording.tagsNotSaved. -->
+    <method name="SetRecordingTags">
+      <arg name="path" type="s" direction="in"/>
+      <arg name="tagsJson" type="s" direction="in"/>
+    </method>
+
+    <!-- ===== listening to a recording ===== -->
+
+    <!-- Plays path to the default output, from its start, or from where it
+         was paused if it is the file already being previewed. Another file
+         stops the first: there is one preview at a time. The preview is an
+         ordinary player's stream and is never part of a session. Answered
+         by PreviewChanged, or by Error recording.previewFailed. -->
+    <method name="PreviewRecording">
+      <arg name="path" type="s" direction="in"/>
+    </method>
+    <method name="PausePreview"/>
+    <!-- Moves the preview to seconds into its file, playing or paused as it
+         was. -->
+    <method name="SeekPreview">
+      <arg name="seconds" type="d" direction="in"/>
+    </method>
+    <method name="StopPreview"/>
+
+    <!-- ===== plugins ===== -->
+
+    <!-- The plugins installed on this machine, from the plugin cache.
+         Answered by PluginsChanged. The first time it is asked, the engine
+         also scans for what has changed since the last scan. -->
+    <method name="ListPlugins"/>
+
+    <!-- Scans for what has changed: new, changed and removed candidates.
+         retryBlocked looks into the blocklisted ones again too. Answered
+         by PluginsChanged, as the scan starts and when it ends. -->
+    <method name="RescanPlugins">
+      <arg name="retryBlocked" type="b" direction="in"/>
+    </method>
+
+    <!-- What one plugin's settings are, from the plugin cache: the
+         plugin's own names and ranges, which a panel shows and a plugin
+         block's parameters are built from. Answered by PluginDescribed. -->
+    <method name="DescribePlugin">
+      <arg name="format" type="s" direction="in"/>
+      <arg name="id" type="s" direction="in"/>
+    </method>
+
+    <!-- ===== what happened ===== -->
+
+    <!-- The sessions on disk: a JSON array of {id, name, state, sources,
+         recordings, startedAt, autoRun}. state is the open session's (idle, starting,
+         running, stopping, error), or closed for one that is only on disk.
+         sources are the blocks sound comes in through, [{type, name}] in
+         session order, name being what somebody called the block or empty.
+         recordings is how many recordings the session has made. startedAt,
+         only while it runs, is when it started, in milliseconds since the
+         epoch. autoRun is "off", or "login" for a session the background
+         engine starts whenever it starts (ADR-0021). -->
+    <signal name="SessionsListed">
+      <arg name="sessionsJson" type="s"/>
+    </signal>
+
+    <!-- A session is open and its snapshot follows. -->
+    <signal name="SessionOpened">
+      <arg name="sessionId" type="s"/>
+    </signal>
+
+    <signal name="SessionClosed">
+      <arg name="sessionId" type="s"/>
+    </signal>
+
+    <!-- The whole session, and the number the patches after it start from.
+         A client that has lost track asks for this again. -->
+    <signal name="SessionSnapshot">
+      <arg name="sessionId" type="s"/>
+      <arg name="revision" type="t"/>
+      <arg name="sessionJson" type="s"/>
+    </signal>
+
+    <!-- What one edit changed, and the revision it produced. A client that
+         sees a revision it did not expect has missed one and asks to
+         resynchronise: patches are numbered so that a gap is visible rather
+         than silently wrong. -->
+    <signal name="SessionPatch">
+      <arg name="sessionId" type="s"/>
+      <arg name="revision" type="t"/>
+      <arg name="patchJson" type="s"/>
+    </signal>
+
+    <!-- What Undo and Redo would do now. The codes name the step — "edit."
+         and the command's own name, for example "edit.addBlock" — and are
+         empty when there is nothing to take back. They are codes and never
+         text for a person to read: the GUI holds the words. -->
+    <signal name="UndoStateChanged">
+      <arg name="sessionId" type="s"/>
+      <arg name="canUndo" type="b"/>
+      <arg name="undoCode" type="s"/>
+      <arg name="canRedo" type="b"/>
+      <arg name="redoCode" type="s"/>
+    </signal>
+
+    <!-- idle, starting, running, stopping or error. -->
+    <signal name="StateChanged">
+      <arg name="sessionId" type="s"/>
+      <arg name="state" type="s"/>
+    </signal>
+
+    <!-- The applications, inputs, outputs and defaults, as JSON:
+
+           { "applications": [ { "key": "binary:firefox", "name": "Firefox",
+                                 "icon": "firefox", "binary": "firefox",
+                                 "flatpakId": "", "streamCount": 2,
+                                 "sinks": [ "alsa_output.analog" ],
+                                 "streams": [ { "node": "…",
+                                                "mediaName": "A tab",
+                                                "kind": "application",
+                                                "sinks": [ "…" ] } ] } ],
+             "otherStreams": [ { "node": "…", "mediaName": "…",
+                                 "kind": "replay" | "alert",
+                                 "sinks": [ "…" ] } ],
+             "inputs":  [ { "node": "…", "description": "…", "nick": "…",
+                            "mediaClass": "Audio/Source",
+                            "channels": [ "FL", "FR" ], "channelCount": 2,
+                            "default": true, "virtual": false } ],
+             "outputs": [ … as inputs … ],
+             "defaults": { "sink": "…", "source": "…",
+                           "configuredSink": "…", "configuredSource": "…" } }
+
+         "key" is the application match rule, which is what a session file
+         stores; a stream's "node" is not an identifier, since several
+         streams of one application share a name. "configured" is what the
+         user chose, which differs from what is in use when the chosen
+         device is unplugged. Our own nodes are in none of the lists, and a
+         re-play or an alert is never an application. -->
+    <signal name="InventoryChanged">
+      <arg name="inventoryJson" type="s"/>
+    </signal>
+
+    <!-- Every block type this build knows, with the parameter descriptors
+         the settings panel is generated from:
+
+           { "blocks": [ { "type": "effect.volume",
+                           "category": "effects", "face": "value",
+                           "inputs":  { "minimum": 2, "maximum": 2,
+                                        "labels": ["in_FL", "in_FR"],
+                                        "laneWidth": 0, "lanes": [],
+                                        "audioSystem": false },
+                           "outputs": { … },
+                           "params": [
+                             { "id": "gain", "type": "float",
+                               "unit": "percent", "taper": "linear",
+                               "minimum": 0, "maximum": 4, "default": 1,
+                               "smoothingMs": 20 },
+                             { "id": "overdrive", "type": "enum",
+                               "choices": ["off", "2x", "3x", "4x"],
+                               "default": "off" } ] } ] }
+
+         Everything in it is a stable id. There are no names and no
+         descriptions: the words a person reads are the interface's and are
+         translated, keyed by these ids. minimum, maximum, choices,
+         smoothingMs, readOnly, hidden and automatable appear only where
+         the parameter really has them; "automatable": false marks one the
+         engine has to plan the session again for, which a client sends
+         once rather than streaming as a control moves.
+
+         A side with "laneWidth" above nought carries more than one signal:
+         every laneWidth consecutive ports are one lane, drawn as one
+         connector and named by the matching entry of "lanes" — for the
+         Ducking block, "main" (ports 0 and 1) and "background" (2 and 3).
+         Nought is one lane however many ports there are.
+
+         A choice this system cannot offer is left out of "choices" and
+         listed in "unavailableChoices" as { "id", "reason" }: the
+         Recorder's "aac" and "alac" formats, with the reason
+         "encoderMissing", where the system's FFmpeg has no encoder for
+         them. -->
+    <signal name="BlockCatalogueChanged">
+      <arg name="catalogueJson" type="s"/>
+    </signal>
+
+    <!-- Where the connection to the audio system stands, and what it is
+         made of:
+
+           { "state": "connected",
+             "server": "PipeWire", "serverVersion": "1.4.2",
+             "sessionManager": "WirePlumber",
+             "sessionManagerVersion": "0.5.8",
+             "driver": "Built-in Audio Analogue Stereo",
+             "rate": 48000, "quantum": 1024 }
+
+         "state" is disconnected, connecting, connected or waiting, the last
+         meaning the connection broke and the next attempt has not happened
+         yet. Everything else is what the server and the session manager
+         said about themselves, and is empty until they have. "driver" is
+         the description of the node driving the graph a running session
+         is in, or else the one the default sink is in; "rate" and
+         "quantum" are the graph's clock as PipeWire's settings metadata
+         gives it — forced values when they are forced — whether or not a
+         session of ours is running, and 0 until it has said. The names are
+         not assumed: an interface that hard-codes "PipeWire" is an
+         interface that lies the first time the engine speaks to something
+         else. -->
+    <signal name="AudioSystemChanged">
+      <arg name="audioSystemJson" type="s"/>
+    </signal>
+
+    <!-- The answer to GetDiagnostics, a JSON object for a person and
+         a bug report, not for a program to act on: it grows freely, and
+         "version" says which description it follows.
+           { "version": 1,
+             "engine": { "process", "version", "pid", "pipeWireHeaders",
+                         "pipeWireLibrary", "logKept" },
+             "audioSystem": { as AudioSystemChanged },
+             "sessions": [ { "id", "name", "state", "running",
+                             "xrunHistory": [ { "at", "total", "added" } ],
+                             and while it runs: "nodes", "cycles", "xruns",
+                             "lostCycles", "overloads", "dspLoad",
+                             "peakDspLoad", "rate", "quantum",
+                             "latencySamples", "realtime" (true, false, or
+                             null until every node has run a cycle),
+                             "longRunsNotRealtime" } ],
+             "graph": { "nodes": [ { "id", "name", "description",
+                                     "mediaClass", "driverId", "props" } ],
+                        "ports": [ { "id", "nodeId", "direction", "name",
+                                     "channel" } ],
+                        "links": [ { "id", "outputNode", "outputPort",
+                                     "inputNode", "inputPort", "from",
+                                     "to" } ] },
+             "recordingFormats": [ { "id", "available", "reason"? } ],
+             "plugins": { "scanning", "formats": { format: count },
+                          "total", "blocked": [ { "format", "path",
+                                                  "reason" } ] },
+             "log": [ this engine's last lines, oldest first ] }
+         The graph is our nodes, their ports and every link with one of
+         them at either end. "at" is the wall clock, ISO 8601 with
+         milliseconds; "added" is how many late cycles were new since the
+         one before. -->
+    <signal name="Diagnostics">
+      <arg name="diagnosticsJson" type="s"/>
+    </signal>
+
+    <!-- A URL one of the session's blocks asked to have opened when the
+         session started: one signal each, sent once per start. The engine
+         says what should be opened and never opens it — that is KIO's
+         business in the interface and xdg-open's in the daemon. -->
+    <signal name="OpenUrlRequested">
+      <arg name="sessionId" type="s"/>
+      <arg name="url" type="s"/>
+    </signal>
+
+    <!-- Every preset for one block type: a JSON array of
+         `{id, name, factory, params}`, shipped ones first in the order they
+         ship and then the person's own by name. A factory preset's name is
+         empty, because its words are translated from its id. Sent whenever
+         the answer changes, so a caller follows it rather than asking. -->
+    <signal name="PresetsListed">
+      <arg name="typeId" type="s"/>
+      <arg name="presetsJson" type="s"/>
+    </signal>
+
+    <!-- The virtual devices of both scopes, the user's first:
+
+           { "devices": [ { "id": "1a2b3c4d", "name": "Every app",
+                            "nodeName": "reverblabr-virtual.1a2b3c4d",
+                            "direction": "output", "channels": "stereo",
+                            "enabled": true, "scope": "user",
+                            "status": "present" } ],
+             "unreadable": { "system": "NotOurs" } }
+
+         "status" is disabled, present, creating, missing or
+         waitingForPipeWire. "unreadable" names each scope whose file could
+         not be read, with the reason; that scope's devices are not listed,
+         and nothing of it is changed. Sent in answer to every call about
+         virtual devices and whenever the answer changes. -->
+    <signal name="VirtualDevicesChanged">
+      <arg name="devicesJson" type="s"/>
+    </signal>
+
+    <!-- The device CreateVirtualDevice made, by the id it will be known
+         by. Sent before the VirtualDevicesChanged that lists it. -->
+    <signal name="VirtualDeviceCreated">
+      <arg name="deviceId" type="s"/>
+    </signal>
+
+    <!-- A Recorder block has started writing a file, at path. Every file
+         that is started is finished by RecordingFileFinished, whatever else
+         happens to it: a disk that fills or a session that stops. -->
+    <signal name="RecordingFileStarted">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="path" type="s"/>
+    </signal>
+
+    <!-- A Recorder block's file is closed and complete:
+
+           { "frames": 480000, "sampleRate": 48000, "seconds": 10.0 }
+
+         Sent when the session stops, when the block is switched off or
+         taken out, when the rate changes under it (the next file starts at
+         the new rate), and after a file could not be written. -->
+    <signal name="RecordingFileFinished">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="path" type="s"/>
+      <arg name="detailsJson" type="s"/>
+    </signal>
+
+    <!-- A Recorder was paused (true) or resumed (false) by ControlRecording. -->
+    <signal name="RecordingPaused">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="paused" type="b"/>
+    </signal>
+
+    <!-- A Recorder ended its recording by itself, and finished its file:
+         reason is "timeLimit" (it had recorded as long as it was set to)
+         or "silence" (it heard silence as long as it was set to stop at).
+         It records again when the session is started again or the block is
+         switched off and on. -->
+    <signal name="RecordingStopped">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="reason" type="s"/>
+    </signal>
+
+    <!-- The plugins installed on this machine, a JSON object:
+           { "scanning": false,
+             "plugins": [ { "format": "lv2", "id": "http://…",
+                            "name": "LSP Compressor Stereo",
+                            "vendor": "LSP LV2", "category": "Compressor Plugin",
+                            "audioInputs": 2, "audioOutputs": 2,
+                            "parameters": 58 }, … ],
+             "blocked": [ { "format": "clap", "path": "/…/x.clap",
+                            "reason": "crashed" | "hung" }, … ],
+             "incomplete": [ { "format": "clap", "path": "/…/y.clap" }, … ] }
+         A plugin block's type is "plugin." and the format, and its
+         "plugin" setting is the id. "incomplete" lists the files a scan got
+         only part of the way through: some of their plugins may be missing,
+         and the next scan looks into them again. Sent in answer to
+         ListPlugins, and when a scan starts and ends. -->
+    <signal name="PluginsChanged">
+      <arg name="pluginsJson" type="s"/>
+    </signal>
+
+    <!-- One plugin's settings, in answer to DescribePlugin: a JSON object
+           { "params": [ { "id": "g_out", "name": "Output gain",
+                           "kind": "float" | "int" | "toggle" | "choice",
+                           "min": 0, "max": 1000, "default": 1, "log": true,
+                           "choices": [ { "value": 0, "label": "Peak" }, … ] },
+                         … ] }
+         in the plugin's own order; empty for a plugin no scan has found. -->
+    <signal name="PluginDescribed">
+      <arg name="format" type="s"/>
+      <arg name="id" type="s"/>
+      <arg name="descriptionJson" type="s"/>
+    </signal>
+
+    <!-- The recordings sessionId has made, newest first, as a JSON array
+         of
+
+           { "path": "/home/…/Music/Reverblabr/Talk 2026-09-25 10-00.flac",
+             "name": "Talk 2026-09-25 10-00.flac", "sessionId": "…",
+             "blockId": "…", "started": "2026-09-25T08:00:00.000Z",
+             "inProgress": false, "seconds": 3600.0, "sampleRate": 48000,
+             "channels": 2, "sizeBytes": 412345678, "format": "flac",
+             "tags": {}, "peaks": [0.0, 0.42, …] }
+
+         format is the file's extension; peaks are 48 amplitudes from 0 to
+         1, the file's outline from start to end (empty while it is still
+         being written, or for a file that cannot be read back). Sent in
+         answer to ListRecordings and whenever the list changes: a file
+         started or finished, a rescan. -->
+    <signal name="RecordingsChanged">
+      <arg name="sessionId" type="s"/>
+      <arg name="recordingsJson" type="s"/>
+    </signal>
+
+    <!-- One recording in full, in answer to GetRecording or
+         SetRecordingTags: a RecordingsChanged row with "peaks" 512 long and
+         "tags" as the file holds them. -->
+    <signal name="RecordingDetails">
+      <arg name="path" type="s"/>
+      <arg name="detailsJson" type="s"/>
+    </signal>
+    <!-- A recording was renamed: the file at oldPath is now at newPath. -->
+    <signal name="RecordingRenamed">
+      <arg name="oldPath" type="s"/>
+      <arg name="newPath" type="s"/>
+    </signal>
+
+    <!-- Where the preview stands:
+
+           { "path": "…", "state": "playing", "seconds": 12.3,
+             "duration": 3600.0 }
+
+         state is "playing", "paused" or "stopped". Sent on every change
+         and ten times a second while it plays; at the end of the file it
+         is "stopped" with seconds at the duration. -->
+    <signal name="PreviewChanged">
+      <arg name="previewJson" type="s"/>
+    </signal>
+
+    <!-- A dotted code and its arguments as a JSON object, never text for a
+         person to read: the interface has no idea what language anybody
+         speaks. The GUI holds the messages. -->
+    <signal name="Error">
+      <arg name="code" type="s"/>
+      <arg name="argsJson" type="s"/>
+    </signal>
+
+    <!-- Something a person may want to hear about that is not an error
+: one of the engine's notice codes (engine/core/noticecodes.h)
+         and its arguments, with the block it is about, as a JSON object. A
+         device a running session uses went or came back; an application it
+         captures stopped playing or started again. A code, never words. -->
+    <signal name="Notice">
+      <arg name="code" type="s"/>
+      <arg name="argsJson" type="s"/>
+    </signal>
+
+  </interface>
+</node>

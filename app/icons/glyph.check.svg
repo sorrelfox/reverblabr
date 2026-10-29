@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 Reverblabr contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<!-- The mark in front of a chosen menu row, where the prototype writes
+     a tick before the words. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 12.5l4.5 4.5L19 7.5"/>
+</svg>

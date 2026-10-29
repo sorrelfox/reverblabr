@@ -1,0 +1,9 @@
+{
+    "schema": 1,
+    "type": "advanced.dehum",
+    "params": {
+        "base": 50.0,
+        "amount": 6.0,
+        "harmonics": 10
+    }
+}

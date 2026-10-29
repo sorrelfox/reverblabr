@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# String literals that tools/lint-i18n.py accepts in user-visible places,
+# one per line, exact text. Keep this list short: it is for text that must
+# never be translated (for example a file-format name). For a single line,
+# prefer the "no-i18n" marker with a reason. Literals without letters are
+# always accepted.

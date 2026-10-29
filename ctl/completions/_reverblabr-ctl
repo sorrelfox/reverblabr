@@ -1,0 +1,57 @@
+#compdef reverblabr-ctl
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# zsh completion for reverblabr-ctl: the commands and options, and the
+# sessions' names. Names are asked of an engine that is already running
+# (--no-activate): pressing Tab never starts the engine.
+
+_reverblabr_ctl_sessions() {
+  local -a names
+  names=("${(@f)$(reverblabr-ctl --no-activate --timeout 2 list 2>/dev/null)}")
+  names=(${names:#})
+  (( ${#names} )) && compadd -a names
+}
+
+_reverblabr-ctl() {
+  local -a commands
+  commands=(
+    'list:the sessions'"'"' names'
+    'status:every session'"'"'s state, or one'"'"'s'
+    'start:run a session'
+    'stop:stop a session'
+    'split:start a new file in a running session'"'"'s Recorders'
+    'switch:turn an Input Switch to A or B'
+    'set:change one setting of a block'
+  )
+  _arguments -C \
+    '--json[print the answer as JSON]' \
+    '--timeout[how long to wait for the engine]:seconds' \
+    '--no-activate[only ask an engine that is already running]' \
+    '(- *)'{-h,--help}'[print the commands]' \
+    '(- *)--version[print the version]' \
+    '1:command:->command' \
+    '*::argument:->argument'
+  case $state in
+    command)
+      _describe -t commands 'command' commands
+      ;;
+    argument)
+      case $words[1] in
+        status|start|stop|split|switch|set)
+          if (( CURRENT == 2 )); then
+            _reverblabr_ctl_sessions
+          elif [[ $words[1] == switch ]]; then
+            compadd A B
+          fi
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_reverblabr-ctl "$@"

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# LeakSanitizer suppressions, used by the asan test preset.
+#
+# **Only allocations Qt makes once and keeps for the life of the process.**
+# A suppression here is a promise that the allocation is bounded and that
+# nothing of ours owns it; anything that grows, or that we could free, is a
+# leak and belongs in the report. Keep this file short, and say why for each
+# entry — a suppression nobody can justify is a defect nobody will see.
+
+# QCollator::defaultCompare() builds a default collator the first time a
+# locale-aware comparison is made and caches it for the process. Nothing
+# hands it back, so LSan calls the 1.2 kB it holds a leak. We reach it by
+# sorting the person's own presets by name, which is worth doing properly:
+# a list of names shown to somebody should be in their language's order.
+leak:QCollator
+
+# QFontDatabase::addApplicationFont() hands each bundled face to fontconfig,
+# which builds the face's character set and keeps it in its own
+# configuration for the life of the process; Qt never calls FcFini, so LSan
+# calls it a leak. It is bounded: `Appearance` registers the six bundled
+# faces once, from its single instance, and nothing of ours owns them.
+# The first registration also makes the main thread's QFontCache, which Qt
+# keeps in thread storage the main thread never tears down: one per thread.
+leak:QFontconfigDatabase::addApplicationFont
+leak:QFontCache::instance

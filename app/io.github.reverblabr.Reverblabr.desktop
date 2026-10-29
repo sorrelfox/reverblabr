@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+
+[Desktop Entry]
+Type=Application
+Name=Reverblabr
+GenericName=Audio Routing and Recording
+Comment=Capture, process and route audio on your desktop
+Icon=io.github.reverblabr.Reverblabr
+Exec=reverblabr
+Terminal=false
+Categories=Qt;KDE;AudioVideo;Audio;Mixer;
+Keywords=audio;capture;record;route;routing;pipewire;mixer;effects;stream;
+StartupNotify=true
+SingleMainWindow=true
+X-DocPath=reverblabr/index.html
+Actions=NewSession;Sessions;
+
+[Desktop Action NewSession]
+Name=New Session
+Icon=document-new
+Exec=reverblabr --new-session
+
+[Desktop Action Sessions]
+Name=All Sessions
+Icon=view-list-details
+Exec=reverblabr --sessions

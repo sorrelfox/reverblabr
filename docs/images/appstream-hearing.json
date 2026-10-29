@@ -1,0 +1,76 @@
+{
+    "window": {
+        "width": 1400,
+        "height": 900
+    },
+    "sessionName": "Listening",
+    "grid": {
+        "x": 36,
+        "y": 330,
+        "column": 190,
+        "row": 120
+    },
+    "blocks": [
+        {
+            "name": "application",
+            "type": "source.application",
+            "column": 0,
+            "row": 0,
+            "params": {
+                "binary": "firefox",
+                "name": "Firefox"
+            }
+        },
+        {
+            "name": "lowering",
+            "type": "hearing.frequencylowering",
+            "column": 1,
+            "row": 0
+        },
+        {
+            "name": "compensation",
+            "type": "hearing.compensation16",
+            "column": 2,
+            "row": 0
+        },
+        {
+            "name": "meter",
+            "type": "meter.peakrms",
+            "column": 3,
+            "row": 0
+        },
+        {
+            "name": "output",
+            "type": "output.device",
+            "column": 4,
+            "row": 0
+        }
+    ],
+    "wires": [
+        [
+            "application",
+            "lowering"
+        ],
+        [
+            "lowering",
+            "compensation"
+        ],
+        [
+            "compensation",
+            "meter"
+        ],
+        [
+            "meter",
+            "output"
+        ]
+    ],
+    "level": 0.5,
+    "screenshots": [
+        {
+            "name": "appstream-hearing",
+            "theme": "dark",
+            "running": true,
+            "panel": "lowering"
+        }
+    ]
+}

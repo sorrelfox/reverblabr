@@ -1,0 +1,7 @@
+{
+    "schema": 1,
+    "type": "effect.volume",
+    "params": {
+        "gain": 0.5
+    }
+}

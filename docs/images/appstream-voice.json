@@ -1,0 +1,87 @@
+{
+    "window": {
+        "width": 1400,
+        "height": 900
+    },
+    "sessionName": "Podcast voice",
+    "grid": {
+        "x": 36,
+        "y": 330,
+        "column": 190,
+        "row": 120
+    },
+    "blocks": [
+        {
+            "name": "mic",
+            "type": "source.device",
+            "column": 0,
+            "row": 0
+        },
+        {
+            "name": "denoise",
+            "type": "advanced.speechdenoise",
+            "column": 1,
+            "row": 0
+        },
+        {
+            "name": "eq",
+            "type": "advanced.parametriceq",
+            "column": 2,
+            "row": 0,
+            "params": {
+                "band1Gain": -4.0,
+                "band2Gain": 3.0,
+                "band3Gain": 5.0
+            }
+        },
+        {
+            "name": "dynamics",
+            "type": "effect.dynamics",
+            "column": 3,
+            "row": 0
+        },
+        {
+            "name": "recorder",
+            "type": "output.recorder",
+            "column": 4,
+            "row": 0
+        },
+        {
+            "name": "output",
+            "type": "output.device",
+            "column": 5,
+            "row": 0
+        }
+    ],
+    "wires": [
+        [
+            "mic",
+            "denoise"
+        ],
+        [
+            "denoise",
+            "eq"
+        ],
+        [
+            "eq",
+            "dynamics"
+        ],
+        [
+            "dynamics",
+            "recorder"
+        ],
+        [
+            "recorder",
+            "output"
+        ]
+    ],
+    "level": 0.5,
+    "screenshots": [
+        {
+            "name": "appstream-voice",
+            "theme": "light",
+            "running": true,
+            "panel": "eq"
+        }
+    ]
+}

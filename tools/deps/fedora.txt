@@ -1,0 +1,122 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# Packages for building and developing Reverblabr on Fedora 44+ KDE Plasma
+# (the primary platform). One package per line; "#" starts a comment.
+#
+#   sudo dnf install $(sed 's/#.*//' tools/deps/fedora.txt)
+
+# Toolchain and build system
+cmake
+ninja-build
+gcc-c++
+git
+pkgconf-pkg-config
+extra-cmake-modules
+
+# Qt 6: Core, Gui, Widgets, DBus, Test / Qml, Quick, QuickControls2, QuickTest / Svg / ShaderTools
+qt6-qtbase-devel
+qt6-qtdeclarative-devel
+qt6-qtsvg-devel
+qt6-qtshadertools-devel
+# Optional: Qt's Wayland client internals, for the compositor's own window
+# menu on the frameless window
+qt6-qtbase-private-devel
+
+# KDE Frameworks 6 (used by the GUI only)
+kf6-kirigami-devel
+kf6-ki18n-devel
+kf6-kcoreaddons-devel
+kf6-kconfig-devel
+# The frameless window's shadow, drawn by the compositor
+kf6-kwindowsystem-devel
+# The Files tab's Open Containing Folder, Open With… and Move to Trash.
+# Qt's SQLite driver for the recordings index is in qt6-qtbase.
+kf6-kio-devel
+kf6-kguiaddons-devel
+# Desktop notifications: a finished recording, a device gone, a
+# plugin crashed, each an event of System Settings → Notifications
+kf6-knotifications-devel
+# The system tray icon and its popover
+kf6-kstatusnotifieritem-devel
+# Global shortcuts, in System Settings → Shortcuts
+kf6-kglobalaccel-devel
+# One Reverblabr a desktop: a second launch, such as the desktop entry's
+# New Session, hands its request to the running one
+kf6-kdbusaddons-devel
+kf6-qqc2-desktop-style
+# Optional: virtual devices for all users, through the administrator's
+# password prompt. polkit asks for the password.
+kf6-kauth-devel
+polkit
+
+# Audio
+pipewire-devel
+# Recordings: WAV, AIFF, FLAC, MP3, Opus and Vorbis files. Fedora's
+# libsndfile is built with the encoders for all of them.
+libsndfile-devel
+# A recording at another rate than the session's
+soxr-devel
+# Speech Denoise (ADR-0016). Optional: without it that block is left out.
+rnnoise-devel
+# A recording's tags
+taglib-devel
+# Pitch Shift: SoundTouch, LGPL-2.1, linked dynamically
+soundtouch-devel
+# M4A recordings. ffmpeg-free's own AAC and ALAC encoders; the app
+# asks at run time which ones are there.
+libavformat-free-devel
+libavcodec-free-devel
+libavutil-free-devel
+# Plugins: LV2 plugins found and described through lilv. LSP's
+# LV2 plugins are what the scan is checked against.
+lilv-devel
+lv2-devel
+lsp-plugins-lv2
+# LADSPA needs nothing to build: the host loads a library with
+# dlopen(). The SDK's example plugins are the tests' common plugin.
+ladspa
+# CLAP plugins: the CLAP SDK's headers. Optional: without them the build
+# has no CLAP block. LSP's CLAP plugins are what the host is checked against.
+clap-devel
+lsp-plugins-clap
+
+# Tests (Python runs the i18n and tooling checks)
+gtest-devel
+python3
+
+# Translation catalogs (xgettext, msgfmt), and a real locale, without which
+# gettext loads no catalogs (container images only have C.UTF-8)
+gettext
+glibc-langpack-en
+
+# Quality tools: Clang with the sanitizer runtimes (the rtsan preset),
+# GCC sanitizer runtimes, clang-format and clang-tidy, licence linting
+clang
+llvm
+compiler-rt
+clang-tools-extra
+libasan
+libubsan
+libtsan
+reuse
+# The desktop entry and the AppStream data checked the way distributions
+# check them: desktop-file-validate and appstreamcli
+desktop-file-utils
+appstream
+
+# PipeWire debugging: pw-top, pw-dump, pw-cli, pw-metadata, pw-cat, wpctl, graph view, JSON queries
+pipewire-utils
+wireplumber
+qpwgraph
+jq
+
+# The private PipeWire instance of the integration tests (tests/pw/harness):
+# the daemons, a Pulse client and a private D-Bus session. The tests also use
+# pw-link, pw-loopback and wpctl from the debugging tools above, and
+# libcanberra to play a notification sound the way KDE does.
+pipewire
+pipewire-pulseaudio
+pulseaudio-utils
+dbus-daemon
+libcanberra

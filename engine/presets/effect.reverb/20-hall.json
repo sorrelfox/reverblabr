@@ -1,0 +1,12 @@
+{
+    "schema": 1,
+    "type": "effect.reverb",
+    "params": {
+        "preDelay": 30.0,
+        "size": 90.0,
+        "decay": 3200.0,
+        "damping": 40.0,
+        "width": 100.0,
+        "mix": 30.0
+    }
+}

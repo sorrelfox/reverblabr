@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The notifications Reverblabr sends, as System Settings →
+# Notifications lists them. One [Event/...] per rb::notify::Event, under the
+# name in rb::notify::kEventIds; a test keeps the two in step.
+
+[Global]
+IconName=io.github.reverblabr.Reverblabr
+Comment=Reverblabr
+DesktopEntry=io.github.reverblabr.Reverblabr
+
+[Event/recordingFinished]
+Name=Recording finished
+Comment=A Recorder block has finished and saved its file
+Action=Popup
+
+[Event/deviceLost]
+Name=Device disconnected
+Comment=A device a running session uses went away
+Action=Popup
+
+[Event/captureLost]
+Name=Application stopped playing
+Comment=An application a running session captures has no sound left to capture
+Action=Popup
+
+[Event/captureRegained]
+Name=Application playing again
+Comment=An application whose capture was lost is playing again
+Action=Popup
+
+[Event/pluginFailed]
+Name=Plugin stopped
+Comment=A plugin crashed or stopped responding, and its block is bypassed
+Action=Popup
+
+[Event/lowDiskSpace]
+Name=Disk nearly full
+Comment=A recording's disk has little space left
+Action=Popup
+Urgency=High
+
+[Event/feedbackLoop]
+Name=Feedback prevented
+Comment=A connection that would have fed a session's sound back into itself was not made
+Action=Popup

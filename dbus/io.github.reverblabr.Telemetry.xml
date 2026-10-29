@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: MIT
+-->
+<!--
+  Where a session's levels are read (ADR-0018). Served beside the engine's
+  interface, on the same object, by reverblabrd.
+
+  **Not public** (ADR-0020): a handshake between reverblabrd and the window
+  of the same build, which may change in any release. The memory it hands
+  out carries a fingerprint of its layout, so a window of another build
+  refuses it rather than misreading it.
+
+  **Not part of the engine's API**, and apart from it on purpose: telemetry
+  never travels as messages (ADR-0003). This interface hands a window, once,
+  the memory the levels are published in; from then on the window reads
+  them on its own frame tick and nothing is sent at all.
+
+  **The one method here returns a value**, which the engine's never do: a
+  descriptor has to be answered to whoever asked, and a signal would hand it
+  to every window on the bus.
+-->
+<node>
+  <interface name="io.github.reverblabr.Telemetry">
+
+    <!--
+      A read-only descriptor for the shared memory that sessionId's
+      snapshots are published in: a sealed memfd holding a TelemetryRegion
+      (engine/core/sharedtelemetry.h), which starts with its magic number,
+      version and a fingerprint of its layout. It stays valid for as long as
+      the caller keeps it or a mapping of it, and it is what the session
+      publishes into for as long as the session is open; a session opened
+      again after it closed is new memory, to be asked for again.
+
+      Fails with io.github.reverblabr.Error.NoTelemetry when no session of
+      that id is open.
+    -->
+    <method name="Share">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="memory" type="h" direction="out"/>
+    </method>
+
+  </interface>
+</node>

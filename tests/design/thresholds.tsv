@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The worst each state may score against the design prototype, in per cent of
+# its pixels: its score when this was written, plus 1 point. design_compare.py fails
+# a run in which any state is worse. After a change that is meant to move a
+# state, run `tests/design/design_compare.py --update-thresholds` and commit
+# this file with it, saying in the commit which states moved and why.
+#
+# appearance	state	worst allowed (%)
+reverblabr-dark	window-idle-dark	4.6
+reverblabr-dark	window-live-dark	4.8
+reverblabr-dark	tile-application-idle-dark	9.6
+reverblabr-dark	tile-volume-idle-dark	8.6
+reverblabr-dark	tile-peakrms-idle-dark	5.5
+reverblabr-dark	tile-output-idle-dark	9.1
+reverblabr-dark	tile-input-idle-dark	10.1
+reverblabr-dark	tile-system-idle-dark	10.0
+reverblabr-dark	tile-application-live-dark	9.7
+reverblabr-dark	tile-volume-live-dark	8.9
+reverblabr-dark	tile-peakrms-live-dark	9.1
+reverblabr-dark	tile-output-live-dark	9.3
+reverblabr-dark	tile-input-live-dark	10.2
+reverblabr-dark	tile-system-live-dark	10.1
+reverblabr-dark	panel-application-dark	15.8
+reverblabr-dark	panel-volume-dark	15.1
+reverblabr-dark	panel-peakrms-dark	5.2
+reverblabr-dark	panel-output-dark	13.3
+reverblabr-dark	panel-input-dark	12.4
+reverblabr-dark	panel-system-dark	14.3
+reverblabr-light	window-idle-light	4.6
+reverblabr-light	window-live-light	4.7
+reverblabr-light	tile-application-idle-light	9.9
+reverblabr-light	tile-volume-idle-light	11.1
+reverblabr-light	tile-peakrms-idle-light	9.3
+reverblabr-light	tile-output-idle-light	9.5
+reverblabr-light	tile-input-idle-light	10.5
+reverblabr-light	tile-system-idle-light	10.5
+reverblabr-light	tile-application-live-light	10.0
+reverblabr-light	tile-volume-live-light	11.3
+reverblabr-light	tile-peakrms-live-light	11.1
+reverblabr-light	tile-output-live-light	9.6
+reverblabr-light	tile-input-live-light	10.6
+reverblabr-light	tile-system-live-light	10.6
+reverblabr-light	panel-application-light	16.9
+reverblabr-light	panel-volume-light	17.1
+reverblabr-light	panel-peakrms-light	18.1
+reverblabr-light	panel-output-light	14.3
+reverblabr-light	panel-input-light	13.7
+reverblabr-light	panel-system-light	17.8
+system-dark	window-idle-dark	7.0
+system-dark	window-live-dark	7.1
+system-dark	tile-application-idle-dark	12.8
+system-dark	tile-volume-idle-dark	18.4
+system-dark	tile-peakrms-idle-dark	12.7
+system-dark	tile-output-idle-dark	12.8
+system-dark	tile-input-idle-dark	14.3
+system-dark	tile-system-idle-dark	14.5
+system-dark	tile-application-live-dark	12.9
+system-dark	tile-volume-live-dark	18.6
+system-dark	tile-peakrms-live-dark	15.5
+system-dark	tile-output-live-dark	13.0
+system-dark	tile-input-live-dark	14.4
+system-dark	tile-system-live-dark	14.5
+system-dark	panel-application-dark	20.8
+system-dark	panel-volume-dark	27.2
+system-dark	panel-peakrms-dark	11.0
+system-dark	panel-output-dark	19.7
+system-dark	panel-input-dark	17.6
+system-dark	panel-system-dark	17.7
+system-light	window-idle-light	12.7
+system-light	window-live-light	12.8
+system-light	tile-application-idle-light	14.1
+system-light	tile-volume-idle-light	18.9
+system-light	tile-peakrms-idle-light	12.2
+system-light	tile-output-idle-light	13.2
+system-light	tile-input-idle-light	14.7
+system-light	tile-system-idle-light	15.2
+system-light	tile-application-live-light	14.1
+system-light	tile-volume-live-light	19.0
+system-light	tile-peakrms-live-light	15.0
+system-light	tile-output-live-light	13.3
+system-light	tile-input-live-light	14.8
+system-light	tile-system-live-light	15.2
+system-light	panel-application-light	22.0
+system-light	panel-volume-light	27.0
+system-light	panel-peakrms-light	27.3
+system-light	panel-output-light	22.2
+system-light	panel-input-light	20.2
+system-light	panel-system-light	24.6

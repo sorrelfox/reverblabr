@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# ThreadSanitizer suppressions, used by the tsan test preset.
+#
+# Qt and KDE Frameworks come from the distribution and aren't built with
+# ThreadSanitizer, so TSan can't see their synchronisation. It then reports
+# data races inside them that aren't real: the QML engine's loader thread,
+# the D-Bus connection thread (libdbus), QtTest's watchdog thread, and
+# property-binding bookkeeping. These entries
+# match reports whose stack runs through those libraries.
+#
+# Only list libraries we don't build ourselves. Never suppress our own code:
+# a race reported in Reverblabr's sources must be fixed.
+race:libQt6Core.so
+race:libQt6Gui.so
+race:libQt6Qml.so
+race:libQt6QmlModels.so
+race:libQt6Quick.so
+race:libQt6DBus.so
+race:libQt6Test.so
+race:libdbus-1.so
+race:libKF6*.so
+
+# Qt starts helper threads (the QML loader, the D-Bus connection) that it
+# never joins before exit. This hides leaks of every thread started through
+# QThread, ours included, so our QThreads must be stopped and waited for
+# explicitly. Threads started with std::thread are still checked.
+thread:libQt6Core.so
+
+# libdbus takes its connection locks in an order TSan reads as a possible
+# deadlock, inside the library itself.
+deadlock:libdbus-1.so
+
+# PipeWire hands a node's buffers to the data thread as shared memory that
+# another thread mapped (pw_memblock_map). The handover is synchronized
+# through the loop's eventfd, which ThreadSanitizer doesn't model, so the
+# first write by the data thread is reported as a race with the mapping.
+race:libpipewire-0.3.so

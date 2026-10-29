@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: CC0-1.0
+-->
+<component type="desktop-application">
+  <id>io.github.reverblabr.Reverblabr</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MPL-2.0</project_license>
+
+  <name>Reverblabr</name>
+  <summary>Capture, process and route audio on your desktop</summary>
+
+  <description>
+    <p>
+      Reverblabr takes the sound of an application, a microphone or everything
+      your computer plays, sends it through the effects you put together, and
+      plays it, records it or hands it to other applications as a microphone
+      of its own. You build each chain on a canvas, block by block, and hear
+      every change while it plays.
+    </p>
+    <p>
+      Capturing an application does not move it: it goes on playing where it
+      was playing, and Reverblabr listens alongside. Nothing is changed in the
+      application, and nothing has to be installed into it.
+    </p>
+    <p>What you can do with it:</p>
+    <ul>
+      <li>Make a call or a stream sound better: take the noise out of a voice, even out its level and shape its tone.</li>
+      <li>Record the sound of one application, or of a microphone and an application side by side, to WAV, FLAC, MP3, Opus or M4A.</li>
+      <li>Turn a quiet programme up, a loud one down, or duck the music whenever someone speaks.</li>
+      <li>Shape the sound for one ear or both, with gain that depends on pitch and level, and move high or low sounds into a range that is easier to hear.</li>
+      <li>Make virtual outputs and microphones that other applications can use.</li>
+      <li>Use LV2, CLAP and LADSPA plugins beside the built-in effects.</li>
+      <li>Keep sessions running with the window closed, from the system tray, from global shortcuts or from the command line.</li>
+    </ul>
+  </description>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>A session: an application's sound, measured, set and sent to the speakers</caption>
+      <image type="source" width="1400" height="900">https://raw.githubusercontent.com/sorrelfox/reverblabr/main/docs/images/first-session.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A voice cleaned up, shaped and recorded, with the equaliser open</caption>
+      <image type="source" width="1400" height="900">https://raw.githubusercontent.com/sorrelfox/reverblabr/main/docs/images/appstream-voice.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>High sounds moved into a range that is easier to hear</caption>
+      <image type="source" width="1400" height="900">https://raw.githubusercontent.com/sorrelfox/reverblabr/main/docs/images/appstream-hearing.png</image>
+    </screenshot>
+  </screenshots>
+
+  <developer id="io.github.reverblabr">
+    <name>Reverblabr contributors</name>
+  </developer>
+
+  <url type="homepage">https://github.com/sorrelfox/reverblabr</url>
+  <url type="bugtracker">https://github.com/sorrelfox/reverblabr/issues</url>
+  <url type="help">https://github.com/sorrelfox/reverblabr/blob/main/docs/getting-started.md</url>
+  <url type="vcs-browser">https://github.com/sorrelfox/reverblabr</url>
+  <url type="contribute">https://github.com/sorrelfox/reverblabr/blob/main/CONTRIBUTING.md</url>
+
+  <launchable type="desktop-id">io.github.reverblabr.Reverblabr.desktop</launchable>
+  <provides>
+    <binary>reverblabr</binary>
+    <binary>reverblabr-ctl</binary>
+    <dbus type="user">io.github.reverblabr.Engine</dbus>
+  </provides>
+  <translation type="gettext">reverblabr</translation>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+  </categories>
+
+  <keywords>
+    <keyword>audio</keyword>
+    <keyword>capture</keyword>
+    <keyword>record</keyword>
+    <keyword>routing</keyword>
+    <keyword>effects</keyword>
+    <keyword>microphone</keyword>
+    <keyword>PipeWire</keyword>
+  </keywords>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#f5a623</color>
+    <color type="primary" scheme_preference="dark">#2a2e32</color>
+  </branding>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-09-29" type="development">
+      <description>
+        <p>The first version, not yet released. It has:</p>
+        <ul>
+          <li>sessions built on a canvas from sources, effects, meters and outputs, with undo;</li>
+          <li>capture of an application, a microphone or the whole system, without moving what is captured;</li>
+          <li>built-in effects, from volume, equalisers and dynamics to noise and hum removal, reverb, pitch shifting and blocks that shape the sound for each ear;</li>
+          <li>recording to WAV, AIFF, FLAC, MP3, Opus, Vorbis and M4A, with a Files tab to find, play back, rename and tag recordings;</li>
+          <li>LV2, CLAP and LADSPA plugins, each in a process of its own;</li>
+          <li>virtual outputs and microphones;</li>
+          <li>a background engine that keeps sessions running with the window closed, a system tray icon, desktop notifications, global shortcuts and a command-line tool.</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>

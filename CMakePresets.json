@@ -1,0 +1,137 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CMAKE_COMPILE_WARNING_AS_ERROR": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "asan",
+      "displayName": "AddressSanitizer and UndefinedBehaviorSanitizer",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ECM_ENABLE_SANITIZERS": "address;undefined"
+      }
+    },
+    {
+      "name": "tsan",
+      "displayName": "ThreadSanitizer",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ECM_ENABLE_SANITIZERS": "thread"
+      }
+    },
+    {
+      "name": "rtsan",
+      "displayName": "RealtimeSanitizer (Clang)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "ECM_ENABLE_SANITIZERS": "realtime"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "tsan", "configurePreset": "tsan" },
+    { "name": "rtsan", "configurePreset": "rtsan" }
+  ],
+  "testPresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "timeout": 300
+      },
+      "filter": {
+        "exclude": { "label": "design" }
+      }
+    },
+    { "name": "debug", "inherits": "base", "configurePreset": "debug" },
+    {
+      "name": "design",
+      "configurePreset": "debug",
+      "description": "The application against the design prototype (tests/design/README.md). Needs the local-only prototype and Firefox.",
+      "output": { "outputOnFailure": true, "verbosity": "verbose" },
+      "execution": { "noTestsAction": "error", "timeout": 900 },
+      "filter": { "include": { "label": "design" } }
+    },
+    { "name": "release", "inherits": "base", "configurePreset": "release" },
+    {
+      "name": "asan",
+      "inherits": "base",
+      "configurePreset": "asan",
+      "description": "Qt keeps a few allocations for the life of the process; tools/sanitizers/lsan.supp names the ones that are not ours to free.",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1:strict_string_checks=1",
+        "LSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/lsan.supp",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1",
+        "PIPEWIRE_DLCLOSE": "false"
+      }
+    },
+    {
+      "name": "tsan",
+      "inherits": "base",
+      "configurePreset": "tsan",
+      "description": "Qt and KDE Frameworks aren't built with ThreadSanitizer; tools/sanitizers/tsan.supp suppresses the false reports from inside them.",
+      "environment": {
+        "TSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/tsan.supp:halt_on_error=1:second_deadlock_stack=1"
+      }
+    },
+    {
+      "name": "rtsan",
+      "inherits": "base",
+      "configurePreset": "rtsan",
+      "environment": {
+        "RTSAN_OPTIONS": "halt_on_error=1"
+      }
+    },
+    {
+      "name": "rtsan-offline",
+      "inherits": "rtsan",
+      "description": "RealtimeSanitizer without the suites that start a private PipeWire (label pipewire): what the checks before a change run (docs/development.md).",
+      "filter": {
+        "exclude": {
+          "label": "design|pipewire"
+        }
+      }
+    }
+  ]
+}

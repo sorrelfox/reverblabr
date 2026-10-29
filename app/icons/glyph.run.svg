@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 Reverblabr contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<!-- Run: the prototype's 10-pixel triangle, centred on a 16-pixel icon. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <path transform="translate(3 3)" d="M2 1l7 4-7 4z" fill="currentColor"/>
+</svg>

@@ -1,0 +1,17 @@
+{
+    "schema": 1,
+    "type": "effect.equalizer10",
+    "params": {
+        "gain31": -12.0,
+        "gain63": -12.0,
+        "gain125": -10.0,
+        "gain250": -4.0,
+        "gain500": 0.0,
+        "gain1k": 2.0,
+        "gain2k": 3.0,
+        "gain4k": 0.0,
+        "gain8k": -10.0,
+        "gain16k": -12.0,
+        "preamp": -1.0
+    }
+}

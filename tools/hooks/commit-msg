@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Clean-room check: rejects a commit message that contains a term from
+# .git/info/forbidden-terms. Lines starting with "#" are left out, because git
+# strips them from the message. Without the list the check does nothing.
+#
+# Install for this clone: git config core.hooksPath tools/hooks
+
+set -euo pipefail
+
+source "$(dirname "$0")/forbidden-terms.sh"
+
+message_file=$1
+
+terms=$(mktemp)
+trap 'rm -f "$terms"' EXIT
+rb_load_forbidden_terms "$terms" || exit 0
+
+# Only the part above git's scissors line (git commit -v) is the message.
+if ! sed -e '/^# -\{24\} >8 -\{24\}$/,$d' -e '/^#/d' "$message_file" |
+    awk -v terms_file="$terms" '
+        BEGIN {
+            while ((getline term < terms_file) > 0) {
+                terms[++count] = term
+            }
+        }
+        {
+            text = tolower($0)
+            for (i = 1; i <= count; i++) {
+                if (index(text, terms[i]) > 0) {
+                    printf "commit-msg: line %d contains the forbidden term \"%s\"\n", NR, terms[i] > "/dev/stderr"
+                    found = 1
+                }
+            }
+        }
+        END { exit found }
+    '; then
+    printf 'commit-msg: commit rejected by the clean-room check (see CONTRIBUTING.md).\n' >&2
+    exit 1
+fi

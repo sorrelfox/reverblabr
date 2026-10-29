@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# C++ formatting: close to the KDE style (WebKit-based, 4-space indent, braces
+# on their own line for functions and types), with a 120-column limit and
+# grouped includes. See docs/conventions.md.
+---
+Language: Cpp
+BasedOnStyle: WebKit
+Standard: Latest
+ColumnLimit: 120
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Linux
+AlignAfterOpenBracket: Align
+BreakBeforeBinaryOperators: NonAssignment
+BreakTemplateDeclarations: Yes
+AlwaysBreakBeforeMultilineStrings: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+Cpp11BracedListStyle: true
+SpaceBeforeCpp11BracedList: false
+PointerAlignment: Right
+NamespaceIndentation: None
+FixNamespaceComments: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# Includes: the file's own header, then project headers, then third-party
+# headers (Qt, KDE Frameworks, PipeWire, GoogleTest), then the standard library.
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"'
+    Priority: 1
+  - Regex: '^<[a-z_]+>$'
+    Priority: 3
+    CaseSensitive: true
+  - Regex: '.*'
+    Priority: 2
+---
+Language: Json
+DisableFormat: true

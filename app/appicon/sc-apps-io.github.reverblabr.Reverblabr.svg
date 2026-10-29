@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!--
+  SPDX-FileCopyrightText: 2026 Reverblabr contributors
+  SPDX-License-Identifier: CC-BY-SA-4.0
+
+  Reverblabr's application icon: what the application does, drawn the way
+  its canvas draws it. A source block carrying a waveform is wired to an
+  output block showing its level, by the live-coloured wire between two
+  ring connectors. Colours are the Reverblabr dark palette's surface, well,
+  accent and live.
+  -->
+  <rect x="6" y="6" width="116" height="116" rx="26" fill="#2a2e32"/>
+  <rect x="6.5" y="6.5" width="115" height="115" rx="25.5" fill="none" stroke="#3f454b"/>
+  <!-- the source block, and the sound it carries -->
+  <rect x="16" y="22" width="44" height="40" rx="9" fill="#3b4045"/>
+  <path d="M23 42 q4.5 -13 9 0 t9 0 t9 0" fill="none" stroke="#3daee9" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- the output block, and its level -->
+  <rect x="68" y="66" width="44" height="40" rx="9" fill="#3b4045"/>
+  <rect x="77" y="86" width="6" height="12" rx="2" fill="#3daee9"/>
+  <rect x="87" y="80" width="6" height="18" rx="2" fill="#3daee9"/>
+  <rect x="97" y="74" width="6" height="24" rx="2" fill="#3daee9"/>
+  <!-- the wire, live, between the two connectors -->
+  <path d="M60 42 C 82 42, 46 86, 68 86" fill="none" stroke="#f5a623" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="60" cy="42" r="6.5" fill="#2a2e32" stroke="#f5a623" stroke-width="4"/>
+  <circle cx="68" cy="86" r="6.5" fill="#2a2e32" stroke="#f5a623" stroke-width="4"/>
+</svg>

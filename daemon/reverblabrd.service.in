@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# The engine as a systemd user service (ADR-0017). Started on demand through
+# D-Bus activation; nothing starts it at login until a session asks for Auto
+# Run, which enables it. Its output goes to the journal.
+[Unit]
+Description=Reverblabr audio engine
+PartOf=graphical-session.target
+After=pipewire.service
+
+[Service]
+Type=dbus
+BusName=io.github.reverblabr.Engine
+ExecStart=@RB_DAEMON_EXEC@
+Restart=on-failure
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target

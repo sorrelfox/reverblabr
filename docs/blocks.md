@@ -1,0 +1,105 @@
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
+# Blocks
+
+A session is made of blocks: sources that bring sound in, effects and meters in the middle, and outputs at the end. This page lists them in the order the library groups them. Every block has settings of its own, which open next to it on the canvas, and every block can save presets.
+
+## Sources
+
+| Block | What it does |
+|---|---|
+| **Application** | The sound of one program while it plays. It can take everything the program plays, only what it plays to the default output, or only what it plays to devices you choose. The program keeps playing to its own device as before. |
+| **Input Device** | A microphone or any other recording device, or a [virtual output](virtual-devices.md) that other programs play into. *Default input* follows your desktop's choice. |
+| **System Audio** | Everything the computer plays, minus the programs you leave out. Alert sounds are only included if you ask for them. |
+
+## Outputs
+
+| Block | What it does |
+|---|---|
+| **Output Device** | Where a lane is heard: the default output (followed when it changes), a device you choose, or a virtual microphone that other programs record from. It has a volume of its own. |
+| **Recorder** | Writes what reaches it to a file and passes the sound on unchanged. See [Recording](recording.md). |
+| **Wave** | A test tone (sine, square, triangle or sawtooth, 20 Hz to 20 kHz) or white or pink noise, at the level you set, on the left, the right or both. Wire it to an Output Device to check a speaker or a cable. |
+
+## Built-in Effects
+
+| Block | What it does |
+|---|---|
+| **Volume** | Turns a lane up or down, up to 400 % with overdrive on, with a limiter that keeps it from clipping. |
+| **Dynamics Processor** | A compressor for loud sound and an expander for quiet sound, drawn as a curve you edit directly, with a dot showing where the sound is on it. |
+| **Simple Compressor** | Steadies the level with one choice (Gentle, Moderate, Heavy, Voice or Broadcast) instead of six controls, and shows what that choice sets. |
+| **Multiband Compressor** | Three compressors side by side, for the lows, the middle and the highs. A loud bass doesn't pull the voice down with it, and a harsh "s" can be tamed on its own. Drag the lines between the bands to move where they meet. With every ratio at 1:1, the sound comes out as it went in. |
+| **Limiter** | Keeps a lane under a ceiling between −12 and 0 dB, including peaks that fall between samples, and shows how hard it is working. |
+| **Auto Level** | Brings quiet passages up towards a steady loudness and leaves loud ones alone, with a limiter so the lift never clips. |
+| **10-Band EQ** | Ten sliders from 31 Hz to 16 kHz, ±12 dB each, with twenty presets, a preamp and an option to keep the overall level where it was. |
+| **Bass & Treble** | Lifts or cuts the low and the high end by up to 12 dB, to warm a source up or brighten it. |
+| **Low Pass Filter** | Rolls off hiss and other high noise above a cutoff, at 12 or 24 dB per octave. |
+| **High Pass Filter** | Rolls off rumble, handling noise and the thump of a room below a cutoff between 20 Hz and 2 kHz, at 12 or 24 dB per octave. |
+| **Echo** | Repeats the sound from a millisecond to two seconds later, each repeat quieter and duller than the one before, mixed in behind the original. |
+| **Reverb** | Puts the sound in a room. See [below](#reverb). |
+| **Pitch Shift** | Moves the pitch up or down by up to an octave, in semitones and cents, without making the sound faster or slower. See [below](#pitch-shift). |
+| **Balance** | Turns the left or the right side of a stereo lane down against the other, all the way to silence. |
+| **Pan** | Places a lane anywhere between left and right. The sound is folded to mono first and keeps the same loudness wherever you put it. |
+| **Channels** | Swaps the sides, folds to mono, copies one side to both, mutes or inverts a side, or keeps only what differs between them, fading from one setting to the next. |
+| **Mono Enhancer** | Gives a mono recording some width above a frequency you choose, keeps the bass in the middle, and still sounds right when played back in mono. |
+
+### Reverb
+
+Start from one of the presets in its settings (**Small room**, **Hall** or **Plate**), then adjust:
+
+- **Decay** is how long the room rings after the sound stops, from a tenth of a second to twenty seconds.
+- **Size** is how big the room is. Small rooms ring densely and close, large ones spread out.
+- **Damping** makes the top end of the ring fade sooner, the way soft walls and air do.
+- **Pre-delay** holds the room back for up to a quarter of a second, so you hear the sound clearly before the room joins in.
+- **Width** spreads the room from the middle out to both sides, and **Mix** sets how loud it is against the original.
+
+The original goes straight through, so a Reverb doesn't delay the lane.
+
+### Pitch Shift
+
+**Semitones** moves the pitch in whole steps, like the keys of a piano, up to an octave either way. **Cents** are hundredths of a semitone on top, for tuning one sound to another. The sound comes out about 60 ms late, and a new setting fades in over a few tens of milliseconds, so a change never clicks.
+
+## Meters
+
+| Block | What it does |
+|---|---|
+| **Peak/RMS** | A level meter for any point in a lane, with peak hold and clip lights. |
+| **VU** | A pair of needles that follow the average level, the way a tape machine's meters did, against a reference level you choose. |
+
+Either meter can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
+
+## Advanced
+
+| Block | What it does |
+|---|---|
+| **Parametric EQ** | Up to ten bands you place yourself (bells, shelves, pass filters, notches), dragged along the curve they draw, with the live spectrum behind it. |
+| **Ducking** | Turns a background source down while the main one (usually a voice) is heard, and back up when it stops. Its tile has two inputs: main and background. |
+| **Mixer** | Five inputs on five strips with volume up to 200 %, mute, solo, balance and timed fades, under one master, plus five scenes to save and recall a set of levels. |
+| **Input Switch** | Passes one of two inputs, A or B, and crossfades to the other at a click: half a second, or two seconds with Shift. |
+| **Sync** | Holds a lane back by an exact number of milliseconds, up to two seconds, to line its sound up with a picture or with another lane. |
+| **Time Shift** | Pauses and rewinds sound that is still arriving, such as a radio stream or a call. Jump back 3, 10 or 30 seconds, forward again, or straight back to live. It keeps up to an hour: ten minutes in memory, the rest on disk. |
+| **Declick** | Takes out clicks, pops and crackle (from a record, a bad cable or a digital dropout) and fills in what was underneath from the sound on either side. |
+| **Denoise** | Listens to a few seconds of a steady noise on its own (a fan, hiss, an air conditioner), then removes that noise from everything that follows. The noise it learned is saved with the session. |
+| **Speech Denoise** | Clears the background from a voice without learning anything first, using RNNoise, a model trained on speech. It works at 48 kHz and adds 30 ms of delay. It is only built where the distribution packages RNNoise, which Fedora does. |
+| **Dehum** | Removes the 50 or 60 Hz hum of the mains and the whine of its harmonics, and leaves everything in between alone. With **Auto** on, it follows a hum whose frequency drifts. |
+| **FIR Filter** | Applies an impulse response from a file: the sound of a room, a speaker cabinet, or a correction for a pair of headphones. Mono, stereo or true stereo, resampled to the session's rate, with about 5 ms of delay. |
+
+## Hearing
+
+These blocks work on one ear at a time. They are described on their own page, [Hearing](hearing.md).
+
+| Block | What it does |
+|---|---|
+| **Hearing Compensation 16** | Lifts soft sound for one ear in sixteen bands, a lot for soft sound and little for loud sound, under a ceiling nothing goes above. It can be set band by band or from an audiogram. |
+| **Hearing Compensation 64** | The same in sixty-four bands, set with points on smooth curves, for steep slopes and narrow dips. |
+| **Frequency Lowering** | Moves sound from a high range the ear doesn't hear into a lower one it does, so the hiss of s, sh and f comes back. |
+| **Frequency Raising** | The other way round: moves sound from a low or middle range up into one the ear hears. Experimental in parts. |
+| **Join L/R** | Puts two lanes back together as one stereo pair, the left side of one and the right side of the other, lined up in time, so that each ear can have its own blocks. |
+
+## Plugins
+
+Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK) and **LADSPA**. The plugin row of the library lists what it found, and **Rescan** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for. LSP's plugins are a good first set to try.
+
+Every plugin runs in a separate process, so a plugin that crashes or hangs takes nothing else down with it. Its block is bypassed, the sound goes on without it, and the block shows a button to restart it. A plugin's settings appear in a panel built from the parameters it offers.

@@ -1,0 +1,8 @@
+{
+    "schema": 1,
+    "type": "effect.volume",
+    "params": {
+        "gain": 2.0,
+        "overdrive": "2x"
+    }
+}

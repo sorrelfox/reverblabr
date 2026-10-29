@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# D-Bus activation of the engine (ADR-0017): the first call to the name starts
+# it, through the systemd user unit where there is a user instance, and
+# through Exec where there is not.
+[D-BUS Service]
+Name=io.github.reverblabr.Engine
+Exec=@RB_DAEMON_EXEC@
+SystemdService=reverblabrd.service

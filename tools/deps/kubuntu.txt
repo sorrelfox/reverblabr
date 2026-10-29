@@ -1,0 +1,129 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# Packages for building and developing Reverblabr on Kubuntu 26.04 LTS
+# (the secondary platform). One package per line; "#" starts a comment.
+#
+#   sudo apt install $(sed 's/#.*//' tools/deps/kubuntu.txt)
+
+# Toolchain and build system
+cmake
+ninja-build
+g++
+git
+pkgconf
+extra-cmake-modules
+
+# Qt 6 development files and tools (moc, qmllint, qmltestrunner)
+qt6-base-dev
+qt6-base-dev-tools
+qt6-declarative-dev
+qt6-declarative-dev-tools
+qt6-svg-dev
+qt6-shadertools-dev
+# Optional: Qt's Wayland client internals, for the compositor's own window
+# menu on the frameless window
+qt6-base-private-dev
+
+# Qt 6 QML modules used at run time and by the QML tests
+qml6-module-qtquick
+qml6-module-qtquick-controls
+qml6-module-qtquick-templates
+qml6-module-qtquick-layouts
+qml6-module-qtquick-window
+qml6-module-qtquick-shapes
+qml6-module-qtqml-workerscript
+qml6-module-qttest
+
+# KDE Frameworks 6 (used by the GUI only)
+libkirigami-dev
+qml6-module-org-kde-kirigami
+libkf6i18n-dev
+qml6-module-org-kde-ki18n
+libkf6coreaddons-dev
+libkf6config-dev
+# The frameless window's shadow, drawn by the compositor
+libkf6windowsystem-dev
+# The Files tab's file actions and the recordings index
+libkf6kio-dev
+libkf6guiaddons-dev
+# Desktop notifications
+libkf6notifications-dev
+# The system tray icon and its popover
+libkf6statusnotifieritem-dev
+# Global shortcuts, in System Settings → Shortcuts
+libkf6globalaccel-dev
+# One Reverblabr a desktop: a second launch, such as the desktop entry's
+# New Session, hands its request to the running one
+libkf6dbusaddons-dev
+libqt6sql6-sqlite
+# Optional: virtual devices for all users, through the administrator's
+# password prompt. polkitd asks for the password.
+libkf6auth-dev
+polkitd
+qml6-module-org-kde-coreaddons
+qml6-module-org-kde-desktop
+
+# Audio
+libpipewire-0.3-dev
+# Recordings: WAV, AIFF, FLAC, MP3, Opus and Vorbis files
+libsndfile1-dev
+# A recording at another rate than the session's
+libsoxr-dev
+# Speech Denoise (ADR-0016) needs RNNoise, which Kubuntu 26.04 does not
+# package (librnnoise-dev arrives in a later release). The build leaves that
+# one block out; once there is a package, add librnnoise-dev here.
+# A recording's tags
+libtag-dev
+# Pitch Shift: SoundTouch, LGPL-2.1, linked dynamically
+libsoundtouch-dev
+# M4A recordings
+libavformat-dev
+libavcodec-dev
+libavutil-dev
+# Plugins: LV2 plugins found and described through lilv
+liblilv-dev
+lv2-dev
+lsp-plugins-lv2
+# LADSPA needs nothing to build: the host loads a library with
+# dlopen(). The SDK's example plugins are the tests' common plugin.
+ladspa-sdk
+# CLAP plugins need the CLAP SDK's headers, which Kubuntu 26.04 does not
+# package (lsp-plugins-clap is there; the SDK is not). The build leaves the
+# CLAP block out; once there is a package, add it and lsp-plugins-clap here.
+
+# Tests (Python runs the i18n and tooling checks)
+libgtest-dev
+python3
+
+# Translation catalogs (xgettext, msgfmt)
+gettext
+
+# Quality tools: Clang with the sanitizer runtimes (the rtsan preset),
+# clang-format and clang-tidy, licence linting
+clang
+llvm
+libclang-rt-dev
+clang-format
+clang-tidy
+reuse
+# The desktop entry and the AppStream data checked the way distributions
+# check them: desktop-file-validate and appstreamcli
+desktop-file-utils
+appstream
+
+# PipeWire debugging: pw-top, pw-dump, pw-cli, pw-metadata, pw-cat, wpctl, graph view, JSON queries
+pipewire-bin
+wireplumber
+qpwgraph
+jq
+
+# The private PipeWire instance of the integration tests (tests/pw/harness):
+# the daemons, a Pulse client and a private D-Bus session. The tests also use
+# pw-link, pw-loopback and wpctl from the debugging tools above, and
+# libcanberra to play a notification sound the way KDE does.
+pipewire
+pipewire-pulse
+pulseaudio-utils
+dbus
+libcanberra0
