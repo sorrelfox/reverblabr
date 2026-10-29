@@ -84,6 +84,11 @@ lsp-plugins-clap
 # Tests (Python runs the i18n and tooling checks)
 gtest-devel
 python3
+# The pseudo-locale check measures text as a Plasma desktop draws it: with
+# KDE's platform theme, and with DejaVu Sans for the ⟦ ⟧ that Noto Sans has
+# no glyphs for. A Plasma desktop has both; a container image has neither.
+plasma-integration
+dejavu-sans-fonts
 
 # Translation catalogs (xgettext, msgfmt), and a real locale, without which
 # gettext loads no catalogs (container images only have C.UTF-8)

@@ -30,6 +30,8 @@ void needApplication()
         static int argc = 1;
         static char name[] = "reverblabr-app-test";
         static char *argv[] = {name, nullptr};
+        // Offscreen, so the test needs no display.
+        qputenv("QT_QPA_PLATFORM", "offscreen");
         static QGuiApplication application(argc, argv);
     }
 }

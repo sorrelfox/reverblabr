@@ -23,10 +23,15 @@
 #include <QCoreApplication>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
+#include <QDBusReply>
 #include <QElapsedTimer>
+#include <QThread>
 #include <gtest/gtest.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <chrono>
+#include <limits>
 
 using namespace rb;
 using namespace Qt::StringLiterals;
@@ -56,6 +61,32 @@ void refuseTheRealBus()
         GTEST_SKIP() << "about the " name " bus, and this is " << situation().toStdString();                           \
     }                                                                                                                  \
     ASSERT_NO_FATAL_FAILURE(refuseTheRealBus())
+
+/// Turns the event loop until \a predicate holds or \a milliseconds pass.
+template <typename Predicate>
+bool waitFor(Predicate predicate, int milliseconds)
+{
+    QElapsedTimer clock;
+    clock.start();
+    while (!predicate() && clock.elapsed() < milliseconds) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+        QThread::msleep(5);
+    }
+    return predicate();
+}
+
+/// kill(2) for the daemon this test started, and nothing else, as in
+/// test_enginebus.cpp: kill(0) signals the process group and kill(-1) every
+/// process the user owns, so anything but an ordinary pid of another process
+/// is a failed test, never a signal.
+[[nodiscard]] bool signalProcess(qint64 pid, int signal)
+{
+    if (pid <= 1 || pid > std::numeric_limits<pid_t>::max() || pid == ::getpid()) {
+        ADD_FAILURE() << "refusing to signal pid " << pid;
+        return false;
+    }
+    return ::kill(static_cast<pid_t>(pid), signal) == 0;
+}
 
 } // namespace
 
@@ -110,6 +141,18 @@ TEST(DaemonReach, TheBusStartsTheDaemonAndItIsReached)
     EXPECT_EQ(result.reach, bus::DaemonReach::Reached) << result.detail.toStdString();
     EXPECT_TRUE(daemon->isServiceRegistered(bus::kServiceName).value()) << "reached, but nobody has the name";
 
+    // **The daemon goes before the bus does.** Without a PID namespace (in a
+    // container, unshare is refused) nothing else stops it: it would outlive
+    // the bus, idle or still starting, and hold the test's output open until
+    // ctest gives up on it.
+    const QDBusReply<uint> pid = daemon->servicePid(bus::kServiceName);
+    ASSERT_TRUE(pid.isValid()) << pid.error().message().toStdString();
+    const auto gone = [daemon] { return !daemon->isServiceRegistered(bus::kServiceName).value(); };
+    ASSERT_TRUE(signalProcess(static_cast<qint64>(pid.value()), SIGTERM));
+    if (!waitFor(gone, 5000)) {
+        (void)signalProcess(static_cast<qint64>(pid.value()), SIGKILL);
+        EXPECT_TRUE(waitFor(gone, 5000)) << "the daemon kept its name after SIGKILL";
+    }
 }
 
 // **The choice itself** needs no bus: what the command line asked for, and

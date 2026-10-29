@@ -24,12 +24,14 @@ target_link_libraries(reverblabr-qml-test PRIVATE
 add_test(NAME qml.mainwindow COMMAND reverblabr-qml-test)
 # The harness already hands the window its own config file; the XDG entries
 # are for anything that asks QStandardPaths directly, so that no test can
-# write into the home directory of whoever runs it.
+# write into the home directory of whoever runs it. LC_ALL keeps the numbers
+# in the English the tests read ("24,000 taps", "+6.0 dB"), whatever the
+# locale of whoever runs them.
 set(RB_QML_TEST_HOME "${CMAKE_CURRENT_BINARY_DIR}/test-home")
 file(MAKE_DIRECTORY "${RB_QML_TEST_HOME}")
 set_tests_properties(qml.mainwindow PROPERTIES
     ENVIRONMENT
-        "QT_QPA_PLATFORM=offscreen;QT_QUICK_CONTROLS_STYLE=Basic;XDG_DATA_HOME=${RB_QML_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_TEST_HOME}/cache"
+        "QT_QPA_PLATFORM=offscreen;QT_QUICK_CONTROLS_STYLE=Basic;LC_ALL=en_US.UTF-8;XDG_DATA_HOME=${RB_QML_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_TEST_HOME}/cache"
 )
 
 # **The same suite under the Reverblabr control style** ([ADR-0012]).
@@ -54,5 +56,5 @@ if(EXISTS "/usr/share/color-schemes/BreezeLight.colors")
 endif()
 set_tests_properties(qml.mainwindow.reverblabr-style PROPERTIES
     ENVIRONMENT
-        "QT_QPA_PLATFORM=offscreen;QT_QPA_PLATFORMTHEME=kde;QT_QUICK_CONTROLS_STYLE=Reverblabr;XDG_DATA_HOME=${RB_QML_STYLE_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_STYLE_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_STYLE_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_STYLE_TEST_HOME}/cache"
+        "QT_QPA_PLATFORM=offscreen;QT_QPA_PLATFORMTHEME=kde;QT_QUICK_CONTROLS_STYLE=Reverblabr;LC_ALL=en_US.UTF-8;XDG_DATA_HOME=${RB_QML_STYLE_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_STYLE_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_STYLE_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_STYLE_TEST_HOME}/cache"
 )
