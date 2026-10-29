@@ -22,8 +22,9 @@ class BlockRegistry;
 
 namespace rb::pw
 {
+class Connection;
 class VirtualDeviceManager;
-}
+} // namespace rb::pw
 
 namespace rb::core
 {
@@ -96,6 +97,11 @@ public:
     /// The runtime of an open session, or null. For tests and for the
     /// telemetry sampler; nothing above the facade uses it.
     [[nodiscard]] class SessionRuntime *runtimeOf(const QString &sessionId) const;
+
+    /// The connection to PipeWire the sessions share. For tests, which stop
+    /// and start it to stand in for PipeWire restarting; nothing above the
+    /// facade uses it.
+    [[nodiscard]] pw::Connection &connection();
 
     /// Where an open session's levels are published, or null when there is
     /// no such session. **This is how meters are read** — not through the

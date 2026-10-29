@@ -134,6 +134,11 @@ public:
     std::map<QString, Open> open;
     /// The sessions that have been edited since they were last written.
     QSet<QString> unsaved;
+    /// **Running when PipeWire went away**, and to run again once it is back.
+    /// A Stop or a close in between takes a session off.
+    QSet<QString> resumeWhenConnected;
+    /// Set while resumeSessions() starts one, which is not a person's Start.
+    bool resuming = false;
     /// Armed by an edit, and restarted by the next one, so that a drag of a
     /// knob is one write rather than a hundred.
     QTimer autosave;
@@ -226,6 +231,24 @@ public:
     {
         const QString id = session.session.id.toString(QUuid::WithoutBraces);
         Q_EMIT q->sessionSnapshot(id, session.session.revision, asJson(sessionToJson(session.session)));
+    }
+
+    /// Starts again the sessions PipeWire took down, once the connection is
+    /// back. Each starts as it would have from the window, the links to
+    /// what it captures coming as those nodes appear.
+    void resumeSessions()
+    {
+        if (!connection.isConnected()) {
+            return;
+        }
+        const QSet<QString> waiting = std::exchange(resumeWhenConnected, {});
+        for (const QString &id : waiting) {
+            if (find(id) != nullptr) {
+                resuming = true;
+                q->start(id);
+                resuming = false;
+            }
+        }
     }
 
     void setState(Open &session, QLatin1StringView state)
@@ -480,7 +503,10 @@ Engine::Engine(const dsp::BlockRegistry &registry, SessionStore store, PresetSto
     // that has to ask every second whether PipeWire is there is a window
     // that finds out a second late; this way the banner appears as the
     // connection goes and is gone as it comes back.
-    connect(&d->connection, &pw::Connection::stateChanged, this, [this] { d->publishAudioSystem(); });
+    connect(&d->connection, &pw::Connection::stateChanged, this, [this] {
+        d->publishAudioSystem();
+        d->resumeSessions();
+    });
     // The session manager is a client of the server like any other, so what
     // it is and which version it is arrive with the rest of the graph.
     connect(&d->mirror, &pw::RegistryMirror::clientAdded, this, [this] { d->publishAudioSystem(); });
@@ -547,6 +573,11 @@ int Engine::shareTelemetry(const QString &sessionId) const
 pw::VirtualDeviceManager &Engine::virtualDevices()
 {
     return d->virtualDevices;
+}
+
+pw::Connection &Engine::connection()
+{
+    return d->connection;
 }
 
 SessionRuntime *Engine::runtimeOf(const QString &sessionId) const
@@ -668,6 +699,7 @@ void Engine::closeSession(const QString &sessionId)
     if (session == nullptr) {
         return;
     }
+    d->resumeWhenConnected.remove(sessionId);
     session->telemetry->watch(nullptr);
     session->telemetry->stop();
     if (session->runtime) {
@@ -1048,6 +1080,20 @@ void Engine::start(const QString &sessionId)
         connect(session->runtime.get(), &SessionRuntime::feedbackRefused, this, [this](const QString &path) {
             d->fail(ErrorCode::RoutingFeedbackLoop, {path});
         });
+        // **PipeWire went away under it** (PipeWire or WirePlumber
+        // restarting): stopped properly, so its recordings are finished and
+        // its meters go down, and started again as soon as the connection is
+        // back. Meanwhile it is starting, which is what it is waiting to do.
+        connect(session->runtime.get(), &SessionRuntime::audioSystemLost, this, [this, sessionId] {
+            if (d->find(sessionId) == nullptr) {
+                return;
+            }
+            stop(sessionId);
+            d->resumeWhenConnected.insert(sessionId);
+            d->setState(*d->find(sessionId), sessionState::starting);
+            // The connection may already be back by the time this is heard.
+            d->resumeSessions();
+        });
         connect(session->runtime.get(),
                 &SessionRuntime::recordingFileStarted,
                 this,
@@ -1155,6 +1201,9 @@ void Engine::start(const QString &sessionId)
     // **After the session is running**, and only on a start that did
     // something: a second Start on a session that is already running is not
     // a start, and must not open the call again.
+    if (d->resuming) {
+        return; // the call was opened when the session first started
+    }
     for (const QString &url : urlsToOpen(session->session)) {
         Q_EMIT openUrlRequested(sessionId, url);
     }
@@ -1166,6 +1215,7 @@ void Engine::stop(const QString &sessionId)
     if (session == nullptr) {
         return;
     }
+    d->resumeWhenConnected.remove(sessionId);
     if (!session->runtime || !session->runtime->isRunning()) {
         d->setState(*session, sessionState::idle);
         return;

@@ -17,6 +17,7 @@
 #include "core/telemetry.h"
 #include "dsp/blockregistry.h"
 #include "dsp/decibel.h"
+#include "pw/connection.h"
 #include "pw/sessionnode.h"
 #include "pw/virtualdeviceconf.h"
 #include "pw/virtualdevicemanager.h"
@@ -164,6 +165,115 @@ TEST_F(EngineThroughTheFacade, MakesASessionRunsItAndTheSoundComesOut)
         const Graph graph = Graph::capture();
         return graph.node(ours->id) == nullptr;
     })) << "Stop left the node in the graph";
+}
+
+namespace
+{
+
+/// A session of a source, a gain and an output, made through the facade.
+[[nodiscard]] QString makeGainSession(Engine &engine, QSignalSpy &opened)
+{
+    engine.createSession(u"Comes back"_s);
+    const QString id = opened.back().at(0).toString();
+    engine.applyEdit(id, addBlockEdit(u"src"_s, test::PassThroughSource::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"fx"_s, test::FixedGainEffect::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"out"_s, test::PassThroughOutput::kTypeId));
+    for (std::uint32_t channel = 0; channel < 2; ++channel) {
+        engine.applyEdit(id, connectEdit(u"src"_s, channel, u"fx"_s, channel));
+        engine.applyEdit(id, connectEdit(u"fx"_s, channel, u"out"_s, channel));
+    }
+    return id;
+}
+
+} // namespace
+
+// **PipeWire going away does not end a running session** (PipeWire or
+// WirePlumber restarting on the desktop): the session says it is starting
+// while there is no PipeWire, and runs again by itself once there is, with
+// its node back in the graph and the sound going through it. Stopping and
+// starting the connection stands in for the restart, as in pw.registry.
+TEST_F(EngineThroughTheFacade, ARunningSessionRunsAgainWhenPipeWireComesBack)
+{
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    const dsp::BlockRegistry registry = testRegistry();
+    Engine engine(registry, SessionStore{sessions.path()});
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    QSignalSpy states(&engine, &EngineFacade::stateChanged);
+    QSignalSpy errors(&engine, &EngineFacade::error);
+
+    engine.connectToPipeWire();
+    Waiter pump;
+    ASSERT_TRUE(pump.pumpUntil([&] { return engine.isConnected(); }));
+    const QString id = makeGainSession(engine, opened);
+    engine.start(id);
+    ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+    ASSERT_EQ(states.back().at(1).toString(), u"running"_s);
+    const QString nodeName = engine.runtimeOf(id)->node()->nodeName();
+    const std::optional<Graph::Node> before = pump.awaitNode(nodeName);
+    ASSERT_TRUE(before.has_value());
+
+    engine.connection().stop();
+    ASSERT_TRUE(pump.pumpUntil([&] { return states.back().at(1).toString() == u"starting"_s; }))
+        << "the session did not say it was waiting; it says " << states.back().at(1).toString().toStdString();
+    EXPECT_FALSE(engine.runtimeOf(id)->isRunning());
+
+    engine.connection().start();
+    ASSERT_TRUE(pump.pumpUntil([&] { return states.back().at(1).toString() == u"running"_s; }))
+        << "the session did not run again; it says " << states.back().at(1).toString().toStdString();
+    EXPECT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+
+    // A node of the same name, new in the graph, and the sound through it.
+    const std::optional<Graph::Node> after = pump.awaitNode(nodeName);
+    ASSERT_TRUE(after.has_value()) << "no node in the graph after PipeWire came back";
+    ASSERT_TRUE(pump.awaitPorts(after->id, "input", 2));
+    ASSERT_TRUE(pump.awaitPorts(after->id, "output", 2));
+    FakeApp app(appOptions("BackApp", "backapp"));
+    const std::optional<Graph::Node> stream = pump.awaitMatch(playbackStreamOf("BackApp"));
+    ASSERT_TRUE(stream.has_value());
+    ASSERT_TRUE(pump.awaitPorts(stream->id, "output", 2));
+    ASSERT_EQ(linkByChannel(stream->id, after->id), 2U);
+    CaptureNode capture(captureOptions("rbtest.capture.back", 1000.0));
+    const std::optional<Graph::Node> captureNode = capture.waitUntilReady();
+    ASSERT_TRUE(captureNode.has_value());
+    ASSERT_EQ(linkByChannel(after->id, captureNode->id), 2U);
+    pump.pump(std::chrono::milliseconds{500});
+    const std::map<std::string, SineCheck> heard = capture.measureSine(300ms);
+    ASSERT_TRUE(heard.contains("FL"));
+    EXPECT_NEAR(heard.at("FL").peakDb, kTonePeakDb - 6.02, 0.3) << "the session's gain was not heard after the restart";
+
+    engine.stop(id);
+    EXPECT_EQ(states.back().at(1).toString(), u"idle"_s);
+}
+
+// **A session stopped while it waits stays stopped**: Stop is what the
+// person asked for last, and PipeWire coming back must not undo it.
+TEST_F(EngineThroughTheFacade, ASessionStoppedWhilePipeWireIsAwayStaysStopped)
+{
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    const dsp::BlockRegistry registry = testRegistry();
+    Engine engine(registry, SessionStore{sessions.path()});
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    QSignalSpy states(&engine, &EngineFacade::stateChanged);
+
+    engine.connectToPipeWire();
+    Waiter pump;
+    ASSERT_TRUE(pump.pumpUntil([&] { return engine.isConnected(); }));
+    const QString id = makeGainSession(engine, opened);
+    engine.start(id);
+    ASSERT_EQ(states.back().at(1).toString(), u"running"_s);
+
+    engine.connection().stop();
+    ASSERT_TRUE(pump.pumpUntil([&] { return states.back().at(1).toString() == u"starting"_s; }));
+    engine.stop(id);
+    ASSERT_EQ(states.back().at(1).toString(), u"idle"_s);
+
+    engine.connection().start();
+    ASSERT_TRUE(pump.pumpUntil([&] { return engine.isConnected(); }));
+    pump.pump(std::chrono::milliseconds{500});
+    EXPECT_EQ(states.back().at(1).toString(), u"idle"_s) << "PipeWire coming back started a stopped session";
+    EXPECT_FALSE(engine.runtimeOf(id)->isRunning());
 }
 
 TEST_F(EngineThroughTheFacade, ASessionSurvivesBeingSavedClosedAndOpenedAgain)

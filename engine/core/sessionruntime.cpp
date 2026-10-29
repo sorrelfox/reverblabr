@@ -340,6 +340,9 @@ public:
     std::uint64_t replans = 0;
     double sampleRate = kStartingRate;
     bool running = false;
+    /// audioSystemLost() has been said for this run: every node goes with the
+    /// same connection, and once is enough.
+    bool lostSaid = false;
     /// The rings already reported while this run lasts, by their
     /// description.
     QSet<QString> reportedLoops;
@@ -1405,6 +1408,16 @@ public:
         Segment &made = segments[segment];
         made.node = std::make_unique<pw::SessionNode>(connection);
         made.overloadsSeen = 0;
+        // **A node that loses its connection takes the session with it.** It
+        // has stopped itself; queued, so that what hears it is not inside the
+        // connection's teardown.
+        QObject::connect(made.node.get(), &pw::SessionNode::failed, q, [this](pw::SessionNodeError error) {
+            if (error != pw::SessionNodeError::NotConnected || !running || lostSaid) {
+                return;
+            }
+            lostSaid = true;
+            QMetaObject::invokeMethod(q, [this] { Q_EMIT q->audioSystemLost(); }, Qt::QueuedConnection);
+        });
         made.node->setFadeDuration(kEditFade);
         pw::SessionNodeSpec nodeSpec;
         nodeSpec.sessionId = wanted.id.toString(QUuid::WithoutBraces);
@@ -1567,6 +1580,7 @@ std::expected<void, RuntimeError> SessionRuntime::start(const Session &session)
 
     d->session = session;
     d->running = true;
+    d->lostSaid = false;
     d->publishLinks();
     d->applyGapLanes(session);
     d->overloadWatch.start();

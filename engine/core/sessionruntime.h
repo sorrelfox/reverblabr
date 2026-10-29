@@ -198,6 +198,12 @@ Q_SIGNALS:
     /// starts.
     void feedbackRefused(const QString &path);
 
+    /// **The audio system went away under the session** (PipeWire or
+    /// WirePlumber restarting): its nodes are gone and nothing of it runs,
+    /// though it has not been stopped. Once a run, after the connection has
+    /// finished taking everything down.
+    void audioSystemLost();
+
     /// **A Recorder has started a file**, at \a path. Every file started is
     /// finished, by recordingFileFinished(), whatever else happens to it.
     void recordingFileStarted(const QString &blockId, const QString &path);
