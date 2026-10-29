@@ -33,6 +33,10 @@ refused() {
     grep -qF -- "$expected" "$work_dir/stderr" || fail "no \"$expected\" when refusing: $what"
 }
 
+# **A GitHub Actions run says which ref it is for**, and check-release-tag
+# reads that before HEAD's tag. The cases below set it where they mean to.
+unset GITHUB_REF_NAME
+
 cd "$work_dir"
 git init -q repo
 cd repo

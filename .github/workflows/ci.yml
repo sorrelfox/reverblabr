@@ -30,7 +30,11 @@ jobs:
     container: registry.fedoraproject.org/fedora:44
     steps:
       - name: Tools
-        run: dnf -y install git clang-tools-extra reuse python3 diffutils > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+        run: |
+          dnf -y install git clang-tools-extra reuse python3 diffutils > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+          # The job is root in the container and the checkout is not, which
+          # git refuses to read ("dubious ownership") until told it is ours.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: actions/checkout@v4
         with:
           # The sign-off and clean-room checks read the commits being added.
@@ -72,7 +76,9 @@ jobs:
     timeout-minutes: 150
     steps:
       - name: Git
-        run: dnf -y install git > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+        run: |
+          dnf -y install git > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: actions/checkout@v4
       - name: Packages (tools/deps/fedora.txt)
         run: dnf -y install $(sed 's/#.*//' tools/deps/fedora.txt) > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
