@@ -34,6 +34,8 @@ constexpr std::array kSignals{
     "StateChanged",
     "BlockCatalogueChanged",
     "RecordingFileStarted",
+    "TimersListed",
+    "TimerFired",
     "Error",
 };
 
@@ -169,6 +171,37 @@ Result<QJsonArray> EngineClient::listSessions()
         return std::unexpected(heard.error());
     }
     return QJsonDocument::fromJson(heard->arguments.value(0).toString().toUtf8()).array();
+}
+
+Result<QJsonArray> EngineClient::listTimers()
+{
+    const Result<Heard> heard =
+        ask(u"ListTimers"_s, {}, [](const Heard &heard) { return heard.signal == "TimersListed"_L1; });
+    if (!heard) {
+        return std::unexpected(heard.error());
+    }
+    return QJsonDocument::fromJson(heard->arguments.value(0).toString().toUtf8()).array();
+}
+
+Result<QString> EngineClient::fireTimer(const QString &timerId)
+{
+    const Result<Heard> heard = ask(
+        u"FireTimer"_s,
+        {timerId},
+        [&](const Heard &heard) {
+            return heard.signal == "TimerFired"_L1 && heard.arguments.value(0).toString() == timerId;
+        },
+        [&](const QString &code, const QJsonObject &args) {
+            return code == "timer.notFound"_L1 && args.value("timer"_L1).toString() == timerId;
+        });
+    if (!heard) {
+        // No such timer is a name that matches nothing, as a session's is.
+        if (heard.error().code == "timer.notFound"_L1) {
+            return fail(ExitCode::NotFound, heard.error().code, heard.error().args);
+        }
+        return std::unexpected(heard.error());
+    }
+    return heard->arguments.value(1).toString();
 }
 
 namespace

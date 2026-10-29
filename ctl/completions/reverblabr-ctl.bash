@@ -23,6 +23,15 @@ _reverblabr_ctl_sessions()
     done
 }
 
+# The timers' ids: each line of `timers list` ends with one, in brackets.
+_reverblabr_ctl_timers()
+{
+    local ids
+    ids=$(reverblabr-ctl --no-activate --timeout 2 timers list 2>/dev/null |
+        sed -n 's/.*(\([A-Za-z0-9_-]*\))$/\1/p') || return
+    mapfile -t COMPREPLY < <(compgen -W "$ids" -- "$cur")
+}
+
 _reverblabr_ctl()
 {
     local cur
@@ -34,7 +43,7 @@ _reverblabr_ctl()
     cur=${cur//\\/}
     COMPREPLY=()
 
-    local commands="list status start stop split switch set"
+    local commands="list status start stop split switch set timers timer-fire"
     local options="--json --timeout --no-activate --help --version"
 
     # The command is the first word after the options.
@@ -68,6 +77,16 @@ _reverblabr_ctl()
         elif [[ $command == switch ]]; then
             mapfile -t COMPREPLY < <(compgen -W "A B" -- "$cur")
         fi
+        ;;
+    timers)
+        if ((position == 0)); then
+            mapfile -t COMPREPLY < <(compgen -W "list" -- "$cur")
+        elif ((position == 1)); then
+            _reverblabr_ctl_sessions
+        fi
+        ;;
+    timer-fire)
+        ((position == 0)) && _reverblabr_ctl_timers
         ;;
     esac
 }

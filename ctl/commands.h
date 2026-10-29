@@ -42,6 +42,11 @@ switchCommand(EngineClient &engine, const QString &session, const QString &block
                                          const QString &param,
                                          const QString &value);
 
+/// Every session's timers, or one session's.
+[[nodiscard]] Result<Outcome> timersCommand(EngineClient &engine, const QString &session);
+/// What a timer does when its time comes: what its systemd timer runs.
+[[nodiscard]] Result<Outcome> timerFireCommand(EngineClient &engine, const QString &timerId);
+
 /// A failure for a person, in their language.
 [[nodiscard]] QString describe(const Failure &failure);
 

@@ -204,6 +204,26 @@ public:
         });
     }
 
+    /// Gives a session a timer, as the Schedule tab does.
+    [[nodiscard]] bool setTimer(const QString &sessionId, const QJsonObject &timer)
+    {
+        const QJsonObject edit{{"op"_L1, u"setTimer"_s}, {"timer"_L1, timer}};
+        const qsizetype before = m_heard.size();
+        if (!call(u"ApplyEdit"_s, {sessionId, QString::fromUtf8(QJsonDocument(edit).toJson(QJsonDocument::Compact))})) {
+            return false;
+        }
+        return waitFor([&] {
+            for (qsizetype index = before; index < m_heard.size(); ++index) {
+                const QJsonObject patch =
+                    QJsonDocument::fromJson(m_heard[index].arguments().value(2).toString().toUtf8()).object();
+                if (m_heard[index].member() == "SessionPatch"_L1 && patch.value("op"_L1).toString() == "setTimer"_L1) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
     /// Whether the window's Undo would take something back now.
     [[nodiscard]] bool canUndo(const QString &sessionId)
     {
@@ -546,6 +566,57 @@ TEST_F(CtlMock, AMistypedNameOrCommandLineHasAnExitCodeOfItsOwn)
     EXPECT_EQ(ctl({u"set"_s, u"Twin"_s}).exit, 2);
     EXPECT_EQ(ctl({u"--timeout"_s, u"soon"_s, u"list"_s}).exit, 2);
     EXPECT_EQ(ctl({u"--json"_s, u"--frobnicate"_s, u"list"_s}).errorCode(), u"ctl.usage"_s);
+}
+
+// **What a timer's systemd unit runs**, and the list a person checks
+// the timers with.
+TEST_F(CtlMock, TimersAreListedAndTimerFireStartsTheTimersSession)
+{
+    const QString id = session(kSpaced);
+    (void)session(u"Quiet"_s);
+    const QJsonObject timer{{"id"_L1, u"morning"_s},
+                            {"enabled"_L1, true},
+                            {"repeat"_L1, u"days"_s},
+                            {"days"_L1, QJsonArray{u"mon"_s, u"thu"_s}},
+                            {"time"_L1, u"07:30"_s},
+                            {"duration"_L1, 5400},
+                            {"quitApplications"_L1, false}};
+    ASSERT_TRUE(listener->setTimer(id, timer));
+
+    const ToolRun json = ctl({u"--json"_s, u"timers"_s, u"list"_s});
+    ASSERT_EQ(json.exit, 0) << json.err.toStdString();
+    EXPECT_EQ(keysOf(json.json()), keys({"timers"}));
+    const QJsonArray timers = json.json().value("timers"_L1).toArray();
+    ASSERT_EQ(timers.size(), 1);
+    const QJsonObject listed = timers.at(0).toObject();
+    EXPECT_EQ(listed.value("id"_L1).toString(), u"morning"_s);
+    EXPECT_EQ(listed.value("sessionId"_L1).toString(), id);
+    EXPECT_EQ(listed.value("sessionName"_L1).toString(), kSpaced);
+    EXPECT_EQ(listed.value("onCalendar"_L1).toString(), u"Mon,Thu *-*-* 07:30:00"_s);
+    EXPECT_TRUE(listed.value("nextRun"_L1).isDouble());
+
+    const ToolRun plain = ctl({u"timers"_s, u"list"_s, kSpaced});
+    ASSERT_EQ(plain.exit, 0) << plain.err.toStdString();
+    ASSERT_EQ(plain.lines().size(), 1);
+    // The days are the system's short names for them, in its language.
+    EXPECT_TRUE(plain.lines().at(0).startsWith(kSpaced + u": "_s)) << plain.lines().at(0).toStdString();
+    EXPECT_TRUE(plain.lines().at(0).contains(u" at 07:30 for 1 h 30 min, next "_s))
+        << plain.lines().at(0).toStdString();
+    EXPECT_TRUE(plain.lines().at(0).endsWith(u" (morning)"_s));
+    EXPECT_EQ(ctl({u"timers"_s, u"list"_s, u"Quiet"_s}).lines(), QStringList{u"There are no timers."_s});
+
+    const ToolRun fired = ctl({u"--json"_s, u"timer-fire"_s, u"morning"_s});
+    ASSERT_EQ(fired.exit, 0) << fired.out.toStdString() << fired.err.toStdString();
+    EXPECT_EQ(keysOf(fired.json()), keys({"timer", "session"}));
+    EXPECT_EQ(fired.json().value("session"_L1).toString(), id);
+    EXPECT_EQ(states().value(kSpaced), u"running"_s);
+
+    const ToolRun nowhere = ctl({u"--json"_s, u"timer-fire"_s, u"evening"_s});
+    EXPECT_EQ(nowhere.exit, 3);
+    EXPECT_EQ(nowhere.errorCode(), u"timer.notFound"_s);
+    EXPECT_EQ(ctl({u"timers"_s}).exit, 2);
+    EXPECT_EQ(ctl({u"timers"_s, u"add"_s}).exit, 2);
+    EXPECT_EQ(ctl({u"timer-fire"_s}).exit, 2);
 }
 
 TEST_F(CtlMock, JsonIsTheSameInEveryLanguageAndAPersonReadsTheirOwn)

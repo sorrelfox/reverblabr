@@ -11,8 +11,10 @@
 #include "lookup.h"
 #include "translate.h"
 
+#include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QLocale>
 
 #include <functional>
 
@@ -82,6 +84,70 @@ template <typename Work>
         }
     }
     return done;
+}
+
+/// How long a timer runs, as a person says it.
+[[nodiscard]] QString durationWords(int seconds)
+{
+    const int minutes = seconds / 60;
+    if (minutes == 0) {
+        return ctlTr("@info a timer's duration in seconds", "%1 s").arg(seconds);
+    }
+    if (minutes < 60) {
+        return ctlTr("@info a timer's duration in minutes", "%1 min").arg(minutes);
+    }
+    if (minutes % 60 == 0) {
+        return ctlTr("@info a timer's duration in hours", "%1 h").arg(minutes / 60);
+    }
+    return ctlTr("@info a timer's duration in hours and minutes", "%1 h %2 min").arg(minutes / 60).arg(minutes % 60);
+}
+
+/// When a timer comes round, as a person says it: "every day", "Mon, Thu".
+[[nodiscard]] QString repeatWords(const QJsonObject &timer)
+{
+    const QString repeat = timer.value("repeat"_L1).toString();
+    if (repeat == "once"_L1) {
+        return ctlTr("@info a timer that runs once, on a date", "once on %1").arg(timer.value("date"_L1).toString());
+    }
+    if (repeat == "daily"_L1) {
+        return ctlTr("@info a timer's days", "every day");
+    }
+    if (repeat == "weekdays"_L1) {
+        return ctlTr("@info a timer's days", "Monday to Friday");
+    }
+    static const QStringList kDays{u"mon"_s, u"tue"_s, u"wed"_s, u"thu"_s, u"fri"_s, u"sat"_s, u"sun"_s};
+    QStringList days;
+    for (const QJsonValue &day : timer.value("days"_L1).toArray()) {
+        days.append(
+            QLocale::system().dayName(static_cast<int>(kDays.indexOf(day.toString())) + 1, QLocale::ShortFormat));
+    }
+    return days.join(", "_L1);
+}
+
+/// One timer on a line: its session, when, for how long, when next, and the
+/// id `timer-fire` takes.
+[[nodiscard]] QString timerLine(const QJsonObject &timer)
+{
+    const QString when = ctlTr("@info a timer: its days, its time and how long it runs", "%1 at %2 for %3")
+                             .arg(repeatWords(timer),
+                                  timer.value("time"_L1).toString(),
+                                  durationWords(timer.value("duration"_L1).toInt()));
+    QString next;
+    if (!timer.value("enabled"_L1).toBool()) {
+        next = ctlTr("@info a timer that is switched off", "off");
+    } else if (timer.contains("endsAt"_L1)) {
+        next = ctlTr("@info a timer running its session, and until when", "running until %1")
+                   .arg(QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(timer.value("endsAt"_L1).toDouble()))
+                            .toString(u"yyyy-MM-dd HH:mm"_s));
+    } else if (timer.contains("nextRun"_L1)) {
+        next = ctlTr("@info when a timer next starts its session", "next %1")
+                   .arg(QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(timer.value("nextRun"_L1).toDouble()))
+                            .toString(u"yyyy-MM-dd HH:mm"_s));
+    } else {
+        next = ctlTr("@info a timer that will not start its session again", "not again");
+    }
+    return ctlTr("@info session: a timer, when it next runs, and its id", "%1: %2, %3 (%4)")
+        .arg(timer.value("sessionName"_L1).toString(), when, next, timer.value("id"_L1).toString());
 }
 
 } // namespace
@@ -355,6 +421,59 @@ Result<Outcome> setCommand(EngineClient &engine,
         });
 }
 
+Result<Outcome> timersCommand(EngineClient &engine, const QString &wanted)
+{
+    QString sessionId;
+    if (!wanted.isEmpty()) {
+        const Result<SessionEntry> entry = session(engine, wanted);
+        if (!entry) {
+            return std::unexpected(entry.error());
+        }
+        sessionId = entry->id;
+    }
+    const Result<QJsonArray> timers = engine.listTimers();
+    if (!timers) {
+        return std::unexpected(timers.error());
+    }
+    Outcome outcome;
+    QJsonArray listed;
+    for (const QJsonValue &value : *timers) {
+        const QJsonObject timer = value.toObject();
+        if (!sessionId.isEmpty() && timer.value("sessionId"_L1).toString() != sessionId) {
+            continue;
+        }
+        listed.append(timer);
+        outcome.lines.append(timerLine(timer));
+    }
+    if (listed.isEmpty()) {
+        outcome.lines.append(ctlTr("@info", "There are no timers."));
+    }
+    outcome.json.insert("timers"_L1, listed);
+    return outcome;
+}
+
+Result<Outcome> timerFireCommand(EngineClient &engine, const QString &timerId)
+{
+    const Result<QString> sessionId = engine.fireTimer(timerId);
+    if (!sessionId) {
+        return std::unexpected(sessionId.error());
+    }
+    Outcome outcome;
+    outcome.json = {{"timer"_L1, timerId}, {"session"_L1, *sessionId}};
+    // The session's name for the journal, when the list gives it; the
+    // timer has fired either way.
+    QString name = *sessionId;
+    if (const Result<std::vector<SessionEntry>> all = sessions(engine); all) {
+        for (const SessionEntry &entry : *all) {
+            if (entry.id == *sessionId) {
+                name = entry.name;
+            }
+        }
+    }
+    outcome.lines.append(ctlTr("@info", "The timer %1 started “%2”.").arg(timerId, name));
+    return outcome;
+}
+
 QString describe(const Failure &failure)
 {
     const QJsonObject &args = failure.args;
@@ -436,6 +555,9 @@ QString describe(const Failure &failure)
     }
     if (code == "edit.refused"_L1) {
         return ctlTr("@info", "The engine refused the change (%1).").arg(arg("reason"));
+    }
+    if (code == "timer.notFound"_L1) {
+        return ctlTr("@info", "There is no timer “%1”.").arg(arg("timer"));
     }
     if (code == "recording.refused"_L1) {
         return ctlTr("@info", "The recording could not be split (%1).").arg(arg("reason"));

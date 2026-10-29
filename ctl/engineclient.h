@@ -66,6 +66,10 @@ public:
     /// Ends a running Recorder's file and starts the next; the new file.
     [[nodiscard]] Result<QString> split(const QString &sessionId, const QString &blockId);
     /// One setting, as one step the window can undo.
+    /// Every session's timers, as TimersListed carries them.
+    [[nodiscard]] Result<QJsonArray> listTimers();
+    /// Does what the timer does when its time comes; the session it starts.
+    [[nodiscard]] Result<QString> fireTimer(const QString &timerId);
     [[nodiscard]] Result<void>
     setParam(const QString &sessionId, const QString &blockId, const QString &param, const QJsonValue &value);
 

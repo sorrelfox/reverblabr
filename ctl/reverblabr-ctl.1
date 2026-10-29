@@ -14,7 +14,8 @@ reverblabr\-ctl \- run and change Reverblabr sessions from a terminal or a scrip
 .SH DESCRIPTION
 .B reverblabr\-ctl
 asks Reverblabr's engine to start and stop sessions, split their
-recordings, turn their Input Switches and change their blocks' settings.
+recordings, turn their Input Switches, change their blocks' settings and
+list and fire their timers.
 It is a client of the engine's public D-Bus API on the session bus, and
 the engine does the work: a session changed here changes in every open
 Reverblabr window at the same time.
@@ -54,6 +55,17 @@ Changes one setting of a block, as one step the window can undo. The value
 is checked against the setting: a number in its range, true or false (also
 on, off, yes, no, 1, 0), or one of its choices. A session only on disk is
 opened for the change and closed again, and the change is saved.
+.TP
+.BR "timers list" " [\fIsession\fR]"
+Every session's timers, or one session's, a line each: when it runs, for
+how long, when it next starts its session, and its id in brackets.
+Timers are made in the Schedule tab.
+.TP
+.BI timer\-fire " timer"
+Does now what the timer does when its time comes: opens its session if it
+is only on disk, starts it, and has the engine stop it once the timer's
+duration is over. The systemd user timer Reverblabr writes for each timer
+that is on runs this. A session already running is left as it is.
 .SH OPTIONS
 .TP
 .B \-\-json
@@ -88,7 +100,7 @@ The command line was wrong: an unknown command or option, a missing
 argument, or a value the setting cannot take.
 .TP
 .B 3
-No session, block or setting by that name, or more than one.
+No session, block, setting or timer by that name, or more than one.
 .TP
 .B 4
 No engine to ask: no session bus, or the engine is not installed, would

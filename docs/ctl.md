@@ -12,6 +12,7 @@ reverblabr-ctl start "Evening radio"
 reverblabr-ctl switch "Evening radio" B
 reverblabr-ctl set "Evening radio" Voice gain 0.5
 reverblabr-ctl split "Evening radio"
+reverblabr-ctl timers list
 reverblabr-ctl status --json | jq -r '.sessions[] | select(.state == "running") | .name'
 ```
 
@@ -28,6 +29,8 @@ The first call starts the engine if it is installed and not running. It needs Qt
 | `split SESSION [RECORDER]` | ends the file each Recorder of a running session is writing, or the named one's, and starts the next with no gap |
 | `switch SESSION [SWITCH] A\|B` | turns an Input Switch to A or B; the switch may be left out when the session has only one |
 | `set SESSION BLOCK SETTING VALUE` | changes one setting, as one step the window can undo |
+| `timers list [SESSION]` | every session's timers, or one's, a line each: when it runs, for how long, when it next starts its session, and its id in brackets |
+| `timer-fire TIMER` | does now what the timer does when its time comes: opens its session if it is only on disk, starts it, and has the engine stop it once the timer's duration is over. A session already running is left as it is |
 
 **Naming things:**
 - A session is named by its name or its id, and a block by its name (the one given it in the window) or its id.
@@ -45,7 +48,9 @@ The first call starts the engine if it is installed and not running. It needs Qt
 - `--no-activate`: asks only an engine that is already running, and never starts one. The shell completions use it, so pressing Tab never starts the engine.
 - `--help`, `--version`, and `--` to end the options before a name that starts with a dash.
 
-**Not here yet:** timers (`timers list`, `timer-fire`) come with the Schedule tab, and scripts (`run-script`) after 1.0.
+**Timers** are made in the window's Schedule tab ([On the desktop](desktop.md#sessions-on-a-schedule)). For each timer that is on, Reverblabr keeps a systemd user timer whose service runs `reverblabr-ctl timer-fire` with the timer's id, so the session starts even with no window open; `systemctl --user list-timers 'reverblabr-timer-*'` shows them. Running `timer-fire` yourself is a way to try a timer out.
+
+**Not here yet:** scripts (`run-script`), after 1.0.
 
 ## Exit status
 
@@ -54,7 +59,7 @@ The first call starts the engine if it is installed and not running. It needs Qt
 | 0 | done, or nothing to do (a session already running, or already stopped) |
 | 1 | the engine refused, with one of its [error codes](dbus-api.md#error-codes): a session could not start, a change was refused, a recording could not be split. Also `ctl.notRunning` and `ctl.dbusError` |
 | 2 | the command line was wrong: an unknown command or option, a missing argument, a value the setting cannot take |
-| 3 | no session, block or setting by that name, or more than one |
+| 3 | no session, block, setting or timer by that name, or more than one |
 | 4 | no engine to ask: no session bus, or the engine is not installed, would not start, or with `--no-activate` is not running |
 | 5 | the engine did not answer in time |
 
@@ -74,6 +79,8 @@ A session is always `{"id", "name", "state"}`, where `state` is `idle`, `startin
 | `split` | `{"session": session, "split": [{"block": id, "file": path}, …]}`: each Recorder and the file it has started |
 | `switch` | `{"session": session, "block": id, "param": "input", "value": "a"\|"b", "input": "a"\|"b"}` |
 | `set` | `{"session": session, "block": id, "param": id, "value": value}`, with the value as it was sent |
+| `timers list` | `{"timers": [timer, …]}`, each timer as [`TimersListed`](dbus-api.md#signals) gives it |
+| `timer-fire` | `{"timer": id, "session": id}`: the timer and the session it started |
 
 A failure prints `{"error": {"code": code, "args": {…}}}` and exits with its [code](#exit-status). The code is the engine's own when the engine refused, and one of the tool's otherwise:
 
@@ -92,10 +99,12 @@ A failure prints `{"error": {"code": code, "args": {…}}}` and exits with its [
 | `ctl.unreachable` | reason: `noSessionBus`, `notRunning`, or the D-Bus error (`org.freedesktop.DBus.Error.ServiceUnknown`, …) | 4 |
 | `ctl.timeout` | method | 5 |
 
+The engine's own codes exit with 1, except `timer.notFound` from `timer-fire`, a timer by that id in no session, which exits with 3.
+
 ## Languages
 
 What the tool says to a person follows `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` and `LANG`, from its own catalog, `reverblabr-ctl` (its template is made with the window's; see [i18n.md](i18n.md#tools)). `--json` never changes with the language.
 
 ## Completion
 
-bash and zsh complete the commands, the options, `A` and `B`, and the sessions' names, one name a word even with spaces in it. They are installed where each shell finds them: `share/bash-completion/completions/reverblabr-ctl` and `share/zsh/site-functions/_reverblabr-ctl`.
+bash and zsh complete the commands, the options, `A` and `B`, the timers' ids, and the sessions' names, one name a word even with spaces in it. They are installed where each shell finds them: `share/bash-completion/completions/reverblabr-ctl` and `share/zsh/site-functions/_reverblabr-ctl`.

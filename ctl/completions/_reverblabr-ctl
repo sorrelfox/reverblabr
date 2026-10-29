@@ -17,6 +17,14 @@ _reverblabr_ctl_sessions() {
   (( ${#names} )) && compadd -a names
 }
 
+_reverblabr_ctl_timers() {
+  local -a ids
+  ids=("${(@f)$(reverblabr-ctl --no-activate --timeout 2 timers list 2>/dev/null |
+    sed -n 's/.*(\([A-Za-z0-9_-]*\))$/\1/p')}")
+  ids=(${ids:#})
+  (( ${#ids} )) && compadd -a ids
+}
+
 _reverblabr-ctl() {
   local -a commands
   commands=(
@@ -27,6 +35,8 @@ _reverblabr-ctl() {
     'split:start a new file in a running session'"'"'s Recorders'
     'switch:turn an Input Switch to A or B'
     'set:change one setting of a block'
+    'timers:every session'"'"'s timers'
+    'timer-fire:do now what a timer does when its time comes'
   )
   _arguments -C \
     '--json[print the answer as JSON]' \
@@ -48,6 +58,16 @@ _reverblabr-ctl() {
           elif [[ $words[1] == switch ]]; then
             compadd A B
           fi
+          ;;
+        timers)
+          if (( CURRENT == 2 )); then
+            compadd list
+          elif (( CURRENT == 3 )); then
+            _reverblabr_ctl_sessions
+          fi
+          ;;
+        timer-fire)
+          (( CURRENT == 2 )) && _reverblabr_ctl_timers
           ;;
       esac
       ;;

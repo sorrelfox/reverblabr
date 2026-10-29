@@ -28,6 +28,11 @@ trap 'rm -rf "$scratch"' EXIT
 cat > "$scratch/reverblabr-ctl" <<'STANDIN'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${0%/*}/asked"
+if [[ $* == *"timers list"* ]]; then
+    printf '%s\n' "Talk: every day at 07:30 for 1 h, next 2026-11-04 07:30 (morning-1)" \
+        "Podcast (2) — Mic: Mon, Thu at 19:00 for 2 h, off (evening_2)"
+    exit 0
+fi
 printf '%s\n' "Evening radio" "Podcast — Mic + Call ☕" "Talk"
 STANDIN
 chmod +x "$scratch/reverblabr-ctl"
@@ -62,6 +67,16 @@ complete_words reverblabr-ctl start '"Evening r'
 
 complete_words reverblabr-ctl switch Talk ""
 [[ " ${COMPREPLY[*]} " == *" A "* && " ${COMPREPLY[*]} " == *" B "* ]] || fail "bash: switch offered '${COMPREPLY[*]}', not A and B"
+
+complete_words reverblabr-ctl timers ""
+[[ ${COMPREPLY[*]} == "list" ]] || fail "bash: timers offered '${COMPREPLY[*]}', not list"
+
+complete_words reverblabr-ctl timers list T
+[[ ${#COMPREPLY[@]} -eq 1 ]] || fail "bash: 'timers list T' offered ${#COMPREPLY[@]} names"
+
+complete_words reverblabr-ctl timer-fire ""
+[[ " ${COMPREPLY[*]} " == *" morning-1 "* && " ${COMPREPLY[*]} " == *" evening_2 "* && ${#COMPREPLY[@]} -eq 2 ]] ||
+    fail "bash: timer-fire offered '${COMPREPLY[*]}', not the two timers' ids"
 
 # **Tab never starts the engine**: every question it asked said so.
 if grep -qv -- '--no-activate' "$scratch/asked"; then

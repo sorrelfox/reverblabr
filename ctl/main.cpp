@@ -61,6 +61,8 @@ void write(std::FILE *stream, const QString &text)
                  "  split SESSION [RECORDER]          start a new file in a running session's Recorders\n"
                  "  switch SESSION [SWITCH] A|B       turn an Input Switch to A or B\n"
                  "  set SESSION BLOCK SETTING VALUE   change one setting of a block\n"
+                 "  timers list [SESSION]             every session's timers, or one's\n"
+                 "  timer-fire TIMER                  do now what a timer does when its time comes\n"
                  "\n"
                  "A session is named by its name or its id, a block by its name or its id.\n"
                  "  --json            print the answer as JSON, the same in every language\n"
@@ -144,6 +146,12 @@ void write(std::FILE *stream, const QString &text)
     if (command == "set"_L1) {
         return std::pair{4, 4};
     }
+    if (command == "timers"_L1) {
+        return std::pair{1, 2};
+    }
+    if (command == "timer-fire"_L1) {
+        return std::pair{1, 1};
+    }
     return std::nullopt;
 }
 
@@ -169,6 +177,12 @@ void write(std::FILE *stream, const QString &text)
     if (command == "switch"_L1) {
         return a.size() == 3 ? switchCommand(engine, a.at(0), a.at(1), a.at(2))
                              : switchCommand(engine, a.at(0), QString(), a.at(1));
+    }
+    if (command == "timers"_L1) {
+        return timersCommand(engine, a.value(1));
+    }
+    if (command == "timer-fire"_L1) {
+        return timerFireCommand(engine, a.at(0));
     }
     return setCommand(engine, a.at(0), a.at(1), a.at(2), a.at(3));
 }
@@ -228,7 +242,10 @@ int main(int argc, char **argv)
                QString(ctlTr("@info", "There is no command “%1”.").arg(options->command) + u"\n\n"_s + usage())}}},
             options->json);
     }
-    if (options->arguments.size() < counts->first || options->arguments.size() > counts->second) {
+    // `timers` has one thing to do so far, and says so: a later one is a
+    // new word after it rather than a new command.
+    if (options->arguments.size() < counts->first || options->arguments.size() > counts->second
+        || (options->command == "timers"_L1 && options->arguments.constFirst() != "list"_L1)) {
         return report({ExitCode::Usage, u"ctl.usage"_s, {{"message"_L1, usage()}}}, options->json);
     }
 
