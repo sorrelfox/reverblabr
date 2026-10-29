@@ -76,8 +76,11 @@ target_link_libraries(reverblabr-pseudo-check PRIVATE
     KF6::I18nQml
 )
 set(pseudo_home ${CMAKE_CURRENT_BINARY_DIR}/pseudo-home)
+# **English underneath, whatever the session speaks**: the catalog is the only
+# translation. LANGUAGE and LC_ALL beat LANG, and in a German session Qt would
+# put its own German under the check ("Strg+N"), which reads as untranslated.
 set(pseudo_env
-    "QT_QPA_PLATFORM=offscreen;LANG=en_US.UTF-8;XDG_DATA_HOME=${pseudo_home}/data;XDG_CONFIG_HOME=${pseudo_home}/config;XDG_STATE_HOME=${pseudo_home}/state;XDG_CACHE_HOME=${pseudo_home}/cache")
+    "QT_QPA_PLATFORM=offscreen;LANG=en_US.UTF-8;LC_ALL=en_US.UTF-8;LANGUAGE=en_US;XDG_DATA_HOME=${pseudo_home}/data;XDG_CONFIG_HOME=${pseudo_home}/config;XDG_STATE_HOME=${pseudo_home}/state;XDG_CACHE_HOME=${pseudo_home}/cache")
 # In the application's own style, and in the desktop's, which it follows by
 # default: they are not the same size, and a word can fit one and not the
 # other.
