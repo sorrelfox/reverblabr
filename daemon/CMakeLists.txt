@@ -8,7 +8,8 @@
 # reverblabrd: the engine as a service on the session bus (ADR-0017). The
 # engine, PipeWire, QtCore and QtDBus; no GUI and no KDE Frameworks.
 # Auto Run (ADR-0021): which sessions start with the engine, and the
-# user unit enabled while there are any. A library of its own so the unit
+# user unit enabled while there are any. The timers' systemd user units,
+# kept in step with the sessions' timers. A library of its own so the unit
 # tests can drive it against the mock engine and a fake service manager.
 # The sessions in KRunner (ADR-0023) are here too: the runner the daemon
 # serves, with its words from the notifications' catalog.
@@ -19,6 +20,10 @@ add_library(reverblabr-daemon-core STATIC
     autostartunit.h
     sessionrunner.cpp
     sessionrunner.h
+    timerschedule.cpp
+    timerschedule.h
+    timerunits.cpp
+    timerunits.h
 )
 target_include_directories(reverblabr-daemon-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(reverblabr-daemon-core PUBLIC reverblabr-engine reverblabr-notify Qt6::Core Qt6::DBus)

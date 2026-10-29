@@ -231,6 +231,22 @@ set_tests_properties(bus.autorun PROPERTIES
 )
 
 
+# The sessions' timers as systemd user units: written, enabled, restarted,
+# stopped and removed as the timers change, against a service manager on
+# the private bus and into a unit directory of the test's own, never the
+# desktop's.
+add_executable(reverblabr-timers-bus-test test_timerschedule.cpp)
+target_link_libraries(reverblabr-timers-bus-test PRIVATE
+    reverblabr-daemon-core reverblabr-engine reverblabr-blocks Qt6::DBus Qt6::Test GTest::gtest)
+set_target_properties(reverblabr-timers-bus-test PROPERTIES AUTOMOC ON)
+add_test(NAME bus.timers
+         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+                 -- $<TARGET_FILE:reverblabr-timers-bus-test>)
+set_tests_properties(bus.timers PROPERTIES
+    TIMEOUT 120
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+)
+
 # **One Reverblabr a desktop**: the real application, launched twice,
 # on the same private bus and in the same PID namespace as bus.engine. A
 # second launch hands its arguments to the first, as the desktop entry's New

@@ -47,6 +47,8 @@ Its Open starts `/usr/bin/reverblabr --open-session=<id>`, so it expects the win
 
 Nothing enables the unit except Auto Run ([ADR-0021](../docs/adr/0021-auto-run.md)): while any session is set to run at login, the daemon enables `reverblabrd.service` through the user service manager, and it disables it again once none is. A package should not enable it.
 
+**Timers write units of their own, in the user's home.** For each timer that is on in the Schedule tab, the daemon writes `reverblabr-timer-<id>.timer` and `.service` into `~/.config/systemd/user/`, enables the timer and starts it; the service runs `reverblabr-ctl timer-fire <id>` from the directory `reverblabrd` is installed in. A package ships none of these and should not touch them. So **`reverblabr-ctl` must be installed beside `reverblabrd`** for timers to work: a package that splits the tool off should make the daemon's package require it. A timer left behind after Reverblabr is removed fails to start its service, harmlessly; deleting the timer in Reverblabr first removes its units.
+
 ## The command-line tool
 
 It goes with the engine, though a package may split it off; it talks to the engine over the bus and needs nothing else of Reverblabr:

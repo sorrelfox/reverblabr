@@ -24,6 +24,7 @@
 #include "opensessions.h"
 #include "sessionrunner.h"
 #include "texts.h"
+#include "timerschedule.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -175,6 +176,15 @@ int main(int argc, char **argv)
     rb::daemon::AutostartUnit autostartUnit(bus);
     rb::daemon::AutoRun autoRun(engine.get(), &autostartUnit, sessionListing);
     const rb::daemon::AutoRunMarker autoRunMarker(rb::daemon::AutoRunMarker::defaultPath());
+    // **The sessions' timers**, as systemd user timers whose service runs
+    // `reverblabr-ctl timer-fire`, installed beside this program; that call
+    // is what brings the engine up when the time comes. Kept in step in
+    // safe mode too: only a timer's firing starts anything.
+    rb::daemon::TimerSchedule timerSchedule(engine.get(),
+                                            bus,
+                                            rb::daemon::TimerSchedule::userUnitDirectory(),
+                                            QDir(QCoreApplication::applicationDirPath()).filePath(u"reverblabr-ctl"_s),
+                                            sessionListing);
     if (parser.isSet(safeMode)) {
         qCInfo(lcDaemon) << "safe mode: opening no sessions";
     } else {
