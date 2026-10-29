@@ -170,6 +170,10 @@ endif()
 if(RB_BUILD_BROADCAST)
     target_sources(reverblabr-blocks-test PRIVATE blocks/test_broadcast.cpp)
 endif()
+# Live Stream, where the build has it (ADR-0027).
+if(RB_BUILD_LIVESTREAM)
+    target_sources(reverblabr-blocks-test PRIVATE blocks/test_livestream.cpp)
+endif()
 set_target_properties(reverblabr-blocks-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
 # Recordings on the disk. Read back through libsndfile directly, which
@@ -368,6 +372,9 @@ target_compile_definitions(reverblabr-engine-test PRIVATE
 # What the engine makes of a Broadcast block, where the build has one.
 if(RB_BUILD_BROADCAST)
     target_sources(reverblabr-engine-test PRIVATE core/test_broadcasts.cpp)
+endif()
+if(RB_BUILD_LIVESTREAM)
+    target_sources(reverblabr-engine-test PRIVATE core/test_livestreams.cpp)
 endif()
 add_dependencies(reverblabr-engine-test reverblabr-engine-interface)
 

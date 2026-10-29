@@ -193,7 +193,8 @@ SPDX-License-Identifier: MIT
       <arg name="action" type="s" direction="in"/>
     </method>
 
-    <!-- A Broadcast block's password for its server, kept in the desktop's
+    <!-- A Broadcast block's password for its server, or a Live Stream
+         block's stream key for its service, kept in the desktop's
          secret store (KWallet, or the Secret Service) and never in the
          session file; empty removes it. Answered by BroadcastStatusChanged
          with "passwordStored", or by Error broadcast.passwordNotSaved. A
@@ -205,8 +206,8 @@ SPDX-License-Identifier: MIT
       <arg name="password" type="s" direction="in"/>
     </method>
 
-    <!-- Where a Broadcast block's stream stands, and whether it has a
-         password. Answered by BroadcastStatusChanged. -->
+    <!-- Where a Broadcast or Live Stream block's stream stands, and whether
+         it has a password or key. Answered by BroadcastStatusChanged. -->
     <method name="GetBroadcastStatus">
       <arg name="sessionId" type="s" direction="in"/>
       <arg name="blockId" type="s" direction="in"/>
@@ -762,7 +763,14 @@ SPDX-License-Identifier: MIT
          connected; bytesSent counts every connection since the session
          started; kbps is measured over the last few seconds; reconnects
          counts the times it connected again after losing the server.
-         "passwordStored" is there once the engine knows. Sent when it
+         "passwordStored" is there once the engine knows. A Live Stream
+         block's status says the same of its RTMP stream, its key being its
+         password and "title" what its picture says is playing, and adds
+           { "encoder": "vaapi" | "nvenc" | "x264" | "openh264" | "",
+             "width": 1280, "height": 720, "fps": 30,
+             "framesSent": 9000, "framesDropped": 0 }
+         the encoder empty while it is not connected, and framesDropped
+         counting frames left out because the computer fell behind. Sent when it
          changes, once a second while connected, and in answer to
          GetBroadcastStatus and SetBroadcastPassword. -->
     <signal name="BroadcastStatusChanged">

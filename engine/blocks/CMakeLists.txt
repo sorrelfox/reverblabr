@@ -118,4 +118,10 @@ if(RB_BUILD_BROADCAST)
     target_sources(reverblabr-blocks PRIVATE broadcast.cpp streamtap.cpp)
     target_compile_definitions(reverblabr-blocks PUBLIC RB_HAVE_BROADCAST)
 endif()
+# Live Stream, where the build can draw its picture and keep its key
+# (ADR-0027).
+if(RB_BUILD_LIVESTREAM)
+    target_sources(reverblabr-blocks PRIVATE livestream.cpp)
+    target_compile_definitions(reverblabr-blocks PUBLIC RB_HAVE_LIVESTREAM)
+endif()
 set_target_properties(reverblabr-blocks PROPERTIES AUTOMOC OFF AUTORCC OFF)

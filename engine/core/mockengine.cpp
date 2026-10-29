@@ -28,6 +28,9 @@
 #include "core/audiosystem.h"
 #include "core/blockcatalogue.h"
 #include "core/broadcasts.h"
+#ifdef RB_HAVE_LIVESTREAM
+#include "core/livestreams.h"
+#endif
 #include "core/diagnostics.h"
 #include "core/editcommand.h"
 #include "core/edithistory.h"
@@ -1524,7 +1527,7 @@ void MockEngine::setBroadcastPassword(const QString &sessionId, const QString &b
         return;
     }
     const BlockInstance *block = session->session.findBlock(blockId);
-    if (block == nullptr || block->type != QLatin1StringView{blocks::Broadcast::kTypeId}) {
+    if (block == nullptr || !isStreamingType(block->type.toStdString())) {
         d->fail(ErrorCode::BroadcastPasswordNotSaved, {u"notABroadcast"_s}, blockId);
         return;
     }
@@ -1570,7 +1573,7 @@ void MockEngine::start(const QString &sessionId)
             Q_EMIT recordingFileStarted(sessionId, recorder->id, Private::pretendFile(session->session, *recorder));
         }
         for (const BlockInstance &block : session->session.blocks) {
-            if (block.type == QLatin1StringView{blocks::Broadcast::kTypeId}) {
+            if (isStreamingType(block.type.toStdString())) {
                 d->announceBroadcast(*session, sessionId, block.id);
             }
         }
@@ -1597,7 +1600,7 @@ void MockEngine::stop(const QString &sessionId)
         }
         d->setState(*session, sessionState::idle);
         for (const BlockInstance &block : session->session.blocks) {
-            if (block.type == QLatin1StringView{blocks::Broadcast::kTypeId}) {
+            if (isStreamingType(block.type.toStdString())) {
                 d->announceBroadcast(*session, sessionId, block.id);
             }
         }
@@ -1826,6 +1829,13 @@ void MockEngine::getBlockCatalogue()
     // against, because the panel is generated from exactly these.
     UnavailableChoices unavailable = recordingUnavailableChoices();
     unavailable.merge(broadcastUnavailableChoices());
+#ifdef RB_HAVE_LIVESTREAM
+    unavailable.merge(liveStreamUnavailableChoices());
+    // **The graphics cards are asked on a thread of their own**, the first
+    // time: until they have answered, the catalogue offers the software
+    // encoders alone, and it is said again once they have.
+    (void)probeVideoEncodersFor(this, [this] { getBlockCatalogue(); });
+#endif
     Q_EMIT blockCatalogueChanged(asJson(blockCatalogueJson(d->registry, unavailable)));
 }
 

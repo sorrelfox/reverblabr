@@ -109,6 +109,11 @@ target_link_libraries(reverblabr-engine
 if(RB_BUILD_BROADCAST)
     target_link_libraries(reverblabr-engine PRIVATE Qt6Keychain::Qt6Keychain)
 endif()
+# A Live Stream block's stream, where the build has the block (ADR-0027).
+if(RB_BUILD_LIVESTREAM)
+    target_sources(reverblabr-engine PRIVATE livestreams.cpp livestreams.h)
+    target_link_libraries(reverblabr-engine PRIVATE reverblabr-livestream)
+endif()
 # The facade is a QObject, so moc runs here.
 set_target_properties(reverblabr-engine PROPERTIES AUTOMOC ON AUTORCC ON)
 

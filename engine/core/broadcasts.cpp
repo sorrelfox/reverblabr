@@ -8,6 +8,11 @@
 #include "core/broadcasts.h"
 
 #include "blocks/broadcast.h"
+#ifdef RB_HAVE_LIVESTREAM
+#include "blocks/livestream.h"
+#include "core/livestreams.h"
+#include "stream/livestream.h"
+#endif
 #include "buildversion.h"
 #include "dsp/block.h"
 
@@ -82,14 +87,68 @@ stream::BroadcastSettings broadcastSettings(const dsp::Block &block, const QStri
     settings.titleTemplate = block.param("titleTemplate").text();
     settings.sessionName = sessionName.toStdString();
 
-    if (block.param("nowPlaying").text() == blocks::Broadcast::kNowPlayingFile) {
-        QString file = QString::fromStdString(block.param("nowPlayingFile").text()).trimmed();
-        if (file == "~"_L1 || file.startsWith("~/"_L1)) {
-            file = QDir::homePath() + file.mid(1);
-        }
-        settings.nowPlayingFile = std::filesystem::path{file.toStdString()};
-    }
+    settings.nowPlayingFile = nowPlayingFileOf(block);
     return settings;
+}
+
+std::filesystem::path homePath(const std::string &typed)
+{
+    QString file = QString::fromStdString(typed).trimmed();
+    if (file == "~"_L1 || file.startsWith("~/"_L1)) {
+        file = QDir::homePath() + file.mid(1);
+    }
+    return std::filesystem::path{file.toStdString()};
+}
+
+std::filesystem::path nowPlayingFileOf(const dsp::Block &block)
+{
+    if (block.param("nowPlaying").text() != blocks::Broadcast::kNowPlayingFile) {
+        return {};
+    }
+    return homePath(block.param("nowPlayingFile").text());
+}
+
+std::unique_ptr<stream::OutputStream> makeOutputStream(const dsp::Block &block,
+                                                       std::shared_ptr<rt::AudioTap> tap,
+                                                       std::function<void(const QJsonObject &)> sink)
+{
+    const std::string_view type = block.info().typeId;
+    if (type == blocks::Broadcast::kTypeId) {
+        return std::make_unique<stream::BroadcastStream>(
+            std::move(tap),
+            [sink = std::move(sink)](const stream::BroadcastStatus &status) { sink(broadcastStatusJson(status)); });
+    }
+#ifdef RB_HAVE_LIVESTREAM
+    if (type == blocks::LiveStream::kTypeId) {
+        return std::make_unique<stream::LiveStream>(
+            std::move(tap),
+            [sink = std::move(sink)](const stream::LiveStreamStatus &status) { sink(liveStreamStatusJson(status)); });
+    }
+#endif
+    return nullptr;
+}
+
+void configureOutputStream(stream::OutputStream &stream, const dsp::Block &block, const QString &sessionName)
+{
+    if (auto *broadcast = dynamic_cast<stream::BroadcastStream *>(&stream)) {
+        broadcast->configure(broadcastSettings(block, sessionName));
+        return;
+    }
+#ifdef RB_HAVE_LIVESTREAM
+    if (auto *live = dynamic_cast<stream::LiveStream *>(&stream)) {
+        live->configure(liveStreamSettings(block, sessionName));
+    }
+#endif
+}
+
+bool isStreamingType(std::string_view type)
+{
+#ifdef RB_HAVE_LIVESTREAM
+    if (type == blocks::LiveStream::kTypeId) {
+        return true;
+    }
+#endif
+    return type == blocks::Broadcast::kTypeId;
 }
 
 std::optional<QString> broadcastPlayer(const dsp::Block &block)

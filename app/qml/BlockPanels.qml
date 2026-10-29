@@ -191,6 +191,12 @@ QtObject {
         BroadcastPanel {}
     }
 
+    /// The Live Stream block: what its stream is doing, and its Setup,
+    /// Picture and Status tabs.
+    readonly property Component liveStream: Component {
+        LiveStreamPanel {}
+    }
+
     /// The Input Switch panel: the two inputs and a switch standing
     /// between them.
     readonly property Component inputSwitch: Component {
@@ -332,6 +338,7 @@ QtObject {
         "advanced.sync": panels.sync,
         "advanced.timeshift": panels.timeShift,
         "output.broadcast": panels.broadcast,
+        "output.livestream": panels.liveStream,
         "output.recorder": panels.recorder,
         "plugin.builtin": panels.plugin,
         "plugin.lv2": panels.plugin,

@@ -59,6 +59,10 @@ BuildRequires:  soundtouch-devel
 BuildRequires:  libavformat-free-devel
 BuildRequires:  libavcodec-free-devel
 BuildRequires:  libavutil-free-devel
+BuildRequires:  libswscale-free-devel
+BuildRequires:  freetype-devel
+BuildRequires:  harfbuzz-devel
+BuildRequires:  fontconfig-devel
 BuildRequires:  lilv-devel
 BuildRequires:  lv2-devel
 BuildRequires:  suil-devel
@@ -104,9 +108,14 @@ and a command-line tool runs and changes them from a terminal or a script.
 # The tests are built for %%check. Warnings are not errors here, as the
 # presets make them: Fedora's flags differ from the ones the project
 # builds with.
-# The handbook and the Broadcast block are asked for by name, so that a
-# missing KDocTools or QtKeychain stops the build instead of leaving them out.
-%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON -DRB_BUILD_BROADCAST=ON
+# The handbook and the Broadcast and Live Stream blocks are asked for by
+# name, so that a missing KDocTools, QtKeychain or text library stops the
+# build instead of leaving them out. The Live Stream block's H.264 is not a
+# dependency: it is whatever encoder the installed FFmpeg can use, found at
+# run time (Cisco's openh264, which Fedora installs from Cisco's
+# repository, RPM Fusion's FFmpeg, or a graphics driver), and the block
+# says so when there is none (ADR-0027).
+%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON -DRB_BUILD_BROADCAST=ON -DRB_BUILD_LIVESTREAM=ON
 %cmake_build
 
 

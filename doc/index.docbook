@@ -552,6 +552,49 @@ an Opus stream on its own pages; listeners' players show it.</para>
 password.</para>
 </sect2>
 
+<sect2 id="block-output-livestream">
+<title>Live Stream</title>
+<para>Sends what reaches it to a video streaming service over RTMP or RTMPS,
+with a picture made for it, and passes the sound on unchanged. Services that
+take a live stream want video, so the block draws one: words, pictures, and
+something that moves with the sound. It connects when the session runs and
+lets go when it stops. Its settings have three tabs:</para>
+<variablelist>
+<varlistentry><term><guilabel>Setup</guilabel></term>
+<listitem><para>The service's address, as it gives it
+(<literal>rtmps://</literal> where it offers it, which is encrypted and checks
+that the server is the one named, or <literal>rtmp://</literal>), and the
+stream key, which is kept in your desktop's password store (&kwallet; on
+&plasma;), never in the session file. The quality: 1024 × 576 at 15 frames a
+second for a slow connection, 1280 × 720 at 30, or 1920 × 1080 at 30. The
+encoder: the best one this computer has, unless you choose one. A graphics
+card's encoder costs the processor nothing; x264 and OpenH264 encode on the
+processor. Only the encoders that work here are offered.</para></listitem></varlistentry>
+<varlistentry><term><guilabel>Picture</guilabel></term>
+<listitem><para>The title (the session's name until you change it), a
+subtitle, and what is playing, made from a template as the Broadcast block's
+title is and filled from a text file or a media player in the same way. A
+waveform, a spectrum or a level meter moves with the sound, or nothing does.
+The background is a colour, or a picture that covers the frame, and a logo
+can sit at its top left. The words are light or dark, whichever reads best
+over what is behind them.</para></listitem></varlistentry>
+<varlistentry><term><guilabel>Status</guilabel></term>
+<listitem><para>How long it has been on the air, how much it has sent and at
+what rate, the picture's size, frame rate and encoder, how many frames it has
+sent and how many it left out because the computer fell behind, how many times
+it has connected again, and what last went wrong.</para></listitem></varlistentry>
+</variablelist>
+<para>The picture keeps time with the sound however long the stream runs. When
+the service goes away the block tries again, as the Broadcast block does. A
+missing key or a computer with no H.264 encoder that works stops it until you
+change something, and says so. On Fedora, H.264 comes from Cisco's OpenH264
+(the <literal>openh264</literal> package, which Fedora Workstation installs
+from Cisco's repository), from the full FFmpeg in RPM Fusion, or from a
+graphics card whose driver can encode it.</para>
+<para>The block is there in a build made with QtKeychain, FreeType, HarfBuzz
+and fontconfig.</para>
+</sect2>
+
 <sect2 id="block-output-recorder">
 <title>Recorder</title>
 <para>Writes what reaches it to a file and passes the sound on unchanged. See
@@ -1729,13 +1772,17 @@ need to know.</para></listitem>
 </itemizedlist>
 
 <para>&reverblabr; itself does not use the network on its own account: no
-usage statistics, no update checks. The one block that does is Broadcast,
+usage statistics, no update checks. The two blocks that do are Broadcast,
 which sends a running session to the radio server you name, with the station
-details you give it; nothing else goes there. Its password is kept in your
-desktop's password store (&kwallet; on &plasma;), not in the session file, and
-it travels to the server the way the server's protocol sends it, which is in
-the clear unless the server is on a network you trust. When a Broadcast
-block's title comes from a media player, &reverblabr; reads what the players
+details you give it, and Live Stream, which sends it to the video service you
+name, with the picture you set up for it; nothing else goes there. A Broadcast
+block's password and a Live Stream block's stream key are kept in your
+desktop's password store (&kwallet; on &plasma;), not in the session file. A
+password travels to a radio server the way the server's protocol sends it,
+which is in the clear unless the server is on a network you trust; a stream key
+travels in the clear over <literal>rtmp://</literal> and encrypted over
+<literal>rtmps://</literal>. When a Broadcast or Live Stream block's title
+comes from a media player, &reverblabr; reads what the players
 on your session bus say they are playing (artist, title and album), their
 names, and which program each one is, while that session runs, and the window
 reads their names to list them; it never controls a player, keeps none of it,

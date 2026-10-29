@@ -117,6 +117,11 @@ check required "SoundTouch" "$(pkg-config --modversion soundtouch 2>/dev/null)" 
 check required "FFmpeg (libavformat)" "$(pkg-config --modversion libavformat 2>/dev/null)" "60"
 check required "FFmpeg (libavcodec)" "$(pkg-config --modversion libavcodec 2>/dev/null)" "60"
 # LV2 plugins, found and described in the plugin host.
+# Optional: the Live Stream block draws its picture with these (ADR-0027).
+check optional "FreeType (the Live Stream block)" "$(pkg-config --modversion freetype2 2>/dev/null)"
+check optional "HarfBuzz (the Live Stream block)" "$(pkg-config --modversion harfbuzz 2>/dev/null)"
+check optional "fontconfig (the Live Stream block)" "$(pkg-config --modversion fontconfig 2>/dev/null)"
+check optional "FFmpeg's libswscale (the Live Stream block)" "$(pkg-config --modversion libswscale 2>/dev/null)" "7"
 check required "lilv" "$(pkg-config --modversion lilv-0 2>/dev/null)" "0.24"
 
 # The recordings index is SQLite through Qt's driver, which is a

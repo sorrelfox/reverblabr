@@ -29,7 +29,7 @@
 #include "record/recordingwriter.h"
 #include "rt/audiotap.h"
 #include "rt/meter.h"
-#include "stream/broadcaststream.h"
+#include "stream/outputstream.h"
 
 #include <QDBusConnection>
 #include <QElapsedTimer>
@@ -386,7 +386,7 @@ public:
     /// What the streams have said and the engine thread has not passed on
     /// yet, by key, and which block each key is.
     std::mutex broadcastStatusMutex;
-    std::vector<std::pair<std::uint64_t, stream::BroadcastStatus>> broadcastStatuses;
+    std::vector<std::pair<std::uint64_t, QJsonObject>> broadcastStatuses;
     bool broadcastDeliveryPosted = false;
     QHash<quint64, QString> broadcastBlocks;
     std::uint64_t nextBroadcastKey = 1;
@@ -396,7 +396,9 @@ public:
     QHash<QString, std::optional<QString>> broadcastPasswords;
     /// **After what they report to, so they go first**: a stream's thread
     /// says it has stopped as it stops.
-    std::map<std::uint64_t, std::unique_ptr<stream::BroadcastStream>> broadcasts;
+    /// Every block that streams has one, a Broadcast block's radio stream
+    /// or a Live Stream block's video, held alike.
+    std::map<std::uint64_t, std::unique_ptr<stream::OutputStream>> broadcasts;
     /// **The media players on the session bus, only while a stream's title
     /// follows one**, and what each such stream follows, by its key. The
     /// feeds hand their tracks to the streams, so they go before them, and
@@ -1107,7 +1109,7 @@ public:
         }
     }
 
-    /// **Starts a stream for every Broadcast block that is on and has none,
+    /// **Starts a stream for every block that streams, is on and has none,
     /// and gives every one the settings it has now.** Before the graph that
     /// runs them goes live, like the recordings. A block's password comes
     /// from the engine, which asks the secret store when it is told one is
@@ -1118,18 +1120,21 @@ public:
             if (!instance.streamTap || !instance.enabled) {
                 continue;
             }
-            const stream::BroadcastSettings settings = broadcastSettings(*instance.block, wanted.name);
             if (instance.broadcastKey != 0) {
-                broadcasts.at(instance.broadcastKey)->configure(settings);
+                configureOutputStream(*broadcasts.at(instance.broadcastKey), *instance.block, wanted.name);
                 continue;
             }
             const std::uint64_t key = nextBroadcastKey++;
+            std::unique_ptr<stream::OutputStream> made =
+                makeOutputStream(*instance.block, instance.streamTap, [this, key](const QJsonObject &status) {
+                    queueBroadcastStatus(key, status);
+                });
+            if (!made) {
+                continue;
+            }
             instance.broadcastKey = key;
             broadcastBlocks.insert(key, instance.id);
-            auto made = std::make_unique<stream::BroadcastStream>(
-                instance.streamTap,
-                [this, key](const stream::BroadcastStatus &status) { queueBroadcastStatus(key, status); });
-            made->configure(settings);
+            configureOutputStream(*made, *instance.block, wanted.name);
             if (const auto known = broadcastPasswords.constFind(instance.id); known != broadcastPasswords.constEnd()) {
                 made->setPassword(known->has_value() ? std::optional<std::string>((*known)->toStdString())
                                                      : std::nullopt);
@@ -1165,7 +1170,7 @@ public:
             if (!wanted) {
                 if (feed != feeds.end()) {
                     feeds.erase(feed);
-                    if (broadcastSettings(*instance.block, session.name).nowPlayingFile.empty()) {
+                    if (nowPlayingFileOf(*instance.block).empty()) {
                         broadcasts.at(key)->setNowPlaying({});
                     }
                 }
@@ -1248,7 +1253,7 @@ public:
 
     /// A stream's thread: keep what it said, and make sure the engine
     /// thread hears of it.
-    void queueBroadcastStatus(std::uint64_t key, const stream::BroadcastStatus &status)
+    void queueBroadcastStatus(std::uint64_t key, const QJsonObject &status)
     {
         bool post = false;
         {
@@ -1265,20 +1270,20 @@ public:
     /// only.
     void deliverBroadcastStatuses()
     {
-        std::vector<std::pair<std::uint64_t, stream::BroadcastStatus>> statuses;
+        std::vector<std::pair<std::uint64_t, QJsonObject>> statuses;
         {
             const std::lock_guard lock(broadcastStatusMutex);
             statuses.swap(broadcastStatuses);
             broadcastDeliveryPosted = false;
         }
-        std::map<std::uint64_t, const stream::BroadcastStatus *> last;
+        std::map<std::uint64_t, const QJsonObject *> last;
         for (const auto &[key, status] : statuses) {
             last[key] = &status;
         }
         for (const auto &[key, status] : last) {
             const QString blockId = broadcastBlocks.value(key);
             if (!blockId.isEmpty()) {
-                Q_EMIT q->broadcastStatusChanged(blockId, broadcastStatusJson(*status));
+                Q_EMIT q->broadcastStatusChanged(blockId, *status);
             }
         }
     }
@@ -2181,11 +2186,11 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
         const QString name = block != nullptr && !block->nickname.isEmpty() ? block->nickname : instance->id;
         d->writer->start(instance->recordingKey, recordingSettings(*instance->block, d->session.name, name));
     }
-    // **A Broadcast block's settings reach its stream** at once: a title
+    // **A streaming block's settings reach its stream** at once: a title
     // template as the next title, a server or a format as a new
     // connection.
     if (d->running && instance->broadcastKey != 0) {
-        d->broadcasts.at(instance->broadcastKey)->configure(broadcastSettings(*instance->block, d->session.name));
+        configureOutputStream(*d->broadcasts.at(instance->broadcastKey), *instance->block, d->session.name);
     }
     // And to the player its title follows, which an Application block's
     // names can change too.

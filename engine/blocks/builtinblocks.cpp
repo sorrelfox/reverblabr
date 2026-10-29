@@ -15,6 +15,9 @@
 #include "blocks/broadcast.h"
 #endif
 #include "blocks/channels.h"
+#ifdef RB_HAVE_LIVESTREAM
+#include "blocks/livestream.h"
+#endif
 #include "blocks/declick.h"
 #include "blocks/dehum.h"
 #include "blocks/denoise.h"
@@ -111,6 +114,10 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
 #ifdef RB_HAVE_BROADCAST
     // Where the build can keep its password (ADR-0026).
     all = all && registry.add(std::string{Broadcast::kTypeId}, &Broadcast::make).has_value();
+#endif
+#ifdef RB_HAVE_LIVESTREAM
+    // Where the build can draw its picture and keep its key (ADR-0027).
+    all = all && registry.add(std::string{LiveStream::kTypeId}, &LiveStream::make).has_value();
 #endif
 #ifdef RB_HAVE_RNNOISE
     // Where the distribution has RNNoise (ADR-0016).

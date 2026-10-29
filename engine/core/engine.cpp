@@ -13,6 +13,9 @@
 #include "core/audiosystem.h"
 #include "core/blockcatalogue.h"
 #include "core/broadcasts.h"
+#ifdef RB_HAVE_LIVESTREAM
+#include "core/livestreams.h"
+#endif
 #include "core/diagnostics.h"
 #include "core/editcommand.h"
 #include "core/edithistory.h"
@@ -373,14 +376,15 @@ public:
         }
     }
 
-    /// Whether \a blockId in \a session is a Broadcast block.
-    /// **Of a type this build has**: a session made where there is a
-    /// Broadcast block, opened where there is none, has no password to keep.
+    /// Whether \a blockId in \a session is a block that streams with a
+    /// secret: a Broadcast block's password, a Live Stream block's key.
+    /// **Of a type this build has**: a session made where there is such a
+    /// block, opened where there is none, has no secret to keep.
     [[nodiscard]] bool isBroadcast(const Open &session, const QString &blockId) const
     {
         const BlockInstance *block = session.session.findBlock(blockId);
-        return block != nullptr && block->type.toStdString() == blocks::Broadcast::kTypeId
-            && registry.contains(std::string{blocks::Broadcast::kTypeId});
+        return block != nullptr && isStreamingType(block->type.toStdString())
+            && registry.contains(block->type.toStdString());
     }
 
     void sendSnapshot(const Open &session)
@@ -957,7 +961,7 @@ void Engine::deleteSession(const QString &sessionId)
         : d->store.load(id);
     if (doomed) {
         for (const BlockInstance &block : doomed->blocks) {
-            if (block.type.toStdString() == blocks::Broadcast::kTypeId) {
+            if (isStreamingType(block.type.toStdString())) {
                 d->forgetBroadcastPassword(broadcastSecretKey(sessionId, block.id));
             }
         }
@@ -1784,6 +1788,13 @@ void Engine::getBlockCatalogue()
 {
     UnavailableChoices unavailable = recordingUnavailableChoices();
     unavailable.merge(broadcastUnavailableChoices());
+#ifdef RB_HAVE_LIVESTREAM
+    unavailable.merge(liveStreamUnavailableChoices());
+    // **The graphics cards are asked on a thread of their own**, the first
+    // time: until they have answered, the catalogue offers the software
+    // encoders alone, and it is said again once they have.
+    (void)probeVideoEncodersFor(this, [this] { getBlockCatalogue(); });
+#endif
     Q_EMIT blockCatalogueChanged(asJson(blockCatalogueJson(d->registry, unavailable)));
 }
 

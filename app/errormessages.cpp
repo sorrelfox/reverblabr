@@ -277,10 +277,16 @@ constexpr std::array kReasons{
     Message{"secretStoreDenied",
             kli18nc("@info a reason a password was not saved", "the password store didn't open, or was told not to")},
     Message{"secretStoreFailed", kli18nc("@info a reason a password was not saved", "the password store refused it")},
-    Message{"notABroadcast", kli18nc("@info a reason a password was not saved", "that block isn't a Broadcast block")},
+    Message{"notABroadcast",
+            kli18nc("@info a reason a password was not saved", "that block isn't a Broadcast or Live Stream block")},
     Message{"authRejected", kli18nc("@info a reason a stream stopped", "the server refused the user name or password")},
-    Message{"noPassword", kli18nc("@info a reason a stream stopped", "no password is set")},
+    Message{"noPassword", kli18nc("@info a reason a stream stopped", "no password or stream key is set")},
     Message{"notConfigured", kli18nc("@info a reason a stream stopped", "no server is set")},
+    // A Live Stream block on a system with no H.264 encoder that works.
+    Message{"noH264Encoder",
+            kli18nc("@info why a live stream cannot start",
+                    "this system has no H.264 encoder that works. Install Cisco's OpenH264 (on Fedora, the "
+                    "openh264 package), or the full FFmpeg")},
     Message{"encoderFailed", kli18nc("@info a reason a stream stopped", "the encoder stopped")},
     // Pausing, resuming or splitting a recording.
     Message{"notARecorder", kli18nc("@info a reason a recording command was refused", "that block isn't a Recorder")},

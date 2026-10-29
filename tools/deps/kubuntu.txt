@@ -90,6 +90,11 @@ libsoundtouch-dev
 libavformat-dev
 libavcodec-dev
 libavutil-dev
+# Optional: the Live Stream block's picture, and its conversion to video
+libfreetype-dev
+libharfbuzz-dev
+libfontconfig-dev
+libswscale-dev
 # Plugins: LV2 plugins found and described through lilv
 liblilv-dev
 lv2-dev

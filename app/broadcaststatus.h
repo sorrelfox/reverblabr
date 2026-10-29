@@ -20,7 +20,7 @@
 namespace rb::ui
 {
 
-/// **Where each Broadcast block's stream stands**, as the engine has said
+/// **Where each Broadcast or Live Stream block's stream stands**, as the engine has said
 /// it (the facade's broadcastStatusChanged()): for the Status tab of its
 /// panel and the state line above the tabs, and the one place its password
 /// is sent from.
