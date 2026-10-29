@@ -73,14 +73,17 @@ ListView {
     boundsBehavior: Flickable.StopAtBounds
 
     // **A new session is started from where the sessions are**,
-    // after the last of them, and not only from the Session menu. It is the
-    // menu's own action, so the two are one thing.
+    // after the last of them, and not only from the Session menu. It
+    // triggers the menu's own action, so the two are one thing. It is not
+    // the button's `action`: Qt 6.10 then shows the action's icon whenever
+    // the button's own name is empty, over the prototype's glyph.
     footer: QQC2.ToolButton {
         // A control's square in the prototype, in the row's middle.
         height: AppMetrics.followsSystem ? tabs.height : AppMetrics.controlHeight
         y: (tabs.height - height) / 2
         width: height
-        action: tabs.newTabAction
+        enabled: tabs.newTabAction?.enabled ?? false
+        onClicked: tabs.newTabAction?.trigger(this)
         display: QQC2.AbstractButton.IconOnly
         // The icon theme's "+", or the prototype's own.
         icon.name: Appearance.followsSystem ? "list-add" : ""

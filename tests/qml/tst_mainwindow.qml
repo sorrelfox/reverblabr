@@ -30,6 +30,14 @@ TestCase {
         Main {}
     }
 
+    Component {
+        id: triggerSpy
+
+        SignalSpy {
+            signalName: "triggered"
+        }
+    }
+
     function test_createsTranslatedWindow() {
         const window = createTemporaryObject(mainWindow, testCase);
         verify(window, "the main window is created");
@@ -648,7 +656,8 @@ TestCase {
         verify(plus, "there is no + in the tab strip");
 
         // **The menu's own action**, so the two are one thing.
-        compare(plus.action, window.newSessionAction);
+        const triggered = createTemporaryObject(triggerSpy, testCase, { target: window.newSessionAction });
+        compare(plus.enabled, window.newSessionAction.enabled);
 
         // After the last tab.
         const lastTab = window.sessionTabs.tabFor(front);
@@ -656,6 +665,7 @@ TestCase {
                "the + is not after the last tab");
 
         mouseClick(plus);
+        compare(triggered.count, 1, "pressing + did not trigger the menu's New Session");
         tryVerify(() => Sessions.open.length === 3, testCase.noticeMs, "pressing + did not start a session");
         verify(Sessions.currentId !== front, "the new session did not come to the front");
     }

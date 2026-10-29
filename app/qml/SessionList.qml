@@ -141,7 +141,7 @@ Rectangle {
     /// The block whose row has the keyboard, or nothing.
     function focusedId(): string {
         for (const blockId of Object.keys(list.rows)) {
-            if (list.rows[blockId].activeFocus) {
+            if (list.rows[blockId]?.activeFocus) {
                 return blockId;
             }
         }
@@ -189,10 +189,14 @@ Rectangle {
     }
 
     // **One Tab stop.** Moved here rather than bound on each row, so that
-    // the order is ours: see focusRow().
+    // the order is ours: see focusRow(). A row can be gone before its
+    // onDestruction takes it off the list (seen on Qt 6.10); it is skipped.
     onCurrentIdChanged: {
         for (const blockId of Object.keys(list.rows)) {
-            list.rows[blockId].activeFocusOnTab = blockId === list.currentId;
+            const row = list.rows[blockId];
+            if (row) {
+                row.activeFocusOnTab = blockId === list.currentId;
+            }
         }
     }
 
