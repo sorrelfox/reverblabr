@@ -235,6 +235,39 @@ TestCase {
         TestEngine.clearFakePlugins();
     }
 
+    // --- VST3 ---
+
+    function test_aVst3PluginsBlockIsThePluginPanelWithItsWindowAndPresetFiles() {
+        if (BlockCatalogue.types.indexOf("plugin.vst3") < 0) {
+            skip("this build has no VST3 SDK, so no VST3 block");
+        }
+        verify(BlockPanels.panelFor("plugin.vst3") === BlockPanels.panelFor("plugin.lv2"),
+               "a VST3 block has the plugin panel");
+        verify(BlockFaces.faceFor("plugin.vst3") === BlockFaces.faceFor("plugin.lv2"),
+               "a VST3 block has the plugin face");
+        // Named by the plugin's own numbers; a value is the plain one.
+        const vst3Params = JSON.stringify([
+            { id: "1", name: "Gain", kind: "float", min: 0, max: 4, default: 1 },
+            { id: "2", name: "Colour", kind: "choice", min: 0, max: 2, default: 0,
+              choices: [{ value: 0, label: "Clean" }, { value: 1, label: "Warm" }, { value: 2, label: "Hot" }] }
+        ]);
+        const classId = "5242565354334741494E53544552454F";
+        TestEngine.addFakePlugin("vst3", classId, "A Gain", "Somebody", 2, 2, vst3Params);
+        TestEngine.applyEdit(testCase.sessionId, JSON.stringify({
+            op: "addBlock", block: { id: "vst3gain", type: "plugin.vst3", params: { plugin: classId } },
+            index: -1 }));
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.blockId = "vst3gain";
+        panel.published = [2];
+        compare(panel.format, "vst3");
+        tryVerify(() => panel.paramRows.count === 2, 2000, "the plugin's settings never came");
+        compare(panel.paramRows.itemAt(0).label, "Gain");
+        compare(panel.paramRows.itemAt(1).descriptor.choiceLabels, ["Clean", "Warm", "Hot"]);
+        verify(panel.windowButton.visible, "a VST3 plugin offers its view");
+        verify(panel.savesOwnPresets, "a VST3 plugin's presets are files other programs read");
+        TestEngine.clearFakePlugins();
+    }
+
     function test_theSettingsStayWhileThePluginIsDown() {
         const panel = createTemporaryObject(panelComponent, null);
         panel.blockId = "p";

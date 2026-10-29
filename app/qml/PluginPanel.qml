@@ -46,7 +46,11 @@ ColumnLayout {
     /// **The plugin's own window and presets**: only a plugin of a format
     /// that has them, running in its host.
     readonly property bool running: panel.health === 2
-    readonly property bool hasOwnSide: (panel.format === "lv2" || panel.format === "clap") && panel.pluginId !== ""
+    readonly property bool hasOwnSide: (panel.format === "lv2" || panel.format === "clap" || panel.format === "vst3")
+        && panel.pluginId !== ""
+    /// **Whether its presets are files of its own format**, which other
+    /// programs read too, so that one can be saved as one of them.
+    readonly property bool savesOwnPresets: panel.format === "lv2" || panel.format === "vst3"
     readonly property bool windowOpen: SessionModel.pluginRevision >= 0 && SessionModel.pluginWindowOpen(panel.blockId)
     readonly property string windowReason: SessionModel.pluginRevision >= 0
         ? SessionModel.pluginWindowReason(panel.blockId) : ""
@@ -221,7 +225,7 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        visible: panel.hasOwnSide && panel.running && (panel.ownPresets.length > 0 || panel.format === "lv2")
+        visible: panel.hasOwnSide && panel.running && (panel.ownPresets.length > 0 || panel.savesOwnPresets)
         spacing: Kirigami.Units.smallSpacing
 
         QQC2.Label {
@@ -255,9 +259,9 @@ ColumnLayout {
             id: savePluginPreset
 
             // **Where the plugin's other hosts find it**: an LV2 plugin's
-            // presets are its own files. A CLAP plugin's settings are kept
-            // with ours, in the footer's presets.
-            visible: panel.format === "lv2"
+            // presets are its own files, and so are a VST3 plugin's. A CLAP
+            // plugin's settings are kept with ours, in the footer's presets.
+            visible: panel.savesOwnPresets
             icon.name: "document-save"
             text: KI18n.i18nc("@action:button keep the plugin's settings as one of its own presets", "Save…")
             onClicked: saveDialog.open()

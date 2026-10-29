@@ -344,6 +344,7 @@ QtObject {
         "plugin.lv2": panels.plugin,
         "plugin.ladspa": panels.plugin,
         "plugin.clap": panels.plugin,
+        "plugin.vst3": panels.plugin,
         "output.wave": panels.wave
     })
 

@@ -315,6 +315,7 @@ QtObject {
         "plugin.lv2": faces.plugin,
         "plugin.ladspa": faces.plugin,
         "plugin.clap": faces.plugin,
+        "plugin.vst3": faces.plugin,
         "output.wave": faces.wave
     })
 

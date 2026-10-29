@@ -88,9 +88,9 @@ TestCase {
     }
 
     function test_everyPluginIsAnEntryWithItsNameVendorAndFormat() {
-        // A VST3 plugin as well, which no build can host yet: it is found,
-        // and not offered.
-        TestEngine.addFakePlugin("vst3", "org.example.eq", "An EQ", "Somebody");
+        // A plugin of a format no build hosts as well: it is found, and not
+        // offered.
+        TestEngine.addFakePlugin("dssi", "org.example.eq", "An EQ", "Somebody");
         const window = createTemporaryObject(libraryWindow, testCase);
         const rows = pluginRows(window.library);
         compare(rows.map(row => row.name), ["Test gain", "Test gain, slow to load"]);
@@ -98,7 +98,7 @@ TestCase {
         compare(rows[0].format, "builtin");
         compare(rows[0].type, "plugin.builtin");
         compare(rows[0].id, "plugin.builtin?plugin=test.gain");
-        verify(InstalledPlugins.plugin("vst3", "org.example.eq").name === "An EQ", "the VST3 plugin was listed");
+        verify(InstalledPlugins.plugin("dssi", "org.example.eq").name === "An EQ", "the plugin was listed");
 
         // Under the Plugins heading, which counts them: the blocks that
         // pick a plugin (Test Plugin, LV2, LADSPA, and CLAP where the build
@@ -132,6 +132,19 @@ TestCase {
         compare(row.name, "A Compressor");
         compare(row.type, "plugin.clap");
         verify(window.library.offeredFormats.indexOf("clap") >= 0, "CLAP is not in the format filter");
+    }
+
+    function test_aVst3PluginIsOfferedWhereTheBuildCanHostIt() {
+        if (BlockCatalogue.types.indexOf("plugin.vst3") < 0) {
+            skip("this build has no VST3 SDK, so no VST3 block");
+        }
+        TestEngine.addFakePlugin("vst3", "5242565354334741494E53544552454F", "A Gain", "Somebody");
+        const window = createTemporaryObject(libraryWindow, testCase);
+        const row = pluginRows(window.library).find(row => row.format === "vst3");
+        verify(row !== undefined, "the VST3 plugin was not offered");
+        compare(row.name, "A Gain");
+        compare(row.type, "plugin.vst3");
+        verify(window.library.offeredFormats.indexOf("vst3") >= 0, "VST3 is not in the format filter");
     }
 
     function test_theSearchAndTheFormatFilterNarrowThePlugins() {
