@@ -63,6 +63,10 @@ class TrayState : public QObject
     /// no way back to it. TrayIcon sets it as hosts come and go; a test sets
     /// it to stand in for one.
     Q_PROPERTY(bool available READ isAvailable WRITE setAvailable NOTIFY availableChanged)
+    /// Whether the main window is on screen; the window sets it. **While it
+    /// is not, the icon is the only way back**, so it is never passive then:
+    /// a desktop tray hides passive icons behind its arrow.
+    Q_PROPERTY(bool windowShown READ isWindowShown WRITE setWindowShown NOTIFY changed)
     /// Whether the meters' levels are read: only while the popover shows
     /// them.
     Q_PROPERTY(bool watching READ isWatching WRITE setWatching NOTIFY watchingChanged)
@@ -103,6 +107,8 @@ public:
     [[nodiscard]] QVariantList meters() const;
     [[nodiscard]] bool isAvailable() const;
     void setAvailable(bool available);
+    [[nodiscard]] bool isWindowShown() const;
+    void setWindowShown(bool shown);
     [[nodiscard]] bool isWatching() const;
     void setWatching(bool watching);
     [[nodiscard]] qulonglong frame() const;

@@ -119,6 +119,25 @@ TEST_F(TrayStateTest, ItIsActiveWhileASessionRunsAndSaysHowMany)
     EXPECT_EQ(tray.status(), QString(ui::TrayState::kPassive));
 }
 
+// **A window closed into the tray leaves the icon as the only way back**,
+// and a desktop tray hides passive icons behind its arrow: with nothing
+// running, the icon is passive only while the window shows.
+TEST_F(TrayStateTest, TheIconDoesNotHideWhileTheWindowIsClosedIntoIt)
+{
+    core::MockEngine engine;
+    (void)openSession(engine, u"One"_s);
+    ui::TrayState tray(&engine);
+    ASSERT_TRUE(spinUntil([&] { return tray.status() == ui::TrayState::kPassive; }));
+
+    QSignalSpy changed(&tray, &ui::TrayState::changed);
+    tray.setWindowShown(false);
+    EXPECT_EQ(tray.status(), QString(ui::TrayState::kActive));
+    EXPECT_EQ(changed.count(), 1) << "the icon is not told to show itself";
+
+    tray.setWindowShown(true);
+    EXPECT_EQ(tray.status(), QString(ui::TrayState::kPassive));
+}
+
 TEST_F(TrayStateTest, ARecorderWritingIsTheRedDotAndAPausedOneIsNot)
 {
     core::MockEngine engine;

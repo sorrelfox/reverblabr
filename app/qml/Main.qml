@@ -362,6 +362,14 @@ QQC2.ApplicationWindow {
         root.trayPopover.toggle();
     }
 
+    // **The tray knows when it is the way back**: with this window closed
+    // into it, its icon must not hide among the passive ones.
+    Binding {
+        target: TrayState
+        property: "windowShown"
+        value: root.visible
+    }
+
     // **What the tray asks for**. The icon lives in main(); TrayState
     // carries its clicks here, which is also how a test makes them.
     Connections {

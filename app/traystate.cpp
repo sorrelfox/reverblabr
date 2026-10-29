@@ -100,6 +100,7 @@ public:
     bool noticed = false;
     QString noticedText;
     bool available = false;
+    bool windowShown = true;
     bool watching = false;
     qulonglong frame = 0;
     QTimer ticker;
@@ -400,7 +401,7 @@ QString TrayState::status() const
     if (needsAttention()) {
         return kAttention;
     }
-    return runningCount() > 0 || isRecording() ? QString(kActive) : QString(kPassive);
+    return runningCount() > 0 || isRecording() || !d->windowShown ? QString(kActive) : QString(kPassive);
 }
 
 QString TrayState::toolTip() const
@@ -455,6 +456,20 @@ void TrayState::setAvailable(bool available)
     }
     d->available = available;
     Q_EMIT availableChanged();
+}
+
+bool TrayState::isWindowShown() const
+{
+    return d->windowShown;
+}
+
+void TrayState::setWindowShown(bool shown)
+{
+    if (d->windowShown == shown) {
+        return;
+    }
+    d->windowShown = shown;
+    Q_EMIT changed();
 }
 
 bool TrayState::isWatching() const
