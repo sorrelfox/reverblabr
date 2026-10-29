@@ -81,7 +81,7 @@
         "timeout": 300
       },
       "filter": {
-        "exclude": { "label": "design" }
+        "exclude": { "label": "design|perf|soak" }
       }
     },
     { "name": "debug", "inherits": "base", "configurePreset": "debug" },
@@ -94,6 +94,14 @@
       "filter": { "include": { "label": "design" } }
     },
     { "name": "release", "inherits": "base", "configurePreset": "release" },
+    {
+      "name": "perf",
+      "configurePreset": "release",
+      "description": "The benchmarks and a short soak, in the release build, writing their figures to build/release/perf-results (docs/development.md, \"Soak and performance runs\").",
+      "output": { "outputOnFailure": true, "verbosity": "verbose" },
+      "execution": { "noTestsAction": "error", "timeout": 900 },
+      "filter": { "include": { "label": "perf|soak" } }
+    },
     {
       "name": "asan",
       "inherits": "base",
@@ -129,7 +137,7 @@
       "description": "RealtimeSanitizer without the suites that start a private PipeWire (label pipewire): what the checks before a change run (docs/development.md).",
       "filter": {
         "exclude": {
-          "label": "design|pipewire"
+          "label": "design|pipewire|perf|soak"
         }
       }
     }

@@ -1,0 +1,145 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The nightly performance run: the benchmarks, what the reference session
+# costs, and a soak of hours, on a machine kept for it. The figures are kept
+# as an artifact and held against the last good run's; a figure that got
+# worse than it may fails the run, and GitHub tells whoever watches the
+# repository's failed runs. docs/development.md ("Soak and performance
+# runs") says what each figure is and how to set the runner up.
+#
+# **It runs only on that machine.** The job asks for a self-hosted runner
+# with the label reverblabr-perf, and only when the repository variable
+# RB_PERF_RUNNER is "true": until the runner exists the job is skipped,
+# never queued for a runner that is not there and never failed. Figures
+# from GitHub's shared runners would measure the neighbours.
+#
+# **Never give this workflow a pull_request trigger.** A self-hosted runner
+# on a public repository runs whatever code the job checks out; schedule
+# and workflow_dispatch only ever check out this repository's own branches.
+name: Performance
+
+on:
+  schedule:
+    # Every night at 02:17 UTC: off the hour, when GitHub's scheduler is
+    # least busy.
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      soak-hours:
+        description: How long the soak runs, in hours (empty for the RB_SOAK_HOURS variable, or 4)
+        required: false
+        default: ""
+      inject-cost:
+        description: Make every block this many per cent slower, to check the alert fires (0 for a real run)
+        required: false
+        default: "0"
+      skip-soak:
+        description: Leave the soak out (the benchmarks only, in a few minutes)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  # To fetch the last good runs' results as the baseline.
+  actions: read
+
+# One run at a time: two on one machine would measure each other.
+concurrency:
+  group: performance
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  nightly:
+    name: Benchmarks and soak
+    if: vars.RB_PERF_RUNNER == 'true'
+    runs-on: [self-hosted, linux, x64, reverblabr-perf]
+    # The longest soak asked for by hand (72 hours) and its benchmarks; the
+    # soak itself is held to its own length by `timeout` below, so a hung
+    # one does not keep the machine for this long.
+    timeout-minutes: 4500
+    env:
+      SOAK_HOURS: ${{ inputs.soak-hours || vars.RB_SOAK_HOURS || '4' }}
+      INJECT_COST: ${{ inputs.inject-cost || '0' }}
+      OUT: ${{ github.workspace }}/perf-out
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        # Installed on the machine once (docs/development.md); checked here
+        # so a missing one fails with its name rather than as a build error.
+        run: tools/check-deps.sh
+
+      - name: Build (release)
+        run: |
+          cmake --preset release
+          cmake --build --preset release -- -j "$(nproc)"
+
+      - name: Benchmarks
+        run: |
+          mkdir -p "$OUT/results" "$OUT/logs"
+          build/release/bin/reverblabr-bench-dsp --seconds 20 --repeats 5 --inject-cost "$INJECT_COST" \
+              --json "$OUT/results/dsp.json" | tee "$OUT/logs/dsp.log"
+          home=$(mktemp -d)
+          env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software LC_ALL=en_US.UTF-8 \
+              XDG_DATA_HOME="$home" XDG_CONFIG_HOME="$home" XDG_STATE_HOME="$home" XDG_CACHE_HOME="$home" \
+              build/release/bin/reverblabr-bench-canvas --frames 600 --json "$OUT/results/canvas.json" \
+              | tee "$OUT/logs/canvas.log"
+          RB_PERF_OUT="$OUT/results" RB_PERF_WINDOW_SECONDS=20 tests/pw/harness/run-private-pipewire.sh \
+              build/release/bin/reverblabr-pw-session-test --gtest_filter='SessionCost.*' \
+              | tee "$OUT/logs/session.log"
+
+      - name: Soak (${{ env.SOAK_HOURS }} h)
+        if: ${{ !inputs.skip-soak }}
+        run: |
+          seconds=$(awk -v hours="$SOAK_HOURS" 'BEGIN { printf "%d", hours * 3600 }')
+          if [ "$seconds" -le 0 ]; then
+              echo "::error::The soak's length is not a number of hours: $SOAK_HOURS"
+              exit 1
+          fi
+          # Half an hour more than the soak for building and stopping the
+          # session, and then it is stopped whatever it is doing.
+          RB_PERF_OUT="$OUT/results" RB_SOAK_SECONDS="$seconds" \
+              timeout --kill-after=60 "$((seconds + 1800))" tests/pw/harness/run-private-pipewire.sh \
+              build/release/bin/reverblabr-pw-session-test --gtest_filter='Soak.*' \
+              | tee "$OUT/logs/soak.log"
+
+      - name: Compare with the last good run
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 tools/perf/report.py "$OUT/results" --merge "$OUT/merged.json"
+          if [ -f tools/perf/baseline.json ]; then
+              baseline=tools/perf/baseline.json
+              history=()
+          else
+              mapfile -t fetched < <(tools/perf/fetch-baseline.sh "$RUNNER_TEMP/baseline" 5)
+              baseline=${fetched[0]:+${fetched[0]}/merged.json}
+              history=()
+              for (( i = ${#fetched[@]} - 1; i >= 1; i-- )); do history+=("${fetched[i]}/merged.json"); done
+          fi
+          if [ -z "$baseline" ]; then
+              echo "::notice::No baseline yet: this run's figures become the first."
+              python3 tools/perf/report.py "$OUT/results" --markdown "$OUT/report.md"
+          else
+              status=0
+              python3 tools/perf/report.py "$OUT/results" --baseline "$baseline" ${history[@]:+--history "${history[@]}"} \
+                  --markdown "$OUT/report.md" || status=$?
+              if [ "$status" -eq 1 ]; then
+                  echo "::error::Performance regression: see the job summary and the perf-results artifact."
+              fi
+          fi
+          cat "$OUT/report.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "${status:-0}"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: perf-results
+          path: perf-out
+          retention-days: 90

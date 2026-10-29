@@ -65,6 +65,8 @@ When the command fails, the harness prints the tail of each daemon's log.
 | `pw.system` | `reverblabr-pw-session-test --gtest_filter=SystemAudio.*` | System Audio: three applications on three frequencies all arrive whole, an alert is left out until it is asked for, an exclusion takes effect within 250 ms and can be taken off again, a stream re-played through a combined sink is not counted twice, and two sessions capturing everything into one device stay bounded |
 | `pw.devices` | `reverblabr-pw-session-test --gtest_filter=Devices.*` | the device blocks: the session is heard on the device it names, half the volume is −6.02 dB, following the default moves within 250 ms and leaves nothing behind, a stereo session on a 5.1 device uses the front pair only, a device unplugged and plugged in again is found, two devices play at once; and on the way in, a tone through a virtual microphone, a mono device on both sides at its own level, a four-channel device's channels picked by name, a microphone replugged within 500 ms, the default input followed, and a session that cannot record itself |
 | `pw.scenarios` | `reverblabr-pw-session-test --gtest_filter=Scenarios.*` | the sessions M1 is judged by, built through the facade from the main blocks only: a microphone through Peak/RMS, Volume, Dynamics and Peak/RMS again to a device; an application at 200 % through Dynamics; System Audio with one application left out beside a microphone; and three applications and two microphones, one of them mono, merging into one tail. Each lane plays its own frequency so every source can be found at the far end, the meters are read from the telemetry snapshot the interface reads and held against what the device received, and the compressor against the curve the editor draws. Then the budget: that five-lane session at 48 kHz / 256 must cost this process under 3 % of one core, judged in the release build only |
+| `pw.session-cost` | `reverblabr-pw-session-test --gtest_filter=SessionCost.*` | what the reference session (five sources, thirty blocks, WAV and MP3 recorders) costs this process at 48 kHz / 1024 and / 256, written to `RB_PERF_OUT` rather than judged. Label `perf`: only `ctest --preset perf` runs it |
+| `pw.soak` | `reverblabr-pw-session-test --gtest_filter=Soak.*` | the reference session left running for `RB_SOAK_SECONDS`, touched as a person would: every cycle run, no descriptor, thread or memory held on to, every recording read back. Label `soak`: only `ctest --preset perf` runs it |
 
 ### Long runs
 
@@ -74,6 +76,8 @@ When the command fails, the harness prints the tail of each daemon's log.
 RB_SOAK_SECONDS=600 tests/pw/harness/run-private-pipewire.sh \
     build/debug/bin/reverblabr-pw-session-test --gtest_filter='SessionNodes.TheLoadAndThe*'
 ```
+
+`pw.soak` runs the reference session for the same `RB_SOAK_SECONDS`, and the nightly performance run gives it hours ([development.md](../../docs/development.md#soak-and-performance-runs)).
 
 The two tests that listen for a feedback ring, `Links.TwoSessionsOnTheSameSinkStayBounded` and `SystemAudio.TwoSessionsCapturingEverythingStayQuietTogether`, listen for the same `RB_SOAK_SECONDS`; the minute the feedback guard and System Audio were judged over is `RB_SOAK_SECONDS=60`.
 

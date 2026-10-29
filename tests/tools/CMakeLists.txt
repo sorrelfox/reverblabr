@@ -91,3 +91,11 @@ add_test(NAME tools.versions
                  $<TARGET_FILE:reverblabr> $<TARGET_FILE:reverblabrd> $<TARGET_FILE:reverblabr-ctl>
                  $<TARGET_FILE:reverblabr-plugin-host>)
 set_tests_properties(tools.versions PROPERTIES PASS_REGULAR_EXPRESSION "PASS: versions" TIMEOUT 120)
+
+# The performance report says a figure got worse when it did, and only
+# then: on made-up results, and on the DSP benchmark with a block made
+# slower on purpose, which is what the nightly run's alert rests on.
+add_test(NAME tools.perf-report
+         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_perf_report.py
+                 $<TARGET_FILE:reverblabr-bench-dsp>)
+set_tests_properties(tools.perf-report PROPERTIES PASS_REGULAR_EXPRESSION "PASS: perf report" TIMEOUT 120)

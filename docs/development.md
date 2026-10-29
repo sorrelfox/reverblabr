@@ -86,7 +86,7 @@ ctest --preset debug
 | `tsan` | ThreadSanitizer, for the engine's threads |
 | `rtsan` | Clang's real-time sanitizer, which catches allocations and locks on the audio path |
 
-Each preset builds into `build/<preset>/`, and warnings are errors in all of them. There is one extra test preset, `rtsan-offline`, which runs the `rtsan` build's tests without the suites that start a private PipeWire (the ones labelled `pipewire`). `build/<preset>/compile_commands.json` is there for clangd and other editor tooling.
+Each preset builds into `build/<preset>/`, and warnings are errors in all of them. There are two extra test presets: `rtsan-offline`, which runs the `rtsan` build's tests without the suites that start a private PipeWire (the ones labelled `pipewire`), and `perf`, which runs the benchmarks and a short soak in the `release` build and nothing else (see [Soak and performance runs](#soak-and-performance-runs)). `build/<preset>/compile_commands.json` is there for clangd and other editor tooling.
 
 The tests are GoogleTest cases for each engine layer, Qt Quick tests for the QML interface, and a check that the build refuses forbidden dependencies between the layers ([architecture.md](architecture.md) describes the layers). `ctest --preset debug -R <regex>` runs a subset; test names start with their layer, for example `dsp.` or `qml.`.
 
@@ -126,6 +126,78 @@ The telemetry tests watch the bus with `dbus-monitor` ([ADR-0018](adr/0018-telem
 ### Comparing with the design
 
 `ctest --preset design` compares the window with the design mock-up it was drawn from, state by state, as a share of differing pixels, and writes a report with images of where they differ. The mock-up isn't part of the repository and the comparison needs Firefox, so without either the test skips itself. It isn't part of the other presets. [tests/design/README.md](../tests/design/README.md) has the details.
+
+### Soak and performance runs
+
+Four tests measure rather than check, and no ordinary run includes them: a figure from a debug build, or from a machine busy compiling, says nothing worth keeping. They carry the labels `perf` and `soak`, which every test preset leaves out except `perf`:
+
+```sh
+cmake --preset release && cmake --build --preset release
+ctest --preset perf    # all four, short; the figures go to build/release/perf-results/
+```
+
+| Test | Program | What it measures |
+|---|---|---|
+| `perf.dsp` | `reverblabr-bench-dsp` | Every registered block with its default settings, at 48 kHz in cycles of 256 frames, on pink noise in every input. Only `process()` is timed, and the fastest of several runs is kept. One figure a block, as a percentage of one core, the measure the "costs less than N % of a core" unit tests use. Plugin blocks are left out, as they run nothing until a plugin is chosen. |
+| `perf.canvas` | `reverblabr-bench-canvas` | The session canvas with fifty tiles wired in a chain, against the mock engine, offscreen and drawn in software: empty, with the view panning, and alive (meters moving, every wire's dash running). For each, the processor time a frame takes and the share of a core the scene keeps busy. Offscreen there's no vertical blank, so the frame rate is written down but never judged. |
+| `pw.session-cost` | `reverblabr-pw-session-test --gtest_filter=SessionCost.*` | The reference session: five sources (three applications and two microphones), thirty blocks, and recorders writing WAV and MP3, built through the engine's interface. Its cost at 48 kHz with quantums of 1024 and 256, as the process's processor time while it runs less the same with it stopped. |
+| `pw.soak` | `reverblabr-pw-session-test --gtest_filter=Soak.*` | The reference session left running, with a level changed every two seconds and a tone restarted every thirty. Each recorder starts a new file every minute, and each finished file is read back and deleted, so a long run doesn't fill the disk. |
+
+`pw.soak` runs for `RB_SOAK_SECONDS` (ten by default) and fails when:
+
+- fewer than 98 % of the cycles due were run, or more were missed than the machine itself was missing before the run;
+- the process holds more threads at the end than after the warm-up (Qt's pool of idle threads aside), or more than three file descriptors more (the tones are the test's own processes, with pipes that come and go), or, in a run of half an hour or longer, its descriptors were still climbing in its second half;
+- the resident memory grew by 32 MiB or more, or, in a run of half an hour or longer, was still growing by 2 MiB an hour or more in its second half;
+- a block went quiet, the engine reported an error, or a recording didn't read back with the frames it was said to hold.
+
+For a run of hours, start it directly, not through CTest, which stops a test after its own time limit:
+
+```sh
+RB_SOAK_SECONDS=14400 RB_PERF_OUT=$PWD/soak tests/pw/harness/run-private-pipewire.sh \
+    build/release/bin/reverblabr-pw-session-test --gtest_filter='Soak.*'
+```
+
+The programs take options for longer measurements: `reverblabr-bench-dsp --seconds 20 --repeats 5 --only reverb`, `reverblabr-bench-canvas --frames 600 --tiles 50`, and `RB_PERF_WINDOW_SECONDS` for the session's cost.
+
+#### The figures and the report
+
+Each suite writes one JSON file (`dsp.json`, `canvas.json`, `session.json`, `soak.json`) into `--json`'s file or `RB_PERF_OUT`'s folder:
+
+```json
+{
+  "schema": 1, "suite": "dsp", "build": "release", "when": "2026-10-29T02:17:00Z",
+  "host": {"cpu": "...", "cores": 16, "kernel": "...", "machine": "x86_64"},
+  "notes": {"cycle": "48000 Hz, 256 frames"},
+  "metrics": {
+    "dsp.effect.reverb": {"value": 0.15, "unit": "% of a core", "better": "lower", "noise": 0.02, "detail": "..."}
+  }
+}
+```
+
+`better` is `lower`, `higher` or `neither` (kept for the record, never judged). `tolerance` is how far the figure may move the wrong way, as a share of the baseline, and `noise` the smallest change that counts at all, in the figure's own unit.
+
+[`tools/perf/report.py`](../tools/perf/report.py) holds a run against a baseline:
+
+```sh
+tools/perf/report.py build/release/perf-results --merge before.json   # keep a run as a baseline
+tools/perf/report.py build/release/perf-results --baseline before.json --markdown report.md
+```
+
+A figure is a regression when it moved the wrong way by more than its noise and by more than its tolerance (10 % when it gives none); the exit status is then 1. Runs from another processor or another build kind are compared with a warning and never fail. `--history` adds earlier runs as columns, oldest first, for the trend. `tools.perf-report`, in the ordinary suite, checks these rules, and that a block made twice as slow on purpose (`reverblabr-bench-dsp --inject-cost 100`) is caught.
+
+#### The nightly run
+
+[`.github/workflows/perf.yml`](../.github/workflows/perf.yml) runs every night and by hand (Actions, Performance, Run workflow) on a self-hosted runner labelled `reverblabr-perf`: the release build, the benchmarks with longer measurements, the session's cost, and a soak of `RB_SOAK_HOURS` hours (a repository variable, 4 when unset). The figures are compared with the last successful run's on the same branch, or with `tools/perf/baseline.json` when that file exists, and uploaded as the `perf-results` artifact with the report, which also goes to the job's summary. A regression fails the run, and GitHub notifies about failed runs. A failed run is never a baseline, so a regression goes on failing until it's fixed or a baseline is chosen on purpose.
+
+By hand, the run takes three inputs: `soak-hours` (72 for the long soak), `skip-soak` for the benchmarks alone, and `inject-cost`, which makes every block that many per cent slower to prove that the alert fires.
+
+The job runs only when the repository variable `RB_PERF_RUNNER` is `true`. Without it the job is skipped, so nothing waits for a runner that doesn't exist and nothing fails. To set the runner up:
+
+1. A machine kept for it, running Fedora 44, with nothing else to do while the job runs, and an ordinary user account for the runner. Install the build dependencies and the GitHub CLI: `sudo dnf install $(sed 's/#.*//' tools/deps/fedora.txt) gh`, then check with `tools/check-deps.sh`.
+2. On GitHub: Settings, Actions, Runners, New self-hosted runner, Linux x64. Run the download and `config.sh` commands it shows as that user, adding `--labels reverblabr-perf` to `config.sh`. Then install it as a service so it survives a reboot: `sudo ./svc.sh install <user>` and `sudo ./svc.sh start`.
+3. Settings, Actions, General: under fork pull request workflows, require approval for all outside collaborators. Only this workflow asks for the runner's label and it has no pull request trigger; keep it that way, because a self-hosted runner on a public repository runs whatever code it's given.
+4. Settings, Secrets and variables, Actions, Variables: add `RB_PERF_RUNNER` with the value `true`, and `RB_SOAK_HOURS` to change the nightly soak's length.
+5. Run the workflow by hand with `skip-soak` ticked: it should pass with "No baseline yet". Run it again with `inject-cost` set to `100`: it should fail and name the blocks. Then let the nightly runs build the baseline, or commit a trusted run's `merged.json` (from the artifact) as `tools/perf/baseline.json`.
 
 ## Sanitizers
 

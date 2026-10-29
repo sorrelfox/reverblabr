@@ -57,6 +57,7 @@ set_tests_properties(pw.links PROPERTIES TIMEOUT 300)
 # The session processing node: what one audio cycle does, judged by a
 # capture filter that shares no code with the engine, and by pw-dump.
 add_executable(reverblabr-pw-session-test
+    scenario.h
     sessionharness.cpp
     sessionharness.h
     test_capture.cpp
@@ -71,6 +72,7 @@ add_executable(reverblabr-pw-session-test
     test_scenarios.cpp
     test_sessionnode.cpp
     test_sessionruntime.cpp
+    test_soak.cpp
     test_structuralparams.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../unit/dsp/gainblock.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../unit/pw/sessionblocks.cpp
@@ -102,7 +104,7 @@ set_target_properties(reverblabr-pw-session-test PROPERTIES AUTOMOC ON)
 # separate ctest entries all the same, so a failure names the right thing and
 # the private instances do not have to share.
 add_test(NAME pw.session-node COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test>
-         --gtest_filter=-Inventories.*:Capture.*:Devices.*:SystemAudio.*:Structural.*:Scenarios.*:Recording.*:PluginSessions.*:Preview.*)
+         --gtest_filter=-Inventories.*:Capture.*:Devices.*:SystemAudio.*:Structural.*:Scenarios.*:Recording.*:PluginSessions.*:Preview.*:Soak.*:SessionCost.*)
 # The soak inside it runs for RB_SOAK_SECONDS, a minute by default.
 set_tests_properties(pw.session-node PROPERTIES TIMEOUT 600)
 
@@ -232,3 +234,21 @@ set_tests_properties(pw.session-node pw.capture pw.devices pw.system pw.structur
 # daemon, and are exactly the ones a real-time check must not skip.
 get_property(rb_pw_daemon_tests DIRECTORY PROPERTY TESTS)
 set_tests_properties(${rb_pw_daemon_tests} PROPERTIES LABELS pipewire)
+
+# **The long runs and what a session costs** (test_soak.cpp), which no
+# ordinary run includes: the soak's figures are only worth having from a
+# machine that does nothing else, and the costs only from an optimised
+# build. The test presets leave the labels soak and perf out; the perf
+# preset runs them, short, and docs/development.md ("Soak and performance
+# runs") says how to run the soak for hours. Their figures go to
+# perf-results/ in the build tree, for tools/perf/report.py.
+add_test(NAME pw.soak COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test> --gtest_filter=Soak.*)
+add_test(NAME pw.session-cost COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test>
+         --gtest_filter=SessionCost.*)
+set_tests_properties(pw.soak pw.session-cost PROPERTIES
+    TIMEOUT 600
+    RESOURCE_LOCK pipewire-audio
+    ENVIRONMENT "RB_PERF_OUT=${CMAKE_BINARY_DIR}/perf-results"
+)
+set_tests_properties(pw.soak PROPERTIES LABELS "pipewire;soak")
+set_tests_properties(pw.session-cost PROPERTIES LABELS "pipewire;perf")
