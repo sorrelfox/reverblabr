@@ -216,15 +216,18 @@ as a menu bar instead.</para></listitem>
 </varlistentry>
 <varlistentry>
 <term>The sidebar</term>
-<listitem><para>On the left, with three tabs: <guilabel>Blocks</guilabel>,
+<listitem><para>On the left, with four tabs: <guilabel>Blocks</guilabel>,
 the library of blocks you can add, grouped by what they do
 (<keycombo action="simul">&Ctrl;<keycap>1</keycap></keycombo>);
 <guilabel>Files</guilabel>, what the session has recorded (<keycombo
 action="simul">&Ctrl;<keycap>2</keycap></keycombo>, see <xref
-linkend="files-tab"/>); and <guilabel>Info</guilabel>, the session's title,
+linkend="files-tab"/>); <guilabel>Info</guilabel>, the session's title,
 notes and settings, and the audio system (<keycombo
 action="simul">&Ctrl;<keycap>3</keycap></keycombo>, see <xref
-linkend="info-tab"/>).</para></listitem>
+linkend="info-tab"/>); and <guilabel>Schedule</guilabel>, the timers that
+start the session at set times (<keycombo
+action="simul">&Ctrl;<keycap>4</keycap></keycombo>, see <xref
+linkend="scheduling"/>).</para></listitem>
 </varlistentry>
 <varlistentry>
 <term>The canvas</term>
@@ -984,14 +987,50 @@ keeps the setting for later.</para></listitem>
 </sect1>
 
 <sect1 id="scheduling">
-<title>Timers</title>
-<!-- A placeholder until timers and the Schedule tab are there: replace it
-     with how they are used, and say the same in docs/. -->
-<para>Not available yet. Timers that start and stop a session at the times
-you set, and a <guilabel>Schedule</guilabel> tab to manage them, are planned.
-Until then, <link linkend="auto-run">Auto Run</link> starts a session when you
-log in, and &ctl; started from cron or a systemd timer starts and stops one at
-any time.</para>
+<title>Sessions on a schedule</title>
+
+<para>The <guilabel>Schedule</guilabel> tab of the sidebar (<keycombo
+action="simul">&Ctrl;<keycap>4</keycap></keycombo>) starts a session at the
+times you set, such as a radio programme every weekday morning or a call to
+record once on a date, and stops it again when the time is up.</para>
+
+<itemizedlist>
+<listitem><para><guibutton>Add Timer</guibutton> (the <guibutton>+</guibutton>)
+asks how often: <guilabel>Once</guilabel> on a date, <guilabel>Every
+day</guilabel>, <guilabel>Monday to Friday</guilabel>, or <guilabel>On these
+days</guilabel> for the days you choose. It also asks the time it starts and
+how long it runs. <guibutton>Save</guibutton> waits until the timer is one that
+can run, and the dialog shows the calendar expression systemd is
+given.</para></listitem>
+<listitem><para><guilabel>When done: Quit the applications this session
+captures</guilabel> also asks each application the session records from to
+quit when the run is over, as logging out would. &reverblabr; asks you to
+confirm before it sets this, since anything unsaved in those applications may
+be lost.</para></listitem>
+<listitem><para>Each timer has a switch to turn it off without deleting it,
+and buttons to edit or delete it. Undo takes back any of these, like any other
+change to the session. The timers are kept in the session's file, so they go
+with it when it is exported, and an imported copy gets timers of its
+own.</para></listitem>
+<listitem><para><emphasis role="strong">&reverblabr; does not need to be
+open.</emphasis> The background engine hands each timer that is on to systemd
+as a user timer, which starts the engine and the session when the time comes.
+<userinput>systemctl --user list-timers 'reverblabr-timer-*'</userinput> lists
+them, and <userinput>reverblabr-ctl timers list</userinput> says the same with
+the sessions' names (see <xref linkend="ctl"/>).</para></listitem>
+<listitem><para>A session that is already running when its timer comes round
+is left as it is, and is not stopped at the end either. Stopping a session
+yourself ends its timer's run.</para></listitem>
+<listitem><para>The computer has to be on and you logged in: a timer does not
+wake it from sleep. One that came round while it was asleep may start the
+session as it wakes, for the timer's whole duration, and a session that is
+running when the computer goes to sleep is stopped when it wakes, if its time
+is up by then.</para></listitem>
+<listitem><para>It needs an installed &reverblabr;, as <link
+linkend="auto-run">Auto Run</link> does. In a build run from the source tree
+the Schedule tab says so, and the session keeps its timers for
+later.</para></listitem>
+</itemizedlist>
 </sect1>
 
 <sect1 id="tray">
@@ -1585,6 +1624,19 @@ is written with a dot (<userinput>0.5</userinput>, whatever the language), a
 switch takes <userinput>true</userinput> or <userinput>false</userinput>, and
 a choice takes one of its choices.</para></listitem>
 </varlistentry>
+<varlistentry>
+<term><userinput>timers list <optional><replaceable>session</replaceable></optional></userinput></term>
+<listitem><para>Every session's timers, or one's, a line each: when it runs,
+for how long, when it next starts its session, and its id in
+brackets.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><userinput>timer-fire <replaceable>timer</replaceable></userinput></term>
+<listitem><para>Does now what the timer does when its time comes: starts its
+session and has the engine stop it once the timer's duration is over. The
+systemd timer &reverblabr; keeps for each timer runs this; running it yourself
+is a way to try a timer out.</para></listitem>
+</varlistentry>
 </variablelist>
 
 <para>A session is named by its name or its id, and a block by the name given
@@ -1595,8 +1647,8 @@ one line of JSON for scripts, and <option>--no-activate</option> asks only an
 engine that is already running.</para>
 
 <para><userinput>man reverblabr-ctl</userinput> describes every command and
-option, the exit status and the JSON. bash and zsh complete the commands and
-the sessions' names.</para>
+option, the exit status and the JSON. bash and zsh complete the commands, the
+sessions' names and the timers' ids.</para>
 </chapter>
 
 <!-- ================================================================ -->
@@ -1837,10 +1889,12 @@ canvas.</para></listitem>
 </varlistentry>
 <varlistentry>
 <term><menuchoice><guimenu>View</guimenu><guimenuitem>Blocks</guimenuitem></menuchoice>,
-<guimenuitem>Files</guimenuitem> and <guimenuitem>Info</guimenuitem>
+<guimenuitem>Files</guimenuitem>, <guimenuitem>Info</guimenuitem> and
+<guimenuitem>Schedule</guimenuitem>
 (<keycombo action="simul">&Ctrl;<keycap>1</keycap></keycombo>,
 <keycombo action="simul">&Ctrl;<keycap>2</keycap></keycombo>,
-<keycombo action="simul">&Ctrl;<keycap>3</keycap></keycombo>)</term>
+<keycombo action="simul">&Ctrl;<keycap>3</keycap></keycombo>,
+<keycombo action="simul">&Ctrl;<keycap>4</keycap></keycombo>)</term>
 <listitem><para>Show that tab of the sidebar.</para></listitem>
 </varlistentry>
 </variablelist>
