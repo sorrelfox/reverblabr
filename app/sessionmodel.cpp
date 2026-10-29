@@ -57,6 +57,8 @@ namespace
         {u"edit.setEnabled"_s, kli18nc("@action:inmenu an undo step", "Switch Block On or Off")},
         {u"edit.setSessionSetting"_s, kli18nc("@action:inmenu an undo step", "Change Session Setting")},
         {u"edit.applyPreset"_s, kli18nc("@action:inmenu an undo step", "Apply Preset")},
+        {u"edit.setTimer"_s, kli18nc("@action:inmenu an undo step", "Change Timer")},
+        {u"edit.removeTimer"_s, kli18nc("@action:inmenu an undo step", "Delete Timer")},
     };
     const auto found = names.find(code);
     return found == names.end() ? QString{} : found->second.toString();

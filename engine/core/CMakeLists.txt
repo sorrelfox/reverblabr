@@ -81,6 +81,8 @@ add_library(reverblabr-engine STATIC
     sessionstore.h
     telemetry.cpp
     telemetry.h
+    timers.cpp
+    timers.h
     virtualdevices.cpp
     virtualdevices.h
     xrunhistory.h

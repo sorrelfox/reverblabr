@@ -7,6 +7,8 @@
 
 #include "core/sessionlisting.h"
 
+#include "core/timers.h"
+
 #include <QJsonArray>
 #include <QUuid>
 
@@ -26,6 +28,12 @@ QJsonObject sessionListEntry(const Session &session, const QString &state, int r
             sources.append(QJsonObject{{"type"_L1, block.type}, {"name"_L1, block.nickname}});
         }
     }
+    // **Only the timers this version can run**, as it writes them: a list
+    // is what the background engine makes its systemd timers from.
+    QJsonArray timers;
+    for (const Timer &timer : timersFromJson(session.timers)) {
+        timers.append(timerToJson(timer));
+    }
     QJsonObject entry{
         {"id"_L1, session.id.toString(QUuid::WithoutBraces)},
         {"name"_L1, session.name},
@@ -33,6 +41,7 @@ QJsonObject sessionListEntry(const Session &session, const QString &state, int r
         {"sources"_L1, sources},
         {"recordings"_L1, recordings},
         {"autoRun"_L1, session.settings.autoRun},
+        {"timers"_L1, timers},
     };
     if (startedAtMs > 0) {
         entry.insert("startedAt"_L1, static_cast<double>(startedAtMs));

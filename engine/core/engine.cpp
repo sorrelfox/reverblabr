@@ -27,6 +27,7 @@
 #include "core/sessionplan.h"
 #include "core/sessionruntime.h"
 #include "core/telemetry.h"
+#include "core/timers.h"
 #include "core/virtualdevices.h"
 #include "dsp/blockregistry.h"
 #include "pw/connection.h"
@@ -764,6 +765,9 @@ void Engine::importSession(const QString &path)
     session.session = std::move(*loaded);
     session.session.id = QUuid::createUuid();
     session.session.revision = 0;
+    // Its timers are the copy's own, or both sessions would answer to one
+    // systemd timer.
+    session.session.timers = timersWithNewIds(session.session.timers);
     const QString id = session.session.id.toString(QUuid::WithoutBraces);
 
     if (const std::expected<void, SessionError> saved = d->store.save(session.session); !saved) {

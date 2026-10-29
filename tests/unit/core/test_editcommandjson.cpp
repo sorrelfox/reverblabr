@@ -86,7 +86,9 @@ namespace
             SetNotes{u"Two microphones.\nMixed down on the laptop."_s},
             SetEnabled{u"b7"_s, true},
             setting,
-            preset};
+            preset,
+            SetTimer{QJsonObject{{u"id"_s, u"t1"_s}, {u"repeat"_s, u"daily"_s}}, 2},
+            RemoveTimer{u"t1"_s}};
 }
 
 } // namespace
@@ -142,6 +144,9 @@ TEST(EditCommandJson, AKnownOperationWithTheWrongArgumentsIsRefused)
         {{u"op"_s, u"setNotes"_s}}, // no note at all, which is not an empty one
         {{u"op"_s, u"setNotes"_s}, {u"notes"_s, 7}}, // nor is a number
         {{u"op"_s, u"setSessionSetting"_s}, {u"key"_s, u"colour"_s}, {u"value"_s, 1}},
+        {{u"op"_s, u"setTimer"_s}}, // no timer
+        {{u"op"_s, u"setTimer"_s}, {u"timer"_s, u"daily"_s}}, // not one
+        {{u"op"_s, u"removeTimer"_s}}, // which?
     };
     for (const QJsonObject &json : broken) {
         const std::expected<EditCommand, EditJsonError> read = editCommandFromJson(json);

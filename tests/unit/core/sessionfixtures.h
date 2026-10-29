@@ -69,7 +69,15 @@ inline core::Session fullSession()
     session.wires.append(core::Wire{QStringLiteral("b2"), 0, QStringLiteral("b3"), 0});
 
     // Fields this version does not use, which a later one might.
-    session.timers = QJsonArray{QJsonObject{{QStringLiteral("at"), QStringLiteral("2026-09-20T08:00:00Z")}}};
+    // One timer this version runs, as it writes it, and one from a later
+    // version that it only keeps.
+    session.timers = QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("t1")},
+                                            {QStringLiteral("enabled"), true},
+                                            {QStringLiteral("repeat"), QStringLiteral("daily")},
+                                            {QStringLiteral("time"), QStringLiteral("08:00")},
+                                            {QStringLiteral("duration"), 3600},
+                                            {QStringLiteral("quitApplications"), false}},
+                                QJsonObject{{QStringLiteral("at"), QStringLiteral("2026-09-20T08:00:00Z")}}};
     session.automations = QJsonArray{QJsonObject{{QStringLiteral("kind"), QStringLiteral("fade")}}};
     return session;
 }

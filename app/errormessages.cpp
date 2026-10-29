@@ -156,6 +156,9 @@ constexpr std::array kReasons{
             kli18nc("@info a reason an edit was refused", "that setting doesn't take a value of that kind")},
     Message{"settingValueNotAllowed",
             kli18nc("@info a reason an edit was refused", "that setting doesn't take that value")},
+    Message{"timerNotValid",
+            kli18nc("@info a reason an edit was refused", "the timer is missing a time, a day or how long it runs")},
+    Message{"timerNotFound", kli18nc("@info a reason an edit was refused", "there's no such timer in the session")},
     // Presets.
     Message{"notFound", kli18nc("@info a reason a preset was refused", "there's no preset of that name")},
     Message{"badName",

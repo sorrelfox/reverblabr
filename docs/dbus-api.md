@@ -113,7 +113,7 @@ The released surface is written down line by line in [`dbus/io.github.reverblabr
 
 | Method | Does | Answered by |
 |---|---|---|
-| `ApplyEdit(s sessionId, s editJson)` | one edit command, or a JSON array of them applied whole or not at all as one step to undo: `addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect`, `setParam`, `rename`, `setNotes`, `setEnabled`, `setSessionSetting` ([architecture.md](architecture.md)) | a `SessionPatch` per command, or `edit.refused` |
+| `ApplyEdit(s sessionId, s editJson)` | one edit command, or a JSON array of them applied whole or not at all as one step to undo: `addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect`, `setParam`, `rename`, `setNotes`, `setEnabled`, `setSessionSetting`, `applyPreset`, `setTimer`, `removeTimer` ([architecture.md](architecture.md)) | a `SessionPatch` per command, or `edit.refused` |
 | `SetParam(s sessionId, s blockId, s paramId, s valueJson)` | one parameter, with the value as JSON; meant for a value that moves, so it produces no patch | `edit.refused` if refused |
 | `Undo(s sessionId)`, `Redo(s sessionId)` | take back, or put back, the last thing done | patches, and `UndoStateChanged` |
 | `GetUndoState(s sessionId)` | what Undo and Redo would do now | `UndoStateChanged` |
@@ -188,7 +188,7 @@ The all-users devices are written by a privileged helper the window asks through
 
 | Signal | Says |
 |---|---|
-| `SessionsListed(s sessionsJson)` | the sessions on disk: `[{id, name, state, sources, recordings, startedAt, autoRun}]`, where `state` is an open session's (as `StateChanged` says it) or `closed` for one that is only on disk; `sources` are the blocks sound comes in through, `[{type, name}]` in the session's order (`name` is what somebody called the block, or empty); `recordings` is how many recordings the session has made; `startedAt`, only while it runs, is when it started, in milliseconds since the epoch; and `autoRun` is `off`, or `login` for a session the background engine starts whenever it starts ([ADR-0021](adr/0021-auto-run.md)) |
+| `SessionsListed(s sessionsJson)` | the sessions on disk: `[{id, name, state, sources, recordings, startedAt, autoRun, timers}]`, where `state` is an open session's (as `StateChanged` says it) or `closed` for one that is only on disk; `sources` are the blocks sound comes in through, `[{type, name}]` in the session's order (`name` is what somebody called the block, or empty); `recordings` is how many recordings the session has made; `startedAt`, only while it runs, is when it started, in milliseconds since the epoch; `autoRun` is `off`, or `login` for a session the background engine starts whenever it starts ([ADR-0021](adr/0021-auto-run.md)); and `timers` are the session's timers this version can run, as the session file holds them ([architecture.md](architecture.md#session-data-model)) |
 | `SessionOpened(s sessionId)` | a session is open; its snapshot follows |
 | `SessionClosed(s sessionId)` | a session was closed |
 | `SessionSnapshot(s sessionId, t revision, s sessionJson)` | the whole session, and the revision its patches continue from |

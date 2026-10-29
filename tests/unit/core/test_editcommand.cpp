@@ -55,6 +55,17 @@ BlockInstance newBlock(const QString &id = QStringLiteral("b4"))
     return block;
 }
 
+/// A timer as the file holds it, Monday to Friday at 07:30.
+QJsonObject weekdayTimer(const QString &id)
+{
+    return QJsonObject{{QStringLiteral("id"), id},
+                       {QStringLiteral("enabled"), true},
+                       {QStringLiteral("repeat"), QStringLiteral("weekdays")},
+                       {QStringLiteral("time"), QStringLiteral("07:30")},
+                       {QStringLiteral("duration"), 5400},
+                       {QStringLiteral("quitApplications"), false}};
+}
+
 } // namespace
 
 TEST(EditCommand, EveryCommandIsExactlyInvertible)
@@ -74,6 +85,36 @@ TEST(EditCommand, EveryCommandIsExactlyInvertible)
     expectInvertible(SetSessionSetting{SessionSettingKey::SampleRate, QJsonValue{QStringLiteral("auto")}});
     expectInvertible(SetSessionSetting{SessionSettingKey::Latency, QJsonValue{QStringLiteral("high")}});
     expectInvertible(SetSessionSetting{SessionSettingKey::AutoRun, QJsonValue{QStringLiteral("off")}});
+    expectInvertible(SetTimer{weekdayTimer(QStringLiteral("t2"))});
+    expectInvertible(SetTimer{weekdayTimer(QStringLiteral("t1"))});
+    expectInvertible(RemoveTimer{QStringLiteral("t1")});
+}
+
+// **A timer is checked as it is set**, so the file never holds one this
+// version wrote and cannot run; and it is written in the one shape this
+// version writes, whatever the edit spelled.
+TEST(EditCommand, ATimerIsCheckedAndWrittenAsTheFileHoldsIt)
+{
+    Session session = fullSession();
+    const Session before = session;
+    QJsonObject noTime = weekdayTimer(QStringLiteral("t2"));
+    noTime.remove(QStringLiteral("time"));
+    EXPECT_EQ(applyEdit(session, SetTimer{noTime}).error(), EditError::TimerNotValid);
+    QJsonObject badId = weekdayTimer(QStringLiteral("../../evil"));
+    EXPECT_EQ(applyEdit(session, SetTimer{badId}).error(), EditError::TimerNotValid);
+    EXPECT_EQ(applyEdit(session, RemoveTimer{QStringLiteral("t9")}).error(), EditError::TimerNotFound);
+    EXPECT_EQ(session, before);
+
+    QJsonObject shortened = weekdayTimer(QStringLiteral("t1"));
+    shortened.remove(QStringLiteral("enabled"));
+    shortened.insert(QStringLiteral("unknownField"), 1);
+    ASSERT_TRUE(applyEdit(session, SetTimer{shortened}).has_value());
+    ASSERT_EQ(session.timers.size(), before.timers.size()) << "the timer with that id is replaced, where it was";
+    const QJsonObject written = session.timers.at(0).toObject();
+    EXPECT_EQ(written.value(QStringLiteral("enabled")), QJsonValue(true));
+    EXPECT_EQ(written.value(QStringLiteral("repeat")).toString(), QStringLiteral("weekdays"));
+    EXPECT_FALSE(written.contains(QStringLiteral("unknownField")));
+    EXPECT_EQ(session.timers.at(1), before.timers.at(1)) << "a later version's timer is left alone";
 }
 
 TEST(EditCommand, RemovingABlockTakesItsWiresAndUndoingPutsThemBack)
@@ -418,6 +459,10 @@ TEST(EditCommand, CommandsAndErrorsHaveStableNames)
     EXPECT_EQ(editCommandName(SetNotes{}), "setNotes");
     EXPECT_EQ(editCommandName(SetEnabled{}), "setEnabled");
     EXPECT_EQ(editCommandName(SetSessionSetting{}), "setSessionSetting");
+    EXPECT_EQ(editCommandName(SetTimer{}), "setTimer");
+    EXPECT_EQ(editCommandName(RemoveTimer{}), "removeTimer");
+    EXPECT_EQ(editErrorName(EditError::TimerNotValid), "timerNotValid");
+    EXPECT_EQ(editErrorName(EditError::TimerNotFound), "timerNotFound");
 
     EXPECT_EQ(editErrorName(EditError::BlockNotFound), "blockNotFound");
     EXPECT_EQ(editErrorName(EditError::WireToItself), "wireToItself");

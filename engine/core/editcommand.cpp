@@ -8,6 +8,7 @@
 #include "core/editcommand.h"
 
 #include "core/sessionstore.h"
+#include "core/timers.h"
 
 #include <QJsonArray>
 #include <QJsonValue>
@@ -261,6 +262,47 @@ Inverse apply(Session &session, const SetSessionSetting &command)
     return std::unexpected(EditError::SettingValueNotAllowed);
 }
 
+/// Where the timer with \a timerId is in the session's list, or -1.
+qsizetype timerIndex(const Session &session, const QString &timerId)
+{
+    for (qsizetype index = 0; index < session.timers.size(); ++index) {
+        if (session.timers.at(index).toObject().value("id"_L1).toString() == timerId) {
+            return index;
+        }
+    }
+    return -1;
+}
+
+Inverse apply(Session &session, const SetTimer &command)
+{
+    const std::optional<Timer> timer = timerFromJson(command.timer);
+    if (!timer) {
+        return std::unexpected(EditError::TimerNotValid);
+    }
+    // **Written as this version writes it**, whatever the edit spelled, so
+    // the file holds one shape and a later read of it gives the same timer.
+    const QJsonObject written = timerToJson(*timer);
+    const qsizetype existing = timerIndex(session, timer->id);
+    if (existing >= 0) {
+        const QJsonObject previous = session.timers.at(existing).toObject();
+        session.timers.replace(existing, written);
+        return EditInverse{SetTimer{previous, existing}};
+    }
+    session.timers.insert(insertionPoint(command.index, session.timers.size()), written);
+    return EditInverse{RemoveTimer{timer->id}};
+}
+
+Inverse apply(Session &session, const RemoveTimer &command)
+{
+    const qsizetype index = timerIndex(session, command.timerId);
+    if (index < 0) {
+        return std::unexpected(EditError::TimerNotFound);
+    }
+    const QJsonObject previous = session.timers.at(index).toObject();
+    session.timers.removeAt(index);
+    return EditInverse{SetTimer{previous, index}};
+}
+
 } // namespace
 
 std::string_view sessionSettingKeyName(SessionSettingKey key) noexcept
@@ -305,6 +347,10 @@ std::string_view editCommandName(const EditCommand &command) noexcept
                 return "setSessionSetting";
             } else if constexpr (std::is_same_v<Command, ApplyPreset>) {
                 return "applyPreset";
+            } else if constexpr (std::is_same_v<Command, SetTimer>) {
+                return "setTimer";
+            } else if constexpr (std::is_same_v<Command, RemoveTimer>) {
+                return "removeTimer";
             } else {
                 static_assert(kUnhandledCommand<Command>, "this command has no name here");
             }
@@ -339,6 +385,10 @@ std::string_view editErrorName(EditError error) noexcept
         return "settingTypeMismatch";
     case EditError::SettingValueNotAllowed:
         return "settingValueNotAllowed";
+    case EditError::TimerNotValid:
+        return "timerNotValid";
+    case EditError::TimerNotFound:
+        return "timerNotFound";
     }
     return "unknown";
 }
@@ -483,6 +533,11 @@ QJsonObject editCommandToJson(const EditCommand &command)
                     clear.append(key);
                 }
                 json.insert("clear"_L1, clear);
+            } else if constexpr (std::is_same_v<Command, SetTimer>) {
+                json.insert("timer"_L1, specific.timer);
+                json.insert("index"_L1, static_cast<qint64>(specific.index));
+            } else if constexpr (std::is_same_v<Command, RemoveTimer>) {
+                json.insert("timerId"_L1, specific.timerId);
             } else {
                 static_assert(kUnhandledCommand<Command>, "this command has no JSON here");
             }
@@ -592,6 +647,22 @@ std::expected<EditCommand, EditJsonError> editCommandFromJson(const QJsonObject 
             return std::unexpected(EditJsonError::MalformedArguments);
         }
         return SetEnabled{blockId, json.value("enabled"_L1).toBool()};
+    }
+    if (op == "setTimer"_L1) {
+        // Only its shape here; whether it is a timer that can run is the
+        // command's to say, as an edit refused rather than a malformed one.
+        if (!json.value("timer"_L1).isObject()) {
+            return std::unexpected(EditJsonError::MalformedArguments);
+        }
+        return SetTimer{json.value("timer"_L1).toObject(),
+                        static_cast<qsizetype>(json.value("index"_L1).toInteger(-1))};
+    }
+    if (op == "removeTimer"_L1) {
+        const QString timerId = json.value("timerId"_L1).toString();
+        if (timerId.isEmpty()) {
+            return std::unexpected(EditJsonError::MalformedArguments);
+        }
+        return RemoveTimer{timerId};
     }
     if (op == "setSessionSetting"_L1) {
         const QString key = json.value("key"_L1).toString();

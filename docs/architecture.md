@@ -113,7 +113,7 @@ At first                               Later
 
 ## From session to sound
 
-1. **Session model** (`engine/core`). A session is a set of blocks and the wires between them. The model changes only through **edit commands** (`addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect`, `setParam`, `rename`, `setNotes`, `setEnabled`, `setSessionSetting`). Each command is validated, applied, published as a numbered patch and can be inverted, which is what undo uses.
+1. **Session model** (`engine/core`). A session is a set of blocks and the wires between them. The model changes only through **edit commands** (`addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect`, `setParam`, `rename`, `setNotes`, `setEnabled`, `setSessionSetting`, `applyPreset`, `setTimer`, `removeTimer`). Each command is validated, applied, published as a numbered patch and can be inverted, which is what undo uses.
    - **Undo is a stack of gestures, not of events** (`rb::core::EditHistory`). A drag of a slider is a hundred `setParam` commands and a drag of three selected tiles is sixty `moveBlock` commands, and Ctrl+Z has to take back the drag rather than the last pixel of it, so an edit that carries on what the one before it was doing is merged into the step already there. Time is what a gesture is measured in, for want of anything better: nothing in the protocol says when a mouse button was released. The history lives in the engine, so the GUI and the CLI undo the same things in the same order, and **an undo applies its commands the way any edit is applied**, through the live-update path and out as patches, so a session that is running is heard to change.
 ### What a block is
 
@@ -453,7 +453,10 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
     { "from": ["b1", 0], "to": ["b2", 0] },
     { "from": ["b2", 0], "to": ["b3", 0] }
   ],
-  "timers": [],
+  "timers": [
+    { "id": "5b0e3c1a-8f2d-4d6e-b7a9-1c4e2f6a8d30", "enabled": true, "repeat": "weekdays",
+      "time": "07:30", "duration": 5400, "quitApplications": false }
+  ],
   "automations": []
 }
 ```
@@ -463,7 +466,8 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
 - **Locale-independent data:** numbers use `.` as the decimal separator, and dates are ISO 8601. Values are formatted for the user's locale only on screen.
 - **Stable references:** devices are stored by `node.name` and applications by match rules (binary, name, Flatpak ID), never by runtime object IDs.
 - **Robust loading:** a block type this version doesn't know is kept and flagged, not dropped. A corrupt file is backed up (`.corrupt-<timestamp>`) and reported with an error code, and the app still starts.
-- **Reserved fields:** `timers` and `automations` are there so that later features don't break older files.
+- **Timers** (`core/timers.h`) start the session at set times, through the background engine's systemd user timers ([below](#timers)). Each has an `id` (letters, digits, `-` and `_`: it becomes part of a unit's file name), `enabled`, `repeat` (`once` with a `date`, `yyyy-MM-dd`; `daily`; `weekdays`; or `days` with `days`, `["mon", "thu"]`), `time` (`HH:mm`, local time), `duration` in seconds (at most a week) and `quitApplications`. A timer this version can't read, such as one with a repeat from a later version, is kept in the file as it is and never run. An imported session's timers get new ids, as the session does.
+- **Reserved field:** `automations` is there so that a later feature doesn't break older files.
 - **Block type IDs** are `<category>.<name>` and never change:
 
 | Block | Type ID |

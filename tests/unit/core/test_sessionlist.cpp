@@ -198,6 +198,42 @@ TEST(SessionList, EachSessionSaysWhetherItRunsAtLogin)
     EXPECT_EQ(entryNamed(listed, u"Call"_s).value("autoRun"_L1).toString(), u"login"_s) << "as it is now";
 }
 
+// **Each session's timers, as the file holds them**, from its file when it
+// is closed and as it is now when it is open: what the background engine
+// makes its systemd timers from.
+TEST(SessionList, EachSessionSaysItsTimers)
+{
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    dsp::BlockRegistry registry;
+    ASSERT_TRUE(blocks::registerBuiltinBlocks(registry));
+    Engine engine(registry, SessionStore{sessions.path()});
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    QSignalSpy listed(&engine, &EngineFacade::sessionsListed);
+
+    engine.createSession(u"Radio"_s);
+    engine.createSession(u"Call"_s);
+    ASSERT_EQ(opened.count(), 2);
+    const QString radio = opened.at(0).at(0).toString();
+    const QJsonObject timer{{"id"_L1, u"morning"_s},
+                            {"enabled"_L1, true},
+                            {"repeat"_L1, u"weekdays"_s},
+                            {"time"_L1, u"07:30"_s},
+                            {"duration"_L1, 3600},
+                            {"quitApplications"_L1, false}};
+    engine.applyEdit(
+        radio, QString::fromUtf8(QJsonDocument(editCommandToJson(SetTimer{timer})).toJson(QJsonDocument::Compact)));
+    engine.saveSession(radio);
+    engine.closeSession(radio);
+
+    engine.listSessions();
+    ASSERT_EQ(listed.count(), 1);
+    const QJsonArray timers = entryNamed(listed, u"Radio"_s).value("timers"_L1).toArray();
+    ASSERT_EQ(timers.size(), 1);
+    EXPECT_EQ(timers.at(0).toObject(), timer);
+    EXPECT_TRUE(entryNamed(listed, u"Call"_s).value("timers"_L1).toArray().isEmpty());
+}
+
 // **When it started is the engine's clock**, said while it runs and gone
 // once it stops, so a window opened later says the same as one that watched
 // it start. And the recordings are counted from the index.

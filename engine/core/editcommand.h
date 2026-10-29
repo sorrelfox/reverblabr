@@ -156,6 +156,26 @@ struct ApplyPreset {
     [[nodiscard]] bool operator==(const ApplyPreset &other) const = default;
 };
 
+/// Adds one of the session's timers, or replaces the one with its id
+/// (core/timers.h). \a timer is the timer as the file holds it, and is
+/// refused unless timerFromJson() can read it: a timer this version cannot
+/// run is never written by it.
+struct SetTimer {
+    QJsonObject timer;
+    /// Where a new timer goes in the list, or -1 for the end, for the same
+    /// reason as AddBlock::index. A timer that is replaced stays where it is.
+    qsizetype index = -1;
+
+    [[nodiscard]] bool operator==(const SetTimer &other) const = default;
+};
+
+/// Takes one of the session's timers away.
+struct RemoveTimer {
+    QString timerId;
+
+    [[nodiscard]] bool operator==(const RemoveTimer &other) const = default;
+};
+
 /// Every change a session can undergo. Nothing else may touch the model: this
 /// is what makes undo, the change numbering and the facade's ApplyEdit all
 /// work from one place.
@@ -169,7 +189,9 @@ using EditCommand = std::variant<AddBlock,
                                  SetNotes,
                                  SetEnabled,
                                  SetSessionSetting,
-                                 ApplyPreset>;
+                                 ApplyPreset,
+                                 SetTimer,
+                                 RemoveTimer>;
 
 /// The stable name of a command, for diagnostics and for the facade.
 [[nodiscard]] std::string_view editCommandName(const EditCommand &command) noexcept;
@@ -189,6 +211,8 @@ enum class EditError : std::uint8_t {
     ParamKeyEmpty,
     SettingTypeMismatch, ///< A setting was given a value of the wrong type.
     SettingValueNotAllowed, ///< A setting was given a value it does not take.
+    TimerNotValid, ///< A timer that is missing something, or has something wrong.
+    TimerNotFound, ///< No timer of that id in the session.
 };
 
 [[nodiscard]] std::string_view editErrorName(EditError error) noexcept;

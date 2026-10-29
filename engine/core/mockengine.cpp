@@ -44,6 +44,7 @@
 #include "core/sessionstore.h"
 #include "core/sharedtelemetry.h"
 #include "core/telemetry.h"
+#include "core/timers.h"
 #include "core/virtualdevices.h"
 #include "pw/inventory.h"
 #include "pw/virtualdevicemanager.h"
@@ -1107,6 +1108,7 @@ void MockEngine::importSession(const QString &path)
     session.session = std::move(*loaded);
     session.session.id = QUuid::createUuid();
     session.session.revision = 0;
+    session.session.timers = timersWithNewIds(session.session.timers);
     const QString id = session.session.id.toString(QUuid::WithoutBraces);
     for (const BlockInstance &block : session.session.blocks) {
         if (block.unknownType) {
