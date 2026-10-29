@@ -13,6 +13,7 @@
 #include <QString>
 #include <QTimer>
 
+#include <chrono>
 #include <functional>
 
 namespace rb::core
@@ -46,10 +47,20 @@ class TimerRunner : public QObject
     Q_OBJECT
 
 public:
+    /// \a stoppedByEngine says whether the engine itself is stopping a
+    /// session to start it again, as it does when PipeWire or WirePlumber
+    /// restarts under it: that stop does not end the timer's run.
     TimerRunner(EngineFacade *engine,
                 std::function<QString()> listing,
                 std::function<void(const QString &sessionId)> quitApplications,
+                std::function<bool(const QString &sessionId)> stoppedByEngine = {},
                 QObject *parent = nullptr);
+
+    /// How long after its time a fire from systemd may come and still run
+    /// the session. A machine asleep at the time hands systemd the fire as
+    /// it wakes, perhaps hours late, and a recording of the morning news
+    /// started at noon for its whole length is not what anybody set.
+    static constexpr auto kLateness = std::chrono::minutes(2);
 
     /// Every session's timers, as TimersListed carries them: each timer as
     /// the file holds it, with `sessionId`, `sessionName`, `onCalendar`,
@@ -57,11 +68,18 @@ public:
     /// runs again) and, while it is keeping its session running, `endsAt`.
     [[nodiscard]] QString timerListing(const QDateTime &now) const;
 
-    void fire(const QString &timerId);
+    /// Does what the timer does. \a scheduled is a fire from its systemd
+    /// timer, which is refused when it comes more than kLateness after the
+    /// timer's time; a fire by hand runs whenever it comes.
+    void fire(const QString &timerId, bool scheduled);
 
 Q_SIGNALS:
-    /// The timer was found, and its session started or asked to.
-    void fired(const QString &timerId, const QString &sessionId);
+    /// The timer was found: \a started is whether it started its session
+    /// (or asked it to open and start), and false when the session was
+    /// running already and is left to whoever started it.
+    void fired(const QString &timerId, const QString &sessionId, bool started);
+    /// A fire from systemd came too long after the timer's time.
+    void late(const QString &timerId);
     /// No session has a timer of that id.
     void notFound(const QString &timerId);
     /// The run is over and the session was asked to stop.
@@ -84,6 +102,7 @@ private:
     EngineFacade *m_engine = nullptr;
     std::function<QString()> m_listing;
     std::function<void(const QString &)> m_quitApplications;
+    std::function<bool(const QString &)> m_stoppedByEngine;
     /// The runs under way, by timer.
     QHash<QString, Run> m_runs;
     QTimer m_check;

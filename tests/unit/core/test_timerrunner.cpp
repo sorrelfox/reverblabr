@@ -14,6 +14,7 @@
 #include "core/enginefacade.h"
 #include "core/mockengine.h"
 #include "core/sessionstore.h"
+#include "core/timerrunner.h"
 #include "dsp/blockregistry.h"
 
 #include <QCoreApplication>
@@ -107,7 +108,7 @@ protected:
 TEST_F(TimerRunnerTest, ATimerStartsItsSessionAndStopsItWhenTheDurationIsOver)
 {
     engine.applyEdit(session, setTimer(timer(u"t1"_s, 1)));
-    engine.fireTimer(u"t1"_s);
+    engine.fireTimer(u"t1"_s, false);
     ASSERT_EQ(fired.count(), 1);
     EXPECT_EQ(fired.at(0).at(0).toString(), u"t1"_s);
     EXPECT_EQ(fired.at(0).at(1).toString(), session);
@@ -128,7 +129,7 @@ TEST_F(TimerRunnerTest, ATimerStartsItsSessionAndStopsItWhenTheDurationIsOver)
 TEST_F(TimerRunnerTest, ATimerSetToQuitTheApplicationsAsksForThatWhenItEnds)
 {
     engine.applyEdit(session, setTimer(timer(u"t1"_s, 1, true)));
-    engine.fireTimer(u"t1"_s);
+    engine.fireTimer(u"t1"_s, false);
     EXPECT_TRUE(engine.applicationsQuitFor().isEmpty()) << "not while it runs";
     ASSERT_TRUE(waitFor([&] { return !engine.applicationsQuitFor().isEmpty(); }, 4000));
     EXPECT_EQ(engine.applicationsQuitFor(), QStringList{session});
@@ -140,7 +141,7 @@ TEST_F(TimerRunnerTest, ATimerSetToQuitTheApplicationsAsksForThatWhenItEnds)
 TEST_F(TimerRunnerTest, ASessionStoppedByHandIsNotStoppedAgainByTheTimer)
 {
     engine.applyEdit(session, setTimer(timer(u"t1"_s, 1, true)));
-    engine.fireTimer(u"t1"_s);
+    engine.fireTimer(u"t1"_s, false);
     engine.stop(session);
     engine.start(session);
     QCoreApplication::processEvents();
@@ -152,20 +153,89 @@ TEST_F(TimerRunnerTest, ASessionAlreadyRunningIsLeftToWhoeverStartedIt)
 {
     engine.applyEdit(session, setTimer(timer(u"t1"_s, 1)));
     engine.start(session);
-    engine.fireTimer(u"t1"_s);
+    engine.fireTimer(u"t1"_s, false);
     ASSERT_EQ(fired.count(), 1);
+    EXPECT_FALSE(fired.at(0).at(2).toBool()) << "it says it left the session alone";
     ASSERT_FALSE(waitFor([&] { return lastState(states, session) != QString(sessionState::running); }, 1800));
 }
 
 TEST_F(TimerRunnerTest, ATimerNoSessionHasIsRefusedAndNothingStarts)
 {
-    engine.fireTimer(u"nowhere"_s);
+    engine.fireTimer(u"nowhere"_s, false);
     EXPECT_TRUE(fired.isEmpty());
     ASSERT_EQ(errors.count(), 1);
     EXPECT_EQ(errors.at(0).at(0).toString(), u"timer.notFound"_s);
     EXPECT_EQ(QJsonDocument::fromJson(errors.at(0).at(1).toString().toUtf8()).object().value("timer"_L1).toString(),
               u"nowhere"_s);
     EXPECT_TRUE(lastState(states, session).isEmpty() || lastState(states, session) == QString(sessionState::idle));
+}
+
+// **A fire from systemd long after its time is refused**: the machine slept
+// through it, and the morning's recording is not started at noon. On time,
+// or by hand at any time, it runs.
+TEST_F(TimerRunnerTest, AScheduledFireLongAfterTheTimersTimeIsRefused)
+{
+    const QTime now = QTime::currentTime();
+    QJsonObject due = timer(u"due"_s, 60);
+    due.insert("time"_L1, QTime(now.hour(), now.minute()).toString(u"HH:mm"_s));
+    QJsonObject past = timer(u"past"_s, 60);
+    past.insert("time"_L1, QTime(now.hour(), now.minute()).addSecs(-3600).toString(u"HH:mm"_s));
+    engine.applyEdit(session, setTimer(due));
+    engine.applyEdit(session, setTimer(past));
+
+    engine.fireTimer(u"past"_s, true);
+    EXPECT_TRUE(fired.isEmpty());
+    ASSERT_EQ(errors.count(), 1);
+    EXPECT_EQ(errors.at(0).at(0).toString(), u"timer.late"_s);
+    EXPECT_NE(lastState(states, session), QString(sessionState::running));
+
+    engine.fireTimer(u"past"_s, false);
+    ASSERT_EQ(fired.count(), 1) << "by hand, whenever";
+    engine.stop(session);
+    engine.fireTimer(u"due"_s, true);
+    ASSERT_EQ(fired.count(), 2) << "on time";
+    EXPECT_EQ(lastState(states, session), QString(sessionState::running));
+}
+
+// **The engine's own stop is not somebody's**: when PipeWire restarts
+// under a session the engine stops it and starts it again, and the timer
+// still stops it at its time rather than letting it run for ever.
+TEST_F(TimerRunnerTest, AStopTheEngineMakesToStartAgainDoesNotEndTheRun)
+{
+    engine.applyEdit(session, setTimer(timer(u"t1"_s, 1)));
+    bool restarting = false;
+    TimerRunner runner(
+        &engine, [this] { return engine.sessionListing(); }, {}, [&restarting](const QString &) { return restarting; });
+    runner.fire(u"t1"_s, false);
+    ASSERT_EQ(lastState(states, session), QString(sessionState::running));
+    restarting = true;
+    engine.stop(session);
+    restarting = false;
+    engine.start(session); // the audio system is back
+    ASSERT_TRUE(waitFor([&] { return lastState(states, session) == QString(sessionState::idle); }, 4000))
+        << "the timer should still stop it at its time";
+}
+
+// **One id, one systemd timer**: a timer id another session has is refused,
+// and so is an edit that would put a timer back unread, which is undo's
+// alone to do.
+TEST_F(TimerRunnerTest, ATimerIdAnotherSessionHasIsRefused)
+{
+    engine.createSession(u"Call"_s);
+    const QString call = opened.at(1).at(0).toString();
+    engine.applyEdit(session, setTimer(timer(u"morning"_s, 60)));
+    ASSERT_TRUE(errors.isEmpty());
+    engine.applyEdit(call, setTimer(timer(u"morning"_s, 60)));
+    ASSERT_EQ(errors.count(), 1);
+    EXPECT_EQ(errors.at(0).at(0).toString(), u"edit.refused"_s);
+    EXPECT_TRUE(errors.at(0).at(1).toString().contains(u"timerIdInUse"_s));
+    engine.applyEdit(session, setTimer(timer(u"morning"_s, 120))); // its own: replaced
+    EXPECT_EQ(errors.count(), 1);
+    engine.applyEdit(
+        call,
+        QString::fromUtf8(
+            QJsonDocument(editCommandToJson(SetTimer{timer(u"x"_s, 60), -1, true})).toJson(QJsonDocument::Compact)));
+    EXPECT_EQ(errors.count(), 2);
 }
 
 // **Every session's timers with what systemd is told**, and when each
@@ -232,10 +302,13 @@ TEST(TimerRunnerEngine, ASessionOnlyOnDiskIsOpenedAndThenStarted)
     engine.closeSession(session);
     states.clear();
 
-    engine.fireTimer(u"t1"_s);
+    engine.fireTimer(u"t1"_s, false);
     ASSERT_EQ(fired.count(), 1);
     EXPECT_EQ(fired.at(0).at(1).toString(), session);
+    EXPECT_TRUE(fired.at(0).at(2).toBool());
     ASSERT_EQ(opened.count(), 2) << "opened again";
+    EXPECT_TRUE(states.isEmpty()) << "started after the session has been said to be open, not inside it";
+    QCoreApplication::processEvents();
     EXPECT_EQ(opened.at(1).at(0).toString(), session);
     ASSERT_FALSE(states.isEmpty()) << "and asked to start";
     EXPECT_EQ(states.at(0).at(1).toString(), QString(sessionState::starting));

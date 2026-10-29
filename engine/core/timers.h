@@ -69,9 +69,11 @@ struct Timer {
 /// better served by Auto Run.
 inline constexpr int kTimerMaxDurationSeconds = 7 * 24 * 60 * 60;
 
-/// Whether \a id can name a timer: letters, digits, `-` and `_`, at most 64.
-/// **It becomes part of a file name** and of a command line, so nothing else
-/// is taken, whatever a session file says.
+/// Whether \a id can name a timer: a letter or a digit, then letters,
+/// digits, `-` and `_`, at most 64. **It becomes part of a file name** and of
+/// a command line, so nothing else is taken, whatever a session file says;
+/// and it never starts with a dash, which a command line would read as an
+/// option.
 [[nodiscard]] bool timerIdIsValid(QStringView id);
 
 /// A timer as the session file holds it:
@@ -113,5 +115,17 @@ inline constexpr int kTimerMaxDurationSeconds = 7 * 24 * 60 * 60;
 /// When the timer next starts its session after \a after, in local time, or
 /// nothing when it never will again (a one-off in the past, or no days).
 [[nodiscard]] std::optional<QDateTime> nextRun(const Timer &timer, const QDateTime &after);
+
+/// When the timer last started its session, at or before \a at, in local
+/// time, or nothing when it never has (a one-off still to come, or no days).
+/// What a fire from systemd is checked against: one that comes long after
+/// this, as after a sleep, is late and not run.
+[[nodiscard]] std::optional<QDateTime> previousRun(const Timer &timer, const QDateTime &at);
+
+/// Whether a session other than \a sessionId, in \a sessionsJson as
+/// SessionsListed carries them, has a timer \a timerId. **One id, one
+/// systemd timer**: a second session with the same id would share the first
+/// one's units.
+[[nodiscard]] bool timerIdTakenElsewhere(const QString &sessionsJson, const QString &sessionId, const QString &timerId);
 
 } // namespace rb::core

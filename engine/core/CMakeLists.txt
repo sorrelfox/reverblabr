@@ -61,6 +61,8 @@ add_library(reverblabr-engine STATIC
     presetactions.h
     presetstore.cpp
     presetstore.h
+    quitapplications.cpp
+    quitapplications.h
     recordinglibrary.cpp
     recordinglibrary.h
     recordingnames.cpp

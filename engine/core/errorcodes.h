@@ -49,6 +49,7 @@ enum class ErrorCode {
     SessionOverloaded,
     DaemonUnreachable,
     TimerNotFound,
+    TimerLate,
     Count, ///< Not an error; the number of codes.
 };
 
@@ -155,6 +156,10 @@ inline constexpr std::array kErrorCodes{
     // FireTimer named a timer no session has: it was deleted, or its session
     // was. Nothing was started.
     ErrorCodeInfo{ErrorCode::TimerNotFound, "timer.notFound", {"timer"}},
+    // A fire from a timer's systemd timer came more than two minutes after
+    // the timer's time, as after the machine slept through it. Nothing was
+    // started; the next time is kept.
+    ErrorCodeInfo{ErrorCode::TimerLate, "timer.late", {"timer"}},
 };
 
 static_assert(kErrorCodes.size() == static_cast<std::size_t>(ErrorCode::Count),

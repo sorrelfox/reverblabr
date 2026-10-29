@@ -630,8 +630,8 @@ void RemoteEngine::listTimers()
     d->call(u"ListTimers"_s, {});
 }
 
-void RemoteEngine::fireTimer(const QString &timerId)
+void RemoteEngine::fireTimer(const QString &timerId, bool scheduled)
 {
-    d->call(u"FireTimer"_s, {timerId});
+    d->call(u"FireTimer"_s, {timerId, scheduled});
 }
 } // namespace rb::bus

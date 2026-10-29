@@ -230,9 +230,9 @@ public:
     {
         record("listTimers", {});
     }
-    void fireTimer(const QString &timerId) override
+    void fireTimer(const QString &timerId, bool scheduled) override
     {
-        record("fireTimer", {timerId});
+        record("fireTimer", {timerId, scheduled});
     }
 
 public Q_SLOTS:

@@ -37,15 +37,20 @@ constexpr auto kLongestWait = std::chrono::seconds(30);
 TimerRunner::TimerRunner(EngineFacade *engine,
                          std::function<QString()> listing,
                          std::function<void(const QString &)> quitApplications,
+                         std::function<bool(const QString &)> stoppedByEngine,
                          QObject *parent)
     : QObject(parent)
     , m_engine(engine)
     , m_listing(std::move(listing))
     , m_quitApplications(std::move(quitApplications))
+    , m_stoppedByEngine(std::move(stoppedByEngine))
 {
     m_check.setSingleShot(true);
     connect(&m_check, &QTimer::timeout, this, &TimerRunner::check);
-    connect(m_engine, &EngineFacade::sessionOpened, this, &TimerRunner::opened);
+    // **Queued**: started from inside the engine's own sessionOpened, the
+    // session's StateChanged would reach the bus before its SessionOpened
+    // and snapshot, and a client hears the session run before it exists.
+    connect(m_engine, &EngineFacade::sessionOpened, this, &TimerRunner::opened, Qt::QueuedConnection);
     connect(m_engine, &EngineFacade::stateChanged, this, &TimerRunner::stateChanged);
 }
 
@@ -76,7 +81,7 @@ QString TimerRunner::timerListing(const QDateTime &now) const
     return QString::fromUtf8(QJsonDocument(listed).toJson(QJsonDocument::Compact));
 }
 
-void TimerRunner::fire(const QString &timerId)
+void TimerRunner::fire(const QString &timerId, bool scheduled)
 {
     const QJsonArray sessions = QJsonDocument::fromJson(m_listing().toUtf8()).array();
     for (const QJsonValue &value : sessions) {
@@ -88,11 +93,23 @@ void TimerRunner::fire(const QString &timerId)
             }
             const QString sessionId = session.value("id"_L1).toString();
             const QString state = session.value("state"_L1).toString();
+            if (scheduled) {
+                const QDateTime now = QDateTime::currentDateTime();
+                const std::optional<QDateTime> due = previousRun(*timer, now);
+                if (!due || due->secsTo(now) > std::chrono::seconds(kLateness).count()) {
+                    qCWarning(lcTimers) << "timer" << timerId << "fired at" << now.toString(Qt::ISODate) << "for"
+                                        << (due ? due->toString(Qt::ISODate) : u"no time"_s)
+                                        << ": too late, perhaps after a sleep; the session is not started";
+                    Q_EMIT late(timerId);
+                    return;
+                }
+            }
             const QDateTime endsAt =
                 QDateTime::currentDateTimeUtc().addSecs(static_cast<qint64>(timer->durationSeconds));
             qCInfo(lcTimers) << "timer" << timerId << "of" << session.value("name"_L1).toString() << "fired";
 
             const bool ours = m_runs.contains(timerId) && m_runs.value(timerId).started;
+            bool started = true;
             if (state == sessionState::closed) {
                 m_runs.insert(timerId, Run{sessionId, endsAt, timer->quitApplications, false});
                 m_engine->openSession(sessionId);
@@ -104,8 +121,9 @@ void TimerRunner::fire(const QString &timerId)
                 m_runs[timerId].endsAt = endsAt;
             } else {
                 qCInfo(lcTimers) << "its session is running already, and is left to whoever started it";
+                started = false;
             }
-            Q_EMIT fired(timerId, sessionId);
+            Q_EMIT fired(timerId, sessionId, started);
             check();
             return;
         }
@@ -130,6 +148,11 @@ void TimerRunner::stateChanged(const QString &sessionId, const QString &state)
     // **Stopped by somebody, or unable to run**: the run is over, and a
     // session started again later is not the timer's to stop.
     if (state != sessionState::idle && state != sessionState::error) {
+        return;
+    }
+    // **Not by somebody**: the engine stopping it to start it again once
+    // the audio system is back. The run goes on, and ends at its time.
+    if (m_stoppedByEngine && m_stoppedByEngine(sessionId)) {
         return;
     }
     m_runs.removeIf(

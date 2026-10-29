@@ -189,7 +189,7 @@ The all-users devices are written by a privileged helper the window asks through
 | Method | Does | Answered by |
 |---|---|---|
 | `ListTimers()` | every session's timers, closed sessions' too | `TimersListed` |
-| `FireTimer(s timerId)` | what a timer does when its time comes: opens its session if it is only on disk, starts it, and stops it once the timer's duration is over, quitting the applications it captures if the timer says so. A session already running is left running, and not stopped later. Each timer's systemd user timer calls it, through `reverblabr-ctl timer-fire` | `TimerFired`, or `timer.notFound` |
+| `FireTimer(s timerId, b scheduled)` | what a timer does when its time comes: opens its session if it is only on disk, starts it, and stops it once the timer's duration is over, quitting the applications it captures if the timer says so. A session already running is left running, and not stopped later. Each timer's systemd user timer calls it with `scheduled` true, through `reverblabr-ctl timer-fire --scheduled`; such a fire more than two minutes after the timer's time, as after a sleep, is refused. A fire by hand passes false and runs whenever it comes | `TimerFired`, or `timer.notFound` or `timer.late` |
 
 ## Signals
 
@@ -198,7 +198,7 @@ The all-users devices are written by a privileged helper the window asks through
 | `SessionsListed(s sessionsJson)` | the sessions on disk: `[{id, name, state, sources, recordings, startedAt, autoRun, timers}]`, where `state` is an open session's (as `StateChanged` says it) or `closed` for one that is only on disk; `sources` are the blocks sound comes in through, `[{type, name}]` in the session's order (`name` is what somebody called the block, or empty); `recordings` is how many recordings the session has made; `startedAt`, only while it runs, is when it started, in milliseconds since the epoch; `autoRun` is `off`, or `login` for a session the background engine starts whenever it starts ([ADR-0021](adr/0021-auto-run.md)); and `timers` are the session's timers this version can run, as the session file holds them ([architecture.md](architecture.md#session-data-model)) |
 | `SessionOpened(s sessionId)` | a session is open; its snapshot follows |
 | `TimersListed(s timersJson)` | every session's timers: each as the session file holds it ([architecture.md](architecture.md#session-data-model)), with `sessionId`, `sessionName`, `onCalendar` (the systemd calendar expression it starts on), `nextRun` (when it next starts, in milliseconds since the epoch; left out when it never will again) and, while it keeps its session running, `endsAt` |
-| `TimerFired(s timerId, s sessionId)` | a timer has started its session, or asked it to open and start, or found it running already |
+| `TimerFired(s timerId, s sessionId, b started)` | a timer has started its session, or asked it to open and start (`started` true), or found it running already and left it to whoever started it (`started` false) |
 | `SessionClosed(s sessionId)` | a session was closed |
 | `SessionSnapshot(s sessionId, t revision, s sessionJson)` | the whole session, and the revision its patches continue from |
 | `SessionPatch(s sessionId, t revision, s patchJson)` | what one edit changed |
@@ -261,6 +261,7 @@ Each is the `code` of an `Error` signal. Its arguments arrive by name in `argsJs
 | `plugin.stoppedResponding` | plugin | a plugin's host stopped responding and was ended; as above (*block*) |
 | `plugin.restartRefused` | reason | a plugin could not be restarted (*block*) |
 | `timer.notFound` | timer | `FireTimer` named a timer no session has; nothing was started |
+| `timer.late` | timer | a scheduled `FireTimer` came more than two minutes after the timer's time, as after a sleep; nothing was started |
 
 ## Notice codes
 

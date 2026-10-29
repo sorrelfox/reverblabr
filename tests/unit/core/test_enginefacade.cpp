@@ -146,7 +146,7 @@ public:
     void rescanPlugins(bool) override { }
     void describePlugin(const QString &, const QString &) override { }
     void listTimers() override { }
-    void fireTimer(const QString &) override { }
+    void fireTimer(const QString &, bool) override { }
 };
 
 } // namespace

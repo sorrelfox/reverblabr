@@ -180,7 +180,7 @@ public Q_SLOTS:
     void rescanPlugins(bool retryBlocked) override;
     void describePlugin(const QString &format, const QString &id) override;
     void listTimers() override;
-    void fireTimer(const QString &timerId) override;
+    void fireTimer(const QString &timerId, bool scheduled) override;
 
 public:
     class Private;

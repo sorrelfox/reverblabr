@@ -106,6 +106,10 @@ constexpr std::array kMessages{
     Message{"timer.notFound",
             kli18nc("@info %1 is a timer's identifier",
                     "There's no timer %1 any more: it was deleted, or its session was. Nothing was started.")},
+    Message{"timer.late",
+            kli18nc("@info %1 is a timer's identifier",
+                    "The timer %1 came round too late, perhaps after the computer slept through its time, so its "
+                    "session wasn't started. Its next time is kept.")},
     Message{"recording.tagsNotSaved",
             kli18nc("@info %1 is a recording's file, with its folder",
                     "The tags of the recording %1 couldn't be saved. The file is as it was.")},
@@ -162,6 +166,8 @@ constexpr std::array kReasons{
     Message{"timerNotValid",
             kli18nc("@info a reason an edit was refused", "the timer is missing a time, a day or how long it runs")},
     Message{"timerNotFound", kli18nc("@info a reason an edit was refused", "there's no such timer in the session")},
+    Message{"timerIdInUse",
+            kli18nc("@info a reason an edit was refused", "another session already has a timer with that identifier")},
     // Presets.
     Message{"notFound", kli18nc("@info a reason a preset was refused", "there's no preset of that name")},
     Message{"badName",

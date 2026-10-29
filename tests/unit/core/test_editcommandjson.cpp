@@ -87,7 +87,7 @@ namespace
             SetEnabled{u"b7"_s, true},
             setting,
             preset,
-            SetTimer{QJsonObject{{u"id"_s, u"t1"_s}, {u"repeat"_s, u"daily"_s}}, 2},
+            SetTimer{QJsonObject{{u"id"_s, u"t1"_s}, {u"repeat"_s, u"daily"_s}}, 2, true},
             RemoveTimer{u"t1"_s}};
 }
 

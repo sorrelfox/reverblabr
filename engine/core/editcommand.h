@@ -165,6 +165,10 @@ struct SetTimer {
     /// Where a new timer goes in the list, or -1 for the end, for the same
     /// reason as AddBlock::index. A timer that is replaced stays where it is.
     qsizetype index = -1;
+    /// **Put back as it was**, unread: what undo and redo carry, so that a
+    /// timer this version cannot read (a later version's) is restored
+    /// exactly rather than refused. Only an id is needed, to find its place.
+    bool raw = false;
 
     [[nodiscard]] bool operator==(const SetTimer &other) const = default;
 };

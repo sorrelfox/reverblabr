@@ -932,6 +932,9 @@ MockEngine::MockEngine(PresetStore presets, QObject *parent)
     connect(d->timers.get(), &TimerRunner::notFound, this, [this](const QString &timerId) {
         d->fail(ErrorCode::TimerNotFound, {timerId});
     });
+    connect(d->timers.get(), &TimerRunner::late, this, [this](const QString &timerId) {
+        d->fail(ErrorCode::TimerLate, {timerId});
+    });
     d->preview.tick.setInterval(100);
     connect(&d->preview.tick, &QTimer::timeout, this, [this] {
         if (d->previewSeconds() >= d->preview.duration) {
@@ -1054,9 +1057,9 @@ void MockEngine::listTimers()
     Q_EMIT timersListed(d->timers->timerListing(QDateTime::currentDateTime()));
 }
 
-void MockEngine::fireTimer(const QString &timerId)
+void MockEngine::fireTimer(const QString &timerId, bool scheduled)
 {
-    d->timers->fire(timerId);
+    d->timers->fire(timerId, scheduled);
 }
 
 void MockEngine::createSession(const QString &name)
@@ -1245,6 +1248,19 @@ void MockEngine::applyEdit(const QString &sessionId, const QString &editJson)
         if (const auto *connect = std::get_if<Connect>(&command); connect != nullptr) {
             if (const QString refused = wireRefusal(session->session, d->registry, connect->wire); !refused.isEmpty()) {
                 d->fail(ErrorCode::EditRefused, {refused});
+                return;
+            }
+        }
+        // **A timer as a client writes it is checked**: putting one back
+        // unread is undo's, not a caller's, and one id is one systemd
+        // timer, so no two sessions may have it.
+        if (const auto *timer = std::get_if<SetTimer>(&command); timer != nullptr) {
+            if (timer->raw) {
+                d->fail(ErrorCode::EditRefused, {asText(editErrorName(EditError::TimerNotValid))});
+                return;
+            }
+            if (timerIdTakenElsewhere(sessionListing(), sessionId, timer->timer.value("id"_L1).toString())) {
+                d->fail(ErrorCode::EditRefused, {u"timerIdInUse"_s});
                 return;
             }
         }

@@ -394,10 +394,15 @@ SPDX-License-Identifier: MIT
          is over, quitting the applications it captures if the timer says
          so. A session already running is left running, and is not stopped
          later. The systemd user timer the background engine writes for each
-         timer that is on calls this, through reverblabr-ctl timer-fire.
-         Answered by TimerFired, or by Error with timer.notFound. -->
+         timer that is on calls this, through reverblabr-ctl timer-fire
+         scheduled, with scheduled true: such a fire that comes more than two
+         minutes after the timer's time, as after a sleep, is refused with
+         timer.late. A fire by hand (scheduled false) runs whenever it
+         comes. Answered by TimerFired, or by Error with timer.notFound or
+         timer.late. -->
     <method name="FireTimer">
       <arg name="timerId" type="s" direction="in"/>
+      <arg name="scheduled" type="b" direction="in"/>
     </method>
 
     <!-- ===== what happened ===== -->
@@ -772,11 +777,13 @@ SPDX-License-Identifier: MIT
       <arg name="timersJson" type="s"/>
     </signal>
 
-    <!-- A timer has started its session, or asked it to open and start, or
-         found it running already. -->
+    <!-- A timer has started its session, or asked it to open and start
+         (started true), or found it running already and left it to whoever
+         started it (started false). -->
     <signal name="TimerFired">
       <arg name="timerId" type="s"/>
       <arg name="sessionId" type="s"/>
+      <arg name="started" type="b"/>
     </signal>
 
     <!-- A dotted code and its arguments as a JSON object, never text for a

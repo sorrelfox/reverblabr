@@ -113,7 +113,7 @@ public:
     void rescanPlugins(bool retryBlocked) override;
     void describePlugin(const QString &format, const QString &id) override;
     void listTimers() override;
-    void fireTimer(const QString &timerId) override;
+    void fireTimer(const QString &timerId, bool scheduled) override;
 
 Q_SIGNALS:
     /// A daemon has the name, where none had it a moment ago.

@@ -275,6 +275,20 @@ qsizetype timerIndex(const Session &session, const QString &timerId)
 
 Inverse apply(Session &session, const SetTimer &command)
 {
+    if (command.raw) {
+        const QString id = command.timer.value("id"_L1).toString();
+        if (id.isEmpty()) {
+            return std::unexpected(EditError::TimerNotValid);
+        }
+        const qsizetype existing = timerIndex(session, id);
+        if (existing >= 0) {
+            const QJsonObject previous = session.timers.at(existing).toObject();
+            session.timers.replace(existing, command.timer);
+            return EditInverse{SetTimer{previous, existing, true}};
+        }
+        session.timers.insert(insertionPoint(command.index, session.timers.size()), command.timer);
+        return EditInverse{RemoveTimer{id}};
+    }
     const std::optional<Timer> timer = timerFromJson(command.timer);
     if (!timer) {
         return std::unexpected(EditError::TimerNotValid);
@@ -286,7 +300,7 @@ Inverse apply(Session &session, const SetTimer &command)
     if (existing >= 0) {
         const QJsonObject previous = session.timers.at(existing).toObject();
         session.timers.replace(existing, written);
-        return EditInverse{SetTimer{previous, existing}};
+        return EditInverse{SetTimer{previous, existing, true}};
     }
     session.timers.insert(insertionPoint(command.index, session.timers.size()), written);
     return EditInverse{RemoveTimer{timer->id}};
@@ -300,7 +314,7 @@ Inverse apply(Session &session, const RemoveTimer &command)
     }
     const QJsonObject previous = session.timers.at(index).toObject();
     session.timers.removeAt(index);
-    return EditInverse{SetTimer{previous, index}};
+    return EditInverse{SetTimer{previous, index, true}};
 }
 
 } // namespace
@@ -536,6 +550,11 @@ QJsonObject editCommandToJson(const EditCommand &command)
             } else if constexpr (std::is_same_v<Command, SetTimer>) {
                 json.insert("timer"_L1, specific.timer);
                 json.insert("index"_L1, static_cast<qint64>(specific.index));
+                // Only when set, so the edit a client writes stays as short
+                // as the docs show it.
+                if (specific.raw) {
+                    json.insert("raw"_L1, true);
+                }
             } else if constexpr (std::is_same_v<Command, RemoveTimer>) {
                 json.insert("timerId"_L1, specific.timerId);
             } else {
@@ -655,7 +674,8 @@ std::expected<EditCommand, EditJsonError> editCommandFromJson(const QJsonObject 
             return std::unexpected(EditJsonError::MalformedArguments);
         }
         return SetTimer{json.value("timer"_L1).toObject(),
-                        static_cast<qsizetype>(json.value("index"_L1).toInteger(-1))};
+                        static_cast<qsizetype>(json.value("index"_L1).toInteger(-1)),
+                        json.value("raw"_L1).toBool(false)};
     }
     if (op == "removeTimer"_L1) {
         const QString timerId = json.value("timerId"_L1).toString();

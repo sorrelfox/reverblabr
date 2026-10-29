@@ -286,6 +286,7 @@ rb_add_gtest(reverblabr-engine-test
         core/test_pluginscanner.cpp
         core/test_presetactions.cpp
         core/test_presetstore.cpp
+        core/test_quitapplications.cpp
         core/test_recordinglibrary.cpp
         core/test_recordings.cpp
         core/test_session.cpp

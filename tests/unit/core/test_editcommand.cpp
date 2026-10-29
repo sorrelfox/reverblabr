@@ -117,6 +117,35 @@ TEST(EditCommand, ATimerIsCheckedAndWrittenAsTheFileHoldsIt)
     EXPECT_EQ(session.timers.at(1), before.timers.at(1)) << "a later version's timer is left alone";
 }
 
+// **Undo puts back what was there, unread**: a later version's timer that
+// this one replaced or removed comes back exactly, though this version
+// could not have written it.
+TEST(EditCommand, UndoingAChangeToATimerThisVersionCannotReadPutsItBack)
+{
+    Session session = fullSession();
+    const QJsonObject later{{QStringLiteral("id"), QStringLiteral("later")},
+                            {QStringLiteral("repeat"), QStringLiteral("hourly")},
+                            {QStringLiteral("every"), 3}};
+    session.timers.append(later);
+    const Session before = session;
+
+    std::expected<EditInverse, EditError> removed = applyEdit(session, RemoveTimer{QStringLiteral("later")});
+    ASSERT_TRUE(removed.has_value());
+    ASSERT_TRUE(applyEdits(session, *removed).has_value()) << "the undo of a removal";
+    session.revision = before.revision;
+    EXPECT_EQ(session, before);
+
+    std::expected<EditInverse, EditError> replaced =
+        applyEdit(session, SetTimer{weekdayTimer(QStringLiteral("later"))});
+    ASSERT_TRUE(replaced.has_value());
+    const std::expected<EditInverse, EditBatchError> undone = applyEdits(session, *replaced);
+    ASSERT_TRUE(undone.has_value()) << "the undo of a replacement";
+    session.revision = before.revision;
+    EXPECT_EQ(session, before);
+    ASSERT_TRUE(applyEdits(session, *undone).has_value()) << "and its redo";
+    EXPECT_EQ(session.timers.last().toObject().value(QStringLiteral("repeat")).toString(), QStringLiteral("weekdays"));
+}
+
 TEST(EditCommand, RemovingABlockTakesItsWiresAndUndoingPutsThemBack)
 {
     Session session = fullSession();

@@ -7,6 +7,7 @@
 
 #include "core/timers.h"
 
+#include <QJsonDocument>
 #include <QStringList>
 #include <QUuid>
 
@@ -103,6 +104,10 @@ QString calendarDays(std::uint8_t mask)
 bool timerIdIsValid(QStringView id)
 {
     if (id.isEmpty() || id.size() > 64) {
+        return false;
+    }
+    const char16_t first = id.front().unicode();
+    if (first == u'-' || first == u'_') {
         return false;
     }
     for (const QChar character : id) {
@@ -292,6 +297,48 @@ std::optional<QDateTime> nextRun(const Timer &timer, const QDateTime &after)
         }
     }
     return std::nullopt;
+}
+
+std::optional<QDateTime> previousRun(const Timer &timer, const QDateTime &at)
+{
+    const QDateTime local = at.toLocalTime();
+    if (timer.repeat == TimerRepeat::Once) {
+        const QDateTime when(timer.date, timer.time);
+        return when <= local ? std::optional<QDateTime>(when) : std::nullopt;
+    }
+    const std::uint8_t days = daysOf(timer);
+    if (days == 0) {
+        return std::nullopt;
+    }
+    // Today, and then each of the seven days before it.
+    for (int offset = 0; offset <= 7; ++offset) {
+        const QDate date = local.date().addDays(-offset);
+        if ((days & (1U << (date.dayOfWeek() - 1))) == 0) {
+            continue;
+        }
+        const QDateTime when(date, timer.time);
+        if (when <= local) {
+            return when;
+        }
+    }
+    return std::nullopt;
+}
+
+bool timerIdTakenElsewhere(const QString &sessionsJson, const QString &sessionId, const QString &timerId)
+{
+    const QJsonArray sessions = QJsonDocument::fromJson(sessionsJson.toUtf8()).array();
+    for (const QJsonValue &value : sessions) {
+        const QJsonObject session = value.toObject();
+        if (session.value("id"_L1).toString() == sessionId) {
+            continue;
+        }
+        for (const QJsonValue &timer : session.value("timers"_L1).toArray()) {
+            if (timer.toObject().value("id"_L1).toString() == timerId) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 } // namespace rb::core

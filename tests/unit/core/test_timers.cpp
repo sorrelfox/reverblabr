@@ -251,4 +251,35 @@ TEST(Timers, IdsAreLettersDigitsDashesAndUnderscores)
     EXPECT_FALSE(timerIdIsValid(u"a/b"_s));
     EXPECT_FALSE(timerIdIsValid(u"ä"_s));
     EXPECT_FALSE(timerIdIsValid(u"{0b8f8ad2}"_s));
+    // A command line would read these as options.
+    EXPECT_FALSE(timerIdIsValid(u"-morning"_s));
+    EXPECT_FALSE(timerIdIsValid(u"--help"_s));
+    EXPECT_FALSE(timerIdIsValid(u"_morning"_s));
+    EXPECT_TRUE(timerIdIsValid(u"morning-"_s));
+}
+
+// **When it last ran**, which a fire from systemd is checked against.
+TEST(Timers, ThePreviousRunIsTheLastTimeAtOrBeforeNowThatTheRuleAllows)
+{
+    const QDateTime now(QDate(2026, 11, 4), QTime(12, 0)); // a Wednesday
+    EXPECT_EQ(previousRun(at(TimerRepeat::Daily, QTime(12, 0)), now), now);
+    EXPECT_EQ(previousRun(at(TimerRepeat::Daily, QTime(13, 0)), now), QDateTime(QDate(2026, 11, 3), QTime(13, 0)));
+    // Monday to Friday, from a Monday morning: the Friday before.
+    const QDateTime monday(QDate(2026, 11, 9), QTime(8, 0));
+    EXPECT_EQ(previousRun(at(TimerRepeat::Weekdays, QTime(9, 0)), monday), QDateTime(QDate(2026, 11, 6), QTime(9, 0)));
+    EXPECT_EQ(previousRun(at(TimerRepeat::Days, QTime(9, 0), days({3})), now),
+              QDateTime(QDate(2026, 11, 4), QTime(9, 0)));
+    Timer once = at(TimerRepeat::Once, QTime(14, 30));
+    once.date = QDate(2026, 11, 4);
+    EXPECT_FALSE(previousRun(once, now).has_value()) << "still to come";
+    once.time = QTime(11, 30);
+    EXPECT_EQ(previousRun(once, now), QDateTime(QDate(2026, 11, 4), QTime(11, 30)));
+}
+
+TEST(Timers, AnIdAnotherSessionHasIsTaken)
+{
+    const QString listing = uR"([{"id":"a","timers":[{"id":"morning"}]},{"id":"b","timers":[]}])"_s;
+    EXPECT_TRUE(timerIdTakenElsewhere(listing, u"b"_s, u"morning"_s));
+    EXPECT_FALSE(timerIdTakenElsewhere(listing, u"a"_s, u"morning"_s)) << "its own session's is replaced, not taken";
+    EXPECT_FALSE(timerIdTakenElsewhere(listing, u"b"_s, u"evening"_s));
 }
