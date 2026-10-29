@@ -26,6 +26,18 @@ Some sessions you want running all the time, such as a microphone chain for call
 - When no session is set to run at login, nothing of Reverblabr starts when you log in.
 - It needs an installed Reverblabr. In a build run from the source tree, the Info tab says Auto Run can't work there, and the session keeps the setting for later.
 
+## Sessions on a schedule
+
+The **Schedule** tab in the sidebar (Ctrl+4) starts a session at set times, such as a radio programme every weekday morning or a call to record once on a date.
+
+- **Add Timer** (the **+**) asks when: once on a date, every day, Monday to Friday, or on the days you choose; the time it starts; and how long it runs. When the time is up the session stops.
+- **When done: Quit the applications this session captures** also asks each application the session records from to quit, as logging out would. Reverblabr asks you to confirm before it sets this, since anything unsaved in those applications may be lost.
+- Each timer has a switch to turn it off without deleting it, and buttons to edit or delete it. Undo takes back any of these, like any other change to the session.
+- **Reverblabr doesn't need to be open.** The background engine hands each timer that is on to systemd as a user timer, which starts the engine and the session when the time comes. `systemctl --user list-timers 'reverblabr-timer-*'` lists them, and `reverblabr-ctl timers list` says the same with the sessions' names.
+- A session that is already running when its timer comes round is left as it is, and isn't stopped at the end either. Stopping a session yourself ends its timer's run.
+- The computer has to be on and you logged in: a timer doesn't wake it from sleep. One that came round while it was asleep may start the session as it wakes, for the timer's whole duration; a session that is running when the computer goes to sleep is stopped when it wakes, if its time is up by then.
+- It needs an installed Reverblabr, as Auto Run does; in a build run from the source tree the Schedule tab says so, and the session keeps its timers for later.
+
 ## The tray icon
 
 While Reverblabr runs, its icon sits in the system tray. With nothing running it waits among the hidden icons, and it moves into view while a session runs.

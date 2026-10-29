@@ -12,9 +12,11 @@
 #include "core/editcommand.h"
 #include "core/session.h"
 #include "core/sessionstore.h"
+#include "core/timers.h"
 
 #include <KLazyLocalizedString>
 #include <KLocalizedString>
+#include <QDateTime>
 #include <QJSValue>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -583,6 +585,80 @@ void SessionModel::setLatency(const QString &latency)
 void SessionModel::setAutoRun(const QString &autoRun)
 {
     d->apply(core::SetSessionSetting{core::SessionSettingKey::AutoRun, QJsonValue{autoRun}});
+}
+
+QVariantList SessionModel::timers() const
+{
+    QVariantList listed;
+    const QDateTime now = QDateTime::currentDateTime();
+    for (const core::Timer &timer : core::timersFromJson(d->session.timers)) {
+        QVariantMap entry = core::timerToJson(timer).toVariantMap();
+        if (const std::optional<QDateTime> next = core::nextRun(timer, now)) {
+            entry.insert(u"nextRun"_s, *next);
+        }
+        listed.append(entry);
+    }
+    return listed;
+}
+
+namespace
+{
+
+/// A timer as QML handed it over, as the file holds it. Its days arrive as
+/// a JavaScript array, which has to be unwrapped like any other.
+[[nodiscard]] QJsonObject timerJson(const QVariantMap &timer)
+{
+    QJsonObject json;
+    for (auto field = timer.cbegin(); field != timer.cend(); ++field) {
+        if (field.key() != "nextRun"_L1) {
+            json.insert(field.key(), QJsonValue::fromVariant(unwrapped(field.value())));
+        }
+    }
+    return json;
+}
+
+} // namespace
+
+QVariantMap SessionModel::newTimer() const
+{
+    core::Timer timer;
+    timer.id = core::newTimerId();
+    timer.repeat = core::TimerRepeat::Daily;
+    timer.time = QTime(QTime::currentTime().addSecs(3600).hour(), 0);
+    timer.durationSeconds = 3600;
+    return core::timerToJson(timer).toVariantMap();
+}
+
+bool SessionModel::timerIsValid(const QVariantMap &timer) const
+{
+    return core::timerFromJson(timerJson(timer)).has_value();
+}
+
+QString SessionModel::timerCalendar(const QVariantMap &timer) const
+{
+    const std::optional<core::Timer> read = core::timerFromJson(timerJson(timer));
+    return read ? core::onCalendar(*read) : QString();
+}
+
+void SessionModel::setTimer(const QVariantMap &timer)
+{
+    d->apply(core::SetTimer{timerJson(timer), -1});
+}
+
+void SessionModel::setTimerEnabled(const QString &timerId, bool enabled)
+{
+    for (const core::Timer &timer : core::timersFromJson(d->session.timers)) {
+        if (timer.id == timerId && timer.enabled != enabled) {
+            core::Timer changed = timer;
+            changed.enabled = enabled;
+            d->apply(core::SetTimer{core::timerToJson(changed), -1});
+        }
+    }
+}
+
+void SessionModel::removeTimer(const QString &timerId)
+{
+    d->apply(core::RemoveTimer{timerId});
 }
 
 void SessionModel::renameBlock(const QString &blockId, const QString &nickname)

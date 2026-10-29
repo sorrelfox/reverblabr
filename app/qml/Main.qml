@@ -106,6 +106,7 @@ QQC2.ApplicationWindow {
     readonly property alias statusBar: statusBar
     /// The Files tab.
     property alias filesPane: filesPane
+    property alias schedulePane: schedulePane
 
     /// **The Recording Inspectors that are open**, one a file, by the
     /// window: several can be, and opening a file that has one brings that
@@ -642,6 +643,14 @@ QQC2.ApplicationWindow {
     }
 
     QQC2.Action {
+        id: showScheduleAction
+
+        text: KI18n.i18nc("@action:inmenu show the schedule tab of the sidebar", "Schedule")
+        shortcut: "Ctrl+4"
+        onTriggered: sidebar.currentIndex = sidebar.scheduleTab
+    }
+
+    QQC2.Action {
         id: handbookAction
 
         text: KI18n.i18nc("@action:inmenu", "Handbook")
@@ -862,6 +871,10 @@ QQC2.ApplicationWindow {
             QQC2.MenuItem {
                 action: showInfoAction
             }
+
+            QQC2.MenuItem {
+                action: showScheduleAction
+            }
         }
 
         QQC2.Menu {
@@ -1022,6 +1035,10 @@ QQC2.ApplicationWindow {
             QQC2.MenuItem {
                 action: showInfoAction
             }
+
+            QQC2.MenuItem {
+                action: showScheduleAction
+            }
         }
 
         QQC2.Menu {
@@ -1176,6 +1193,14 @@ QQC2.ApplicationWindow {
                 infoContent: [
                     SessionInfoPane {
                         id: infoPane
+
+                        anchors.fill: parent
+                    }
+                ]
+
+                scheduleContent: [
+                    SchedulePane {
+                        id: schedulePane
 
                         anchors.fill: parent
                     }

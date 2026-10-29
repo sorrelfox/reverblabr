@@ -54,6 +54,8 @@ QtObject {
     readonly property url files: glyphs.prefix + "files.svg"
     /// The circled "i" in front of a line of explanation.
     readonly property url info: glyphs.prefix + "info.svg"
+    /// The sidebar's Schedule tab: a clock. Our own, drawn as the others.
+    readonly property url schedule: glyphs.prefix + "schedule.svg"
     /// A closed padlock beside what asks for an administrator's password:
     /// the all-users virtual devices. Our own.
     readonly property url lock: glyphs.prefix + "lock.svg"

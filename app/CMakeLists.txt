@@ -159,6 +159,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SegmentedFrame.qml
     qml/SessionBound.qml
     qml/SessionCanvas.qml
+    qml/SchedulePane.qml
     qml/SessionInfoPane.qml
     qml/SessionList.qml
     qml/SessionTabs.qml
@@ -182,6 +183,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/TimeShiftPanel.qml
     qml/ShortcutTargets.qml
     qml/TimeShiftState.qml
+    qml/TimerDialog.qml
     qml/ToolBarRow.qml
     qml/VolumeFace.qml
     qml/VuFace.qml
@@ -283,6 +285,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/glyph.menu.svg
     icons/glyph.moon.svg
     icons/glyph.run.svg
+    icons/glyph.schedule.svg
     icons/glyph.stop.svg
     icons/glyph.submenu.svg
     icons/glyph.sun.svg

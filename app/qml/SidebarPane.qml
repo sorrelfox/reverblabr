@@ -12,8 +12,9 @@ import org.kde.kirigami as Kirigami
 import org.kde.ki18n
 
 // The left-hand sidebar: the blocks to drag onto the canvas, the files the
-// session has recorded and what the session has to say about itself,
-// in the prototype's order. Schedule joins them in a later phase.
+// session has recorded, what the session has to say about itself, in the
+// prototype's order, and the timers that start it, which the prototype did
+// not have.
 //
 // The panes themselves belong to their own tasks; what is here is the frame
 // they hang in, and the placeholder somebody sees until they exist.
@@ -30,12 +31,15 @@ Item {
     property alias filesContent: filesSlot.data
     /// Where the session's own information goes.
     property alias infoContent: infoSlot.data
+    /// Where the session's timers go.
+    property alias scheduleContent: scheduleSlot.data
 
     /// The tabs by position, so that the window's actions and a test name
     /// them rather than count them.
     readonly property int blocksTab: 0
     readonly property int filesTab: 1
     readonly property int infoTab: 2
+    readonly property int scheduleTab: 3
 
     implicitWidth: Kirigami.Units.gridUnit * 14
 
@@ -52,10 +56,10 @@ Item {
         icon.height: AppMetrics.panelIconSize
         icon.color: tab.checked ? AppColors.accent : tab.hovered ? AppColors.text : AppColors.muted
 
-        // **Three to a sidebar, as the prototype has them**: its tabs
-        // share the row with their content centred and no padding of their
-        // own, and a button's padding either side left "Blocks" elided at
-        // the sidebar's usual width.
+        // **Four to a sidebar, the prototype's three and Schedule**: its
+        // tabs share the row with their content centred and no padding of
+        // their own, and a button's padding either side left "Blocks"
+        // elided at the sidebar's usual width.
         Binding on horizontalPadding {
             when: !AppMetrics.followsSystem
             value: AppMetrics.smallSpacing
@@ -98,6 +102,11 @@ Item {
                 text: KI18n.i18nc("@title:tab what the session has to say about itself", "Info")
                 glyph: AppGlyphs.info
             }
+
+            SidebarTab {
+                text: KI18n.i18nc("@title:tab the timers that start the session at set times", "Schedule")
+                glyph: AppGlyphs.schedule
+            }
         }
 
         StackLayout {
@@ -135,6 +144,17 @@ Item {
                     width: parent.width - Kirigami.Units.largeSpacing * 2
                     visible: infoSlot.children.length === 1
                     text: KI18n.i18nc("@info:placeholder", "What this session is and how it is running goes here")
+                }
+            }
+
+            Item {
+                id: scheduleSlot
+
+                PlaceholderMessage {
+                    anchors.centerIn: parent
+                    width: parent.width - Kirigami.Units.largeSpacing * 2
+                    visible: scheduleSlot.children.length === 1
+                    text: KI18n.i18nc("@info:placeholder", "The timers that start this session go here")
                 }
             }
         }

@@ -65,6 +65,10 @@ class SessionModel : public QObject
     /// "off", or "login" for a session the background engine starts once a
     /// login, and again after a crash (ADR-0023).
     Q_PROPERTY(QString autoRun READ autoRun NOTIFY changed)
+    /// The session's timers this version can run, in the order the session
+    /// holds them, each as the file holds it (core/timers.h) with `nextRun`,
+    /// a date, or undefined when it will not start the session again.
+    Q_PROPERTY(QVariantList timers READ timers NOTIFY changed)
     /// Every block in the session, in the order it holds them.
     Q_PROPERTY(QStringList blockIds READ blockIds NOTIFY changed)
     /// How many wires there are, so that something can bind to "is this
@@ -102,6 +106,7 @@ public:
     [[nodiscard]] QString sampleRateSetting() const;
     [[nodiscard]] QString latency() const;
     [[nodiscard]] QString autoRun() const;
+    [[nodiscard]] QVariantList timers() const;
     [[nodiscard]] QStringList blockIds() const;
     [[nodiscard]] int wireCount() const;
     [[nodiscard]] qulonglong revision() const;
@@ -175,6 +180,23 @@ public:
     Q_INVOKABLE void setLatency(const QString &latency);
     /// "off" or "login".
     Q_INVOKABLE void setAutoRun(const QString &autoRun);
+
+    /// A timer to start editing from: a new id, on, every day at the next
+    /// whole hour, for an hour. Nothing is sent until setTimer().
+    [[nodiscard]] Q_INVOKABLE QVariantMap newTimer() const;
+    /// Whether \a timer is one the session would take: every field it
+    /// needs, and nothing wrong with any.
+    [[nodiscard]] Q_INVOKABLE bool timerIsValid(const QVariantMap &timer) const;
+    /// The systemd calendar expression \a timer starts on, for a person
+    /// who wants to see what is scheduled; empty for a timer that is not
+    /// valid.
+    [[nodiscard]] Q_INVOKABLE QString timerCalendar(const QVariantMap &timer) const;
+    /// Adds \a timer, or replaces the one with its id, as one edit. The
+    /// background engine makes its systemd timer.
+    Q_INVOKABLE void setTimer(const QVariantMap &timer);
+    /// Switches a timer on or off, keeping everything else about it.
+    Q_INVOKABLE void setTimerEnabled(const QString &timerId, bool enabled);
+    Q_INVOKABLE void removeTimer(const QString &timerId);
 
     /// What the user calls a block. Empty means the block's own name.
     Q_INVOKABLE void renameBlock(const QString &blockId, const QString &nickname);
