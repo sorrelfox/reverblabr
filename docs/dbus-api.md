@@ -184,12 +184,21 @@ The all-users devices are written by a privileged helper the window asks through
 | `RescanPlugins(b retryBlocked)` | looks for what has changed, and optionally tries the blocklisted ones again | `PluginsChanged` as the scan starts and ends |
 | `DescribePlugin(s format, s id)` | one plugin's settings, by its own names and ranges | `PluginDescribed` |
 
+### Timers
+
+| Method | Does | Answered by |
+|---|---|---|
+| `ListTimers()` | every session's timers, closed sessions' too | `TimersListed` |
+| `FireTimer(s timerId)` | what a timer does when its time comes: opens its session if it is only on disk, starts it, and stops it once the timer's duration is over, quitting the applications it captures if the timer says so. A session already running is left running, and not stopped later. Each timer's systemd user timer calls it, through `reverblabr-ctl timer-fire` | `TimerFired`, or `timer.notFound` |
+
 ## Signals
 
 | Signal | Says |
 |---|---|
 | `SessionsListed(s sessionsJson)` | the sessions on disk: `[{id, name, state, sources, recordings, startedAt, autoRun, timers}]`, where `state` is an open session's (as `StateChanged` says it) or `closed` for one that is only on disk; `sources` are the blocks sound comes in through, `[{type, name}]` in the session's order (`name` is what somebody called the block, or empty); `recordings` is how many recordings the session has made; `startedAt`, only while it runs, is when it started, in milliseconds since the epoch; `autoRun` is `off`, or `login` for a session the background engine starts whenever it starts ([ADR-0021](adr/0021-auto-run.md)); and `timers` are the session's timers this version can run, as the session file holds them ([architecture.md](architecture.md#session-data-model)) |
 | `SessionOpened(s sessionId)` | a session is open; its snapshot follows |
+| `TimersListed(s timersJson)` | every session's timers: each as the session file holds it ([architecture.md](architecture.md#session-data-model)), with `sessionId`, `sessionName`, `onCalendar` (the systemd calendar expression it starts on), `nextRun` (when it next starts, in milliseconds since the epoch; left out when it never will again) and, while it keeps its session running, `endsAt` |
+| `TimerFired(s timerId, s sessionId)` | a timer has started its session, or asked it to open and start, or found it running already |
 | `SessionClosed(s sessionId)` | a session was closed |
 | `SessionSnapshot(s sessionId, t revision, s sessionJson)` | the whole session, and the revision its patches continue from |
 | `SessionPatch(s sessionId, t revision, s patchJson)` | what one edit changed |
@@ -251,6 +260,7 @@ Each is the `code` of an `Error` signal. Its arguments arrive by name in `argsJs
 | `plugin.crashed` | plugin | a plugin's host went; the block is bypassed and can be restarted (*block*) |
 | `plugin.stoppedResponding` | plugin | a plugin's host stopped responding and was ended; as above (*block*) |
 | `plugin.restartRefused` | reason | a plugin could not be restarted (*block*) |
+| `timer.notFound` | timer | `FireTimer` named a timer no session has; nothing was started |
 
 ## Notice codes
 
@@ -280,6 +290,7 @@ Every action a person takes on the engine from the window is one of these calls.
 | Adding, removing and moving blocks, wiring and unwiring them | `ApplyEdit` with `addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect` |
 | Renaming a block, a session's notes, switching a block on or off | `ApplyEdit` with `rename`, `setNotes`, `setEnabled` |
 | The Info tab: title, automatic connections, rate, latency, Auto Run | `ApplyEdit` with `setSessionSetting` (`autoConnect`, `sampleRate`, `latency`, `autoRun`) |
+| The Schedule tab: add, change, switch on or off, delete a timer | `ApplyEdit` with `setTimer`, `removeTimer`; the background engine writes the systemd timers ([architecture.md](architecture.md#timers)) |
 | A block's settings: sliders, choices, switches | `SetParam` while it moves, `ApplyEdit` with `setParam` for a choice |
 | Fit from audiogram (Hearing Compensation) | `ApplyEdit` with a list of `setParam`: the window works the band settings out from the audiogram with the published rule ([fitting-rules.md](fitting-rules.md)), and a client can do the same |
 | Undo, Redo, and the Edit menu's words | `Undo`, `Redo`, `GetUndoState` |
@@ -303,7 +314,7 @@ Every action a person takes on the engine from the window is one of these calls.
 - opening a URL a block asked for (`OpenUrlRequested` says which);
 - Report Bug and About.
 
-**Arriving with its feature:** timers. They don't exist yet, and come to this API when they do. An Input Switch needs nothing of its own: which input it plays is its `input` parameter (`a` or `b`), set with `SetParam`.
+**An Input Switch** needs nothing of its own: which input it plays is its `input` parameter (`a` or `b`), set with `SetParam`.
 
 ## Not part of the API
 

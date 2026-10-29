@@ -44,6 +44,7 @@
 #include "core/sessionstore.h"
 #include "core/sharedtelemetry.h"
 #include "core/telemetry.h"
+#include "core/timerrunner.h"
 #include "core/timers.h"
 #include "core/virtualdevices.h"
 #include "pw/inventory.h"
@@ -219,6 +220,9 @@ public:
     /// hold and decay are aged over the same number of frames here as they
     /// are against the engine.
     QTimer telemetryTimer;
+    /// What a timer does when its time comes, as the engine has it.
+    std::unique_ptr<TimerRunner> timers;
+    QStringList applicationsQuitFor;
     /// The monotonic clock a snapshot is stamped with. The interface's peak
     /// hold is in wall-clock time, so the stamps have to move.
     QElapsedTimer clock;
@@ -920,6 +924,14 @@ MockEngine::MockEngine(PresetStore presets, QObject *parent)
     connect(&d->library, &RecordingLibrary::changed, this, [this](const QString &sessionId) {
         Q_EMIT recordingsChanged(sessionId, asJson(d->library.recordings(sessionId)));
     });
+    d->timers = std::make_unique<TimerRunner>(
+        this,
+        [this] { return sessionListing(); },
+        [this](const QString &sessionId) { d->applicationsQuitFor.append(sessionId); });
+    connect(d->timers.get(), &TimerRunner::fired, this, &EngineFacade::timerFired);
+    connect(d->timers.get(), &TimerRunner::notFound, this, [this](const QString &timerId) {
+        d->fail(ErrorCode::TimerNotFound, {timerId});
+    });
     d->preview.tick.setInterval(100);
     connect(&d->preview.tick, &QTimer::timeout, this, [this] {
         if (d->previewSeconds() >= d->preview.duration) {
@@ -1030,6 +1042,21 @@ QString MockEngine::sessionListing() const
             sessionListEntry(session.session, session.state, d->library.recordingCount(id), session.startedAtMs));
     }
     return QString::fromUtf8(QJsonDocument(sessions).toJson(QJsonDocument::Compact));
+}
+
+QStringList MockEngine::applicationsQuitFor() const
+{
+    return d->applicationsQuitFor;
+}
+
+void MockEngine::listTimers()
+{
+    Q_EMIT timersListed(d->timers->timerListing(QDateTime::currentDateTime()));
+}
+
+void MockEngine::fireTimer(const QString &timerId)
+{
+    d->timers->fire(timerId);
 }
 
 void MockEngine::createSession(const QString &name)

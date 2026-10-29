@@ -103,6 +103,9 @@ constexpr std::array kMessages{
             kli18nc("@info %1 is why",
                     "Reverblabr's background engine couldn't be started: %1. The engine runs in this window "
                     "instead, so its sessions stop when the window closes.")},
+    Message{"timer.notFound",
+            kli18nc("@info %1 is a timer's identifier",
+                    "There's no timer %1 any more: it was deleted, or its session was. Nothing was started.")},
     Message{"recording.tagsNotSaved",
             kli18nc("@info %1 is a recording's file, with its folder",
                     "The tags of the recording %1 couldn't be saved. The file is as it was.")},

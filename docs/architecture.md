@@ -111,6 +111,13 @@ At first                               Later
                                                               └────────────────────────────┘
 ```
 
+### Timers
+
+A session's timers ([the data model](#session-data-model)) start it at set times, with no window open and no engine running.
+
+- **Firing one** is the facade's `fireTimer()` (`FireTimer` on the bus), the same in the engine and the mock: `core::TimerRunner` opens the session if it is only on disk, starts it, and stops it once the timer's duration is over, counted from when it fired. The end is a time of day, looked at least every 30 seconds, so a machine that slept through it stops the session when it wakes. Somebody stopping the session ends the run, and a session that was already running when the timer fired is left to whoever started it. A timer set to quit the captured applications then asks each application an Application source names to quit (`core::capturedApplications()`): `SIGTERM` to a process, only while it still belongs to the same user and runs the binary PipeWire named, and `flatpak kill` for a sandboxed one, whose process id means nothing outside its sandbox.
+- **`listTimers()`** lists every session's timers, closed ones' too, with the calendar expression each starts on and when it next runs (`core::nextRun()`).
+
 ## From session to sound
 
 1. **Session model** (`engine/core`). A session is a set of blocks and the wires between them. The model changes only through **edit commands** (`addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect`, `setParam`, `rename`, `setNotes`, `setEnabled`, `setSessionSetting`, `applyPreset`, `setTimer`, `removeTimer`). Each command is validated, applied, published as a numbered patch and can be inverted, which is what undo uses.

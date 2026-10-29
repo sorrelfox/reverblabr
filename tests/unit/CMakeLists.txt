@@ -295,6 +295,7 @@ rb_add_gtest(reverblabr-engine-test
         core/test_systemdevicechange.cpp
         core/test_telemetry.cpp
         core/test_testhome.cpp
+        core/test_timerrunner.cpp
         core/test_timers.cpp
         core/test_virtualdevicefacade.cpp
         core/test_xrunhistory.cpp

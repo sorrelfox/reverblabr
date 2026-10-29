@@ -75,6 +75,12 @@ struct CaptureTarget {
 /// nothing, because nothing is playing to a device that is not there.
 [[nodiscard]] pw::EndpointMatch applicationMatch(const BlockInstance &block, const QString &defaultSink = {});
 
+/// The streams of every application an Application source in \a session
+/// names, wherever they are playing to, each once: what a timer set to quit
+/// the captured applications when it ends asks to quit. Our own nodes are
+/// never among them.
+[[nodiscard]] QList<pw::PwNode> capturedApplications(const Session &session, const QList<pw::PwNode> &nodes);
+
 /// What every source block in \a session should capture, given the graph as
 /// it stands: the applications an Application source names, and the device
 /// an Input Device names.

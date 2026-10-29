@@ -852,3 +852,26 @@ TEST(PlanNoticesTest, SystemAudioFallingSilentIsNotNews)
     const SessionPlan quiet{{captured(u"all"_s, {}, 0)}, {}};
     EXPECT_TRUE(planNotices(session, playing, quiet, {}).isEmpty());
 }
+
+// **What a timer set to quit the captured applications asks to quit**:
+// every stream of each application a source names, whatever it plays to,
+// and nothing of anybody else's.
+TEST(CapturePlanTest, TheCapturedApplicationsAreEveryStreamOfEachNamedApplication)
+{
+    pw::PwNode firefox = stream(u"Firefox"_s, u"firefox"_s);
+    firefox.applicationPid = 4100;
+    pw::PwNode firefoxAgain = stream(u"Firefox"_s, u"firefox"_s);
+    firefoxAgain.applicationPid = 4100;
+    pw::PwNode player = stream(u"Player"_s, u"player"_s);
+    pw::PwNode recording = stream(u"Firefox"_s, u"firefox"_s);
+    recording.kind = pw::NodeKind::RecordStream;
+    const Session session = sessionWith({
+        sourceBlock(u"b1"_s, QJsonObject{{"binary"_L1, u"firefox"_s}, {"outputMode"_L1, u"default"_s}}),
+        sourceBlock(u"b2"_s, QJsonObject{{"binary"_L1, u"firefox"_s}}),
+        sourceBlock(u"b3"_s, QJsonObject{}),
+    });
+    const QList<pw::PwNode> quit = capturedApplications(session, {firefox, firefoxAgain, player, recording});
+    ASSERT_EQ(quit.size(), 2);
+    EXPECT_EQ(quit.at(0).object.id, firefox.object.id);
+    EXPECT_EQ(quit.at(1).object.id, firefoxAgain.object.id);
+}

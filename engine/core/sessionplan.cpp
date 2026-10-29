@@ -283,6 +283,33 @@ pw::EndpointMatch applicationMatch(const BlockInstance &block, const QString &de
     return match;
 }
 
+QList<pw::PwNode> capturedApplications(const Session &session, const QList<pw::PwNode> &nodes)
+{
+    QList<pw::PwNode> found;
+    for (const BlockInstance &block : session.blocks) {
+        if (block.type != typeIdOf(blocks::ApplicationSource::kTypeId)) {
+            continue;
+        }
+        // **The application, not what it is playing to now**: the output
+        // modes say which of its streams the session takes, but the
+        // application to quit is the same whichever that is.
+        pw::EndpointMatch match = identityMatch(block);
+        if (match.isEmpty()) {
+            continue;
+        }
+        match.kind = pw::NodeKind::PlaybackStream;
+        match.excludeOurs = true;
+        for (const pw::PwNode &node : nodes) {
+            const bool seen = std::ranges::any_of(
+                found, [&node](const pw::PwNode &each) { return each.object.id == node.object.id; });
+            if (!seen && match.matches(node)) {
+                found.append(node);
+            }
+        }
+    }
+    return found;
+}
+
 QList<CaptureTarget> capturePlan(const Session &session,
                                  const QList<pw::PwNode> &nodes,
                                  const QList<pw::PwPort> &ports,

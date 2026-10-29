@@ -624,4 +624,14 @@ void RemoteEngine::describePlugin(const QString &format, const QString &id)
 {
     d->call(u"DescribePlugin"_s, {format, id});
 }
+
+void RemoteEngine::listTimers()
+{
+    d->call(u"ListTimers"_s, {});
+}
+
+void RemoteEngine::fireTimer(const QString &timerId)
+{
+    d->call(u"FireTimer"_s, {timerId});
+}
 } // namespace rb::bus

@@ -48,6 +48,7 @@ enum class ErrorCode {
     RecordingTagsNotSaved,
     SessionOverloaded,
     DaemonUnreachable,
+    TimerNotFound,
     Count, ///< Not an error; the number of codes.
 };
 
@@ -151,6 +152,9 @@ inline constexpr std::array kErrorCodes{
     // "daemonNotInstalled" (no activation file names it: a build that has not
     // been installed) or "daemonRefused" (the bus tried, and it did not start).
     ErrorCodeInfo{ErrorCode::DaemonUnreachable, "engine.daemonUnreachable", {"reason"}},
+    // FireTimer named a timer no session has: it was deleted, or its session
+    // was. Nothing was started.
+    ErrorCodeInfo{ErrorCode::TimerNotFound, "timer.notFound", {"timer"}},
 };
 
 static_assert(kErrorCodes.size() == static_cast<std::size_t>(ErrorCode::Count),

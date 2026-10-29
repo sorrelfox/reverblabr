@@ -222,6 +222,17 @@ public Q_SLOTS:
     /// What one plugin's settings are. Answered by pluginDescribed().
     virtual void describePlugin(const QString &format, const QString &id) = 0;
 
+    // --- timers ---
+    /// **Every session's timers**, closed sessions' too, with when each
+    /// next runs. Answered by timersListed().
+    virtual void listTimers() = 0;
+    /// Does what a timer does when its time comes: opens its session if it
+    /// is only on disk, starts it, and stops it again once the timer's
+    /// duration is over. The systemd timer the background engine writes for
+    /// it calls this (through `reverblabr-ctl timer-fire`). Answered by
+    /// timerFired(), or error() with timer.notFound.
+    virtual void fireTimer(const QString &timerId) = 0;
+
 Q_SIGNALS:
     /// A JSON array of `{id, name, modified}`.
     void sessionsListed(const QString &sessionsJson);
@@ -300,6 +311,10 @@ Q_SIGNALS:
     void pluginsChanged(const QString &pluginsJson);
     /// One plugin's settings, as the interface XML describes them.
     void pluginDescribed(const QString &format, const QString &id, const QString &descriptionJson);
+    /// Every session's timers, as the interface XML describes them.
+    void timersListed(const QString &timersJson);
+    /// A timer has started its session, or found it running already.
+    void timerFired(const QString &timerId, const QString &sessionId);
     /// A dotted code and its arguments as a JSON object, **never text for a
     /// person to read**: the engine has no idea what language anybody
     /// speaks. The GUI holds the messages.

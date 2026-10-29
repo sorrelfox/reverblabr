@@ -27,6 +27,7 @@
 #include "core/sessionplan.h"
 #include "core/sessionruntime.h"
 #include "core/telemetry.h"
+#include "core/timerrunner.h"
 #include "core/timers.h"
 #include "core/virtualdevices.h"
 #include "dsp/blockregistry.h"
@@ -39,22 +40,29 @@
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QFileInfo>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QLoggingCategory>
+#include <QProcess>
 #include <QScopedValueRollback>
 #include <QSet>
 #include <QTimer>
 #include <QUuid>
+#include <unistd.h>
 
+#include <csignal>
 #include <functional>
 #include <map>
 #include <optional>
 #include <utility>
 
 using namespace Qt::StringLiterals;
+
+Q_STATIC_LOGGING_CATEGORY(lcEngine, "reverblabr.engine.timers")
 
 namespace rb::core
 {
@@ -75,6 +83,26 @@ namespace
 [[nodiscard]] QString asJson(const QJsonArray &array)
 {
     return QString::fromUtf8(QJsonDocument(array).toJson(QJsonDocument::Compact));
+}
+
+/// Asks the process \a pid to quit, as logging out would, **only when it
+/// is what PipeWire said it was**: ours (the same user), and running the
+/// program \a binary. A stream's process id is what the application said
+/// of itself, and a pid can be reused by the time a timer ends, so neither
+/// alone is enough to send a signal to.
+void quitProcess(qint64 pid, const QString &binary)
+{
+    if (pid <= 1 || pid == QCoreApplication::applicationPid() || binary.isEmpty()) {
+        return;
+    }
+    const QString proc = u"/proc/%1"_s.arg(pid);
+    const QFileInfo exe(proc + u"/exe"_s);
+    if (exe.ownerId() != ::getuid() || QFileInfo(exe.symLinkTarget()).fileName() != binary) {
+        qCInfo(lcEngine) << "not quitting process" << pid << ": it isn't" << binary << "of this user any more";
+        return;
+    }
+    qCInfo(lcEngine) << "quitting" << binary << "( process" << pid << ")";
+    ::kill(static_cast<pid_t>(pid), SIGTERM);
 }
 
 } // namespace
@@ -143,6 +171,8 @@ public:
     /// Armed by an edit, and restarted by the next one, so that a drag of a
     /// knob is one write rather than a hundred.
     QTimer autosave;
+    /// What a timer does when its time comes. Made once the engine is.
+    std::unique_ptr<TimerRunner> timers;
 
     Private(Engine *owner, const dsp::BlockRegistry &registry, SessionStore store, PresetStore presets)
         : q(owner)
@@ -164,6 +194,33 @@ public:
     {
         unsaved.insert(sessionId);
         autosave.start();
+    }
+
+    /// **Quits the applications \a sessionId captures**, for a timer set to
+    /// when its run is over. A sandboxed application's process id means
+    /// nothing outside its sandbox, so Flatpak is asked to end it instead.
+    void quitApplications(const QString &sessionId)
+    {
+        const Open *session = find(sessionId);
+        if (session == nullptr) {
+            return;
+        }
+        QSet<QString> flatpaks;
+        std::map<qint64, QString> processes;
+        for (const pw::PwNode &node : capturedApplications(session->session, mirror.nodes())) {
+            if (!node.flatpakId.isEmpty()) {
+                flatpaks.insert(node.flatpakId);
+            } else if (node.applicationPid > 0) {
+                processes.emplace(node.applicationPid, node.applicationBinary);
+            }
+        }
+        for (const QString &flatpak : std::as_const(flatpaks)) {
+            qCInfo(lcEngine) << "quitting the Flatpak" << flatpak;
+            QProcess::startDetached(u"flatpak"_s, {u"kill"_s, flatpak});
+        }
+        for (const auto &[pid, binary] : processes) {
+            quitProcess(pid, binary);
+        }
     }
 
     /// Writes one session, if it has anything to write, and says so if it
@@ -486,6 +543,15 @@ Engine::Engine(const dsp::BlockRegistry &registry, SessionStore store, PresetSto
         Q_EMIT recordingsChanged(sessionId, asJson(d->library.recordings(sessionId)));
     });
     d->library.rescan();
+
+    d->timers = std::make_unique<TimerRunner>(
+        this,
+        [this] { return sessionListing(); },
+        [this](const QString &sessionId) { d->quitApplications(sessionId); });
+    connect(d->timers.get(), &TimerRunner::fired, this, &EngineFacade::timerFired);
+    connect(d->timers.get(), &TimerRunner::notFound, this, [this](const QString &timerId) {
+        d->fail(ErrorCode::TimerNotFound, {timerId});
+    });
 
     connect(&d->player, &RecordingPlayer::changed, this, [this](const QJsonObject &status) {
         Q_EMIT previewChanged(asJson(status));
@@ -1524,6 +1590,16 @@ void Engine::listPlugins()
 void Engine::describePlugin(const QString &format, const QString &id)
 {
     Q_EMIT pluginDescribed(format, id, asJson(QJsonObject{{"params"_L1, d->plugins.paramsJson(format, id)}}));
+}
+
+void Engine::listTimers()
+{
+    Q_EMIT timersListed(d->timers->timerListing(QDateTime::currentDateTime()));
+}
+
+void Engine::fireTimer(const QString &timerId)
+{
+    d->timers->fire(timerId);
 }
 
 void Engine::rescanPlugins(bool retryBlocked)

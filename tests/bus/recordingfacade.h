@@ -226,6 +226,14 @@ public:
     {
         record("describePlugin", {format, id});
     }
+    void listTimers() override
+    {
+        record("listTimers", {});
+    }
+    void fireTimer(const QString &timerId) override
+    {
+        record("fireTimer", {timerId});
+    }
 
 public Q_SLOTS:
     /// A slot of this object that is not the facade's, as the mock's test

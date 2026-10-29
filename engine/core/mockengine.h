@@ -257,6 +257,10 @@ public:
     /// Engine::sessionListing() does.
     [[nodiscard]] QString sessionListing() const;
 
+    /// The sessions whose captured applications a timer has asked to quit,
+    /// in order: the mock has no processes to quit.
+    [[nodiscard]] QStringList applicationsQuitFor() const;
+
 public Q_SLOTS:
     void listSessions() override;
     void createSession(const QString &name) override;
@@ -315,6 +319,8 @@ public Q_SLOTS:
     void listPlugins() override;
     void rescanPlugins(bool retryBlocked) override;
     void describePlugin(const QString &format, const QString &id) override;
+    void listTimers() override;
+    void fireTimer(const QString &timerId) override;
 
 public:
     class Private;
