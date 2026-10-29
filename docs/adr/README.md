@@ -31,5 +31,6 @@ Start a new record from [the template](template.md).
 | [0018](0018-telemetry-in-shared-memory.md) | A session's telemetry in a sealed memfd, handed to a window once, read-only, beside the facade | Accepted |
 | [0019](0019-hearing-filterbank.md) | One 64-channel gammatone filterbank for both Hearing Compensation blocks, 4 ms, with the 16 bands' gains interpolated over it | Accepted, amended when Hearing Compensation 16 was built |
 | [0020](0020-public-dbus-api.md) | The engine's interface is the public API: `io.github.reverblabr.Engine1`, only ever added to, its released surface pinned and documented | Accepted |
-| [0021](0021-auto-run.md) | Auto Run is a session setting; the background engine starts those sessions, and keeps its unit enabled while there are any | Accepted |
+| [0021](0021-auto-run.md) | Auto Run is a session setting; the background engine starts those sessions, and keeps its unit enabled while there are any | Accepted, amended by 0023 (once a login) |
 | [0022](0022-latency-that-follows-a-setting.md) | A block's settings may say what it is prepared for; the runtime prepares a fresh block when they change, and its lanes wait until it is filled | Accepted |
+| [0023](0023-krunner-runner-in-the-daemon.md) | The sessions in KRunner: a D-Bus runner served by `reverblabrd` on an object of its own, not a separate helper or a plugin; Auto Run once a login and after a crash | Accepted |

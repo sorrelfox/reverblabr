@@ -87,8 +87,12 @@ endif()
 
 set(RB_CTL_HOME "${CMAKE_CURRENT_BINARY_DIR}/home")
 file(MAKE_DIRECTORY "${RB_CTL_HOME}/data" "${RB_CTL_HOME}/config" "${RB_CTL_HOME}/state" "${RB_CTL_HOME}/cache")
+# A runtime directory of their own, so a daemon started here never notes in
+# the desktop's that Auto Run has run (ADR-0023).
+file(MAKE_DIRECTORY "${RB_CTL_HOME}/runtime")
+file(CHMOD "${RB_CTL_HOME}/runtime" DIRECTORY_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
 set(_rb_ctl_environment
-    "HOME=${RB_CTL_HOME};XDG_DATA_HOME=${RB_CTL_HOME}/data;XDG_CONFIG_HOME=${RB_CTL_HOME}/config;XDG_STATE_HOME=${RB_CTL_HOME}/state;XDG_CACHE_HOME=${RB_CTL_HOME}/cache;PIPEWIRE_REMOTE=rb-test-no-such-socket;LANG=C.UTF-8;LANGUAGE=")
+    "HOME=${RB_CTL_HOME};XDG_DATA_HOME=${RB_CTL_HOME}/data;XDG_CONFIG_HOME=${RB_CTL_HOME}/config;XDG_STATE_HOME=${RB_CTL_HOME}/state;XDG_CACHE_HOME=${RB_CTL_HOME}/cache;XDG_RUNTIME_DIR=${RB_CTL_HOME}/runtime;PIPEWIRE_REMOTE=rb-test-no-such-socket;LANG=C.UTF-8;LANGUAGE=")
 
 add_test(NAME ctl.mock
          COMMAND ${RB_CTL_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_CTL_BUS_DIR}/mock.conf

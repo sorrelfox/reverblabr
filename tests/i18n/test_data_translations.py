@@ -30,6 +30,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 DESKTOP = REPO_ROOT / "app" / "io.github.reverblabr.Reverblabr.desktop"
 METAINFO = REPO_ROOT / "app" / "io.github.reverblabr.Reverblabr.metainfo.xml"
 NOTIFYRC = REPO_ROOT / "notify" / "reverblabr.notifyrc"
+RUNNER = REPO_ROOT / "daemon" / "io.github.reverblabr.Runner.desktop"
 SCRIPT = REPO_ROOT / "cmake" / "RbTranslateDataFile.cmake"
 
 # (start of msgid, file it comes from)
@@ -39,6 +40,8 @@ EXPECTED = [
     ("All Sessions", "app/io.github.reverblabr.Reverblabr.desktop"),
     ("Recording finished", "notify/reverblabr.notifyrc"),
     ("A Recorder block has finished and saved its file", "notify/reverblabr.notifyrc"),
+    ("Reverblabr Sessions", "daemon/io.github.reverblabr.Runner.desktop"),
+    ("Run and stop Reverblabr sessions", "daemon/io.github.reverblabr.Runner.desktop"),
     ("Capture, process and route audio on your desktop", "app/io.github.reverblabr.Reverblabr.metainfo.xml"),
     ("A voice cleaned up, shaped and recorded", "app/io.github.reverblabr.Reverblabr.metainfo.xml"),
     ("The first version, not yet released.", "app/io.github.reverblabr.Reverblabr.metainfo.xml"),
@@ -108,7 +111,7 @@ def main():
         write_catalog(entries, podir / "de" / "reverblabr-data.po")
         out = scratch / "out"
         merged = {}
-        for kind, source in (("DESKTOP", DESKTOP), ("DESKTOP", NOTIFYRC), ("XML", METAINFO)):
+        for kind, source in (("DESKTOP", DESKTOP), ("DESKTOP", NOTIFYRC), ("DESKTOP", RUNNER), ("XML", METAINFO)):
             code, log = merge(cmake, kind, source, out / source.name, podir)
             if code != 0:
                 failures.append(f"merging into {source.name} failed:\n{log}")
@@ -123,6 +126,8 @@ def main():
                 failures.append(f"the desktop entry has no {expected}")
         if f"Name[de]={german('Recording finished')}" not in merged.get(NOTIFYRC.name, ""):
             failures.append("the notification events have no German name")
+        if f"Name[de]={german('Reverblabr Sessions')}" not in merged.get(RUNNER.name, ""):
+            failures.append("the KRunner runner has no German name")
         metainfo = merged.get(METAINFO.name, "")
         if f'<summary xml:lang="de">{german("Capture, process and route audio on your desktop")}</summary>' \
                 not in metainfo:

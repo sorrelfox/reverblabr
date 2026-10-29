@@ -35,6 +35,14 @@ The window uses the engine in `reverblabrd` by default ([ADR-0017](../docs/adr/0
 | `io.github.reverblabr.Engine.service` | `/usr/share/dbus-1/services/` | D-Bus activation: `Exec=/usr/bin/reverblabrd`, `SystemdService=reverblabrd.service` |
 | `reverblabrd.service` | `/usr/lib/systemd/user/` | the user unit, `Type=dbus` |
 
+**The sessions in KRunner** come with the engine ([ADR-0023](../docs/adr/0023-krunner-runner-in-the-daemon.md)): the daemon serves the runner itself, and KRunner finds it through one file, translated like the desktop entry. A package that ships the daemon ships this too:
+
+| File | Where | What |
+|---|---|---|
+| `io.github.reverblabr.Runner.desktop` | `/usr/share/krunner/dbusplugins/` | `X-Plasma-DBusRunner-Service=io.github.reverblabr.Engine`, `X-Plasma-DBusRunner-Path=/io/github/reverblabr/Runner`; KRunner starts the daemon through the activation file above |
+
+Its Open starts `/usr/bin/reverblabr --open-session=<id>`, so it expects the window in the same prefix as the daemon.
+
 Nothing enables the unit except Auto Run ([ADR-0021](../docs/adr/0021-auto-run.md)): while any session is set to run at login, the daemon enables `reverblabrd.service` through the user service manager, and it disables it again once none is. A package should not enable it.
 
 ## The command-line tool

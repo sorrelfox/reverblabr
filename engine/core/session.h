@@ -28,8 +28,9 @@ struct SessionSettings {
     QString sampleRate = QStringLiteral("auto");
     /// "default", "low" or "high". A string for the same reason.
     QString latency = QStringLiteral("default");
-    /// "off", or "login": the background engine starts the session every
-    /// time it starts, which with Auto Run on is at login. A string,
+    /// "off", or "login": the background engine starts the session the
+    /// first time it starts in a login, and again after a crash (ADR-0023),
+    /// which with Auto Run on is at login itself. A string,
     /// so that a later choice is a new value rather than a new field.
     QString autoRun = QStringLiteral("off");
 

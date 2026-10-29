@@ -62,8 +62,8 @@ class SessionModel : public QObject
     /// "default", "low" or "high", in that order of how little delay the
     /// session asks the audio system for.
     Q_PROPERTY(QString latency READ latency NOTIFY changed)
-    /// "off", or "login" for a session the background engine starts
-    /// whenever it starts.
+    /// "off", or "login" for a session the background engine starts once a
+    /// login, and again after a crash (ADR-0023).
     Q_PROPERTY(QString autoRun READ autoRun NOTIFY changed)
     /// Every block in the session, in the order it holds them.
     Q_PROPERTY(QStringList blockIds READ blockIds NOTIFY changed)

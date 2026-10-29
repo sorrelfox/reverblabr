@@ -155,6 +155,7 @@ export QT_QPA_PLATFORM=offscreen
 %{_libexecdir}/reverblabr-plugin-host
 %{_userunitdir}/reverblabrd.service
 %{_kf6_datadir}/dbus-1/services/io.github.reverblabr.Engine.service
+%{_kf6_datadir}/krunner/dbusplugins/io.github.reverblabr.Runner.desktop
 # The command-line tool
 %{_kf6_bindir}/reverblabr-ctl
 %{_mandir}/man1/reverblabr-ctl.1*

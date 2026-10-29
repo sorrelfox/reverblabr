@@ -88,4 +88,39 @@ private:
     std::optional<bool> m_asked;
 };
 
+/// **Auto Run once a login** (ADR-0023), not every time the engine
+/// starts: an engine that exited when it was idle and is started again, by
+/// a window, a script or a KRunner query, does not run again a session the
+/// person stopped. One that crashed does, as ADR-0021 promised.
+///
+/// A file in `$XDG_RUNTIME_DIR`, which the login manager makes at login and
+/// removes at the last logout, says what the last engine of this login did:
+/// nothing there, no engine has started yet; "running", one started and did
+/// not exit cleanly; "exited", one exited cleanly. Auto Run is due for the
+/// first two. Without a runtime directory there is nothing to remember it
+/// in, and Auto Run is always due, as before.
+class AutoRunMarker
+{
+public:
+    /// The marker at \a path; empty for none.
+    explicit AutoRunMarker(QString path);
+
+    /// `$XDG_RUNTIME_DIR/reverblabr/autorun`, or empty when there is no
+    /// runtime directory.
+    [[nodiscard]] static QString defaultPath();
+
+    /// Whether this engine should start the Auto Run sessions.
+    [[nodiscard]] bool due() const;
+    /// This engine has started: until exited(), it counts as one that did
+    /// not exit cleanly.
+    void running() const;
+    /// This engine is exiting cleanly.
+    void exited() const;
+
+private:
+    void write(QByteArrayView state) const;
+
+    QString m_path;
+};
+
 } // namespace rb::daemon

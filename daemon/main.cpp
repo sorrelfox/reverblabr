@@ -22,6 +22,7 @@
 #include "freedesktopsender.h"
 #include "notifications.h"
 #include "opensessions.h"
+#include "sessionrunner.h"
 #include "texts.h"
 
 #include <QCommandLineParser>
@@ -85,7 +86,11 @@ int main(int argc, char **argv)
                                       u"seconds"_s,
                                       u"60"_s);
     const QCommandLineOption stateFile(u"state-file"_s, u"Where the open sessions are written down."_s, u"path"_s);
-    parser.addOptions({safeMode, mock, idleExit, stateFile});
+    const QCommandLineOption window(u"window"_s,
+                                    u"The program KRunner's Open starts to show a session (for tests)."_s,
+                                    u"path"_s,
+                                    QStringLiteral(RB_WINDOW_EXEC));
+    parser.addOptions({safeMode, mock, idleExit, stateFile, window});
     parser.process(app);
 
     rb::dsp::BlockRegistry registry;
@@ -116,6 +121,13 @@ int main(int argc, char **argv)
     if (!bus.isConnected()) {
         qCCritical(lcDaemon) << "no session bus:" << bus.lastError().message();
         return 1;
+    }
+    // **The sessions in KRunner** (ADR-0023), on an object of their own:
+    // served before the name is taken, so a query that started the daemon
+    // finds it there.
+    rb::daemon::SessionRunner runner(engine.get(), sessionListing, parser.value(window));
+    if (!runner.publish(bus)) {
+        qCWarning(lcDaemon) << "could not serve the KRunner runner at" << rb::daemon::kRunnerPath;
     }
     rb::bus::EngineService service(engine.get(), bus);
     service.setTelemetry(shareTelemetry);
@@ -154,17 +166,25 @@ int main(int argc, char **argv)
               .filePath(u"reverblabr/daemon.json"_s);
     rb::daemon::OpenSessions openSessions(engine.get(), statePath);
     // **Auto Run** (ADR-0021): the sessions set to run at login start
-    // with the engine, whenever it starts — at login, through the unit it
-    // keeps enabled while any session wants it, or when a window or a crash
-    // restart brings it up. Safe mode starts nothing, but the unit is still
-    // kept in step with the settings.
+    // with the first engine of the login, whatever brings it up: the unit
+    // it keeps enabled while any session wants it, a window, a script or a
+    // KRunner query. **Once a login** (ADR-0023): an engine started again
+    // after it exited when idle leaves alone what the person stopped, and
+    // only one after a crash starts them again. Safe mode starts nothing, but
+    // the unit is still kept in step with the settings.
     rb::daemon::AutostartUnit autostartUnit(bus);
     rb::daemon::AutoRun autoRun(engine.get(), &autostartUnit, sessionListing);
+    const rb::daemon::AutoRunMarker autoRunMarker(rb::daemon::AutoRunMarker::defaultPath());
     if (parser.isSet(safeMode)) {
         qCInfo(lcDaemon) << "safe mode: opening no sessions";
     } else {
         openSessions.restore();
-        autoRun.start();
+        if (autoRunMarker.due()) {
+            autoRun.start();
+        } else {
+            qCInfo(lcDaemon) << "Auto Run has run in this login already: starting no session";
+        }
+        autoRunMarker.running();
     }
 
     // **Gone once nobody needs it**: no client on the bus and nothing
@@ -198,7 +218,12 @@ int main(int argc, char **argv)
     QSocketNotifier stopping(stopPipe[1], QSocketNotifier::Read);
     QObject::connect(&stopping, &QSocketNotifier::activated, &app, [] { QCoreApplication::quit(); });
 
-    QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [&openSessions] { openSessions.freeze(); });
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [&openSessions, &autoRunMarker, &parser, &safeMode] {
+        openSessions.freeze();
+        if (!parser.isSet(safeMode)) {
+            autoRunMarker.exited();
+        }
+    });
     qCInfo(lcDaemon) << "serving" << rb::bus::kServiceName << (parser.isSet(mock) ? "(mock engine)" : "");
     const int result = app.exec();
     openSessions.freeze();

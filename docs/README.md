@@ -15,7 +15,7 @@ These pages explain how to build Reverblabr, how to use it, and how it is put to
 - [Virtual devices](virtual-devices.md): sound cards of your own, for routing programs through Reverblabr
 - [Hearing](hearing.md): shaping the sound for each ear, if you hear some frequencies poorly
 - [Recording](recording.md): the Recorder block and the files it makes
-- [On the desktop](desktop.md): the tray icon, global shortcuts, sessions that start at login, notifications
+- [On the desktop](desktop.md): the tray icon, global shortcuts, KRunner, sessions that start at login, notifications
 - [Privacy](privacy.md): what Reverblabr can hear, and recording other people
 - [When something goes wrong](troubleshooting.md): diagnostics, common problems and bug reports
 

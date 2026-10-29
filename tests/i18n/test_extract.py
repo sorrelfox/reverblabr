@@ -22,6 +22,7 @@ EXPECTED = [
     ("@title:window", "Reverblabr", "app/qml/Main.qml"),
     ("@title", "Reverblabr", "app/main.cpp"),
     ("@info", "The connections in this session form a loop.", "app/errormessages.cpp"),
+    ("@info KRunner", "Nothing is being recorded", "daemon/sessionrunner.cpp"),
 ]
 
 

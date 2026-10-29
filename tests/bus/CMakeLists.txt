@@ -55,6 +55,11 @@ file(WRITE "${RB_BUS_DIR}/session.conf"
 # is not there, so no engine here can touch the real audio.
 set(RB_BUS_HOME "${CMAKE_CURRENT_BINARY_DIR}/home")
 file(MAKE_DIRECTORY "${RB_BUS_HOME}/data" "${RB_BUS_HOME}/config" "${RB_BUS_HOME}/state" "${RB_BUS_HOME}/cache")
+# **A runtime directory of their own**, as a login has one: a daemon notes
+# there that Auto Run has run (ADR-0023), and one started by a test must
+# never say so in the desktop's. Only its owner may enter it, as Qt asks.
+file(MAKE_DIRECTORY "${RB_BUS_HOME}/runtime")
+file(CHMOD "${RB_BUS_HOME}/runtime" DIRECTORY_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
 # **A PID namespace of its own, where there is one to be had.** The test
 # kills daemons by pid, and a pid gone wrong (0, -1) signals the process
 # group or every process the user owns: the desktop session. Inside the
@@ -80,7 +85,7 @@ add_test(NAME bus.engine
                  -- $<TARGET_FILE:reverblabr-bus-test>)
 set_tests_properties(bus.engine PROPERTIES
     TIMEOUT 180
-    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;PIPEWIRE_REMOTE=rb-test-no-such-socket"
 )
 
 # Which engine a window gets: the same binary on four buses, each of
@@ -118,7 +123,7 @@ foreach(_rb_reach empty refused)
 endforeach()
 
 set(_rb_reach_environment
-    "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;PIPEWIRE_REMOTE=rb-test-no-such-socket")
+    "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;PIPEWIRE_REMOTE=rb-test-no-such-socket")
 # **No bus at all**: an address with nothing behind it, and no
 # dbus-run-session.
 add_test(NAME bus.reach.nobus COMMAND ${RB_BUS_SANDBOX} $<TARGET_FILE:reverblabr-reach-test>)
@@ -161,7 +166,7 @@ add_test(NAME bus.notifications
                  -- $<TARGET_FILE:reverblabr-notify-bus-test>)
 set_tests_properties(bus.notifications PROPERTIES
     TIMEOUT 120
-    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_DATA_DIRS=${RB_BUS_NOTIFY_DATA}:/usr/local/share:/usr/share;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;XDG_DATA_DIRS=${RB_BUS_NOTIFY_DATA}:/usr/local/share:/usr/share;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
 )
 
 
@@ -185,7 +190,7 @@ add_test(NAME bus.tray
                  -- $<TARGET_FILE:reverblabr-tray-bus-test>)
 set_tests_properties(bus.tray PROPERTIES
     TIMEOUT 120
-    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
 )
 
 
@@ -207,7 +212,7 @@ add_test(NAME bus.shortcuts
                  -- $<TARGET_FILE:reverblabr-shortcuts-bus-test>)
 set_tests_properties(bus.shortcuts PROPERTIES
     TIMEOUT 120
-    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
 )
 
 # Auto Run (ADR-0021): the sessions that start with the engine, and the
@@ -222,7 +227,7 @@ add_test(NAME bus.autorun
                  -- $<TARGET_FILE:reverblabr-autorun-bus-test>)
 set_tests_properties(bus.autorun PROPERTIES
     TIMEOUT 120
-    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;PIPEWIRE_REMOTE=rb-test-no-such-socket"
 )
 
 
@@ -240,5 +245,23 @@ add_test(NAME bus.launch
                  -- $<TARGET_FILE:reverblabr-launch-bus-test>)
 set_tests_properties(bus.launch PROPERTIES
     TIMEOUT 400
-    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;QT_QPA_PLATFORM=offscreen;PIPEWIRE_REMOTE=rb-test-no-such-socket"
+)
+
+# **The sessions in KRunner** (ADR-0023): the runner the daemon serves,
+# called as KRunner calls it, on the same private bus and in the same PID
+# namespace as bus.engine. On a desktop's bus a query would reach the
+# engine the person is using. The locale is pinned: the test reads the
+# runner's words.
+add_executable(reverblabr-krunner-bus-test test_krunner.cpp)
+target_link_libraries(reverblabr-krunner-bus-test PRIVATE
+    reverblabr-daemon-core reverblabr-enginebus reverblabr-engine Qt6::DBus GTest::gtest)
+target_compile_definitions(reverblabr-krunner-bus-test PRIVATE RB_DAEMON="$<TARGET_FILE:reverblabrd>")
+add_dependencies(reverblabr-krunner-bus-test reverblabrd)
+add_test(NAME bus.krunner
+         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+                 -- $<TARGET_FILE:reverblabr-krunner-bus-test>)
+set_tests_properties(bus.krunner PROPERTIES
+    TIMEOUT 120
+    ENVIRONMENT "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;PIPEWIRE_REMOTE=rb-test-no-such-socket;LC_ALL=en_US.UTF-8;LANGUAGE=en_US"
 )

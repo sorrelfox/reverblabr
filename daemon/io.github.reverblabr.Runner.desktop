@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# The sessions in KRunner (ADR-0023): a runner on the bus, served by the
+# engine under its own name, so KRunner starts the engine when it is asked
+# and needs no plugin of ours loaded into it. Only a query that starts with
+# "rb" reaches it.
+[Desktop Entry]
+Type=Service
+Name=Reverblabr Sessions
+Comment=Run and stop Reverblabr sessions, and see what is being recorded
+Icon=io.github.reverblabr.Reverblabr
+X-KDE-PluginInfo-EnabledByDefault=true
+X-Plasma-API=DBus
+X-Plasma-DBusRunner-Service=io.github.reverblabr.Engine
+X-Plasma-DBusRunner-Path=/io/github/reverblabr/Runner
+X-Plasma-Runner-Match-Regex=^[Rr][Bb]( |$)
+X-Plasma-Runner-Min-Letter-Count=2

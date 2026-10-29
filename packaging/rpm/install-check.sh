@@ -56,6 +56,7 @@ expected=(
     /usr/share/icons/hicolor/16x16/apps/io.github.reverblabr.Reverblabr.svg
     /usr/share/knotifications6/reverblabr.notifyrc
     /usr/share/dbus-1/services/io.github.reverblabr.Engine.service
+    /usr/share/krunner/dbusplugins/io.github.reverblabr.Runner.desktop
     /usr/lib/systemd/user/reverblabrd.service
     /usr/share/man/man1/reverblabr-ctl.1.gz
     /usr/share/bash-completion/completions/reverblabr-ctl
@@ -74,6 +75,9 @@ for file in "${expected[@]}"; do
 done
 grep -q '^Exec=/usr/bin/reverblabrd$' /usr/share/dbus-1/services/io.github.reverblabr.Engine.service \
     || die "the D-Bus activation file does not start /usr/bin/reverblabrd"
+grep -q '^X-Plasma-DBusRunner-Service=io.github.reverblabr.Engine$' \
+    /usr/share/krunner/dbusplugins/io.github.reverblabr.Runner.desktop \
+    || die "KRunner's runner file does not name the engine"
 # Auto Run enables the unit, not the package.
 if systemctl --global is-enabled reverblabrd.service >/dev/null 2>&1; then
     die "installing the package enabled reverblabrd.service"

@@ -10,6 +10,9 @@
 #include "core/enginefacade.h"
 #include "core/session.h"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -168,6 +171,68 @@ void AutoRun::reconcile()
 void AutoRun::listSoon()
 {
     m_listSoon.start();
+}
+
+namespace
+{
+
+constexpr QByteArrayView kRunning = "running";
+constexpr QByteArrayView kExited = "exited";
+
+} // namespace
+
+AutoRunMarker::AutoRunMarker(QString path)
+    : m_path(std::move(path))
+{
+}
+
+QString AutoRunMarker::defaultPath()
+{
+    // **The variable itself, not QStandardPaths::RuntimeLocation**, which
+    // makes up a folder under /tmp when there is none: a marker there would
+    // outlive the login it is about.
+    const QString runtime = qEnvironmentVariable("XDG_RUNTIME_DIR");
+    if (runtime.isEmpty()) {
+        return {};
+    }
+    return QDir(runtime).filePath(u"reverblabr/autorun"_s);
+}
+
+bool AutoRunMarker::due() const
+{
+    if (m_path.isEmpty()) {
+        return true;
+    }
+    QFile file(m_path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return true; // the first engine of this login
+    }
+    return file.readAll().trimmed() != kExited;
+}
+
+void AutoRunMarker::running() const
+{
+    write(kRunning);
+}
+
+void AutoRunMarker::exited() const
+{
+    write(kExited);
+}
+
+void AutoRunMarker::write(QByteArrayView state) const
+{
+    if (m_path.isEmpty()) {
+        return;
+    }
+    if (!QDir().mkpath(QFileInfo(m_path).path())) {
+        qCWarning(lcAutoRun) << "cannot make the folder of" << m_path;
+        return;
+    }
+    QFile file(m_path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) || file.write(state.data(), state.size()) < 0) {
+        qCWarning(lcAutoRun) << "cannot write" << m_path << file.errorString();
+    }
 }
 
 } // namespace rb::daemon

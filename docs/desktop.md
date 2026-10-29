@@ -21,8 +21,8 @@ The launcher knows about this too: right-click Reverblabr in the application lau
 
 Some sessions you want running all the time, such as a microphone chain for calls or a hearing setup. Switch on **Info → Auto Run: Run when I log in** for such a session, or tick it in **All Sessions…**.
 
-- From then on, the background engine starts that session when you log in, without opening the window, and again if the engine ever has to restart. Closing the window leaves it running.
-- Stopping the session stops it until the next login. Undo takes the setting back like any other change.
+- From then on, the background engine starts that session when you log in, without opening the window, and again if the engine crashes and has to restart. Closing the window leaves it running.
+- Stopping the session stops it until the next login, even when the engine is started again later by the window, by `reverblabr-ctl` or by KRunner. Undo takes the setting back like any other change.
 - When no session is set to run at login, nothing of Reverblabr starts when you log in.
 - It needs an installed Reverblabr. In a build run from the source tree, the Info tab says Auto Run can't work there, and the session keeps the setting for later.
 
@@ -45,6 +45,17 @@ Reverblabr's shortcuts work while the window is in the background or hidden in t
 - **Input Switch: play A** and **play B**; **Time Shift: pause or play**, **back 10 seconds**, **forward 10 seconds** and **back to live**; **Recorder: start a new file**. These act on every block of that kind in the session the main window shows (or showed last, while it's hidden).
 
 The shortcuts belong to the window's process, so they work while it runs, open or hidden in the tray. Quitting from the tray ends them, even if sessions keep running in the background engine.
+
+## KRunner
+
+Press **Alt+Space** (or start typing on the desktop) and type **rb** followed by part of a session's name:
+
+- **rb podcast** offers **Run “Podcast”**, or **Stop “Podcast”** while it runs, with what it's doing now underneath. Press Enter to run or stop it. A session that isn't open is opened in the background engine and run, and stays open there.
+- The button beside it, **Open in Reverblabr**, opens the session in the main window and brings the window forward, starting Reverblabr if it isn't running.
+- **rb** on its own lists every saved session.
+- **rb rec** (or any longer start of "recording") says which sessions are recording now, or that nothing is. Pick one to open it in the main window.
+
+All of this works with the window closed: KRunner talks to the background engine, and starts it if it isn't running. Looking something up doesn't keep the engine running; it goes away again after a minute if nothing is running. KRunner lists it as **Reverblabr Sessions** in **System Settings → Search → Plasma Search**, where you can turn it off. It needs an installed Reverblabr.
 
 ## Notifications
 

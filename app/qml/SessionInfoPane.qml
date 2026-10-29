@@ -208,8 +208,9 @@ QQC2.ScrollView {
                 }
             }
 
-            // **Auto Run**: the background engine starts the session
-            // whenever it starts, which with this on is at login. The
+            // **Auto Run**: the background engine starts the session the
+            // first time it starts in a login (ADR-0023), which with this
+            // on is at login itself. The
             // setting is the session's and is kept either way; a window
             // running an engine of its own says that nothing will start it.
             ColumnLayout {
