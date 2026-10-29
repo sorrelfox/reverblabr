@@ -382,6 +382,30 @@ TEST_F(Notifications, TheDaemonNotifiesOnlyWhileNoWindowDoes)
     EXPECT_TRUE(daemon.waitForFinished(5000));
 }
 
+// **A bus that goes while the daemon starts** (a logout at that moment): the
+// daemon's sender is made on a connection that has already lost its bus.
+// Asking that connection who owns the notification server ends the process
+// in libdbus, so the sender must not ask. A bus of the test's own, not the
+// private one the others share, so that taking it down harms nothing.
+TEST(NotificationsWithoutABus, TheDaemonsSenderOutlivesItsBus)
+{
+    QProcess bus;
+    bus.start(u"dbus-daemon"_s, {u"--session"_s, u"--nofork"_s, u"--print-address=1"_s});
+    ASSERT_TRUE(bus.waitForStarted(5000)) << bus.errorString().toStdString();
+    ASSERT_TRUE(waitFor([&] { return bus.canReadLine(); }, 5000)) << "dbus-daemon gave no address";
+    const QString address = QString::fromUtf8(bus.readLine()).trimmed();
+    {
+        QDBusConnection gone = QDBusConnection::connectToBus(address, u"gone"_s);
+        ASSERT_TRUE(gone.isConnected()) << gone.lastError().message().toStdString();
+        bus.kill();
+        ASSERT_TRUE(bus.waitForFinished(5000));
+        ASSERT_TRUE(waitFor([&] { return !gone.isConnected(); })) << "the connection never saw its bus go";
+
+        notify::FreedesktopSender sender(gone, [](notify::Event) { return true; });
+    }
+    QDBusConnection::disconnectFromBus(u"gone"_s);
+}
+
 int main(int argc, char **argv)
 {
     // KNotifications draws nothing here, but wants a GUI application; the

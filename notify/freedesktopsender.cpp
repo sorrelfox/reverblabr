@@ -49,6 +49,13 @@ FreedesktopSender::FreedesktopSender(const QDBusConnection &bus, std::function<b
             (void)QDBusConnection(bus).asyncCall(show);
         }
     };
+    // **Not on a bus that is gone**: connect() asks the bus who owns the
+    // notification server, and on a connection that has lost its bus,
+    // libdbus ends the process for it. The bus can go while the daemon
+    // starts (a logout at that moment), and then there is nothing to hear.
+    if (!m_bus.isConnected()) {
+        return;
+    }
     m_bus.connect(kService, kPath, kInterface, u"ActionInvoked"_s, this, SLOT(actionInvoked(uint, QString)));
     m_bus.connect(kService, kPath, kInterface, u"NotificationClosed"_s, this, SLOT(notificationClosed(uint, uint)));
 }
