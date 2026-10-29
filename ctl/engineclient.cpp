@@ -183,16 +183,17 @@ Result<QJsonArray> EngineClient::listTimers()
     return QJsonDocument::fromJson(heard->arguments.value(0).toString().toUtf8()).array();
 }
 
-Result<QString> EngineClient::fireTimer(const QString &timerId)
+Result<EngineClient::Fired> EngineClient::fireTimer(const QString &timerId, bool scheduled)
 {
     const Result<Heard> heard = ask(
         u"FireTimer"_s,
-        {timerId},
+        {timerId, scheduled},
         [&](const Heard &heard) {
             return heard.signal == "TimerFired"_L1 && heard.arguments.value(0).toString() == timerId;
         },
         [&](const QString &code, const QJsonObject &args) {
-            return code == "timer.notFound"_L1 && args.value("timer"_L1).toString() == timerId;
+            return (code == "timer.notFound"_L1 || code == "timer.late"_L1)
+                && args.value("timer"_L1).toString() == timerId;
         });
     if (!heard) {
         // No such timer is a name that matches nothing, as a session's is.
@@ -201,7 +202,7 @@ Result<QString> EngineClient::fireTimer(const QString &timerId)
         }
         return std::unexpected(heard.error());
     }
-    return heard->arguments.value(1).toString();
+    return Fired{heard->arguments.value(1).toString(), heard->arguments.value(2).toBool()};
 }
 
 namespace

@@ -44,7 +44,7 @@ _reverblabr_ctl()
     COMPREPLY=()
 
     local commands="list status start stop split switch set timers timer-fire"
-    local options="--json --timeout --no-activate --help --version"
+    local options="--json --timeout --no-activate --scheduled --help --version"
 
     # The command is the first word after the options.
     local index command="" position=0

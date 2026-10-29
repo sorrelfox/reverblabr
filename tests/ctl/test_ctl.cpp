@@ -605,11 +605,29 @@ TEST_F(CtlMock, TimersAreListedAndTimerFireStartsTheTimersSession)
     EXPECT_TRUE(plain.lines().at(0).endsWith(u" (morning)"_s));
     EXPECT_EQ(ctl({u"timers"_s, u"list"_s, u"Quiet"_s}).lines(), QStringList{u"There are no timers."_s});
 
-    const ToolRun fired = ctl({u"--json"_s, u"timer-fire"_s, u"morning"_s});
+    // As its systemd unit runs it: late, as a Monday-and-Thursday timer
+    // fired now almost always is, it is refused.
+    const ToolRun late = ctl({u"--json"_s, u"timer-fire"_s, u"--scheduled"_s, u"--"_s, u"morning"_s});
+    if (late.exit != 0) {
+        EXPECT_EQ(late.exit, 1);
+        EXPECT_EQ(late.errorCode(), u"timer.late"_s);
+        EXPECT_NE(states().value(kSpaced), u"running"_s);
+    }
+
+    const ToolRun fired = ctl({u"--json"_s, u"timer-fire"_s, u"--"_s, u"morning"_s});
     ASSERT_EQ(fired.exit, 0) << fired.out.toStdString() << fired.err.toStdString();
-    EXPECT_EQ(keysOf(fired.json()), keys({"timer", "session"}));
+    EXPECT_EQ(keysOf(fired.json()), keys({"timer", "session", "started"}));
     EXPECT_EQ(fired.json().value("session"_L1).toString(), id);
+    EXPECT_TRUE(fired.json().value("started"_L1).toBool());
     EXPECT_EQ(states().value(kSpaced), u"running"_s);
+
+    // Running already, started by somebody: said so, not claimed.
+    ASSERT_EQ(ctl({u"stop"_s, id}).exit, 0);
+    ASSERT_EQ(ctl({u"start"_s, id}).exit, 0);
+    const ToolRun again = ctl({u"timer-fire"_s, u"morning"_s});
+    ASSERT_EQ(again.exit, 0);
+    EXPECT_EQ(again.lines(),
+              QStringList{u"“%1” was running already, so the timer morning left it as it is."_s.arg(kSpaced)});
 
     const ToolRun nowhere = ctl({u"--json"_s, u"timer-fire"_s, u"evening"_s});
     EXPECT_EQ(nowhere.exit, 3);
@@ -617,6 +635,11 @@ TEST_F(CtlMock, TimersAreListedAndTimerFireStartsTheTimersSession)
     EXPECT_EQ(ctl({u"timers"_s}).exit, 2);
     EXPECT_EQ(ctl({u"timers"_s, u"add"_s}).exit, 2);
     EXPECT_EQ(ctl({u"timer-fire"_s}).exit, 2);
+    EXPECT_EQ(ctl({u"--scheduled"_s, u"list"_s}).exit, 2) << "only timer-fire is scheduled";
+
+    // **The mock daemon keeps no units**: pretend sessions never reach the
+    // person's systemd timers.
+    EXPECT_FALSE(QDir(home.filePath(u"config/systemd"_s)).exists());
 }
 
 TEST_F(CtlMock, JsonIsTheSameInEveryLanguageAndAPersonReadsTheirOwn)

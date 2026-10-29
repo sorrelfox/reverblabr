@@ -61,11 +61,13 @@ Every session's timers, or one session's, a line each: when it runs, for
 how long, when it next starts its session, and its id in brackets.
 Timers are made in the Schedule tab.
 .TP
-.BI timer\-fire " timer"
+.BR timer\-fire " [\fB\-\-scheduled\fR] \fItimer\fR"
 Does now what the timer does when its time comes: opens its session if it
 is only on disk, starts it, and has the engine stop it once the timer's
-duration is over. The systemd user timer Reverblabr writes for each timer
-that is on runs this. A session already running is left as it is.
+duration is over. A session already running is left as it is, and the
+answer says so. The systemd user timer Reverblabr writes for each timer
+that is on runs this with \fB\-\-scheduled\fR, which has a fire more than
+two minutes after the timer's time, as after the computer slept, refused.
 .SH OPTIONS
 .TP
 .B \-\-json
@@ -77,6 +79,10 @@ How long to wait for the engine's answer. The default is 10.
 .TP
 .B \-\-no\-activate
 Only asks an engine that is already running, and never starts one.
+.TP
+.B \-\-scheduled
+For \fBtimer\-fire\fR only: the fire is the timer's own, from its systemd
+unit, and is refused when it comes too late.
 .TP
 .BR \-h ", " \-\-help
 Prints the commands.

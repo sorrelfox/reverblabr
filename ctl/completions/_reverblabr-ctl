@@ -42,6 +42,7 @@ _reverblabr-ctl() {
     '--json[print the answer as JSON]' \
     '--timeout[how long to wait for the engine]:seconds' \
     '--no-activate[only ask an engine that is already running]' \
+    '--scheduled[timer-fire as the timer'"'"'s own systemd unit runs it]' \
     '(- *)'{-h,--help}'[print the commands]' \
     '(- *)--version[print the version]' \
     '1:command:->command' \

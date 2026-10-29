@@ -452,25 +452,28 @@ Result<Outcome> timersCommand(EngineClient &engine, const QString &wanted)
     return outcome;
 }
 
-Result<Outcome> timerFireCommand(EngineClient &engine, const QString &timerId)
+Result<Outcome> timerFireCommand(EngineClient &engine, const QString &timerId, bool scheduled)
 {
-    const Result<QString> sessionId = engine.fireTimer(timerId);
-    if (!sessionId) {
-        return std::unexpected(sessionId.error());
+    const Result<EngineClient::Fired> fired = engine.fireTimer(timerId, scheduled);
+    if (!fired) {
+        return std::unexpected(fired.error());
     }
     Outcome outcome;
-    outcome.json = {{"timer"_L1, timerId}, {"session"_L1, *sessionId}};
+    outcome.json = {{"timer"_L1, timerId}, {"session"_L1, fired->sessionId}, {"started"_L1, fired->started}};
     // The session's name for the journal, when the list gives it; the
     // timer has fired either way.
-    QString name = *sessionId;
+    QString name = fired->sessionId;
     if (const Result<std::vector<SessionEntry>> all = sessions(engine); all) {
         for (const SessionEntry &entry : *all) {
-            if (entry.id == *sessionId) {
+            if (entry.id == fired->sessionId) {
                 name = entry.name;
             }
         }
     }
-    outcome.lines.append(ctlTr("@info", "The timer %1 started “%2”.").arg(timerId, name));
+    outcome.lines.append(
+        fired->started
+            ? ctlTr("@info", "The timer %1 started “%2”.").arg(timerId, name)
+            : ctlTr("@info", "“%2” was running already, so the timer %1 left it as it is.").arg(timerId, name));
     return outcome;
 }
 
@@ -558,6 +561,12 @@ QString describe(const Failure &failure)
     }
     if (code == "timer.notFound"_L1) {
         return ctlTr("@info", "There is no timer “%1”.").arg(arg("timer"));
+    }
+    if (code == "timer.late"_L1) {
+        return ctlTr("@info",
+                     "The timer %1 came round more than two minutes after its time, perhaps after the computer "
+                     "slept, so its session was not started.")
+            .arg(arg("timer"));
     }
     if (code == "recording.refused"_L1) {
         return ctlTr("@info", "The recording could not be split (%1).").arg(arg("reason"));

@@ -30,7 +30,7 @@ The first call starts the engine if it is installed and not running. It needs Qt
 | `switch SESSION [SWITCH] A\|B` | turns an Input Switch to A or B; the switch may be left out when the session has only one |
 | `set SESSION BLOCK SETTING VALUE` | changes one setting, as one step the window can undo |
 | `timers list [SESSION]` | every session's timers, or one's, a line each: when it runs, for how long, when it next starts its session, and its id in brackets |
-| `timer-fire TIMER` | does now what the timer does when its time comes: opens its session if it is only on disk, starts it, and has the engine stop it once the timer's duration is over. A session already running is left as it is |
+| `timer-fire [--scheduled] TIMER` | does now what the timer does when its time comes: opens its session if it is only on disk, starts it, and has the engine stop it once the timer's duration is over. A session already running is left as it is, and the answer says so. `--scheduled` is how the timer's systemd unit runs it: then a fire more than two minutes after the timer's time, as after the computer slept through it, is refused with `timer.late` |
 
 **Naming things:**
 - A session is named by its name or its id, and a block by its name (the one given it in the window) or its id.
@@ -46,9 +46,10 @@ The first call starts the engine if it is installed and not running. It needs Qt
 - `--json`: the answer as one line of JSON on standard output, [below](#the-json).
 - `--timeout SECONDS`: how long to wait for each answer; 10 by default.
 - `--no-activate`: asks only an engine that is already running, and never starts one. The shell completions use it, so pressing Tab never starts the engine.
+- `--scheduled`: for `timer-fire` only, as a timer's systemd unit runs it ([above](#commands)).
 - `--help`, `--version`, and `--` to end the options before a name that starts with a dash.
 
-**Timers** are made in the window's Schedule tab ([On the desktop](desktop.md#sessions-on-a-schedule)). For each timer that is on, Reverblabr keeps a systemd user timer whose service runs `reverblabr-ctl timer-fire` with the timer's id, so the session starts even with no window open; `systemctl --user list-timers 'reverblabr-timer-*'` shows them. Running `timer-fire` yourself is a way to try a timer out.
+**Timers** are made in the window's Schedule tab ([On the desktop](desktop.md#sessions-on-a-schedule)). For each timer that is on, Reverblabr keeps a systemd user timer whose service runs `reverblabr-ctl timer-fire --scheduled --` with the timer's id, so the session starts even with no window open; `systemctl --user list-timers 'reverblabr-timer-*'` shows them. Running `timer-fire` yourself is a way to try a timer out.
 
 **Not here yet:** scripts (`run-script`), after 1.0.
 
@@ -80,7 +81,7 @@ A session is always `{"id", "name", "state"}`, where `state` is `idle`, `startin
 | `switch` | `{"session": session, "block": id, "param": "input", "value": "a"\|"b", "input": "a"\|"b"}` |
 | `set` | `{"session": session, "block": id, "param": id, "value": value}`, with the value as it was sent |
 | `timers list` | `{"timers": [timer, …]}`, each timer as [`TimersListed`](dbus-api.md#signals) gives it |
-| `timer-fire` | `{"timer": id, "session": id}`: the timer and the session it started |
+| `timer-fire` | `{"timer": id, "session": id, "started": bool}`: the timer, its session, and whether it started it (false: it was running already and is left as it is) |
 
 A failure prints `{"error": {"code": code, "args": {…}}}` and exits with its [code](#exit-status). The code is the engine's own when the engine refused, and one of the tool's otherwise:
 

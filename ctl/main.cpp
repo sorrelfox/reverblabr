@@ -37,6 +37,8 @@ namespace
 struct Options {
     bool json = false;
     bool activate = true;
+    /// timer-fire from the timer's systemd unit.
+    bool scheduled = false;
     std::chrono::milliseconds timeout{10000};
     QString command;
     QStringList arguments;
@@ -62,7 +64,7 @@ void write(std::FILE *stream, const QString &text)
                  "  switch SESSION [SWITCH] A|B       turn an Input Switch to A or B\n"
                  "  set SESSION BLOCK SETTING VALUE   change one setting of a block\n"
                  "  timers list [SESSION]             every session's timers, or one's\n"
-                 "  timer-fire TIMER                  do now what a timer does when its time comes\n"
+                 "  timer-fire [--scheduled] TIMER    do now what a timer does when its time comes\n"
                  "\n"
                  "A session is named by its name or its id, a block by its name or its id.\n"
                  "  --json            print the answer as JSON, the same in every language\n"
@@ -89,6 +91,8 @@ void write(std::FILE *stream, const QString &text)
             options.json = true;
         } else if (argument == "--no-activate"_L1) {
             options.activate = false;
+        } else if (argument == "--scheduled"_L1) {
+            options.scheduled = true;
         } else if (argument == "--help"_L1 || argument == "-h"_L1) {
             options.command = u"help"_s;
         } else if (argument == "--version"_L1) {
@@ -182,7 +186,7 @@ void write(std::FILE *stream, const QString &text)
         return timersCommand(engine, a.value(1));
     }
     if (command == "timer-fire"_L1) {
-        return timerFireCommand(engine, a.at(0));
+        return timerFireCommand(engine, a.at(0), options.scheduled);
     }
     return setCommand(engine, a.at(0), a.at(1), a.at(2), a.at(3));
 }
@@ -245,7 +249,8 @@ int main(int argc, char **argv)
     // `timers` has one thing to do so far, and says so: a later one is a
     // new word after it rather than a new command.
     if (options->arguments.size() < counts->first || options->arguments.size() > counts->second
-        || (options->command == "timers"_L1 && options->arguments.constFirst() != "list"_L1)) {
+        || (options->command == "timers"_L1 && options->arguments.constFirst() != "list"_L1)
+        || (options->scheduled && options->command != "timer-fire"_L1)) {
         return report({ExitCode::Usage, u"ctl.usage"_s, {{"message"_L1, usage()}}}, options->json);
     }
 

@@ -68,8 +68,15 @@ public:
     /// One setting, as one step the window can undo.
     /// Every session's timers, as TimersListed carries them.
     [[nodiscard]] Result<QJsonArray> listTimers();
-    /// Does what the timer does when its time comes; the session it starts.
-    [[nodiscard]] Result<QString> fireTimer(const QString &timerId);
+    /// What a timer did when fired: its session, and whether it started it
+    /// or left it running as it was.
+    struct Fired {
+        QString sessionId;
+        bool started = true;
+    };
+    /// Does what the timer does when its time comes. \a scheduled is a fire
+    /// from its systemd timer, which the engine refuses when it is late.
+    [[nodiscard]] Result<Fired> fireTimer(const QString &timerId, bool scheduled);
     [[nodiscard]] Result<void>
     setParam(const QString &sessionId, const QString &blockId, const QString &param, const QJsonValue &value);
 
