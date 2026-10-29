@@ -996,7 +996,7 @@ record once on a date, and stops it again when the time is up.</para>
 
 <itemizedlist>
 <listitem><para><guibutton>Add Timer</guibutton> (the <guibutton>+</guibutton>)
-asks how often: <guilabel>Once</guilabel> on a date, <guilabel>Every
+asks how often: <guilabel>Once</guilabel> on a date still to come, <guilabel>Every
 day</guilabel>, <guilabel>Monday to Friday</guilabel>, or <guilabel>On these
 days</guilabel> for the days you choose. It also asks the time it starts and
 how long it runs. <guibutton>Save</guibutton> waits until the timer is one that
@@ -1022,10 +1022,10 @@ the sessions' names (see <xref linkend="ctl"/>).</para></listitem>
 is left as it is, and is not stopped at the end either. Stopping a session
 yourself ends its timer's run.</para></listitem>
 <listitem><para>The computer has to be on and you logged in: a timer does not
-wake it from sleep. One that came round while it was asleep may start the
-session as it wakes, for the timer's whole duration, and a session that is
-running when the computer goes to sleep is stopped when it wakes, if its time
-is up by then.</para></listitem>
+wake it from sleep. One whose time came while the computer was asleep does not
+start the session when it wakes, unless that is within two minutes of the
+time, and a session that is running when the computer goes to sleep is stopped
+when it wakes, if its time is up by then.</para></listitem>
 <listitem><para>It needs an installed &reverblabr;, as <link
 linkend="auto-run">Auto Run</link> does. In a build run from the source tree
 the Schedule tab says so, and the session keeps its timers for
@@ -1633,9 +1633,11 @@ brackets.</para></listitem>
 <varlistentry>
 <term><userinput>timer-fire <replaceable>timer</replaceable></userinput></term>
 <listitem><para>Does now what the timer does when its time comes: starts its
-session and has the engine stop it once the timer's duration is over. The
-systemd timer &reverblabr; keeps for each timer runs this; running it yourself
-is a way to try a timer out.</para></listitem>
+session and has the engine stop it once the timer's duration is over. A session
+already running is left as it is, and the answer says so. The systemd timer
+&reverblabr; keeps for each timer runs this with
+<option>--scheduled</option>, which refuses a fire that comes long after its
+time; running it yourself is a way to try a timer out.</para></listitem>
 </varlistentry>
 </variablelist>
 

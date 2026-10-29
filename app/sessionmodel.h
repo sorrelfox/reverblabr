@@ -185,7 +185,7 @@ public:
     /// whole hour, for an hour. Nothing is sent until setTimer().
     [[nodiscard]] Q_INVOKABLE QVariantMap newTimer() const;
     /// Whether \a timer is one the session would take: every field it
-    /// needs, and nothing wrong with any.
+    /// needs, nothing wrong with any, and for a one-off a time still to come.
     [[nodiscard]] Q_INVOKABLE bool timerIsValid(const QVariantMap &timer) const;
     /// The systemd calendar expression \a timer starts on, for a person
     /// who wants to see what is scheduled; empty for a timer that is not

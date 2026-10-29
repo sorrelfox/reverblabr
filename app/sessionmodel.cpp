@@ -631,7 +631,10 @@ QVariantMap SessionModel::newTimer() const
 
 bool SessionModel::timerIsValid(const QVariantMap &timer) const
 {
-    return core::timerFromJson(timerJson(timer)).has_value();
+    // **A one-off in the past would never run**: not one to save, though a
+    // session may hold one that has been and gone.
+    const std::optional<core::Timer> read = core::timerFromJson(timerJson(timer));
+    return read && (read->repeat != core::TimerRepeat::Once || core::nextRun(*read, QDateTime::currentDateTime()));
 }
 
 QString SessionModel::timerCalendar(const QVariantMap &timer) const

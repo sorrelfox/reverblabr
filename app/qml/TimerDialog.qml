@@ -50,7 +50,7 @@ AppDialog {
         const draft = Object.assign({}, dialog.timer);
         draft.repeat = dialog.repeatCodes[repeatBox.currentIndex] ?? "daily";
         draft.time = dialog.twoDigits(hourBox.value) + ":" + dialog.twoDigits(minuteBox.value);
-        draft.duration = hoursBox.value * 3600 + minutesBox.value * 60;
+        draft.duration = hoursBox.value * 3600 + minutesBox.value * 60 + dialog.extraSeconds;
         draft.quitApplications = quitBox.checked;
         delete draft.date;
         delete draft.days;
@@ -65,6 +65,9 @@ AppDialog {
     }
     /// The days chosen for a timer on chosen days.
     property var chosenDays: []
+    /// Seconds past the whole minute in a timer's duration, which the
+    /// spin boxes have no room for: kept as they were, and shown.
+    property int extraSeconds: 0
 
     readonly property alias repeatBox: repeatBox
     readonly property alias dateField: dateField
@@ -91,6 +94,7 @@ AppDialog {
         dialog.chosenDays = timer.days ?? [];
         hoursBox.value = Math.floor((timer.duration ?? 3600) / 3600);
         minutesBox.value = Math.floor(((timer.duration ?? 3600) % 3600) / 60);
+        dialog.extraSeconds = (timer.duration ?? 3600) % 60;
         quitBox.checked = timer.quitApplications === true;
         dialog.open();
     }
@@ -239,6 +243,13 @@ AppDialog {
                 text: KI18n.i18nc("@label after a number of minutes", "min")
                 color: AppColors.text
             }
+
+            QQC2.Label {
+                visible: dialog.extraSeconds > 0
+                text: KI18n.i18nc("@label seconds a timer runs for past its whole minutes", "and %1 s",
+                                  dialog.extraSeconds)
+                color: AppColors.text
+            }
         }
 
         // **Asked before it is set**: quitting somebody's applications is
@@ -258,7 +269,8 @@ AppDialog {
         // `systemctl --user list-timers`.
         QQC2.Label {
             Kirigami.FormData.label: KI18n.i18nc("@label the timer as the system's scheduler has it", "Calendar:")
-            text: SessionModel.timerCalendar(dialog.draft) || "—"
+            text: SessionModel.timerCalendar(dialog.draft)
+                || KI18n.i18nc("@info no calendar expression yet: the timer is missing something", "not complete yet")
             color: AppColors.muted
             font: AppFonts.mono
             Layout.fillWidth: true

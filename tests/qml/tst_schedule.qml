@@ -111,12 +111,29 @@ TestCase {
         dialog.repeatBox.currentIndex = 0; // once
         dialog.dateField.text = "2026-02-30";
         verify(!dialog.saveAction.enabled, "not a date");
-        dialog.dateField.text = "2026-11-03";
+        dialog.dateField.text = Qt.formatDate(new Date(Date.now() - 2 * 86400000), "yyyy-MM-dd");
+        verify(!dialog.saveAction.enabled, "a day that has been and gone");
+        dialog.dateField.text = Qt.formatDate(new Date(Date.now() + 2 * 86400000), "yyyy-MM-dd");
         verify(dialog.saveAction.enabled);
 
         dialog.hoursBox.value = 0;
         dialog.minutesBox.value = 0;
         verify(!dialog.saveAction.enabled, "a timer that runs for no time");
+        dialog.close();
+    }
+
+    // **Seconds are kept**: a duration set from a script, not on the
+    // minute, comes back from the dialog as it was.
+    function test_aDurationNotOnTheMinuteIsKept() {
+        const window = openWindow();
+        const dialog = window.schedulePane.dialog;
+        const timer = SessionModel.newTimer();
+        timer.duration = 90;
+        dialog.openFor(timer, false);
+        tryVerify(() => dialog.opened);
+        compare(dialog.minutesBox.value, 1);
+        compare(dialog.extraSeconds, 30);
+        compare(dialog.draft.duration, 90);
         dialog.close();
     }
 
