@@ -241,12 +241,18 @@ QQC2.ItemDelegate {
                             return;
                         }
                         const typed = nameField.text.trim();
+                        // **Hidden first.** On a desktop, losing the focus
+                        // ends the editing again, at once, and that second
+                        // finish must find the box gone: sent twice, an
+                        // all-users rename ran into its own password prompt
+                        // and was refused. (Offscreen the focus goes later,
+                        // so no QML test sees it.)
+                        nameField.visible = false;
                         // **The focus flag goes too**, not only the box: the
                         // list is a focus scope, and handing it the focus
                         // back would give it straight to a hidden field that
                         // still said it wanted it — and Space would type.
                         nameField.focus = false;
-                        nameField.visible = false;
                         if (send && typed !== "" && typed !== row.name) {
                             row.renameRequested(row.deviceId, typed);
                         }
