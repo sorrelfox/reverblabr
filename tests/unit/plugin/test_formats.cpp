@@ -99,6 +99,13 @@ private:
     std::optional<std::string> m_before;
 };
 
+} // namespace
+
+#ifdef RB_HAVE_CLAP
+
+namespace
+{
+
 [[nodiscard]] std::vector<std::string> pathsOf(const std::vector<Candidate> &candidates)
 {
     std::vector<std::string> paths;
@@ -109,8 +116,6 @@ private:
 }
 
 } // namespace
-
-#ifdef RB_HAVE_CLAP
 
 TEST(ClapFormat, APluginIsAClapFileAnywhereUnderItsFolders)
 {

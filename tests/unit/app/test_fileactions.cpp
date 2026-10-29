@@ -37,7 +37,10 @@ void needApplication()
         static char *argv[] = {name, nullptr};
         // Offscreen, so the test needs no display.
         qputenv("QT_QPA_PLATFORM", "offscreen");
-        static QGuiApplication application(argc, argv);
+        // Never destroyed. A static application would be destroyed at
+        // exit after Qt's own globals, and Qt 6.10's SQL module then
+        // crashes on its destroyed() signal.
+        [[maybe_unused]] static auto *application = new QGuiApplication(argc, argv);
     }
 }
 

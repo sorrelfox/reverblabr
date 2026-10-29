@@ -249,6 +249,12 @@ private:
 /// Asks the policy to move a stream to another sink, the way a volume applet does.
 void moveStream(std::uint32_t streamNodeId, const std::string &sinkName);
 
+/// Chooses the default input the way `wpctl set-default` does, by naming it
+/// in the policy's metadata. The wpctl of WirePlumber 0.5.13 (Kubuntu
+/// 26.04's) refuses a virtual source ("not a device node"), and every test
+/// source is one.
+void setDefaultSource(const std::string &sourceName);
+
 /// Links two ports by global id, like pw-link. The link lingers: it stays
 /// until one of the ports goes away or unlinkPorts() removes it.
 [[nodiscard]] bool linkPorts(std::uint32_t outputPort, std::uint32_t inputPort);

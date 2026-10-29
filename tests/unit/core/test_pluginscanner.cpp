@@ -47,7 +47,10 @@ void needApplication()
         static int argc = 1;
         static char name[] = "reverblabr-engine-test";
         static char *argv[] = {name, nullptr};
-        static QCoreApplication application(argc, argv);
+        // Never destroyed. A static application would be destroyed at
+        // exit after Qt's own globals, and Qt 6.10's SQL module then
+        // crashes on its destroyed() signal.
+        [[maybe_unused]] static auto *application = new QCoreApplication(argc, argv);
     }
 }
 

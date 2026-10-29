@@ -586,6 +586,18 @@ void moveStream(std::uint32_t streamNodeId, const std::string &sinkName)
     EXPECT_EQ(result.status, 0) << "pw-metadata could not set target.object";
 }
 
+void setDefaultSource(const std::string &sourceName)
+{
+    const RunResult result = run({"pw-metadata",
+                                  "-n",
+                                  "default",
+                                  "0",
+                                  "default.configured.audio.source",
+                                  R"({"name":")" + sourceName + R"("})",
+                                  "Spa:String:JSON"});
+    EXPECT_EQ(result.status, 0) << "pw-metadata could not set the default source";
+}
+
 bool linkPorts(std::uint32_t outputPort, std::uint32_t inputPort)
 {
     return run({"pw-link", std::to_string(outputPort), std::to_string(inputPort)}).status == 0;

@@ -216,6 +216,13 @@ TEST_F(Tray, OnceInstalledTheTrayShowsTheLaunchersIconByName)
     ASSERT_TRUE(QFile::copy(QStringLiteral(RB_APP_ICON_SVG), theme + u"/scalable/apps/"_s + desktopIcon() + u".svg"_s));
     const QStringList searchPaths = QIcon::themeSearchPaths();
     QIcon::setThemeSearchPaths(QStringList{icons.path()} + searchPaths);
+    // A desktop always has an icon theme, which falls back to hicolor. Qt
+    // without a platform theme may have none at all (Ubuntu's), and then
+    // looks in no theme, hicolor included.
+    const QString themeName = QIcon::themeName();
+    if (themeName.isEmpty()) {
+        QIcon::setThemeName(u"hicolor"_s);
+    }
     ASSERT_TRUE(QIcon::hasThemeIcon(desktopIcon())) << "the test's theme was not found";
 
     ASSERT_TRUE(startWatcher());
@@ -224,6 +231,7 @@ TEST_F(Tray, OnceInstalledTheTrayShowsTheLaunchersIconByName)
     const ui::TrayIcon icon(&state);
     ASSERT_TRUE(itemRegistered());
     EXPECT_EQ(item(u"IconName"_s).toString(), desktopIcon()) << "the tray and the launcher show different icons";
+    QIcon::setThemeName(themeName);
     QIcon::setThemeSearchPaths(searchPaths);
 }
 

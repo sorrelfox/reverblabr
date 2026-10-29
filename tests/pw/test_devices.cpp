@@ -677,14 +677,14 @@ TEST_F(Devices, FollowingTheDefaultInputMovesWithinTheQuarterSecond)
             }
         });
 
-    (void)runCommand({"wpctl", "set-default", std::to_string(mono->object.id)});
+    setDefaultSource(kMonoSource);
     ASSERT_TRUE(engine.pumpUntil([&] { return moved; })) << "the default input never moved";
     ASSERT_TRUE(engine.pumpUntil([&] { return engine.mirror().isLinked(mono->object.id, ourId); }))
         << "the session did not follow the default input";
     EXPECT_LE(sinceMoved.elapsed(), 250) << "following took " << sinceMoved.elapsed() << " ms";
     EXPECT_FALSE(engine.mirror().isLinked(stereo->object.id, ourId)) << "the old input is still being recorded";
 
-    (void)runCommand({"wpctl", "set-default", std::to_string(stereo->object.id)});
+    setDefaultSource(kStereoSource);
     ASSERT_TRUE(engine.pumpUntil([&] { return engine.mirror().isLinked(stereo->object.id, ourId); }));
     runtime.stop();
 }
