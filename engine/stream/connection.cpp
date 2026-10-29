@@ -127,6 +127,40 @@ Connection::lookUp(const std::string &host,
     return std::shared_ptr<const Lookup>(lookup);
 }
 
+std::expected<std::vector<std::string>, StreamError> Connection::resolve(const std::string &host,
+                                                                         std::uint16_t port,
+                                                                         std::chrono::milliseconds timeout,
+                                                                         const std::atomic<bool> &cancel)
+{
+    if (host.empty()) {
+        return std::unexpected(StreamError::NotConfigured);
+    }
+    std::expected<std::shared_ptr<const Lookup>, StreamError> looked =
+        lookUp(host, port, std::chrono::steady_clock::now() + timeout, cancel);
+    if (!looked) {
+        return std::unexpected(looked.error());
+    }
+    std::vector<std::string> numbers;
+    for (const addrinfo *address = (*looked)->addresses; address != nullptr; address = address->ai_next) {
+        std::array<char, NI_MAXHOST> text{};
+        if (::getnameinfo(address->ai_addr,
+                          address->ai_addrlen,
+                          text.data(),
+                          static_cast<socklen_t>(text.size()),
+                          nullptr,
+                          0,
+                          NI_NUMERICHOST)
+                == 0
+            && std::ranges::find(numbers, std::string{text.data()}) == numbers.end()) {
+            numbers.emplace_back(text.data());
+        }
+    }
+    if (numbers.empty()) {
+        return std::unexpected(StreamError::ResolveFailed);
+    }
+    return numbers;
+}
+
 Connection::~Connection()
 {
     close();

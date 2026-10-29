@@ -144,6 +144,28 @@ elseif(NOT RB_BUILD_BROADCAST)
     message(STATUS "The Broadcast block will not be built: RB_BUILD_BROADCAST is off.")
 endif()
 
+# **The Live Stream block** (ADR-0027): a session's sound with a picture
+# made for it, over RTMP. Its stream key is kept where the Broadcast
+# block's password is, so it needs that block's QtKeychain; the picture is
+# drawn with FreeType, HarfBuzz and fontconfig, the desktop's own text
+# stack, because the engine has no GUI toolkit; FFmpeg's libswscale turns
+# it into video. Optional, like Broadcast.
+pkg_check_modules(LIVESTREAM_DRAWING QUIET IMPORTED_TARGET freetype2 harfbuzz fontconfig libswscale>=7)
+set(_rb_livestream_possible OFF)
+if(RB_BUILD_BROADCAST AND LIVESTREAM_DRAWING_FOUND)
+    set(_rb_livestream_possible ON)
+endif()
+option(RB_BUILD_LIVESTREAM "Build the Live Stream block (needs QtKeychain, FreeType, HarfBuzz, fontconfig and libswscale)" ${_rb_livestream_possible})
+if(RB_BUILD_LIVESTREAM AND NOT _rb_livestream_possible)
+    message(FATAL_ERROR "RB_BUILD_LIVESTREAM is on, but it needs the Broadcast block's QtKeychain and FreeType, HarfBuzz, fontconfig and libswscale (freetype-devel harfbuzz-devel fontconfig-devel libswscale-free-devel / libfreetype-dev libharfbuzz-dev libfontconfig-dev libswscale-dev)")
+endif()
+add_feature_info(LiveStream RB_BUILD_LIVESTREAM "the Live Stream block: RTMP with a generated picture (QtKeychain, and freetype-devel harfbuzz-devel fontconfig-devel libswscale-free-devel on Fedora)")
+if(NOT _rb_livestream_possible)
+    message(STATUS "The Live Stream block will not be built: it needs QtKeychain, FreeType, HarfBuzz, fontconfig and libswscale. Every other block is; see ADR-0027.")
+elseif(NOT RB_BUILD_LIVESTREAM)
+    message(STATUS "The Live Stream block will not be built: RB_BUILD_LIVESTREAM is off.")
+endif()
+
 if(BUILD_TESTING)
     find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test QuickTest)
     find_package(GTest REQUIRED)
@@ -213,6 +235,13 @@ rb_check_layering(
     FORBID qt kf pipewire
     REASON "The real-time, DSP, block, graph and recording layers are plain C++23, so they can run on the real-time thread (or beside it) and be tested offline."
 )
+if(RB_BUILD_LIVESTREAM)
+    rb_check_layering(
+        TARGETS reverblabr-livestream
+        FORBID qt kf pipewire
+        REASON "A live stream's picture is drawn on its own thread with FreeType, HarfBuzz and fontconfig, and encoded with FFmpeg: plain C++23, inside an engine that has no GUI toolkit (ADR-0027)."
+    )
+endif()
 rb_check_layering(
     TARGETS reverblabr-telemetry reverblabr-pwconf reverblabr-pw reverblabr-mpris reverblabr-engine reverblabr-enginebus reverblabr-daemon-core reverblabrd
     FORBID kf qt-gui

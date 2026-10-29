@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The RTMP server the live stream test streams to: RTMP and RTMPS on ports
+# the test chooses, and its API on another, on the loopback only. Every
+# other protocol is off, so nothing else takes a port. Publishing is let
+# only to the one path the test's stream key names, so a wrong key is
+# refused as a service refuses it.
+logLevel: info
+logDestinations: [stdout]
+
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+        path: live/@KEY@
+      - action: read
+        path:
+  - user: any
+    pass:
+    ips: ["127.0.0.1", "::1"]
+    permissions:
+      - action: api
+
+api: true
+apiAddress: 127.0.0.1:@API_PORT@
+
+rtsp: false
+hls: false
+webrtc: false
+srt: false
+moq: false
+
+rtmp: true
+rtmpEncryption: "optional"
+rtmpAddress: 127.0.0.1:@RTMP_PORT@
+rtmpsAddress: 127.0.0.1:@RTMPS_PORT@
+rtmpServerKey: /tls/server.key
+rtmpServerCert: /tls/server.crt
+
+paths:
+  all_others:

@@ -8,6 +8,7 @@
 #pragma once
 
 #include "stream/backoff.h"
+#include "stream/outputstream.h"
 #include "stream/protocol.h"
 #include "stream/title.h"
 
@@ -138,14 +139,14 @@ struct BroadcastOptions {
 ///
 /// Status is delivered to the sink on the stream's own thread, when it
 /// changes and once a statusInterval while connected.
-class BroadcastStream
+class BroadcastStream final : public OutputStream
 {
 public:
     using StatusSink = std::function<void(const BroadcastStatus &)>;
 
     BroadcastStream(std::shared_ptr<rt::AudioTap> tap, StatusSink sink, BroadcastOptions options = {});
     /// Closes the connection and stops the thread.
-    ~BroadcastStream();
+    ~BroadcastStream() override;
 
     BroadcastStream(const BroadcastStream &) = delete;
     BroadcastStream &operator=(const BroadcastStream &) = delete;
@@ -158,16 +159,16 @@ public:
     /// The password, from the secret store: nothing when it has none, and
     /// the stream says so and waits for one. A new password after a
     /// refused one tries again at once.
-    void setPassword(std::optional<std::string> password);
+    void setPassword(std::optional<std::string> password) override;
 
     /// The secret store could not be asked: locked, not there, or refused.
     /// The stream says so (StreamError::PasswordUnavailable) and waits,
     /// until it is given a password.
-    void setPasswordUnavailable();
+    void setPasswordUnavailable() override;
 
     /// **What is playing**, from whatever knows. Takes over from the
     /// now-playing file until the stream is configured with another one.
-    void setNowPlaying(Track track);
+    void setNowPlaying(Track track) override;
 
     /// The status as it was last said.
     [[nodiscard]] BroadcastStatus status() const;
@@ -175,7 +176,7 @@ public:
     /// **Tells the thread to stop, and does not wait for it.** A caller
     /// letting go of several streams tells them all first and then lets
     /// go, so they wind down together rather than one after another.
-    void requestStop();
+    void requestStop() override;
 
 private:
     struct Shared;

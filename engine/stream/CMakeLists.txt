@@ -20,6 +20,7 @@ add_library(reverblabr-stream STATIC
     broadcaststream.h
     connection.cpp
     connection.h
+    outputstream.h
     protocol.cpp
     protocol.h
     streamencoder.cpp
@@ -31,3 +32,32 @@ add_library(reverblabr-stream STATIC
 target_include_directories(reverblabr-stream PUBLIC ${PROJECT_SOURCE_DIR}/engine)
 target_link_libraries(reverblabr-stream PUBLIC reverblabr-rt PRIVATE reverblabr-record PkgConfig::STREAM_FFMPEG)
 set_target_properties(reverblabr-stream PROPERTIES AUTOMOC OFF AUTORCC OFF)
+
+# **A live stream** (ADR-0027): the same tap, with a picture drawn for it
+# on the stream's thread and the two sent as H.264 and AAC in FLV over RTMP
+# through FFmpeg. A library of its own, since only a build with the Live
+# Stream block needs FreeType, HarfBuzz, fontconfig and libswscale; still
+# plain C++23, so all of it runs in a test with no audio server and no Qt.
+if(RB_BUILD_LIVESTREAM)
+    add_library(reverblabr-livestream STATIC
+        canvas.cpp
+        canvas.h
+        compositor.cpp
+        compositor.h
+        livestream.cpp
+        livestream.h
+        rtmpoutput.cpp
+        rtmpoutput.h
+        textpainter.cpp
+        textpainter.h
+        videoencoder.cpp
+        videoencoder.h
+        visuals.cpp
+        visuals.h
+    )
+    target_include_directories(reverblabr-livestream PUBLIC ${PROJECT_SOURCE_DIR}/engine)
+    target_link_libraries(reverblabr-livestream
+        PUBLIC reverblabr-stream reverblabr-dsp
+        PRIVATE reverblabr-record PkgConfig::STREAM_FFMPEG PkgConfig::LIVESTREAM_DRAWING)
+    set_target_properties(reverblabr-livestream PROPERTIES AUTOMOC OFF AUTORCC OFF)
+endif()

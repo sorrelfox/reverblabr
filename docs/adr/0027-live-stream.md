@@ -1,0 +1,47 @@
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
+# ADR-0027: Live Stream: a picture drawn in the engine without a GUI toolkit, H.264 from whichever encoder the system has, and RTMP through FFmpeg
+
+- **Status:** Accepted
+- **Date:** 2026-10-29
+
+## Context
+
+The Live Stream block sends a session to a video service (the kind people stream games and shows to) over RTMP or RTMPS. Those services take video, not sound alone, so the block has to make a picture: a title, a subtitle, what is playing, a logo or a background picture, and something that moves with the sound. The services want H.264 video and AAC audio in FLV, a key frame every couple of seconds, and a bit rate that holds steady. A stream may run for hours, so the picture must keep time with the sound for as long as it runs.
+
+Four things had to be chosen: where and with what the picture is drawn, which H.264 encoder makes the video, what speaks RTMP, and how a stopping session is kept from waiting on any of it.
+
+- **The engine has no GUI toolkit.** It runs in `reverblabrd` (ADR-0017), which links QtCore and QtDBus and nothing of Qt GUI, and the layering check holds it to that. QPainter would draw the picture in a few lines, but text through QPainter needs a QGuiApplication and the platform's font database, in a process that has no windows and starts on demand.
+- **The desktop's text stack is there anyway.** FreeType draws glyphs, HarfBuzz shapes them (joined Arabic, Indic clusters, ligatures) and fontconfig finds a font that has a character: the three Qt itself draws text with on Linux, installed on every desktop that runs Reverblabr and packaged with their headers in both distributions.
+- **H.264 depends on the distribution.** It is covered by patents, and Fedora ships what it can ship freely: its FFmpeg (`ffmpeg-free`) has no x264, its OpenH264 wrapper loads Cisco's library, which Fedora installs from Cisco's own repository (`fedora-cisco-openh264`, on by default, Cisco paying the licence for its binary) and replaces with a stand-in that encodes nothing until then, and its VA-API drivers (`mesa-va-drivers`) are built without H.264. RPM Fusion's FFmpeg and drivers have x264 and VA-API H.264. NVENC needs NVIDIA's own driver. Kubuntu's FFmpeg has x264 and OpenH264. Measured here on Fedora 44 with both FFmpegs: x264 and OpenH264 encode, VA-API on two AMD cards says "no usable encoding profile", NVENC cannot load its library.
+- **FFmpeg speaks RTMP and RTMPS**, through its FLV muxer and its `rtmp`, `rtmps` and `tls` protocols (GnuTLS on Fedora), already linked for the Broadcast block. Its waits can be called off through an interrupt callback, except one: it looks the host's name up with `getaddrinfo()`, which nothing can call off.
+
+## Decision
+
+- **The picture is drawn in plain C++ on the stream's thread** (`engine/stream`, `reverblabr-livestream`): an RGBA canvas, filled rectangles and pictures, and text set with FreeType, HarfBuzz and fontconfig, a character the font lacks taken from one that has it. Pictures are read through FFmpeg's own image decoders (PNG, JPEG, WebP, BMP), by the file's signature and only from a regular file, never through a demuxer that could follow a playlist. What stands still (the background, the pictures, the words) is drawn once a change; each frame copies it and draws what moves, measured from the very sound being sent: a waveform, a spectrum through our own FFT (ADR-0015), or a level meter. The words are light or dark by what is behind them, with a shade around them.
+- **One clock, the sound's.** Frame *n* is drawn and encoded once *n / fps* seconds of sound have gone out, so the picture cannot drift from the sound however long the stream runs. A stream that falls half a second behind (an encoder too slow for the computer) leaves frames out and counts them, rather than letting the sound wait.
+- **The H.264 encoder is found by trying.** Each one FFmpeg knows (VA-API on each render node in turn, NVENC, x264, OpenH264) is opened once a process and handed a frame; what encodes is offered, what does not is listed as unavailable in the catalogue, and with none at all the block says so before anybody tries. A stream tries the encoder asked for first and then the rest, the hardware first (it costs the processor nothing), then x264, then OpenH264, so a card that will not take a size falls back to software. All are set for live streaming: a key frame every two seconds and only then, no B-frames, and a constant bit rate.
+- **AAC through FFmpeg's own encoder**, as for the Broadcast block and the M4A recordings, at the session's rate when it is 44.1 or 48 kHz.
+- **FFmpeg's FLV muxer and RTMP protocols carry it**, and **the name is looked up first, our way**: on a thread that is left behind when the wait is called off (the Broadcast block's `Connection::resolve`), so a name that does not resolve is said as such and the answer is in the resolver's cache when FFmpeg asks. FFmpeg is given the name, not an address: RTMPS sends it in the TLS hello (SNI), and a service with many names behind one address refuses a hello without it (one such service answers "No SNI provided"), and checks the certificate against it. Since FFmpeg then looks the name up itself, where nothing can call it off, **connecting runs on a thread of its own**, which the stream leaves behind when it stops or the time is up; that thread lets its connection go by itself. Every other wait inside FFmpeg ends within a tenth of a second of a stop through its interrupt callback. **RTMPS checks the certificate** against the system's authorities: a stream key is a password.
+- **The rest is the Broadcast block's** (ADR-0026): the tap the audio thread copies into, the backoff, the states and the status a session runtime passes on, and the secret store: the stream key is kept where a Broadcast block's password is, under the same key scheme, handed over with the same `SetBroadcastPassword` and said with the same `BroadcastStatusChanged`, which gains the video's numbers. The now-playing choices (none, a file, a media player) are Broadcast's, by the same ids, and the engine follows a player for either alike.
+
+## Consequences
+
+- Four build dependencies more, all optional and only for this block: FreeType, HarfBuzz, fontconfig and FFmpeg's libswscale (`freetype-devel`, `harfbuzz-devel`, `fontconfig-devel`, `libswscale-free-devel`; `libfreetype-dev`, `libharfbuzz-dev`, `libfontconfig-dev`, `libswscale-dev`), and QtKeychain, which the Broadcast block needs already (`RB_BUILD_LIVESTREAM`).
+- **What a Fedora package can rely on**: FFmpeg's FLV muxer, its RTMP and RTMPS protocols, its AAC encoder and its OpenH264 wrapper are all in `ffmpeg-free`; the H.264 itself comes from Cisco's `openh264`, which Fedora Workstation installs from Cisco's repository, and which a package cannot require from Fedora's own. Without it, and without RPM Fusion's FFmpeg or a card whose driver encodes H.264, the block is listed and says that this system has no H.264 encoder. The panel says what to install.
+- Nothing of the patents is ours: Reverblabr ships no encoder and links none directly; it asks the distribution's FFmpeg for what it has.
+- The probe opens the graphics devices once a process, which wakes every card and takes a moment on a computer with an NVIDIA card, so **never on the engine's thread**: the first catalogue asked for offers the software encoders alone (found without a card) and starts the probe on a thread of its own, and the catalogue is said again once the cards have answered. A stream that starts first makes it on its own thread.
+- Text is one line in the direction of its script; a line mixing directions is set in the order it was typed. Titles are short, and a library for bidirectional text would be one more dependency.
+- The picture is not previewed in the window: it is drawn in the engine, and only the stream carries it.
+- Unit tests stream to FFmpeg's own RTMP server, run in the test; an integration test streams over RTMP and RTMPS to MediaMTX in a container (`ctest --preset container`), checks a wrong key is refused and a restarted server is reconnected to, and keeps a stream on the air for as long as `RB_LIVESTREAM_SOAK_SECONDS` says, half an hour for the acceptance run.
+
+## Alternatives considered
+
+- **QPainter in the daemon**, made a QGuiApplication on the offscreen platform. It would draw text with less code of ours, but put Qt GUI and a platform plugin into a process that is meant to have neither, start slower, and break the layering the engine is held to.
+- **FFmpeg's own filters** (`drawtext`, `showwaves`, `overlay`) as the compositor. Its text is set from a filter description, so a track title from a media player would have to be escaped into one, and a title that is not escaped well is a filter that does something else; a changed title is a command to a running filter graph. Ours takes text as text.
+- **A helper process with Qt GUI** drawing the frames, as plugins have hosts (ADR-0014). One more process, a protocol and shared memory for 30 frames a second, for what a hundred lines of plain C++ draw.
+- **x264 only, or OpenH264 only.** Fedora has no x264; OpenH264's quality is lower where x264 is there. Trying them in order costs nothing.
+- **librtmp.** FFmpeg's own RTMP is what Fedora's FFmpeg is built with (`--disable-librtmp` is its default), it speaks RTMPS, and it is already linked.

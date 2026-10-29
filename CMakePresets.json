@@ -96,7 +96,7 @@
     {
       "name": "container",
       "configurePreset": "debug",
-      "description": "The Broadcast block's stream against a real Icecast in a podman container (tests/broadcast). Needs podman, and the network once to build the image.",
+      "description": "The Broadcast block's stream against a real Icecast, and the Live Stream block's against a real RTMP server, in podman containers (tests/broadcast, tests/livestream). Needs podman, and the network once for the images.",
       "output": { "outputOnFailure": true, "verbosity": "verbose" },
       "execution": { "noTestsAction": "error", "timeout": 900 },
       "filter": { "include": { "label": "container" } }

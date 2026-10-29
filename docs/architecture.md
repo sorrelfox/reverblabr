@@ -56,6 +56,8 @@ This document describes how the pieces fit together and the rules that keep them
 | `engine/blocks` | `reverblabr-blocks` | `dsp`, `rt`, `plugin` (what the built-in plugins are) | Qt, KDE Frameworks, libpipewire |
 | `engine/pw` | `reverblabr-pw` | `graph`, `blocks`, `plugin`, `dsp`, `rt`, libpipewire, QtCore | KDE Frameworks, Qt GUI modules |
 | `engine/pw` (the drop-in code) | `reverblabr-pwconf` | QtCore, SPA's JSON headers | KDE Frameworks, Qt GUI modules, the libpipewire library |
+| `engine/stream` | `reverblabr-stream` | `rt`, `record` (its resampler), FFmpeg, the C++23 standard library | Qt, PipeWire, KDE Frameworks |
+| `engine/stream` (a live stream's picture and video) | `reverblabr-livestream` | `reverblabr-stream`, `dsp` (its FFT), FFmpeg with libswscale, FreeType, HarfBuzz, fontconfig | Qt, PipeWire, KDE Frameworks |
 | `engine/mpris` | `reverblabr-mpris` | QtCore, QtDBus | KDE Frameworks, Qt GUI modules |
 | `engine/core` | `reverblabr-engine` | all engine layers, QtCore, QtDBus, QtSql | KDE Frameworks, Qt GUI modules |
 | `engine/bus` | `reverblabr-enginebus` | `reverblabr-engine`'s facade, QtCore, QtDBus | KDE Frameworks, Qt GUI modules |

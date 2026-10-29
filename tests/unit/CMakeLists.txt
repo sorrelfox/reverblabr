@@ -212,6 +212,22 @@ rb_add_gtest(reverblabr-stream-test
 )
 set_target_properties(reverblabr-stream-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
+# A live stream (ADR-0027): the picture, the encoders, and the thread that
+# streams, against FFmpeg's own RTMP server run in the test. A real server
+# is tests/livestream, outside the default run.
+if(RB_BUILD_LIVESTREAM)
+    rb_add_gtest(reverblabr-livestream-test
+        LAYER stream
+        SOURCES
+            stream/rtmplistener.h
+            stream/test_compositor.cpp
+            stream/test_livestream.cpp
+            stream/test_videoencoder.cpp
+        LIBRARIES reverblabr-livestream reverblabr-stream reverblabr-rt PkgConfig::RB_TEST_FFMPEG
+    )
+    set_target_properties(reverblabr-livestream-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
+endif()
+
 # What a media player says, and which one a stream's title follows,
 # without a bus; the players on one are tests/bus.
 rb_add_gtest(reverblabr-mpris-test

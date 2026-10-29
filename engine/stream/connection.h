@@ -16,6 +16,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace rb::stream
 {
@@ -47,6 +48,17 @@ public:
                                                                      std::uint16_t port,
                                                                      std::chrono::milliseconds timeout,
                                                                      const std::atomic<bool> &cancel);
+
+    /// **The host's addresses, as numbers** ("192.0.2.1", "2001:db8::1"),
+    /// looked up the way open() looks them up: on a thread that is left
+    /// behind when \a cancel or the time comes first. For a connection
+    /// somebody else makes (FFmpeg's, for RTMP): a name that does not
+    /// resolve is known before it is handed over, and the answer is in the
+    /// resolver's cache when it is asked again.
+    [[nodiscard]] static std::expected<std::vector<std::string>, StreamError> resolve(const std::string &host,
+                                                                                      std::uint16_t port,
+                                                                                      std::chrono::milliseconds timeout,
+                                                                                      const std::atomic<bool> &cancel);
 
     /// Sends all of \a bytes, or says why it could not.
     [[nodiscard]] std::expected<void, StreamError>

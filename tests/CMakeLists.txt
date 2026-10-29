@@ -36,3 +36,4 @@ add_subdirectory(i18n)  # translation catalogs, string extraction and the litera
 add_subdirectory(design) # the application against the design prototype; not in the default run
 add_subdirectory(perf)  # benchmarks with figures to keep; not in the default run
 add_subdirectory(broadcast) # a stream against a real Icecast in a container; not in the default run
+add_subdirectory(livestream) # a live stream against a real RTMP server in a container; not in the default run
