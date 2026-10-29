@@ -123,6 +123,7 @@ In the Reverblabr appearance, text and every mark that means something (a state 
 ## Where next
 
 - [Blocks](blocks.md) describes every block in the library.
+- [Recording](recording.md) is about the Recorder block, which writes a lane to a file, and the Files tab, where you listen to your recordings, rename and tag them.
 - [Virtual devices](virtual-devices.md) shows how to route programs, or your microphone, through a session.
 - [Hearing](hearing.md) is about setting up the sound for each ear.
 - [On the desktop](desktop.md) covers the tray, shortcuts and sessions that run at login.

@@ -303,7 +303,7 @@ Every action a person takes on the engine from the window is one of these calls.
 - opening a URL a block asked for (`OpenUrlRequested` says which);
 - Report Bug and About.
 
-**Arriving with their features:** an A/B switch, and timers. Neither exists yet, and each comes to this API when it does.
+**Arriving with its feature:** timers. They don't exist yet, and come to this API when they do. An Input Switch needs nothing of its own: which input it plays is its `input` parameter (`a` or `b`), set with `SetParam`.
 
 ## Not part of the API
 

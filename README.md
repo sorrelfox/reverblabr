@@ -27,6 +27,7 @@ In Reverblabr you build sessions out of blocks. A session takes sound from sourc
 - **Effects:** volume, compressors and limiters, equalisers, filters, reverb, echo, pitch shift, noise and hum removal, and more. LV2, CLAP and LADSPA plugins work too.
 - **Meters:** peak, RMS and VU meters at any point in a session.
 - **Outputs:** any sound card, a file (MP3, AAC, FLAC, WAV and others), or a virtual device another program records from.
+- **Recordings:** every file a session records is listed in its Files tab, where you can listen to it, rename it, fill in its tags or open it in another program. [Recording](docs/recording.md) has the details.
 
 Several sessions can run at the same time, in the background, with the window closed. The tray icon shows what's running, global shortcuts control sessions from anywhere, and a session can start by itself when you log in.
 
