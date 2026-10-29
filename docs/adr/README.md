@@ -35,3 +35,4 @@ Start a new record from [the template](template.md).
 | [0022](0022-latency-that-follows-a-setting.md) | A block's settings may say what it is prepared for; the runtime prepares a fresh block when they change, and its lanes wait until it is filled | Accepted |
 | [0023](0023-krunner-runner-in-the-daemon.md) | The sessions in KRunner: a D-Bus runner served by `reverblabrd` on an object of its own, not a separate helper or a plugin; Auto Run once a login and after a crash | Accepted |
 | [0024](0024-panel-widget.md) | The panel widget is a Plasma package with a small QML plugin: sessions through the public API, levels through the telemetry handshake, calls on a connection of its own | Accepted |
+| [0026](0026-broadcast-streaming.md) | Broadcast: our own source client, FFmpeg's encoders, and the password in the desktop's secret store | Accepted |

@@ -28,11 +28,11 @@ namespace rb::core
 namespace
 {
 
+#ifdef RB_HAVE_BROADCAST
 /// The store's folder for everything of ours: KWallet shows it by this
 /// name.
 constexpr auto kService = "Reverblabr";
 
-#ifdef RB_HAVE_BROADCAST
 [[nodiscard]] QString errorName(QKeychain::Error error)
 {
     switch (error) {
