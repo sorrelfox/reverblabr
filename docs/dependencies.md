@@ -93,6 +93,7 @@ Without any of these the build stops and says which one is missing.
 | TagLib | `taglib-devel` | `libtag-dev` | a recording's tags |
 | FFmpeg | `libavformat-free-devel`, `libavcodec-free-devel`, `libavutil-free-devel` | `libavformat-dev`, `libavcodec-dev`, `libavutil-dev` | M4A recordings (AAC and Apple Lossless), and reading them back; the **Broadcast** block's streams (MP3, Opus, Ogg Vorbis and AAC), each format offered only where this FFmpeg has its encoder |
 | lilv and LV2 | `lilv-devel`, `lv2-devel` | `liblilv-dev`, `lv2-dev` | finding, describing and running LV2 plugins |
+| suil and Xlib | `suil-devel`, `libX11-devel` | `libsuil-dev`, `libx11-dev` | a plugin's own window: an LV2 plugin's UI, loaded through suil, and an X11 window of the plugin host's to show it and a CLAP plugin's in ([ADR-0025](adr/0025-plugin-windows.md)) |
 
 ## Optional
 

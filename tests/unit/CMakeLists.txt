@@ -227,13 +227,17 @@ rb_add_gtest(reverblabr-plugin-test
     SOURCES
         plugin/test_formats.cpp
         plugin/test_ladspa.cpp
+        plugin/test_lv2window.cpp
         plugin/test_pluginproto.cpp
-    LIBRARIES reverblabr-pluginproto reverblabr-pluginhost-ladspa reverblabr-dsp-testkit
+    LIBRARIES reverblabr-pluginproto reverblabr-pluginhost-ladspa reverblabr-pluginhost-formats reverblabr-dsp-testkit
 )
 set_target_properties(reverblabr-plugin-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 # LADSPA plugins run as blocks, from the library tests/ladspa builds.
 target_compile_definitions(reverblabr-plugin-test PRIVATE RB_TEST_LADSPA_DIR="${RB_TEST_LADSPA_DIR}")
 add_dependencies(reverblabr-plugin-test rb-test-ladspa)
+# The tests' LV2 plugin and its window, from tests/lv2.
+target_compile_definitions(reverblabr-plugin-test PRIVATE RB_TEST_LV2_DIR="${RB_TEST_LV2_DIR}")
+add_dependencies(reverblabr-plugin-test rb-test-lv2 rb-test-lv2-ui)
 
 rb_add_gtest(reverblabr-graph-test
     LAYER graph

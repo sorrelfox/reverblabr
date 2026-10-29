@@ -61,6 +61,8 @@ BuildRequires:  libavcodec-free-devel
 BuildRequires:  libavutil-free-devel
 BuildRequires:  lilv-devel
 BuildRequires:  lv2-devel
+BuildRequires:  suil-devel
+BuildRequires:  libX11-devel
 BuildRequires:  clap-devel
 BuildRequires:  gettext
 # The tests: GoogleTest, the LADSPA SDK's example plugins, and the programs

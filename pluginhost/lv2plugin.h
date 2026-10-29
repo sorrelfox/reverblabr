@@ -7,19 +7,26 @@
 
 #pragma once
 
+#include "atomring.h"
 #include "dsp/block.h"
+#include "editor.h"
 #include "plugin/formats.h"
 
 #include <lilv/lilv.h>
+#include <lv2/ui/ui.h>
 #include <lv2/urid/urid.h>
 
 #include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+struct SuilHostImpl;
+struct SuilInstanceImpl;
 
 namespace rb::pluginhost
 {
@@ -61,11 +68,14 @@ private:
     LV2_URID_Unmap m_unmap{};
 };
 
+class X11Window;
+
 /// **An LV2 plugin, run by the host as a block**.
 ///
-/// Audio and control ports, v1: an atom port is given an empty sequence in
-/// and room for one out, and a CV port is given silence, so a plugin that
-/// has them runs but says nothing through them. The control inputs are the
+/// Audio, control and atom ports: what the plugin's own window says
+/// through an atom port reaches the plugin in the next cycle, and what the
+/// plugin says back (an LSP plugin's meters and graphs) reaches the window.
+/// A CV port is given silence. The control inputs are the
 /// block's parameters in port order — the order the scan described them
 /// in, which is how the engine numbers the changes it sends. A choice is
 /// sent as its position among the scale points, and becomes the value here.
@@ -76,7 +86,16 @@ private:
 /// **Its state is lilv's**: the control values and whatever the plugin
 /// keeps through the state extension, as Turtle text, which is what the
 /// session file holds for it.
-class Lv2Plugin final : public dsp::Block
+///
+/// **Its own window is shown through suil**, in the host: a UI that shows
+/// itself (ui:showInterface), or an X11 UI inside a window the host makes
+/// (X11Window), which on a Wayland desktop is XWayland's. A control the
+/// window moves goes to the audio thread and to the engine; one the engine
+/// moves goes to the window, as a port event, a few times a second.
+///
+/// **Its presets are LV2's** (pset:Preset), read through lilv, and saved
+/// as a bundle in `~/.lv2`, where other LV2 hosts find them.
+class Lv2Plugin final : public dsp::Block, public Editable
 {
 public:
     enum class Mono : std::uint8_t {
@@ -123,8 +142,49 @@ public:
         return m_instances.size();
     }
 
+    [[nodiscard]] Opened openUi() override;
+    void closeUi() override;
+    [[nodiscard]] bool uiOpen() const override
+    {
+        return m_ui != nullptr;
+    }
+    [[nodiscard]] bool hasUi() const override;
+    [[nodiscard]] std::vector<plugin::PresetEntry> presets() override;
+    [[nodiscard]] bool loadPreset(const std::string &id) override;
+    [[nodiscard]] std::optional<std::string> savePreset(const std::string &name) override;
+
+    /// **The window's turn**: what the plugin and the engine changed, to
+    /// the window, and its own idle call. A few times a second, while it
+    /// is open; a test calls it itself.
+    void idleUi();
+
 private:
     Lv2Plugin(std::shared_ptr<Lv2World> world, const LilvPlugin *plugin, Mono mono);
+
+    /// The UI this host would show, as lilv found it.
+    struct UiChoice {
+        std::string uri;
+        std::string type;
+        std::string bundle;
+        std::string binary;
+        /// It shows itself, in a window of its own; otherwise it is an X11
+        /// UI that needs a parent.
+        bool showsItself = false;
+    };
+
+    /// The plugin's state now, for saving or a preset; null before it runs.
+    [[nodiscard]] LilvState *captureState() const;
+    /// Puts \a state into every instance, with the audio thread kept away.
+    void restoreState(const LilvState *state);
+    /// Tells the window what changed since it was last told.
+    void tellWindow();
+    /// What a person set a control to in the window: the parameter's index,
+    /// and the value as the plugin takes it.
+    void fromWindow(std::uint32_t port, float value);
+    [[nodiscard]] std::optional<std::uint32_t> paramOfPort(std::uint32_t port) const;
+    /// A choice's value as the position the engine and the audio thread
+    /// use for it.
+    [[nodiscard]] float positionOf(std::uint32_t index, float value) const;
 
     struct Port {
         enum class Kind : std::uint8_t {
@@ -177,9 +237,37 @@ private:
     std::string m_pendingState;
     LV2_URID m_sequence = 0;
     LV2_URID m_chunk = 0;
+    LV2_URID m_eventTransfer = 0;
     LV2_Feature m_mapFeature{};
     LV2_Feature m_unmapFeature{};
     std::vector<const LV2_Feature *> m_features;
+
+    /// **Atom messages between the window and the plugin**: what the
+    /// window says, for the audio thread to put in the plugin's input
+    /// sequence; and what the plugin says on its atom outputs, for the
+    /// window. Only while a window listens is anything kept for it.
+    AtomRing m_toPlugin;
+    AtomRing m_toWindow;
+    std::atomic<bool> m_windowListens{false};
+    /// Room for one message's body, on the audio thread.
+    std::vector<std::uint8_t> m_atomScratch;
+    /// What each control output last said, by port, for the window.
+    std::vector<std::atomic<float>> m_outputs;
+
+    std::optional<UiChoice> m_uiChoice;
+    SuilHostImpl *m_suilHost = nullptr;
+    SuilInstanceImpl *m_ui = nullptr;
+    std::unique_ptr<X11Window> m_window;
+    std::optional<MainLoop::Id> m_idleTimer;
+    /// What the window was last told each port is, by port: what the
+    /// engine changes are found against. Not a number until it was told.
+    std::vector<float> m_told;
+    std::vector<std::uint8_t> m_windowScratch;
+    LV2_Feature m_parentFeature{};
+    LV2_Feature m_resizeFeature{};
+    LV2_Feature m_idleFeature{};
+    LV2UI_Resize m_resizeHost{};
+    std::vector<const LV2_Feature *> m_uiFeatures;
 };
 
 } // namespace rb::pluginhost

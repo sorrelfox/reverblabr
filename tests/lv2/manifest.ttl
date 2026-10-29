@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
+
+<urn:reverblabr:test:gain>
+    a lv2:Plugin ;
+    lv2:binary <rb-test-lv2.so> ;
+    rdfs:seeAlso <rbtest.ttl> .
+
+<urn:reverblabr:test:double>
+    a lv2:Plugin ;
+    lv2:binary <rb-test-lv2.so> ;
+    rdfs:seeAlso <rbtest.ttl> .
+
+<urn:reverblabr:test:gain#window>
+    a ui:X11UI ;
+    ui:binary <rb-test-lv2-ui.so> ;
+    rdfs:seeAlso <rbtest.ttl> .

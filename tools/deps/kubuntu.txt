@@ -94,6 +94,10 @@ libavutil-dev
 liblilv-dev
 lv2-dev
 lsp-plugins-lv2
+# A plugin's own window: an LV2 UI loaded through suil, in an X11 window
+# the plugin host makes (XWayland's on a Wayland desktop)
+libsuil-dev
+libx11-dev
 # LADSPA needs nothing to build: the host loads a library with
 # dlopen(). The SDK's example plugins are the tests' common plugin.
 ladspa-sdk

@@ -107,6 +107,9 @@ add_dependencies(reverblabr-pw-session-test reverblabr-plugin-host)
 # LADSPA plugins in sessions, from the library tests/ladspa builds.
 target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_TEST_LADSPA_DIR="${RB_TEST_LADSPA_DIR}")
 add_dependencies(reverblabr-pw-session-test rb-test-ladspa)
+# The tests' LV2 plugin, whose window needs no display.
+target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_TEST_LV2_DIR="${RB_TEST_LV2_DIR}")
+add_dependencies(reverblabr-pw-session-test rb-test-lv2 rb-test-lv2-ui)
 # The notification helper lives beside the harness script.
 target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_PW_HARNESS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/harness")
 set_target_properties(reverblabr-pw-session-test PROPERTIES AUTOMOC ON)
@@ -216,6 +219,13 @@ add_dependencies(reverblabr-pw-pluginhost-test reverblabr-plugin-host)
 # LADSPA plugins in the host, from the library tests/ladspa builds.
 target_compile_definitions(reverblabr-pw-pluginhost-test PRIVATE RB_TEST_LADSPA_DIR="${RB_TEST_LADSPA_DIR}")
 add_dependencies(reverblabr-pw-pluginhost-test rb-test-ladspa)
+# LV2 plugins: the tests' own, with a window that needs no display, and
+# a world of the test's own that reads the presets a host saved, as another
+# LV2 host would.
+pkg_check_modules(RB_TEST_LILV REQUIRED IMPORTED_TARGET lilv-0>=0.24)
+target_link_libraries(reverblabr-pw-pluginhost-test PRIVATE PkgConfig::RB_TEST_LILV)
+target_compile_definitions(reverblabr-pw-pluginhost-test PRIVATE RB_TEST_LV2_DIR="${RB_TEST_LV2_DIR}")
+add_dependencies(reverblabr-pw-pluginhost-test rb-test-lv2 rb-test-lv2-ui)
 add_test(NAME pw.plugin-host COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-pluginhost-test>)
 set_tests_properties(pw.plugin-host PROPERTIES TIMEOUT 180)
 

@@ -20,10 +20,17 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QFile>
+#include <QProcess>
+#include <QStandardPaths>
+#include <QTemporaryDir>
+#include <QUrl>
 #include <gtest/gtest.h>
+#include <lilv/lilv.h>
 #include <pipewire/filter.h>
 #include <pipewire/pipewire.h>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -764,6 +771,346 @@ TEST_F(PluginHosts, AMonoLv2PluginRunsOnceASideOrOnTheSidesMixed)
         EXPECT_GT(heard.heard(), 50U);
         EXPECT_EQ(heard.same, heard.heard());
     }
+}
+
+namespace
+{
+
+constexpr const char *kTestLv2 = "urn:reverblabr:test:gain";
+constexpr const char *kLspCompressor = "http://lsp-plug.in/plugins/lv2/compressor_stereo";
+
+/// An environment variable set, or taken away, for as long as a test runs:
+/// the host a test starts inherits it.
+class ScopedEnv
+{
+public:
+    ScopedEnv(const char *name, std::optional<std::string> value)
+        : m_name(name)
+    {
+        if (const char *before = std::getenv(name); before != nullptr) {
+            m_before = before;
+        }
+        if (value) {
+            ::setenv(name, value->c_str(), 1);
+        } else {
+            ::unsetenv(name);
+        }
+    }
+    ~ScopedEnv()
+    {
+        if (m_before) {
+            ::setenv(m_name.c_str(), m_before->c_str(), 1);
+        } else {
+            ::unsetenv(m_name.c_str());
+        }
+    }
+    ScopedEnv(const ScopedEnv &) = delete;
+    ScopedEnv &operator=(const ScopedEnv &) = delete;
+
+private:
+    std::string m_name;
+    std::optional<std::string> m_before;
+};
+
+/// The lines a file holds now.
+[[nodiscard]] QStringList linesOf(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    return QString::fromUtf8(file.readAll()).split(u'\n', Qt::SkipEmptyParts);
+}
+
+/// **A home of the test's own**, where a host keeps the presets it saves
+/// (~/.lv2) and where its windows were (~/.local/state); and LV2_PATH at
+/// the tests' own plugin, that home's ~/.lv2 and the system's, which is
+/// what another LV2 host on this machine would read.
+class Lv2Home
+{
+public:
+    Lv2Home()
+        : m_home(m_dir.path().toStdString())
+        , m_path("LV2_PATH",
+                 std::string{RB_TEST_LV2_DIR} + ":" + m_dir.path().toStdString() + "/.lv2:/usr/lib64/lv2:/usr/lib/lv2")
+        , m_homeEnv("HOME", m_home)
+        , m_state("XDG_STATE_HOME", m_home + "/.local/state")
+        , m_log("RB_TEST_LV2_UI_LOG", m_home + "/window.log")
+    {
+    }
+
+    [[nodiscard]] QString log() const
+    {
+        return QString::fromStdString(m_home + "/window.log");
+    }
+    [[nodiscard]] std::string home() const
+    {
+        return m_home;
+    }
+
+private:
+    QTemporaryDir m_dir;
+    std::string m_home;
+    ScopedEnv m_path;
+    ScopedEnv m_homeEnv;
+    ScopedEnv m_state;
+    ScopedEnv m_log;
+};
+
+/// What a plugin's host said about its window and its presets, as it said
+/// it.
+struct HostSaid {
+    explicit HostSaid(PluginHostProcess &host)
+    {
+        QObject::connect(&host, &PluginHostProcess::uiOpened, &host, [this] { ++opened; });
+        QObject::connect(
+            &host, &PluginHostProcess::uiClosed, &host, [this](const QString &why) { closed.append(why); });
+        QObject::connect(&host, &PluginHostProcess::paramChanged, &host, [this](const QString &id, float value) {
+            heard.append(QStringLiteral("%1=%2").arg(id).arg(static_cast<double>(value)));
+        });
+        QObject::connect(&host, &PluginHostProcess::paramGesture, &host, [this](const QString &id, bool begin) {
+            heard.append(QStringLiteral("%1 %2").arg(id, begin ? QStringLiteral("begin") : QStringLiteral("end")));
+        });
+        QObject::connect(&host, &PluginHostProcess::valuesChanged, &host, [this](bool edit, const auto &list) {
+            values.append({edit, list});
+        });
+        QObject::connect(&host, &PluginHostProcess::presetsListed, &host, [this](const auto &list) {
+            presets = list;
+            ++listed;
+        });
+        QObject::connect(
+            &host, &PluginHostProcess::presetShown, &host, [this](const QString &id) { shown.append(id); });
+        QObject::connect(&host, &PluginHostProcess::presetSaved, &host, [this](const QString &id) { saved = id; });
+    }
+
+    int opened = 0;
+    QStringList closed;
+    QStringList heard;
+    QList<QPair<bool, QList<QPair<QString, float>>>> values;
+    QList<QPair<QString, QString>> presets;
+    int listed = 0;
+    QStringList shown;
+    std::optional<QString> saved;
+};
+
+} // namespace
+
+TEST_F(PluginHosts, AnLv2PluginsOwnWindowAndTheEngineFollowEachOther)
+{
+    // **The tests' plugin and its window, which needs no display**: what
+    // a person does in the window reaches the plugin and the engine, and
+    // what the engine does reaches the window, controls and atoms both.
+    const Lv2Home home;
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(host, 0, QString::fromLatin1(kTestLv2), QStringLiteral("lv2"));
+
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return said.opened == 1; }, 2s)) << said.closed.join(u',').toStdString();
+    // The window took hold of the gain and moved it to a quarter: **heard
+    // at once, through the host's own queue**, not after a trip through
+    // the engine and back.
+    ASSERT_TRUE(spinUntil([&] { return said.heard.size() >= 2; }, 2s)) << said.heard.join(u',').toStdString();
+    EXPECT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.25f) < 1e-3f; }, 1s))
+        << "heard at " << m_chain->m_ratio.load();
+    // Then, its hand still on it, to 0.3, and let go.
+    ASSERT_TRUE(spinUntil([&] { return said.heard.size() >= 4; }, 3s)) << said.heard.join(u',').toStdString();
+    EXPECT_EQ(said.heard,
+              (QStringList{QStringLiteral("gain begin"),
+                           QStringLiteral("gain=0.25"),
+                           QStringLiteral("gain=0.3"),
+                           QStringLiteral("gain end")}));
+    EXPECT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.3f) < 1e-3f; }, 1s))
+        << "heard at " << m_chain->m_ratio.load();
+    // The window's atom reached the plugin, and the plugin's answer came back.
+    EXPECT_TRUE(spinUntil([&] { return linesOf(home.log()).contains(QStringLiteral("atom 43")); }, 2s))
+        << linesOf(home.log()).join(u',').toStdString();
+
+    // **A setting changed from the panel reaches the window**, as a port
+    // event, and so does what the plugin says on its control output.
+    ASSERT_TRUE(host.setParam(0, 0.5f));
+    EXPECT_TRUE(spinUntil([&] { return linesOf(home.log()).contains(QStringLiteral("port 0 0.5")); }, 2s))
+        << linesOf(home.log()).join(u',').toStdString();
+    EXPECT_TRUE(spinUntil([&] { return linesOf(home.log()).contains(QStringLiteral("port 7 0.5")); }, 2s))
+        << linesOf(home.log()).join(u',').toStdString();
+    // Nothing of the engine's change came back as a person's.
+    EXPECT_EQ(said.heard.size(), 4);
+
+    // **Closed by a person**, in its own way: said so, and gone.
+    QFile closing(home.log() + QStringLiteral(".close"));
+    ASSERT_TRUE(closing.open(QIODevice::WriteOnly));
+    closing.close();
+    ASSERT_TRUE(spinUntil([&] { return said.closed.size() == 1; }, 2s));
+    EXPECT_EQ(said.closed.front(), QStringLiteral("closed"));
+    EXPECT_TRUE(spinUntil([&] { return linesOf(home.log()).contains(QStringLiteral("gone")); }, 1s));
+    ASSERT_TRUE(QFile::remove(home.log() + QStringLiteral(".close")));
+
+    // And opened again, and closed by the engine.
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return said.opened == 2; }, 2s));
+    host.closeUi();
+    ASSERT_TRUE(spinUntil([&] { return said.closed.size() == 2; }, 2s));
+    EXPECT_EQ(said.closed.back(), QStringLiteral("closed"));
+    EXPECT_EQ(linesOf(home.log()).count(QStringLiteral("hidden")), 2);
+}
+
+TEST_F(PluginHosts, AnLv2PresetSavedHereIsListedPutBackAndFoundByAnotherHost)
+{
+    const Lv2Home home;
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(host, 0, QString::fromLatin1(kTestLv2), QStringLiteral("lv2"));
+    ASSERT_TRUE(host.setParam(0, 0.25f));
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.25f) < 1e-3f; }, 1s));
+
+    host.savePreset(QStringLiteral("Quiet one"));
+    ASSERT_TRUE(spinUntil([&] { return said.saved.has_value(); }, 2s));
+    ASSERT_FALSE(said.saved->isEmpty()) << "not saved";
+    const QString uri = *said.saved;
+    // **Where other LV2 hosts look**, as its own bundle in ~/.lv2.
+    EXPECT_TRUE(
+        uri.startsWith(QStringLiteral("file://") + QString::fromStdString(home.home()) + QStringLiteral("/.lv2/")))
+        << uri.toStdString();
+    EXPECT_TRUE(QFile::exists(QUrl(uri).toLocalFile())) << uri.toStdString();
+    ASSERT_FALSE(said.shown.isEmpty());
+    EXPECT_EQ(said.shown.back(), uri) << "the settings are the preset just saved";
+
+    host.listPresets();
+    ASSERT_TRUE(spinUntil([&] { return said.listed == 1; }, 2s));
+    ASSERT_EQ(said.presets.size(), 1);
+    EXPECT_EQ(said.presets.front().first, uri);
+    EXPECT_EQ(said.presets.front().second, QStringLiteral("Quiet one"));
+
+    // **Moved away from, and it is no preset's** (Manual).
+    ASSERT_TRUE(host.setParam(0, 2.0f));
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 2.0f) < 1e-3f; }, 1s));
+    ASSERT_TRUE(spinUntil([&] { return said.shown.back().isEmpty(); }, 1s));
+
+    // **Put back**: heard, said as a person's edit, and shown.
+    host.loadPreset(uri);
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.25f) < 1e-3f; }, 2s))
+        << "heard at " << m_chain->m_ratio.load();
+    ASSERT_TRUE(spinUntil([&] { return !said.values.isEmpty(); }, 1s));
+    EXPECT_TRUE(said.values.back().first) << "a preset a person chose is an edit";
+    ASSERT_EQ(said.values.back().second.size(), 1);
+    EXPECT_FLOAT_EQ(said.values.back().second.front().second, 0.25f);
+    ASSERT_TRUE(spinUntil([&] { return said.shown.back() == uri; }, 1s));
+
+    // **Another host finds it**: a world of its own, reading LV2_PATH as
+    // every LV2 host does, lists it for the plugin with its value in it.
+    LilvWorld *world = lilv_world_new();
+    lilv_world_load_all(world);
+    LilvNode *pluginUri = lilv_new_uri(world, kTestLv2);
+    const LilvPlugin *plugin = lilv_plugins_get_by_uri(lilv_world_get_all_plugins(world), pluginUri);
+    ASSERT_NE(plugin, nullptr);
+    LilvNode *presetClass = lilv_new_uri(world, "http://lv2plug.in/ns/ext/presets#Preset");
+    LilvNodes *related = lilv_plugin_get_related(plugin, presetClass);
+    bool found = false;
+    LILV_FOREACH(nodes, at, related)
+    {
+        const LilvNode *preset = lilv_nodes_get(related, at);
+        if (QString::fromUtf8(lilv_node_as_uri(preset)) != uri) {
+            continue;
+        }
+        found = true;
+        lilv_world_load_resource(world, preset);
+        LV2_URID_Map map{nullptr, [](LV2_URID_Map_Handle, const char *) -> LV2_URID { return 1; }};
+        LilvState *state = lilv_state_new_from_world(world, &map, preset);
+        ASSERT_NE(state, nullptr);
+        EXPECT_STREQ(lilv_state_get_label(state), "Quiet one");
+        lilv_state_free(state);
+    }
+    EXPECT_TRUE(found) << "another LV2 host does not see " << uri.toStdString();
+    lilv_nodes_free(related);
+    lilv_node_free(presetClass);
+    lilv_node_free(pluginUri);
+    lilv_world_free(world);
+}
+
+TEST_F(PluginHosts, AnLv2PresetSavedHereIsWhatJalvPutsIn)
+{
+    // **Another LV2 host, the reference one**: jalv lists the preset saved
+    // here for the plugin, and puts it in with its value.
+    const QString jalv = QStandardPaths::findExecutable(QStringLiteral("jalv"));
+    if (jalv.isEmpty()) {
+        GTEST_SKIP() << "jalv is not installed: the round trip with another LV2 host is checked through lilv only";
+    }
+    const Lv2Home home;
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(host, 0, QString::fromLatin1(kTestLv2), QStringLiteral("lv2"));
+    ASSERT_TRUE(host.setParam(0, 0.25f));
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.25f) < 1e-3f; }, 1s));
+    host.savePreset(QStringLiteral("For jalv"));
+    ASSERT_TRUE(spinUntil([&] { return said.saved.has_value() && !said.saved->isEmpty(); }, 2s));
+
+    // Its console: the presets, the one saved here put in, and the controls.
+    QProcess other;
+    const QString pwJack = QStandardPaths::findExecutable(QStringLiteral("pw-jack"));
+    QStringList arguments{QString::fromLatin1(kTestLv2)};
+    if (!pwJack.isEmpty()) {
+        arguments.prepend(jalv);
+    }
+    other.start(pwJack.isEmpty() ? jalv : pwJack, arguments);
+    if (!other.waitForStarted(5000)) {
+        GTEST_SKIP() << "jalv would not start";
+    }
+    other.write(QStringLiteral("presets\npreset %1\ncontrols\n").arg(*said.saved).toUtf8());
+    QByteArray output;
+    QElapsedTimer waited;
+    waited.start();
+    while (waited.elapsed() < 10000 && !output.contains("gain = 0.25")) {
+        other.waitForReadyRead(200);
+        output += other.readAllStandardOutput();
+    }
+    other.closeWriteChannel();
+    other.terminate();
+    if (!other.waitForFinished(3000)) {
+        other.kill();
+        other.waitForFinished(1000);
+    }
+    output += other.readAllStandardOutput();
+    if (!output.contains("gain")) {
+        GTEST_SKIP() << "jalv did not run here (no JACK to run on?): " << other.readAllStandardError().toStdString();
+    }
+    EXPECT_TRUE(output.contains(said.saved->toUtf8())) << "jalv does not list it:\n" << output.toStdString();
+    EXPECT_TRUE(output.contains("gain = 0.25")) << "jalv did not put it in:\n" << output.toStdString();
+}
+
+TEST_F(PluginHosts, AnLspCompressorsWindowNeedsADisplayAndItsPresetsWork)
+{
+    if (!lspInstalled()) {
+        GTEST_SKIP() << "LSP's LV2 plugins are not installed (lsp-plugins-lv2)";
+    }
+    const Lv2Home home;
+    // **No display, no window**: LSP's window is an X11 one, which needs a
+    // display to be put in. Showing it is the owner's desktop check.
+    const ScopedEnv noDisplay("DISPLAY", std::nullopt);
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(host, 0, QString::fromLatin1(kLspCompressor), QStringLiteral("lv2"));
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return !said.closed.isEmpty(); }, 2s));
+    EXPECT_EQ(said.closed.front(), QStringLiteral("unavailable"));
+    EXPECT_EQ(said.opened, 0);
+
+    // Its presets: one saved here at a ratio of 4:1 is listed and put back.
+    host.listPresets();
+    ASSERT_TRUE(spinUntil([&] { return said.listed == 1; }, 2s));
+    const qsizetype before = said.presets.size();
+    const std::optional<QString> state = host.stateNow();
+    ASSERT_TRUE(state.has_value());
+    host.savePreset(QStringLiteral("Test four to one"));
+    ASSERT_TRUE(spinUntil([&] { return said.saved.has_value(); }, 3s));
+    ASSERT_FALSE(said.saved->isEmpty());
+    host.listPresets();
+    ASSERT_TRUE(spinUntil([&] { return said.listed == 2; }, 2s));
+    EXPECT_EQ(said.presets.size(), before + 1);
+    EXPECT_TRUE(std::ranges::any_of(said.presets, [&](const auto &preset) { return preset.first == *said.saved; }));
+    host.loadPreset(*said.saved);
+    ASSERT_TRUE(spinUntil([&] { return !said.values.isEmpty(); }, 3s));
+    EXPECT_TRUE(said.values.back().first);
+    EXPECT_GT(said.values.back().second.size(), 10) << "every setting the compressor has";
 }
 
 namespace

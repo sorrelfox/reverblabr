@@ -11,6 +11,10 @@ add_subdirectory(kit)   # the DSP test kit: offline runners, signals, analysis, 
 set(RB_TEST_LADSPA_DIR "${CMAKE_CURRENT_BINARY_DIR}/ladspa/plugins")
 set(RB_TEST_LADSPA_CRASH_DIR "${CMAKE_CURRENT_BINARY_DIR}/ladspa/crashing")
 add_subdirectory(ladspa) # LADSPA plugins the tests host
+# An LV2 plugin with a window that needs no display, in a bundle the tests
+# name in LV2_PATH.
+set(RB_TEST_LV2_DIR "${CMAKE_CURRENT_BINARY_DIR}/lv2/bundles")
+add_subdirectory(lv2)   # the LV2 plugin the tests host, and its window
 add_subdirectory(unit)  # GoogleTest, one executable per engine layer
 add_subdirectory(sanitizers) # checks that the sanitizers catch what they should
 add_subdirectory(qml)   # Qt Quick Test for the QML user interface

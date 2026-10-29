@@ -289,7 +289,6 @@ struct Host {
     /// those, by anybody, makes the settings nobody's preset.
     std::string shownPreset;
     std::vector<float> shownValues;
-    bool shownPending = false;
 
     explicit Host(Options given, plugin::SharedMemory memory)
         : options(std::move(given))
@@ -365,13 +364,12 @@ struct Host {
         return values;
     }
 
+    /// The settings are preset \a id's, as they are now: a plugin says so
+    /// once the preset's values are in.
     void showPreset(const std::string &id)
     {
         shownPreset = id;
-        shownValues.clear();
-        // The values are taken a moment later: a plugin may say which
-        // preset it loaded before it says what that changed.
-        shownPending = !id.empty();
+        shownValues = id.empty() ? std::vector<float>{} : valuesNow();
         send(plugin::MessageType::PresetShown, id);
     }
 
@@ -379,11 +377,6 @@ struct Host {
     void checkShownPreset()
     {
         if (shownPreset.empty()) {
-            return;
-        }
-        if (shownPending) {
-            shownPending = false;
-            shownValues = valuesNow();
             return;
         }
         const std::vector<float> now = valuesNow();

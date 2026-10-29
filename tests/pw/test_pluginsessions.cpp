@@ -19,6 +19,8 @@
 #include "blocks/inputdevice.h"
 #include "blocks/outputdevice.h"
 #include "blocks/pluginblock.h"
+#include "core/editcommand.h"
+#include "core/engine.h"
 #include "core/pluginscanner.h"
 #include "core/sessionruntime.h"
 #include "core/sessionstore.h"
@@ -28,7 +30,10 @@
 #include "sessionharness.h"
 
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QTemporaryDir>
@@ -965,6 +970,343 @@ public:
 };
 
 } // namespace
+
+namespace
+{
+
+/// XDG_STATE_HOME at a folder of the test's own while it lives, and as it
+/// was after: unset only if it was.
+class StateHome
+{
+public:
+    explicit StateHome(const QString &path)
+        : m_before(qEnvironmentVariableIsSet("XDG_STATE_HOME") ? std::optional(qgetenv("XDG_STATE_HOME"))
+                                                               : std::nullopt)
+    {
+        qputenv("XDG_STATE_HOME", path.toUtf8());
+    }
+    ~StateHome()
+    {
+        if (m_before) {
+            qputenv("XDG_STATE_HOME", *m_before);
+        } else {
+            qunsetenv("XDG_STATE_HOME");
+        }
+    }
+    StateHome(const StateHome &) = delete;
+    StateHome &operator=(const StateHome &) = delete;
+
+private:
+    std::optional<QByteArray> m_before;
+};
+
+constexpr const char *kTestLv2 = "urn:reverblabr:test:gain";
+
+/// **The tests' LV2 plugin, scanned**, with a home of the test's own for
+/// what its window writes down (RB_TEST_LV2_UI_LOG) and for the presets a
+/// host saves.
+class TestLv2Catalogue : public PluginCatalogue
+{
+public:
+    TestLv2Catalogue()
+        // With the system's LV2 folders, where LV2's own descriptions are:
+        // lilv keeps a plugin class it never frees without them, which a
+        // scanning host under LeakSanitizer is ended for.
+        : PluginCatalogue("LV2_PATH", RB_TEST_LV2_DIR ":/usr/lib64/lv2:/usr/lib/lv2")
+    {
+        qputenv("HOME", m_home.path().toUtf8());
+        qputenv("RB_TEST_LV2_UI_LOG", log().toUtf8());
+    }
+
+    ~TestLv2Catalogue()
+    {
+        qputenv("HOME", m_homeBefore);
+        qunsetenv("RB_TEST_LV2_UI_LOG");
+    }
+
+    TestLv2Catalogue(const TestLv2Catalogue &) = delete;
+    TestLv2Catalogue &operator=(const TestLv2Catalogue &) = delete;
+
+    /// What the plugin's window was told, a line each.
+    [[nodiscard]] QString log() const
+    {
+        return m_home.path() + u"/window.log"_s;
+    }
+    [[nodiscard]] QStringList told() const
+    {
+        QFile file(log());
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()).split(u'\n', Qt::SkipEmptyParts)
+                                              : QStringList{};
+    }
+
+private:
+    QByteArray m_homeBefore = qgetenv("HOME");
+    QTemporaryDir m_home;
+    StateHome m_state{m_home.path() + u"/.local/state"_s};
+};
+
+} // namespace
+
+TEST_F(PluginSessions, APluginsOwnWindowMovesTheBlocksSettingAndThePanelsMovesTheWindow)
+{
+    const TestLv2Catalogue catalogue;
+    // Before the runtime: it says the window has gone as it goes.
+    QList<QPair<bool, QString>> windows;
+    QStringList heard;
+    SessionRuntime runtime(m_pump->connection(), m_pump->mirror(), m_registry);
+    QObject::connect(&runtime,
+                     &SessionRuntime::pluginWindowChanged,
+                     &runtime,
+                     [&](const QString &, bool open, const QString &reason) { windows.append({open, reason}); });
+    QObject::connect(&runtime,
+                     &SessionRuntime::pluginParamChanged,
+                     &runtime,
+                     [&](const QString &blockId, const QString &paramId, const QJsonValue &value) {
+                         heard.append(u"%1.%2=%3"_s.arg(blockId, paramId).arg(value.toDouble()));
+                     });
+    QObject::connect(&runtime,
+                     &SessionRuntime::pluginGesture,
+                     &runtime,
+                     [&](const QString &blockId, const QString &paramId, bool begin) {
+                         heard.append(u"%1.%2 %3"_s.arg(blockId, paramId, begin ? u"begin"_s : u"end"_s));
+                     });
+    const Session session = SessionBuilder{}
+                                .lv2(u"p"_s, QString::fromLatin1(kTestLv2))
+                                .wire(u"in"_s, u"p"_s)
+                                .wire(u"p"_s, u"out"_s)
+                                .session();
+    run(runtime, session);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return runtime.pluginHealth(u"p"_s) == PluginHealth::Running; }));
+
+    ASSERT_TRUE(runtime.setPluginWindow(u"p"_s, true).has_value());
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return heard.size() >= 4; })) << heard.join(u',').toStdString();
+    ASSERT_FALSE(windows.isEmpty());
+    EXPECT_TRUE(windows.front().first);
+    EXPECT_TRUE(runtime.pluginWindowOpen(u"p"_s));
+    EXPECT_EQ(heard, (QStringList{u"p.gain begin"_s, u"p.gain=0.25"_s, u"p.gain=0.3"_s, u"p.gain end"_s}));
+    // **The block holds it**, which is what the session saves.
+    EXPECT_NEAR(runtime.blockState().value(u"p"_s).value(u"gain"_s).toDouble(), 0.3, 1e-6);
+    // The plugin has it too: it says so on its control output.
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return catalogue.told().contains(u"port 7 0.3"_s); }))
+        << catalogue.told().join(u',').toStdString();
+
+    // **The panel's change reaches the window**, and does not come back.
+    ASSERT_TRUE(runtime.setParam(u"p"_s, u"gain"_s, QJsonValue{0.5}).has_value());
+    EXPECT_TRUE(m_pump->pumpUntil([&] { return catalogue.told().contains(u"port 0 0.5"_s); }))
+        << catalogue.told().join(u',').toStdString();
+    EXPECT_EQ(heard.size(), 4);
+
+    // **A window goes with its session.**
+    runtime.stop();
+    ASSERT_EQ(windows.size(), 2);
+    EXPECT_FALSE(windows.back().first);
+    EXPECT_EQ(windows.back().second, u"closed"_s);
+    EXPECT_FALSE(runtime.setPluginWindow(u"p"_s, true).has_value()) << "a session not running has no windows";
+}
+
+TEST_F(PluginSessions, AnotherPluginChosenSendsNothingMeantForItToTheHostItReplaces)
+{
+    // The tests' two LV2 plugins share their settings' ids. Between another
+    // plugin being chosen and the session being updated, the old host is
+    // still there: a value set meanwhile is the new plugin's, and the old
+    // one must not hear it.
+    const TestLv2Catalogue catalogue;
+    SessionRuntime runtime(m_pump->connection(), m_pump->mirror(), m_registry);
+    const Session session = SessionBuilder{}
+                                .lv2(u"p"_s, QString::fromLatin1(kTestLv2))
+                                .wire(u"in"_s, u"p"_s)
+                                .wire(u"p"_s, u"out"_s)
+                                .session();
+    run(runtime, session);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return runtime.pluginHealth(u"p"_s) == PluginHealth::Running; }));
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return std::abs(m_sound->ratio() - 1.0f) < 1e-4f; }, 2s));
+
+    ASSERT_TRUE(runtime.setParam(u"p"_s, u"plugin"_s, QJsonValue{u"urn:reverblabr:test:double"_s}).has_value());
+    ASSERT_TRUE(runtime.setParam(u"p"_s, u"gain"_s, QJsonValue{0.25}).has_value());
+    (void)m_pump->pumpUntil([] { return false; }, 300ms);
+    EXPECT_NEAR(m_sound->ratio(), 1.0f, 1e-4f) << "the host being replaced took the new plugin's setting";
+
+    // Once the session is updated, the new plugin has it: a quarter, doubled.
+    const Session next = SessionBuilder{}
+                             .lv2(u"p"_s, u"urn:reverblabr:test:double"_s, QJsonObject{{u"gain"_s, 0.25}})
+                             .wire(u"in"_s, u"p"_s)
+                             .wire(u"p"_s, u"out"_s)
+                             .session();
+    ASSERT_TRUE(runtime.update(next).has_value());
+    EXPECT_TRUE(m_pump->pumpUntil([&] { return std::abs(m_sound->ratio() - 0.5f) < 1e-4f; }, 3s))
+        << "heard at " << m_sound->ratio();
+}
+
+TEST_F(PluginSessions, AWholeDragInAPluginsWindowIsOneUndoAndTheWindowFollowsIt)
+{
+    // **Through the engine, as a window uses it**: the drag arrives as
+    // patches, Ctrl+Z takes all of it back however long the hand rested,
+    // and the plugin and its window go back with it.
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    // What the engine says is kept in these, which outlive it.
+    QStringList patched;
+    QList<bool> windows;
+    QString undoCode;
+    QString sessionId;
+    QStringList errors;
+    Engine engine(m_registry, SessionStore{sessions.path()});
+    // After the engine: the plugin blocks read this catalogue.
+    const TestLv2Catalogue catalogue;
+    QObject::connect(&engine, &EngineFacade::sessionPatch, &engine, [&](const QString &, quint64, const QString &json) {
+        patched.append(json);
+    });
+    QObject::connect(&engine,
+                     &EngineFacade::pluginWindowChanged,
+                     &engine,
+                     [&](const QString &, const QString &, bool open, const QString &) { windows.append(open); });
+    QObject::connect(&engine,
+                     &EngineFacade::undoStateChanged,
+                     &engine,
+                     [&](const QString &, bool, const QString &code, bool, const QString &) { undoCode = code; });
+    QObject::connect(&engine, &EngineFacade::sessionOpened, &engine, [&](const QString &id) { sessionId = id; });
+    QObject::connect(
+        &engine, &EngineFacade::error, &engine, [&](const QString &code, const QString &) { errors.append(code); });
+
+    engine.connectToPipeWire();
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return engine.isConnected(); }));
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kInput)).has_value());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kOutput)).has_value());
+    engine.createSession(u"Window"_s);
+    ASSERT_FALSE(sessionId.isEmpty());
+    const Session built = SessionBuilder{}
+                              .lv2(u"p"_s, QString::fromLatin1(kTestLv2))
+                              .wire(u"in"_s, u"p"_s)
+                              .wire(u"p"_s, u"out"_s)
+                              .session();
+    QJsonArray commands;
+    for (const BlockInstance &block : built.blocks) {
+        AddBlock add;
+        add.block = block;
+        commands.append(editCommandToJson(add));
+    }
+    for (const Wire &wire : built.wires) {
+        commands.append(editCommandToJson(Connect{wire, -1}));
+    }
+    engine.applyEdit(sessionId, QString::fromUtf8(QJsonDocument(commands).toJson()));
+    ASSERT_TRUE(errors.isEmpty()) << errors.join(u',').toStdString();
+    engine.start(sessionId);
+    SessionRuntime *runtime = engine.runtimeOf(sessionId);
+    ASSERT_NE(runtime, nullptr);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return runtime->pluginHealth(u"p"_s) == PluginHealth::Running; }));
+    patched.clear();
+
+    engine.setPluginWindow(sessionId, u"p"_s, true);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return !windows.isEmpty(); }));
+    EXPECT_TRUE(windows.front());
+    // Both values of the drag, as patches every window follows.
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return patched.size() >= 2; })) << patched.join(u'\n').toStdString() << "\n"
+                                                                        << errors.join(u'\n').toStdString() << "\n"
+                                                                        << catalogue.told().join(u',').toStdString();
+    EXPECT_TRUE(patched.at(0).contains(u"0.25"_s)) << patched.at(0).toStdString();
+    EXPECT_TRUE(patched.at(1).contains(u"0.3"_s)) << patched.at(1).toStdString();
+    EXPECT_EQ(undoCode, u"edit.setParam"_s);
+    // Let go of, and then nothing more.
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return catalogue.told().contains(u"port 7 0.3"_s); }));
+
+    // **One Ctrl+Z, the whole drag**: back to the plugin's own default, in
+    // the session, the plugin and its window.
+    engine.undo(sessionId);
+    // What is left to undo is the session being built.
+    EXPECT_EQ(undoCode, u"edit.addBlock"_s) << "the drag was more than one step";
+    EXPECT_TRUE(m_pump->pumpUntil([&] { return catalogue.told().contains(u"port 0 1"_s); }))
+        << catalogue.told().join(u',').toStdString();
+    EXPECT_NEAR(runtime->blockState().value(u"p"_s).value(u"gain"_s).toDouble(1.0), 1.0, 1e-6);
+
+    engine.setPluginWindow(sessionId, u"p"_s, false);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return windows.size() == 2; }));
+    EXPECT_FALSE(windows.back());
+    engine.closeSession(sessionId);
+}
+
+TEST_F(PluginSessions, AnLv2PresetPutInFromThePanelIsOneUndoStateAndAll)
+{
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    QStringList patched;
+    QJsonArray presets;
+    QString shown;
+    QString undoCode;
+    QString sessionId;
+    QStringList errors;
+    Engine engine(m_registry, SessionStore{sessions.path()});
+    const TestLv2Catalogue catalogue;
+    QObject::connect(&engine, &EngineFacade::sessionPatch, &engine, [&](const QString &, quint64, const QString &json) {
+        patched.append(json);
+    });
+    QObject::connect(&engine,
+                     &EngineFacade::pluginPresetsListed,
+                     &engine,
+                     [&](const QString &, const QString &, const QString &json) {
+                         presets = QJsonDocument::fromJson(json.toUtf8()).array();
+                     });
+    QObject::connect(&engine,
+                     &EngineFacade::pluginPresetShown,
+                     &engine,
+                     [&](const QString &, const QString &, const QString &id) { shown = id; });
+    QObject::connect(&engine,
+                     &EngineFacade::undoStateChanged,
+                     &engine,
+                     [&](const QString &, bool, const QString &code, bool, const QString &) { undoCode = code; });
+    QObject::connect(&engine, &EngineFacade::sessionOpened, &engine, [&](const QString &id) { sessionId = id; });
+    QObject::connect(
+        &engine, &EngineFacade::error, &engine, [&](const QString &code, const QString &) { errors.append(code); });
+    engine.connectToPipeWire();
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return engine.isConnected(); }));
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kInput)).has_value());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kOutput)).has_value());
+    engine.createSession(u"Presets"_s);
+    const Session built = SessionBuilder{}
+                              .lv2(u"p"_s, QString::fromLatin1(kTestLv2))
+                              .wire(u"in"_s, u"p"_s)
+                              .wire(u"p"_s, u"out"_s)
+                              .session();
+    QJsonArray commands;
+    for (const BlockInstance &block : built.blocks) {
+        AddBlock add;
+        add.block = block;
+        commands.append(editCommandToJson(add));
+    }
+    for (const Wire &wire : built.wires) {
+        commands.append(editCommandToJson(Connect{wire, -1}));
+    }
+    engine.applyEdit(sessionId, QString::fromUtf8(QJsonDocument(commands).toJson()));
+    engine.start(sessionId);
+    SessionRuntime *runtime = engine.runtimeOf(sessionId);
+    ASSERT_NE(runtime, nullptr);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return runtime->pluginHealth(u"p"_s) == PluginHealth::Running; }));
+
+    engine.setParam(sessionId, u"p"_s, u"gain"_s, u"[0.5]"_s);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return std::abs(m_sound->ratio() - 0.5f) < 1e-4f; }, 2s));
+    engine.savePluginPreset(sessionId, u"p"_s, u"Half"_s);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return presets.size() == 1; })) << errors.join(u',').toStdString();
+    const QString presetId = presets.at(0).toObject().value(u"id"_s).toString();
+    engine.setParam(sessionId, u"p"_s, u"gain"_s, u"[2]"_s);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return std::abs(m_sound->ratio() - 2.0f) < 1e-4f; }, 2s));
+    // Saved, the settings were the preset's; moved, they are nobody's.
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return shown.isEmpty(); }));
+    patched.clear();
+
+    // **Put in, as one edit with the plugin's state in it.**
+    engine.loadPluginPreset(sessionId, u"p"_s, presetId);
+    ASSERT_TRUE(m_pump->pumpUntil([&] { return shown == presetId; })) << errors.join(u',').toStdString();
+    ASSERT_GE(patched.size(), 2);
+    EXPECT_TRUE(patched.at(0).contains(u"\"state\""_s)) << patched.at(0).toStdString();
+    EXPECT_TRUE(patched.join(u' ').contains(u"0.5"_s)) << patched.join(u'\n').toStdString();
+    EXPECT_TRUE(m_pump->pumpUntil([&] { return std::abs(m_sound->ratio() - 0.5f) < 1e-4f; }, 2s));
+
+    // **Taken back**: the gain and the state before it.
+    engine.undo(sessionId);
+    EXPECT_TRUE(m_pump->pumpUntil([&] { return std::abs(m_sound->ratio() - 2.0f) < 1e-4f; }, 3s))
+        << "heard at " << m_sound->ratio();
+    EXPECT_EQ(undoCode, u"edit.setParam"_s) << "the gain set before it is the step under it";
+    engine.closeSession(sessionId);
+}
 
 TEST_F(PluginSessions, AnLv2EqualizerPlaysInASessionAndItsStateIsSavedAndPutBack)
 {
