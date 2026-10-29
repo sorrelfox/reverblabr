@@ -733,7 +733,7 @@ std::expected<void, SessionNodeError> SessionNode::update(SessionUpdate edit)
 
     // **Back up.** From here the edit is audible.
     if (fadingBack != 0 && frames > 0) {
-        (void)d->processor.requestFade(fadingBack, 1.0f, frames);
+        (void)d->processor.requestFade(fadingBack, 1.0f, frames, edit.refilled ? latency : 0);
     }
     return {};
 }

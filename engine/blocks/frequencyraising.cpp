@@ -29,7 +29,9 @@ constexpr FrequencyMoveKind kRaising{
     .minimumHz = FrequencyRaising::kMinimumHz,
     .maximumHz = FrequencyRaising::kMaximumHz,
     .raises = true,
-    .frameMs = dsp::FrequencyMover::kLowFrameMs,
+    .frameMs = dsp::FrequencyMover::kMiddleFrameMs,
+    .longFrameMs = dsp::FrequencyMover::kLowFrameMs,
+    .longFrameBelowHz = FrequencyRaising::kLongFrameBelowHz,
 };
 
 } // namespace

@@ -10,8 +10,8 @@
 // its own; the tile's summary and how its first move moves; three methods,
 // harmonics among them, reaching the session; a destination kept above its
 // source; the map's arithmetic the engine's, harmonics drawn as a line a
-// harmonic; "when needed" named for low sounds; the spectra asked for on
-// the block's own ear.
+// harmonic; "when needed" named for low sounds; the delay its lowest move
+// needs; the spectra asked for on the block's own ear.
 
 import QtQuick
 import QtTest
@@ -183,6 +183,31 @@ TestCase {
         compare(panel.whenChoices.itemAt(1).text, "On low sounds");
         panel.whenChoices.itemAt(1).clicked();
         tryVerify(() => SessionModel.param(id, "move1When") === "needed", 1000);
+    }
+
+    function test_thePanelSaysTheDelayItsLowestMoveNeeds() {
+        // FrequencyMoveBlock::preparedShape()'s rule: the long frame while a
+        // move in use, on or off, starts below 250 Hz. At 48 kHz while the
+        // session says no rate: 2048 samples, or 4096.
+        const id = testCase.newBlock();
+        const window = testCase.openPanel(id);
+        const panel = window.panel;
+        compare(panel.moves.latencySamples(48000), 2048);
+        compare(panel.moves.latencySamples(44100), 2048);
+        compare(panel.moves.latencySamples(96000), 4096);
+        compare(panel.delayLabel.text, "43 ms");
+
+        SessionModel.setParam(id, "move1SourceLow", 125);
+        tryCompare(panel.delayLabel, "text", "85 ms");
+        compare(panel.moves.latencySamples(48000), 4096);
+        SessionModel.setParam(id, "move1On", false);
+        compare(panel.delayLabel.text, "85 ms", "a move switched off still counts");
+        SessionModel.setParam(id, "move1SourceLow", 250);
+        tryCompare(panel.delayLabel, "text", "43 ms");
+
+        // The third move starts at 125 Hz: taken into use, it counts.
+        SessionModel.setParam(id, "move3Used", true);
+        tryCompare(panel.delayLabel, "text", "85 ms");
     }
 
     function test_theEndsKeepARangeAndTheDestinationAboveItsSource() {

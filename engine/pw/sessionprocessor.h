@@ -152,6 +152,11 @@ struct FadeRequest {
     /// How long the ramp is. Zero applies the target at once, which is what
     /// a test that does not care about clicks asks for.
     std::uint32_t frames = 0;
+    /// How long the lanes stay at the gain they have before the ramp
+    /// begins: a lane brought back over a block made afresh waits until the
+    /// block has been filled (SessionUpdate::refilled). Ignored for a fade
+    /// of no frames.
+    std::uint32_t holdFrames = 0;
     /// The control thread's own count, echoed back in the telemetry once the
     /// ramp has finished. Never 0, which means "nothing asked for".
     std::uint32_t sequence = 0;
@@ -293,7 +298,9 @@ public:
     /// Asks for some lanes to be ramped, and returns the sequence number to
     /// watch for in telemetry().fadeDone. A request replaces any earlier one
     /// that has not finished.
-    [[nodiscard]] std::uint32_t requestFade(std::uint32_t lanes, float target, std::uint32_t frames);
+    /// \a holdFrames is FadeRequest::holdFrames.
+    [[nodiscard]] std::uint32_t
+    requestFade(std::uint32_t lanes, float target, std::uint32_t frames, std::uint32_t holdFrames = 0);
 
     [[nodiscard]] SessionTelemetry telemetry() const;
 
@@ -350,6 +357,7 @@ private:
     /// of it.
     FadeRequest m_activeFade;
     std::uint32_t m_fadeRemaining = 0;
+    std::uint32_t m_holdRemaining = 0;
     std::uint32_t m_fadeDone = 0;
     std::uint32_t m_fadeSequence = 0;
 

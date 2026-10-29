@@ -166,6 +166,32 @@ void FrequencyMoveBlock::takeSettings() noexcept RB_NONBLOCKING
     m_mover.setMovedOnly(m_store.number(MovedOnly) >= 0.5f);
 }
 
+std::uint32_t FrequencyMoveBlock::preparedShape() const
+{
+    if (m_kind.longFrameMs <= 0.0) {
+        return 0;
+    }
+    // **Every move in use counts, on or off.** Switching a move off and on
+    // is how its effect is heard, and the other ear moving in time each
+    // time would be heard more than the move.
+    for (std::size_t move = 0; move < kMoveCount; ++move) {
+        if (m_store.number(paramIndex(move, Used)) < 0.5f) {
+            continue;
+        }
+        const float lowest =
+            std::min(m_store.number(paramIndex(move, SourceLow)), m_store.number(paramIndex(move, SourceHigh)));
+        if (lowest < m_kind.longFrameBelowHz) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+double FrequencyMoveBlock::frameMs() const
+{
+    return preparedShape() != 0 ? m_kind.longFrameMs : m_kind.frameMs;
+}
+
 std::expected<void, BlockError> FrequencyMoveBlock::prepare(const PrepareSpec &spec)
 {
     if (const std::expected<void, ParamListError> valid = validateParams(m_descriptors); !valid) {
@@ -175,7 +201,7 @@ std::expected<void, BlockError> FrequencyMoveBlock::prepare(const PrepareSpec &s
         return std::unexpected(BlockError::UnsupportedSpec);
     }
     m_meter = spec.meter;
-    m_mover.prepare(spec.sampleRate, m_kind.frameMs);
+    m_mover.prepare(spec.sampleRate, frameMs());
     m_info.latencySamples = m_mover.latencySamples();
     m_router.prepare(spec.sampleRate, spec.maxBlockFrames, m_info.latencySamples, earFromNumber(m_store.number(Ear)));
     takeSettings();

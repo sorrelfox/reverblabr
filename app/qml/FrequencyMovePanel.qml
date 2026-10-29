@@ -64,6 +64,11 @@ ColumnLayout {
     /// Which moves are moving sound now (the block's band values).
     readonly property var movingNow: Meters.frame >= 0 && Meters.live ? Meters.bandValues(panel.blockId) : []
     readonly property var picked: panel.selected >= 0 ? moves.move(panel.selected) : null
+    /// The session's rate, or 48 kHz while nothing says.
+    readonly property real sampleRate: AppShell.sampleRate > 0 ? AppShell.sampleRate : 48000
+    /// How late the block makes the sound, both ears, with its moves as they
+    /// are: Frequency Raising's grows while a move starts low.
+    readonly property real delayMs: 1000 * moves.latencySamples(panel.sampleRate) / panel.sampleRate
 
     /// The parts a test drives, as a person would.
     readonly property alias moves: moves
@@ -85,6 +90,7 @@ ColumnLayout {
     readonly property alias inputSpectrumShape: inputShape
     readonly property alias outputSpectrumShape: outputShape
     readonly property alias mapShape: mapView
+    readonly property alias delayLabel: delayText
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -968,10 +974,33 @@ ColumnLayout {
         }
     }
 
+    // --- the delay it adds ---
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.Label {
+            text: KI18n.i18nc("@label how late a Frequency Lowering or Raising block's sound is", "Delay")
+            color: AppColors.text
+            Layout.fillWidth: true
+        }
+
+        QQC2.Label {
+            id: delayText
+
+            // Worked out from the moves, so it says what the delay will be
+            // before the session runs, and changes as a move is dragged.
+            text: KI18n.i18nc("@info a delay in milliseconds, '43 ms'", "%1 ms",
+                              Number(panel.delayMs).toLocaleString(Qt.locale(), 'f', 0))
+            color: AppColors.muted
+            font.family: AppFonts.monoFamily
+        }
+    }
+
     InfoLine {
         text: moves.raises
             ? KI18n.i18nc("@info what the Frequency Raising block does",
-                          "Moves sound from a low or middle range the ear makes no use of into a higher range it hears. Copy up adds a copy two octaves or so higher; Squeeze fits the whole range into another; Add harmonics (experimental) gives each low sound its harmonics higher up, so a voice keeps its pitch. It holds its ear back by about 85 ms. Put it before any block that sets the level of each range.")
+                          "Moves sound from a low or middle range the ear makes no use of into a higher range it hears. Copy up adds a copy two octaves or so higher; Squeeze fits the whole range into another; Add harmonics (experimental) gives each low sound its harmonics higher up, so a voice keeps its pitch. It holds the sound back by about 43 ms, or 85 ms while a move starts below 250 Hz, which takes longer to tell apart. Put it before any block that sets the level of each range.")
             : KI18n.i18nc("@info what the Frequency Lowering block does",
                           "Moves sound from a range the ear makes no use of into a lower range it hears: the hiss of s, sh and f, which tells \"sit\" from \"fit\". Squeeze fits the whole range into a smaller one; Copy down adds a copy an octave or so lower. Put it before any block that sets the level of each range, so the moved sound gets the level of where it lands.")
     }

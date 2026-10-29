@@ -9,7 +9,7 @@
 // and a panel of its own; the tile's summary; the moves as chips, added and
 // taken away; the picked move's settings reaching the session; a
 // destination never dragged or slid above its source; the map's arithmetic
-// the engine's; the spectra asked for on the block's own ear, drawn while
+// the engine's; the delay it says; the spectra asked for on the block's own ear, drawn while
 // the session runs, and let go when the panel closes.
 
 import QtQuick
@@ -222,6 +222,18 @@ TestCase {
         tryVerify(() => SessionModel.param(id, "move1DestinationHigh") === 5000, 1000,
                   "the destination went above its source: " + SessionModel.param(id, "move1DestinationHigh"));
         compare(panel.dragging, "");
+    }
+
+    function test_thePanelSaysItsDelayWhichIsOneFrame() {
+        // dsp::FrequencyMover::kFrameMs: 1024 samples at 48 kHz, wherever
+        // the moves start.
+        const id = testCase.newBlock();
+        const window = testCase.openPanel(id);
+        const panel = window.panel;
+        compare(panel.delayLabel.text, "21 ms");
+        SessionModel.setParam(id, "move1SourceLow", 125);
+        compare(panel.moves.latencySamples(48000), 1024);
+        compare(panel.delayLabel.text, "21 ms");
     }
 
     function test_theEndsKeepARangeAndTheDestinationBelowItsSource() {

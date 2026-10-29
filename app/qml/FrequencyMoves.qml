@@ -36,6 +36,37 @@ QtObject {
     /// dsp::kMaxHarmonic.
     readonly property int maxHarmonic: 16
 
+    /// FrequencyRaising::kLongFrameBelowHz: a move in use whose source
+    /// starts below it gives Frequency Raising its long frame.
+    readonly property real longFrameBelowHz: 250
+    /// Whether one does, on or off, as FrequencyMoveBlock::preparedShape()
+    /// counts them. Never for a lowering, which has one frame.
+    readonly property bool longFrame: {
+        if (!moves.raises) {
+            return false;
+        }
+        for (let move = 0; move < moves.count; ++move) {
+            if (moves.value(move, "Used") === true
+                    && Math.min(moves.value(move, "SourceLow"), moves.value(move, "SourceHigh")) < moves.longFrameBelowHz) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /// The mover's frame, in milliseconds: dsp::FrequencyMover::kFrameMs
+    /// for a lowering, kMiddleFrameMs or kLowFrameMs for a raising.
+    readonly property real frameMs: !moves.raises ? 20 : (moves.longFrame ? 80 : 40)
+
+    /// How late the block makes the sound at \a rate, in samples: its
+    /// frame, the power of two dsp::FrequencyMover::prepare() takes.
+    function latencySamples(rate: real): int {
+        let size = 256;
+        while (size < moves.frameMs * rate / 1000) {
+            size *= 2;
+        }
+        return size;
+    }
+
     /// The moves in use, in slot order.
     readonly property var used: {
         const found = [];

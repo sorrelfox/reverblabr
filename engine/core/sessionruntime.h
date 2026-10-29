@@ -53,9 +53,12 @@ enum class ParamEffect : std::uint8_t {
     /// thread through the parameter queue where that is how it travels.
     Applied,
     /// The parameter is not automatable, so the session has to be planned
-    /// again — other links, other ports — before the change is audible. The
-    /// runtime cannot do that itself: the session it holds is the one it was
-    /// last given, and the value that changed is in the caller's.
+    /// again — other links, other ports — before the change is audible; or
+    /// it changed what the block has to be prepared for
+    /// (dsp::Block::preparedShape()), so the block has to be prepared again
+    /// and the graph lined up with its new latency. The runtime cannot do
+    /// that itself: the session it holds is the one it was last given, and
+    /// the value that changed is in the caller's.
     NeedsReplan,
 };
 

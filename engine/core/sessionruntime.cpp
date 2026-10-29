@@ -218,6 +218,9 @@ public:
             dsp::ChannelLayout captureLayout;
             dsp::ChannelLayout microphoneLayout;
             dsp::ChannelLayout deviceLayout;
+            /// What the block's settings said it had to be prepared for
+            /// (dsp::Block::preparedShape()).
+            std::uint32_t shape = 0;
 
             [[nodiscard]] bool operator==(const PreparedFor &other) const = default;
         };
@@ -237,7 +240,7 @@ public:
         /// What this block would have to be prepared for now.
         [[nodiscard]] PreparedFor wants(double rate) const
         {
-            return PreparedFor{rate, captureLayout, microphoneLayout, deviceLayout};
+            return PreparedFor{rate, captureLayout, microphoneLayout, deviceLayout, block->preparedShape()};
         }
     };
 
@@ -322,6 +325,10 @@ public:
     /// exactly the same reason as `retiring`: the live graph still points at
     /// them until it has been swapped.
     std::vector<std::unique_ptr<dsp::Block>> retiringBlocks;
+    /// The blocks the last prepareBlocks() replaced with fresh ones, by id:
+    /// what the update after it has to let fill before their lanes come
+    /// back (pw::SessionUpdate::refilled).
+    QSet<QString> madeAfresh;
     Session session;
     /// What each source block is capturing and each output block is sending
     /// to, as it was last worked out.
@@ -1143,6 +1150,7 @@ public:
     /// recompile exists to preserve.
     [[nodiscard]] std::expected<void, RuntimeError> prepareBlocks()
     {
+        madeAfresh.clear();
         for (Instance &instance : instances) {
             const Instance::PreparedFor wanted = instance.wants(sampleRate);
             if (instance.preparedFor == wanted) {
@@ -1165,6 +1173,7 @@ public:
                 }
                 retiringBlocks.push_back(std::move(instance.block));
                 instance.block = std::move(*fresh);
+                madeAfresh.insert(instance.id);
             }
 
             dsp::PrepareSpec prepare;
@@ -1683,6 +1692,10 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
             if (!toggled.contains(blockId)) {
                 edit.changedBlocks.append(blockId);
             }
+            // **A block made afresh starts empty**: its lanes wait until
+            // it has been fed its latency, or the sound would come back
+            // with a step where its silence ends.
+            edit.refilled = edit.refilled || d->madeAfresh.contains(blockId);
         }
         if (!d->segments[segment].node->update(std::move(edit))) {
             return std::unexpected(RuntimeError::NotCompilable);
@@ -1775,6 +1788,17 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
         return ParamEffect::NeedsReplan;
     }
 
+    // **A setting that changes what the block must be prepared for** —
+    // Frequency Raising's lowest move crossing the line to its long frame
+    // — goes to the block as any other does, and then the block is
+    // prepared again and the graph worked out around its new latency
+    // (ADR-0022). Asked only of a block the running graph has: one that has
+    // never been prepared is prepared for what it says when it is.
+    const ParamEffect effect = d->running && instance->preparedFor.has_value()
+            && instance->block->preparedShape() != instance->preparedFor->shape
+        ? ParamEffect::NeedsReplan
+        : ParamEffect::Applied;
+
     // **A number reaches the audio thread through the queue**, so it takes
     // effect in the next cycle and the block smooths it; nothing is
     // recompiled for a knob being turned. A value that is not a number is
@@ -1786,7 +1810,7 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     // block from this thread alone arrives before any of them.
     const std::optional<double> number = audioNumber(*descriptor, *parsed);
     if (!d->running || !number) {
-        return ParamEffect::Applied;
+        return effect;
     }
     const auto index = static_cast<std::uint32_t>(std::distance(params.begin(), descriptor));
     // **A plugin's parameter goes to its host**, through the ring the host's
@@ -1796,18 +1820,18 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
         if (const auto host = d->hosts.find(blockId); host != d->hosts.end() && hostIndex) {
             (void)host->second.process->setParam(*hostIndex, static_cast<float>(*number));
         }
-        return ParamEffect::Applied;
+        return effect;
     }
     pw::SessionNode *node = d->nodeOfBlock(blockId);
     if (node == nullptr) {
-        return ParamEffect::Applied;
+        return effect;
     }
     pw::ParamChange change;
     change.target = static_cast<std::uint32_t>(slot);
     change.index = index;
     change.value = static_cast<float>(*number);
     (void)node->queueParam(change);
-    return ParamEffect::Applied;
+    return effect;
 }
 
 std::expected<void, QString> SessionRuntime::controlRecording(const QString &blockId, const QString &action)

@@ -144,8 +144,25 @@ public:
 
     /// Gets ready for the given rate and cycle length, allocating whatever it
     /// needs. Not real-time; called before the graph goes live and again when
-    /// the rate changes.
+    /// the rate changes, or what preparedShape() says.
     [[nodiscard]] virtual std::expected<void, BlockError> prepare(const PrepareSpec &spec) = 0;
+
+    /// **What its settings say it has to be prepared for**, beyond the rate
+    /// and its channels: a number that stands for a choice prepare() makes
+    /// from them, about the memory the block holds and the latency it
+    /// reports. Frequency Raising's frame is one. Zero, which never changes,
+    /// for nearly every block.
+    ///
+    /// The runtime asks after every setting it hands the block, and when the
+    /// answer is not what the block was last prepared for it prepares a
+    /// fresh one with the same settings and works the graph out again around
+    /// its latency (ADR-0022). So it must follow from the settings alone, and
+    /// a setting that moves it should do so seldom: a move dragged past a
+    /// threshold, not every value of a knob. Off the audio thread.
+    [[nodiscard]] virtual std::uint32_t preparedShape() const
+    {
+        return 0;
+    }
 
     /// One cycle. Real-time: no allocation, no locks, no system calls.
     virtual void process(ProcessContext &context) noexcept RB_NONBLOCKING = 0;

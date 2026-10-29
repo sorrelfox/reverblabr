@@ -78,7 +78,7 @@ Some ears hear the low range faintly or not at all, while the higher range is fi
    - **Add harmonics** is experimental. Moving a voice up raises its pitch. This leaves the voice where it is and adds its harmonics (twice its frequency, three times, and so on) wherever they fall in the destination. The ear takes the pitch from the harmonics, so the voice still sounds like itself. Not much is known about how well this helps, so trust your ears.
 4. **Acts: On low sounds** moves sound only while the low range is louder than everything above it, such as a voice or a hum. **Always** moves everything in the range.
 
-Frequency Raising needs a longer stretch of sound to tell low sounds apart, so it delays its ear by about 85 ms. That's enough to notice with video (lips move before you hear the voice), so it's better kept for listening.
+Frequency Raising needs a longer stretch of sound to tell low sounds apart, so it delays its ear by as much as its lowest move needs: about **43 ms** while every move starts at 250 Hz or above, and about **85 ms** once a move starts lower. A move switched off still counts, so switching it on and off to compare doesn't move the ear in time; take it out of the list to stop it counting. The panel's **Delay** says which it is. When a move crosses 250 Hz while the session runs, the lane fades out, stays quiet for about as long as the new delay, and fades back in: a short gap, not a click. Even 43 ms is enough to notice with video (lips move before you hear the voice), so it's better kept for listening.
 
 ### A dip in the middle
 

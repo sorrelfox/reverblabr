@@ -84,12 +84,14 @@ bool SessionProcessor::queueParam(const ParamChange &change) noexcept
     return m_params.tryPush(change);
 }
 
-std::uint32_t SessionProcessor::requestFade(std::uint32_t lanes, float target, std::uint32_t frames)
+std::uint32_t
+SessionProcessor::requestFade(std::uint32_t lanes, float target, std::uint32_t frames, std::uint32_t holdFrames)
 {
     FadeRequest request;
     request.lanes = lanes;
     request.target = target;
     request.frames = frames;
+    request.holdFrames = holdFrames;
     // Never 0: that is what the audio thread reports before anything has
     // been asked of it.
     request.sequence = ++m_fadeSequence;
@@ -180,6 +182,7 @@ void SessionProcessor::process(const CycleInfo &cycle) noexcept RB_NONBLOCKING
     if (m_fade.tryLoad(asked) && asked.sequence != m_activeFade.sequence && asked.sequence != 0) {
         m_activeFade = asked;
         m_fadeRemaining = asked.frames;
+        m_holdRemaining = asked.frames > 0 ? asked.holdFrames : 0;
         if (live != nullptr && asked.frames == 0) {
             for (SessionPort &port : live->outputs) {
                 if ((asked.lanes & (1U << port.lane)) != 0) {
@@ -267,12 +270,17 @@ void SessionProcessor::process(const CycleInfo &cycle) noexcept RB_NONBLOCKING
         }
     }
 
+    // **A ramp may wait first**, holding the lanes where they are: the
+    // part of this cycle before it begins, then the part it ramps for.
+    const std::uint32_t holding = m_fadeRemaining > 0 ? std::min(cycle.frames, m_holdRemaining) : 0;
+    const std::uint32_t rampingNow = m_fadeRemaining > 0 ? std::min(cycle.frames - holding, m_fadeRemaining) : 0;
     for (SessionPort &port : live->outputs) {
         const bool fading = m_fadeRemaining > 0 && (m_activeFade.lanes & (1U << port.lane)) != 0;
         // A ramp that ends inside this cycle ramps for part of it and holds
         // the target for the rest. Stepping on past the target would send
         // the lane out the other side, which is a click of its own.
-        const std::uint32_t ramping = fading ? std::min(cycle.frames, m_fadeRemaining) : 0;
+        const std::uint32_t held = fading ? holding : 0;
+        const std::uint32_t ramping = fading ? rampingNow : 0;
         const float step = ramping > 0 ? (m_activeFade.target - port.gain) / static_cast<float>(m_fadeRemaining) : 0.0f;
 
         if (port.buffer != nullptr) {
@@ -284,19 +292,22 @@ void SessionProcessor::process(const CycleInfo &cycle) noexcept RB_NONBLOCKING
             // the last user of the memory left there.
             if (from.size() < cycle.frames) {
                 std::fill_n(port.buffer, cycle.frames, 0.0f);
-            } else if (ramping == 0 && port.gain >= 1.0f) {
+            } else if (ramping == 0 && held == 0 && port.gain >= 1.0f) {
                 // The ordinary case, and the one an edit must not disturb:
                 // the lane is copied sample for sample.
                 std::copy_n(from.data(), cycle.frames, port.buffer);
             } else {
+                for (std::uint32_t frame = 0; frame < held; ++frame) {
+                    port.buffer[frame] = from[frame] * port.gain;
+                }
                 float gain = port.gain;
-                for (std::uint32_t frame = 0; frame < ramping; ++frame) {
+                for (std::uint32_t frame = held; frame < held + ramping; ++frame) {
                     port.buffer[frame] = from[frame] * gain;
                     gain += step;
                 }
-                const float held = ramping > 0 ? m_activeFade.target : port.gain;
-                for (std::uint32_t frame = ramping; frame < cycle.frames; ++frame) {
-                    port.buffer[frame] = from[frame] * held;
+                const float after = ramping > 0 ? m_activeFade.target : port.gain;
+                for (std::uint32_t frame = held + ramping; frame < cycle.frames; ++frame) {
+                    port.buffer[frame] = from[frame] * after;
                 }
             }
         }
@@ -304,12 +315,13 @@ void SessionProcessor::process(const CycleInfo &cycle) noexcept RB_NONBLOCKING
         // A ramp runs its course whether or not anything is linked to the
         // lane, or the lane would come back at the wrong gain.
         if (fading) {
-            port.gain = rampedGain(port.gain, m_activeFade.target, m_fadeRemaining, cycle.frames);
+            port.gain = rampedGain(port.gain, m_activeFade.target, m_fadeRemaining, ramping);
         }
     }
 
     if (m_fadeRemaining > 0) {
-        m_fadeRemaining = cycle.frames >= m_fadeRemaining ? 0 : m_fadeRemaining - cycle.frames;
+        m_holdRemaining -= holding;
+        m_fadeRemaining -= rampingNow;
         if (m_fadeRemaining == 0) {
             // Land exactly on the target rather than wherever the arithmetic
             // got to, and say the ramp is over.

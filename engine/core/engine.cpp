@@ -978,6 +978,9 @@ void Engine::setParam(const QString &sessionId,
         // number the block can take through its queue; a device, a checkbox
         // or a name typed in arrives once, when the choice is made. The
         // catalogue says which is which, so an interface can tell too.
+        // **The one exception is a number that changes what its block is
+        // prepared for**, Frequency Raising's lowest move: that replans
+        // when a drag crosses the line, not on every value of it.
         d->refresh(*session);
     }
 }

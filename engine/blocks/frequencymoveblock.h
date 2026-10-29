@@ -51,6 +51,12 @@ struct FrequencyMoveKind {
     bool raises = false;
     /// The mover's frame, dsp::FrequencyMover::prepare().
     double frameMs = dsp::FrequencyMover::kFrameMs;
+    /// **A longer frame for a move that starts low**, or 0 for one frame
+    /// whatever the moves: the frame a move whose source reaches below
+    /// longFrameBelowHz needs to be told apart. The block takes it only
+    /// while such a move is in use, and its latency follows.
+    double longFrameMs = 0.0;
+    float longFrameBelowHz = 0.0f;
 };
 
 /// Moves sound out of ranges one ear cannot use into ranges it hears, for
@@ -67,6 +73,10 @@ struct FrequencyMoveKind {
 /// order does not matter.
 ///
 /// **Latency:** the mover's frame, reported; the other ear waits as long.
+/// For a kind with a long frame, the frame its lowest move needs: which one
+/// is preparedShape(), so the runtime prepares the block again when a move
+/// crosses the line, and the latency follows (ADR-0022). Until it is
+/// prepared again it keeps the frame it has.
 ///
 /// **What it publishes.** kActingValue is a bit a move for each move acting
 /// on the last frame, for the tile and the panel. While its panel is open it
@@ -134,6 +144,9 @@ public:
     }
 
     [[nodiscard]] std::expected<void, dsp::BlockError> prepare(const dsp::PrepareSpec &spec) override;
+    /// 1 while a move in use starts below the kind's longFrameBelowHz, so it
+    /// needs the long frame; otherwise 0.
+    [[nodiscard]] std::uint32_t preparedShape() const override;
     void process(dsp::ProcessContext &context) noexcept RB_NONBLOCKING override;
     void reset() noexcept RB_NONBLOCKING override;
     void applyParam(std::uint32_t index, float value) noexcept RB_NONBLOCKING override;
@@ -143,6 +156,10 @@ public:
     [[nodiscard]] dsp::ParamValue param(std::string_view id) const override;
     [[nodiscard]] dsp::ParamValueMap saveState() const override;
     [[nodiscard]] std::expected<void, dsp::BlockError> loadState(const dsp::ParamValueMap &state) override;
+
+    /// The frame the mover would be prepared with now, in milliseconds: the
+    /// kind's, or its long one while preparedShape() asks for it.
+    [[nodiscard]] double frameMs() const;
 
     /// Move \a move as the settings have it, for the mover and for a test.
     [[nodiscard]] dsp::FrequencyMove moveSettings(std::size_t move) const noexcept RB_NONBLOCKING;

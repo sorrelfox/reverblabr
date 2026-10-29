@@ -32,3 +32,4 @@ Start a new record from [the template](template.md).
 | [0019](0019-hearing-filterbank.md) | One 64-channel gammatone filterbank for both Hearing Compensation blocks, 4 ms, with the 16 bands' gains interpolated over it | Accepted, amended when Hearing Compensation 16 was built |
 | [0020](0020-public-dbus-api.md) | The engine's interface is the public API: `io.github.reverblabr.Engine1`, only ever added to, its released surface pinned and documented | Accepted |
 | [0021](0021-auto-run.md) | Auto Run is a session setting; the background engine starts those sessions, and keeps its unit enabled while there are any | Accepted |
+| [0022](0022-latency-that-follows-a-setting.md) | A block's settings may say what it is prepared for; the runtime prepares a fresh block when they change, and its lanes wait until it is filled | Accepted |

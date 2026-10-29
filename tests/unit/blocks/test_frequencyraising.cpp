@@ -12,8 +12,12 @@
 // of a dip in the middle each land where they are sent; a destination
 // below its source does nothing; a setting changed while it plays makes no
 // click; it runs the same at any cycle length, allocates nothing, and a
-// minute of four moves costs little. The moving itself is
-// dsp::FrequencyMover's, measured in tests/unit/dsp/test_frequencymove.cpp.
+// minute of four moves costs little. All of that at both of its frames: the
+// middle one while every move starts at 250 Hz or above, the long one once
+// a move starts lower, which is what its latency follows. The moving itself
+// is dsp::FrequencyMover's, measured in tests/unit/dsp/test_frequencymove.cpp;
+// the change from one frame to the other, which the runtime makes, in
+// tests/unit/pw/test_sessionprocessor.cpp and tests/pw.
 
 #include "allocationtrap.h"
 #include "analysis.h"
@@ -29,6 +33,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <complex>
@@ -91,6 +96,40 @@ void set(FrequencyMoveBlock &block, std::string_view id, const ParamValue &value
     ASSERT_TRUE(block.setParam(id, value).has_value()) << id;
 }
 
+/// Which of the block's frames a test runs it at.
+enum class Frame : std::uint8_t {
+    Middle,
+    Long,
+};
+
+[[nodiscard]] const char *nameOf(Frame frame)
+{
+    return frame == Frame::Middle ? "middle frame" : "long frame";
+}
+
+/// The latency each frame has at 48 kHz.
+[[nodiscard]] std::uint32_t latencyOf(Frame frame)
+{
+    return frame == Frame::Middle ? 2048U : 4096U;
+}
+
+/// Gives \a block the long frame, if \a frame asks for it, without changing
+/// what it does: a fourth move in use from 125 Hz, switched off. A move
+/// switched off still counts, so that switching it on and off does not move
+/// the other ear in time.
+void atFrame(FrequencyMoveBlock &block, Frame frame)
+{
+    if (frame == Frame::Long) {
+        set(block, "move4Used", ParamValue::ofBool(true));
+        set(block, "move4On", ParamValue::ofBool(false));
+        set(block, "move4SourceLow", ParamValue::ofFloat(125.0f));
+        set(block, "move4SourceHigh", ParamValue::ofFloat(250.0f));
+    }
+    ASSERT_EQ(block.preparedShape(), frame == Frame::Long ? 1U : 0U);
+}
+
+constexpr std::array<Frame, 2> kFrames{Frame::Middle, Frame::Long};
+
 /// \a input on both ears through \a block, at cycles of 256.
 [[nodiscard]] MultiSignal through(FrequencyMoveBlock &block, const Signal &input)
 {
@@ -130,48 +169,100 @@ TEST(FrequencyRaising, ItIsAHearingBlockThatStartsByCopyingTheLowsTwoOctavesUp)
 
 TEST(FrequencyRaising, ALowToneIsCopiedTwoOctavesUpOnItsEarAndTheOtherPassesUntouchedAndLinedUp)
 {
-    for (const char *ear : {"left", "right"}) {
-        for (const float levelDb : {0.0f, -6.0f}) {
-            FrequencyRaising block;
-            set(block, "ear", ParamValue::ofEnum(ear));
-            set(block, "move1Level", ParamValue::ofFloat(levelDb));
-            const Signal tone = sine(3 * kSecond, 300.0, kTestSampleRate, 0.5f);
-            const MultiSignal output = through(block, tone);
-            const std::uint32_t latency = block.info().latencySamples;
-            EXPECT_EQ(latency, 4096U) << "a frame of at least 80 ms at 48 kHz";
-            const std::size_t moved = std::string_view(ear) == "left" ? 0 : 1;
-            const std::size_t other = 1 - moved;
+    for (const Frame frame : kFrames) {
+        for (const char *ear : {"left", "right"}) {
+            for (const float levelDb : {0.0f, -6.0f}) {
+                FrequencyRaising block;
+                atFrame(block, frame);
+                set(block, "ear", ParamValue::ofEnum(ear));
+                set(block, "move1Level", ParamValue::ofFloat(levelDb));
+                const Signal tone = sine(3 * kSecond, 300.0, kTestSampleRate, 0.5f);
+                const MultiSignal output = through(block, tone);
+                const std::uint32_t latency = block.info().latencySamples;
+                EXPECT_EQ(latency, latencyOf(frame)) << nameOf(frame);
+                const std::size_t moved = std::string_view(ear) == "left" ? 0 : 1;
+                const std::size_t other = 1 - moved;
 
-            const float copy = gainToDb(amplitudeAt(settled(output[moved]), 1200.0) / 0.5f);
-            const float original = gainToDb(amplitudeAt(settled(output[moved]), 300.0) / 0.5f);
-            std::printf("[measure] %s ear, 300 Hz two octaves up at %+.0f dB: %+.2f dB at 1.2 kHz, %+.2f at 300 Hz\n",
-                        ear,
-                        levelDb,
-                        copy,
-                        original);
-            EXPECT_NEAR(copy, levelDb, 1.0f) << ear;
-            EXPECT_NEAR(original, 0.0f, 0.5f) << ear;
+                const float copy = gainToDb(amplitudeAt(settled(output[moved]), 1200.0) / 0.5f);
+                const float original = gainToDb(amplitudeAt(settled(output[moved]), 300.0) / 0.5f);
+                std::printf(
+                    "[measure] %s, %s ear, 300 Hz two octaves up at %+.0f dB: %+.2f dB at 1.2 kHz, %+.2f at 300 Hz\n",
+                    nameOf(frame),
+                    ear,
+                    levelDb,
+                    copy,
+                    original);
+                EXPECT_NEAR(copy, levelDb, 1.0f) << nameOf(frame) << ", " << ear;
+                EXPECT_NEAR(original, 0.0f, 0.5f) << nameOf(frame) << ", " << ear;
 
-            const std::span<const float> late = std::span<const float>(output[other]).subspan(latency);
-            const std::span<const float> early = std::span<const float>(tone).first(tone.size() - latency);
-            EXPECT_LT(nullTestDb(late, early), -100.0f) << ear;
+                const std::span<const float> late = std::span<const float>(output[other]).subspan(latency);
+                const std::span<const float> early = std::span<const float>(tone).first(tone.size() - latency);
+                EXPECT_LT(nullTestDb(late, early), -100.0f) << nameOf(frame) << ", " << ear;
+            }
         }
-    }
 
-    // An impulse on the side passed through comes out as late as the block
-    // says.
+        // An impulse on the side passed through comes out as late as the
+        // block says.
+        FrequencyRaising block;
+        atFrame(block, frame);
+        BlockRunner runner(block, 2, 2);
+        ASSERT_TRUE(runner.prepare().has_value());
+        const Signal click = impulse(4 * 4096, 100, 0.5f);
+        const MultiSignal output = runner.run({silence(click.size()), click}, CycleShape::random(16, 512, 2));
+        const std::optional<int> measured = latencySamples(click, output[1], 8192);
+        ASSERT_TRUE(measured.has_value());
+        EXPECT_EQ(*measured, static_cast<int>(block.info().latencySamples)) << nameOf(frame);
+    }
+}
+
+TEST(FrequencyRaising, ItsFrameIsTheOneItsLowestMoveInUseNeeds)
+{
+    // Its first move starts at 250 Hz: the middle frame.
     FrequencyRaising block;
-    BlockRunner runner(block, 2, 2);
-    ASSERT_TRUE(runner.prepare().has_value());
-    const Signal click = impulse(4 * 4096, 100, 0.5f);
-    const MultiSignal output = runner.run({silence(click.size()), click}, CycleShape::random(16, 512, 2));
-    const std::optional<int> measured = latencySamples(click, output[1], 8192);
-    ASSERT_TRUE(measured.has_value());
-    EXPECT_EQ(*measured, static_cast<int>(block.info().latencySamples));
+    EXPECT_EQ(block.preparedShape(), 0U);
+    EXPECT_EQ(block.frameMs(), FrequencyMover::kMiddleFrameMs);
+    ASSERT_TRUE(block.prepare(PrepareSpec{}).has_value());
+    EXPECT_EQ(block.info().latencySamples, 2048U) << "a frame of at least 40 ms at 48 kHz";
+
+    // Its third move starts at 125 Hz, and is not in use: it does not count.
+    EXPECT_EQ(block.param("move3SourceLow"), ParamValue::ofFloat(125.0f));
+    EXPECT_EQ(block.preparedShape(), 0U);
+
+    // The first move taken down to 125 Hz: the long frame, once prepared.
+    set(block, "move1SourceLow", ParamValue::ofFloat(125.0f));
+    EXPECT_EQ(block.preparedShape(), 1U);
+    EXPECT_EQ(block.info().latencySamples, 2048U) << "the latency changes only when it is prepared";
+    ASSERT_TRUE(block.prepare(PrepareSpec{}).has_value());
+    EXPECT_EQ(block.info().latencySamples, 4096U) << "a frame of at least 80 ms at 48 kHz";
+
+    // Switched off, it still counts; a range upside down is the same range.
+    set(block, "move1On", ParamValue::ofBool(false));
+    EXPECT_EQ(block.preparedShape(), 1U);
+    set(block, "move1SourceLow", ParamValue::ofFloat(500.0f));
+    set(block, "move1SourceHigh", ParamValue::ofFloat(200.0f));
+    EXPECT_EQ(block.preparedShape(), 1U);
+
+    // Back at 250 Hz exactly: the middle frame again.
+    set(block, "move1SourceHigh", ParamValue::ofFloat(250.0f));
+    EXPECT_EQ(block.preparedShape(), 0U);
+    ASSERT_TRUE(block.prepare(PrepareSpec{}).has_value());
+    EXPECT_EQ(block.info().latencySamples, 2048U);
+
+    // Taken out of use, a low move stops counting.
+    set(block, "move3Used", ParamValue::ofBool(true));
+    EXPECT_EQ(block.preparedShape(), 1U);
+    set(block, "move3Used", ParamValue::ofBool(false));
+    EXPECT_EQ(block.preparedShape(), 0U);
+
+    // Frequency Lowering has one frame, wherever its moves are.
+    FrequencyLowering lowering;
+    set(lowering, "move1SourceLow", ParamValue::ofFloat(125.0f));
+    EXPECT_EQ(lowering.preparedShape(), 0U);
 }
 
 TEST(FrequencyRaising, HarmonicsGiveALowToneItsSecondToFourthInTheDestinationAndNothingBelowIt)
 {
+    // A 100 Hz tone needs the long frame, which a move from 80 Hz takes.
     FrequencyRaising block;
     set(block, "move1Method", ParamValue::ofEnum("harmonics"));
     set(block, "move1SourceLow", ParamValue::ofFloat(80.0f));
@@ -195,57 +286,87 @@ TEST(FrequencyRaising, HarmonicsGiveALowToneItsSecondToFourthInTheDestinationAnd
     EXPECT_LT(gainToDb(amplitudeAt(settled(output[0]), 500.0) / 0.5f), -60.0f);
 }
 
+TEST(FrequencyRaising, HarmonicsAtTheMiddleFrameGiveAToneFrom250HzItsHarmonics)
+{
+    // The same at the middle frame, which a move from 250 Hz up keeps: a
+    // 300 Hz tone's second to fourth harmonics.
+    FrequencyRaising block;
+    set(block, "move1Method", ParamValue::ofEnum("harmonics"));
+    set(block, "move1SourceLow", ParamValue::ofFloat(250.0f));
+    set(block, "move1SourceHigh", ParamValue::ofFloat(500.0f));
+    set(block, "move1DestinationLow", ParamValue::ofFloat(550.0f));
+    set(block, "move1DestinationHigh", ParamValue::ofFloat(1300.0f));
+    set(block, "move1Level", ParamValue::ofFloat(-6.0f));
+    set(block, "movedOnly", ParamValue::ofBool(true));
+    atFrame(block, Frame::Middle);
+
+    const Signal tone = sine(3 * kSecond, 300.0, kTestSampleRate, 0.5f);
+    const MultiSignal output = through(block, tone);
+    EXPECT_EQ(block.info().latencySamples, 2048U);
+    for (const double hz : {600.0, 900.0, 1200.0}) {
+        const float at = gainToDb(amplitudeAt(settled(output[0]), hz) / 0.5f);
+        std::printf("[measure] middle frame, 300 Hz's harmonic at %.0f Hz set to -6 dB: %+.2f dB\n", hz, at);
+        EXPECT_NEAR(at, -6.0f, 1.0f) << hz << " Hz";
+    }
+    EXPECT_LT(gainToDb(amplitudeAt(settled(output[0]), 300.0) / 0.5f), -60.0f);
+    EXPECT_LT(gainToDb(amplitudeAt(settled(output[0]), 1500.0) / 0.5f), -60.0f);
+}
+
 TEST(FrequencyRaising, WithFrequencyLoweringInSeriesBothHalvesOfADipLandWhereTheyAreSent)
 {
     // A dip in the middle, 1-4 kHz: Lowering squeezes its lower half,
     // 1-2 kHz, down into 500-1000 Hz; Raising squeezes its upper half,
     // 2-4 kHz, up into 4-8 kHz. Both empty what they move.
-    FrequencyLowering lowering;
-    set(lowering, "move1SourceLow", ParamValue::ofFloat(1000.0f));
-    set(lowering, "move1SourceHigh", ParamValue::ofFloat(2000.0f));
-    set(lowering, "move1DestinationLow", ParamValue::ofFloat(500.0f));
-    set(lowering, "move1DestinationHigh", ParamValue::ofFloat(1000.0f));
-    FrequencyRaising raising;
-    set(raising, "move1Method", ParamValue::ofEnum("compress"));
-    set(raising, "move1Source", ParamValue::ofEnum("remove"));
-    set(raising, "move1SourceLow", ParamValue::ofFloat(2000.0f));
-    set(raising, "move1SourceHigh", ParamValue::ofFloat(4000.0f));
-    set(raising, "move1DestinationLow", ParamValue::ofFloat(4000.0f));
-    set(raising, "move1DestinationHigh", ParamValue::ofFloat(8000.0f));
+    for (const Frame frame : kFrames) {
+        FrequencyLowering lowering;
+        set(lowering, "move1SourceLow", ParamValue::ofFloat(1000.0f));
+        set(lowering, "move1SourceHigh", ParamValue::ofFloat(2000.0f));
+        set(lowering, "move1DestinationLow", ParamValue::ofFloat(500.0f));
+        set(lowering, "move1DestinationHigh", ParamValue::ofFloat(1000.0f));
+        FrequencyRaising raising;
+        set(raising, "move1Method", ParamValue::ofEnum("compress"));
+        set(raising, "move1Source", ParamValue::ofEnum("remove"));
+        set(raising, "move1SourceLow", ParamValue::ofFloat(2000.0f));
+        set(raising, "move1SourceHigh", ParamValue::ofFloat(4000.0f));
+        set(raising, "move1DestinationLow", ParamValue::ofFloat(4000.0f));
+        set(raising, "move1DestinationHigh", ParamValue::ofFloat(8000.0f));
+        atFrame(raising, frame);
 
-    Signal both = sine(3 * kSecond, 1500.0, kTestSampleRate, 0.25f);
-    const Signal upper = sine(3 * kSecond, 3000.0, kTestSampleRate, 0.25f);
-    for (std::size_t n = 0; n < both.size(); ++n) {
-        both[n] += upper[n];
+        Signal both = sine(3 * kSecond, 1500.0, kTestSampleRate, 0.25f);
+        const Signal upper = sine(3 * kSecond, 3000.0, kTestSampleRate, 0.25f);
+        for (std::size_t n = 0; n < both.size(); ++n) {
+            both[n] += upper[n];
+        }
+        const MultiSignal lowered = through(lowering, both);
+        BlockRunner second(raising, 2, 2);
+        ASSERT_TRUE(second.prepare().has_value());
+        const MultiSignal output = second.run(lowered, CycleShape::fixed(256));
+
+        const double down = carriedTo(lowering.moveSettings(0), 1500.0);
+        const double up = carriedTo(raising.moveSettings(0), 3000.0);
+        const float downDb = gainToDb(amplitudeAt(settled(output[0]), down) / 0.25f);
+        const float upDb = gainToDb(amplitudeAt(settled(output[0]), up) / 0.25f);
+        const float leftAt1500 = gainToDb(amplitudeAt(settled(output[0]), 1500.0) / 0.25f);
+        const float leftAt3000 = gainToDb(amplitudeAt(settled(output[0]), 3000.0) / 0.25f);
+        std::printf(
+            "[measure] %s, a dip's two halves: 1.5 kHz to %.0f Hz at %+.2f dB, 3 kHz to %.0f Hz at %+.2f dB; left "
+            "behind %.1f and %.1f dB\n",
+            nameOf(frame),
+            down,
+            downDb,
+            up,
+            upDb,
+            leftAt1500,
+            leftAt3000);
+        // Evenly in octaves: 1.5 kHz is as far up its octave as 750 Hz and
+        // 6 kHz are up theirs.
+        EXPECT_NEAR(down, 750.0, 1.0);
+        EXPECT_NEAR(up, 6000.0, 1.0);
+        EXPECT_NEAR(downDb, 0.0f, 1.5f);
+        EXPECT_NEAR(upDb, 0.0f, 1.5f);
+        EXPECT_LT(leftAt1500, -40.0f);
+        EXPECT_LT(leftAt3000, -40.0f);
     }
-    const MultiSignal lowered = through(lowering, both);
-    BlockRunner second(raising, 2, 2);
-    ASSERT_TRUE(second.prepare().has_value());
-    const MultiSignal output = second.run(lowered, CycleShape::fixed(256));
-
-    const double down = carriedTo(lowering.moveSettings(0), 1500.0);
-    const double up = carriedTo(raising.moveSettings(0), 3000.0);
-    const float downDb = gainToDb(amplitudeAt(settled(output[0]), down) / 0.25f);
-    const float upDb = gainToDb(amplitudeAt(settled(output[0]), up) / 0.25f);
-    const float leftAt1500 = gainToDb(amplitudeAt(settled(output[0]), 1500.0) / 0.25f);
-    const float leftAt3000 = gainToDb(amplitudeAt(settled(output[0]), 3000.0) / 0.25f);
-    std::printf(
-        "[measure] a dip's two halves: 1.5 kHz to %.0f Hz at %+.2f dB, 3 kHz to %.0f Hz at %+.2f dB; left "
-        "behind %.1f and %.1f dB\n",
-        down,
-        downDb,
-        up,
-        upDb,
-        leftAt1500,
-        leftAt3000);
-    // Evenly in octaves: 1.5 kHz is as far up its octave as 750 Hz and
-    // 6 kHz are up theirs.
-    EXPECT_NEAR(down, 750.0, 1.0);
-    EXPECT_NEAR(up, 6000.0, 1.0);
-    EXPECT_NEAR(downDb, 0.0f, 1.5f);
-    EXPECT_NEAR(upDb, 0.0f, 1.5f);
-    EXPECT_LT(leftAt1500, -40.0f);
-    EXPECT_LT(leftAt3000, -40.0f);
 }
 
 TEST(FrequencyRaising, ARangeUpsideDownIsTheSameRangeAndADestinationBelowItsSourceDoesNothing)
@@ -325,38 +446,43 @@ TEST(FrequencyRaising, SettingsChangedWhileItPlaysMakeNoClickOnEitherEar)
     // moved, the move made Harmonics, switched off, and the block moved to
     // the other ear. Nothing it makes reaches 10 kHz, so a click is
     // whatever shows there round a change.
-    FrequencyRaising block;
-    BlockRunner runner(block, 2, 2);
-    ASSERT_TRUE(runner.prepare().has_value());
-    const Signal tone = sine(kSecond, 300.0, kTestSampleRate, 0.5f);
-    Signal left;
-    Signal right;
-    const auto play = [&] {
-        const MultiSignal output = runner.run({tone, tone}, CycleShape::fixed(256));
-        left.insert(left.end(), output[0].begin(), output[0].end());
-        right.insert(right.end(), output[1].begin(), output[1].end());
-    };
-    play();
-    set(block, "move1DestinationLow", ParamValue::ofFloat(800.0f));
-    play();
-    set(block, "move1Method", ParamValue::ofEnum("harmonics"));
-    play();
-    set(block, "move1On", ParamValue::ofBool(false));
-    play();
-    set(block, "ear", ParamValue::ofEnum("right"));
-    play();
+    for (const Frame frame : kFrames) {
+        FrequencyRaising block;
+        atFrame(block, frame);
+        BlockRunner runner(block, 2, 2);
+        ASSERT_TRUE(runner.prepare().has_value());
+        const Signal tone = sine(kSecond, 300.0, kTestSampleRate, 0.5f);
+        Signal left;
+        Signal right;
+        const auto play = [&] {
+            const MultiSignal output = runner.run({tone, tone}, CycleShape::fixed(256));
+            left.insert(left.end(), output[0].begin(), output[0].end());
+            right.insert(right.end(), output[1].begin(), output[1].end());
+        };
+        play();
+        set(block, "move1DestinationLow", ParamValue::ofFloat(800.0f));
+        play();
+        set(block, "move1Method", ParamValue::ofEnum("harmonics"));
+        play();
+        set(block, "move1On", ParamValue::ofBool(false));
+        play();
+        set(block, "ear", ParamValue::ofEnum("right"));
+        play();
 
-    const std::uint32_t latency = block.info().latencySamples;
-    for (std::size_t change = 1; change < 5; ++change) {
-        const std::size_t from = change * kSecond - 2048;
-        const float leftHigh = aboveDb(std::span<const float>(left).subspan(from, 4096 + latency), 10000.0);
-        const float rightHigh = aboveDb(std::span<const float>(right).subspan(from, 4096 + latency), 10000.0);
-        std::printf("[measure] change %zu while a 300 Hz tone plays: above 10 kHz %.1f dB left, %.1f dB right\n",
-                    change,
-                    leftHigh,
-                    rightHigh);
-        EXPECT_LT(leftHigh, -80.0f) << change;
-        EXPECT_LT(rightHigh, -80.0f) << change;
+        const std::uint32_t latency = block.info().latencySamples;
+        for (std::size_t change = 1; change < 5; ++change) {
+            const std::size_t from = change * kSecond - 2048;
+            const float leftHigh = aboveDb(std::span<const float>(left).subspan(from, 4096 + latency), 10000.0);
+            const float rightHigh = aboveDb(std::span<const float>(right).subspan(from, 4096 + latency), 10000.0);
+            std::printf(
+                "[measure] %s, change %zu while a 300 Hz tone plays: above 10 kHz %.1f dB left, %.1f dB right\n",
+                nameOf(frame),
+                change,
+                leftHigh,
+                rightHigh);
+            EXPECT_LT(leftHigh, -80.0f) << nameOf(frame) << ", change " << change;
+            EXPECT_LT(rightHigh, -80.0f) << nameOf(frame) << ", change " << change;
+        }
     }
 }
 
@@ -370,20 +496,28 @@ TEST(FrequencyRaising, ItSoundsTheSameWhateverTheCycles)
     InvarianceOptions options;
     options.inputChannels = 2;
     options.outputChannels = 2;
-    for (const char *ear : {"left", "right"}) {
-        const InvarianceReport report = checkBlockSizeInvariance(
-            [ear] {
-                auto block = std::make_unique<FrequencyRaising>();
-                EXPECT_TRUE(block->setParam("ear", ParamValue::ofEnum(ear)).has_value());
-                EXPECT_TRUE(block->setParam("move3Used", ParamValue::ofBool(true)).has_value());
-                EXPECT_TRUE(block->setParam("move3Method", ParamValue::ofEnum("harmonics")).has_value());
-                EXPECT_TRUE(block->setParam("move2Used", ParamValue::ofBool(true)).has_value());
-                EXPECT_TRUE(block->setParam("move2When", ParamValue::ofEnum("needed")).has_value());
-                return std::unique_ptr<Block>(std::move(block));
-            },
-            {hum, tone},
-            options);
-        EXPECT_TRUE(report.passed) << ear << ": " << report.summary;
+    for (const Frame frame : kFrames) {
+        for (const char *ear : {"left", "right"}) {
+            const InvarianceReport report = checkBlockSizeInvariance(
+                [ear, frame] {
+                    auto block = std::make_unique<FrequencyRaising>();
+                    EXPECT_TRUE(block->setParam("ear", ParamValue::ofEnum(ear)).has_value());
+                    EXPECT_TRUE(block->setParam("move3Used", ParamValue::ofBool(true)).has_value());
+                    EXPECT_TRUE(block->setParam("move3Method", ParamValue::ofEnum("harmonics")).has_value());
+                    EXPECT_TRUE(block->setParam("move2Used", ParamValue::ofBool(true)).has_value());
+                    EXPECT_TRUE(block->setParam("move2When", ParamValue::ofEnum("needed")).has_value());
+                    if (frame == Frame::Middle) {
+                        // The third move from 250 Hz rather than 125.
+                        EXPECT_TRUE(block->setParam("move3SourceLow", ParamValue::ofFloat(250.0f)).has_value());
+                        EXPECT_TRUE(block->setParam("move3SourceHigh", ParamValue::ofFloat(400.0f)).has_value());
+                    }
+                    EXPECT_EQ(block->preparedShape(), frame == Frame::Long ? 1U : 0U);
+                    return std::unique_ptr<Block>(std::move(block));
+                },
+                {hum, tone},
+                options);
+            EXPECT_TRUE(report.passed) << nameOf(frame) << ", " << ear << ": " << report.summary;
+        }
     }
 }
 
@@ -392,33 +526,43 @@ TEST(FrequencyRaising, NothingIsAllocatedOnTheAudioThreadEvenWhileItsSettingsCha
     if (!NoAllocations::isSupported()) {
         GTEST_SKIP() << "the allocator belongs to a sanitizer in this build";
     }
-    FrequencyRaising block;
-    rt::BlockMeter meter;
-    meter.setAnalysing(true);
-    BlockRunner runner(block, 2, 2);
-    runner.setMeter(&meter);
-    ASSERT_TRUE(runner.prepare().has_value());
-    const MultiSignal input{whiteNoise(16384, 0.5f, 3), whiteNoise(16384, 0.5f, 4)};
-    std::size_t before = 0;
-    (void)runner.runWatchingForAllocations(input, CycleShape::random(16, 1024, 5), before);
-    set(block, "move1Method", ParamValue::ofEnum("harmonics"));
-    set(block, "move2Used", ParamValue::ofBool(true));
-    set(block, "ear", ParamValue::ofEnum("right"));
-    std::size_t during = 0;
-    (void)runner.runWatchingForAllocations(input, CycleShape::random(16, 1024, 6), during);
-    EXPECT_EQ(before, 0U);
-    EXPECT_EQ(during, 0U);
+    for (const Frame frame : kFrames) {
+        FrequencyRaising block;
+        atFrame(block, frame);
+        rt::BlockMeter meter;
+        meter.setAnalysing(true);
+        BlockRunner runner(block, 2, 2);
+        runner.setMeter(&meter);
+        ASSERT_TRUE(runner.prepare().has_value());
+        const MultiSignal input{whiteNoise(16384, 0.5f, 3), whiteNoise(16384, 0.5f, 4)};
+        std::size_t before = 0;
+        (void)runner.runWatchingForAllocations(input, CycleShape::random(16, 1024, 5), before);
+        set(block, "move1Method", ParamValue::ofEnum("harmonics"));
+        set(block, "move2Used", ParamValue::ofBool(true));
+        set(block, "ear", ParamValue::ofEnum("right"));
+        // A move taken across the line between the frames is heard at the
+        // frame the block was prepared with until it is prepared again.
+        set(block, "move1SourceLow", ParamValue::ofFloat(frame == Frame::Middle ? 100.0f : 300.0f));
+        std::size_t during = 0;
+        (void)runner.runWatchingForAllocations(input, CycleShape::random(16, 1024, 6), during);
+        EXPECT_EQ(before, 0U) << nameOf(frame);
+        EXPECT_EQ(during, 0U) << nameOf(frame);
+    }
 }
 
 TEST(FrequencyRaising, ItsLatencyFollowsTheRate)
 {
-    for (const auto &[rate, expected] :
-         {std::pair{44100.0, 4096U}, std::pair{48000.0, 4096U}, std::pair{96000.0, 8192U}}) {
-        FrequencyRaising block;
-        PrepareSpec spec;
-        spec.sampleRate = rate;
-        ASSERT_TRUE(block.prepare(spec).has_value());
-        EXPECT_EQ(block.info().latencySamples, expected) << rate;
+    for (const Frame frame : kFrames) {
+        for (const auto &[rate, middle] :
+             {std::pair{44100.0, 2048U}, std::pair{48000.0, 2048U}, std::pair{96000.0, 4096U}}) {
+            FrequencyRaising block;
+            atFrame(block, frame);
+            PrepareSpec spec;
+            spec.sampleRate = rate;
+            ASSERT_TRUE(block.prepare(spec).has_value());
+            EXPECT_EQ(block.info().latencySamples, frame == Frame::Middle ? middle : 2 * middle)
+                << nameOf(frame) << " at " << rate;
+        }
     }
 }
 

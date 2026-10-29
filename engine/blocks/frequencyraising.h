@@ -27,14 +27,19 @@ namespace rb::blocks
 /// in the destination (Harmonics, experimental), which keeps a voice's
 /// pitch. FrequencyMoveBlock is the rest.
 ///
-/// **Latency:** the mover's long frame, 4096 samples at 48 kHz (about
-/// 85 ms), which a low range needs to be told apart; reported.
+/// **Latency:** the frame its lowest move needs, reported: 2048 samples at
+/// 48 kHz (about 43 ms) while every move in use starts at kLongFrameBelowHz
+/// or above, and 4096 (about 85 ms) once one starts lower, which a low
+/// range needs to be told apart. A move crossing that line has the runtime
+/// prepare the block again (FrequencyMoveBlock::preparedShape()).
 class FrequencyRaising final : public FrequencyMoveBlock
 {
 public:
     static constexpr std::string_view kTypeId = "hearing.frequencyraising";
     static constexpr float kMinimumHz = 60.0f;
     static constexpr float kMaximumHz = 16000.0f;
+    /// A move whose source starts below this takes the long frame.
+    static constexpr float kLongFrameBelowHz = 250.0f;
     static constexpr std::array<std::string_view, 3> kMethodIds{"compress", "transpose", "harmonics"};
 
     FrequencyRaising();

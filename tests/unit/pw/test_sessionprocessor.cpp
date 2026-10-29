@@ -12,18 +12,24 @@
 
 #include "../dsp/gainblock.h"
 #include "allocationtrap.h"
+#include "blocks/frequencyraising.h"
 #include "blocks/recorder.h"
+#include "dsp/fft.h"
 #include "graph/graphspec.h"
 #include "pw/sessionprocessor.h"
 #include "rt/audiotap.h"
 #include "rt/meter.h"
 #include "sessionblocks.h"
+#include "signals.h"
 
 #include <gtest/gtest.h>
 
 #include <array>
 #include <cmath>
+#include <complex>
 #include <memory>
+#include <numbers>
+#include <span>
 #include <vector>
 
 using namespace rb;
@@ -35,6 +41,40 @@ namespace
 constexpr std::uint32_t kFrames = 128;
 constexpr std::uint32_t kRate = 48000;
 constexpr std::uint32_t kChannels = 2;
+
+/// The power of \a signal above \a fromHz, in dB against a full-scale sine,
+/// as the blocks' click tests measure it: Hann-windowed frames of 1024, half
+/// overlapping, averaged. A click is broadband and shows here; a tone below
+/// it does not.
+[[nodiscard]] float aboveDb(std::span<const float> signal, double fromHz)
+{
+    constexpr std::size_t size = 1024;
+    dsp::RealFft fft;
+    fft.prepare(size);
+    std::vector<float> frame(size);
+    std::vector<std::complex<float>> spectrum(fft.bins());
+    std::vector<float> window(size);
+    double windowPower = 0.0;
+    for (std::size_t n = 0; n < size; ++n) {
+        window[n] = static_cast<float>(0.5 - 0.5 * std::cos(2.0 * std::numbers::pi * static_cast<double>(n) / size));
+        windowPower += static_cast<double>(window[n]) * window[n];
+    }
+    const auto first = static_cast<std::size_t>(std::ceil(fromHz * size / kRate));
+    double power = 0.0;
+    std::size_t frames = 0;
+    for (std::size_t at = 0; at + size <= signal.size(); at += size / 2) {
+        for (std::size_t n = 0; n < size; ++n) {
+            frame[n] = window[n] * signal[at + n];
+        }
+        fft.forward(frame, spectrum);
+        for (std::size_t bin = first; bin < fft.bins(); ++bin) {
+            power += std::norm(spectrum[bin]);
+        }
+        ++frames;
+    }
+    const double mean = 4.0 * power / (static_cast<double>(frames) * windowPower * size);
+    return static_cast<float>(10.0 * std::log10(std::max(mean, 1.0e-12)));
+}
 
 /// A session of two blocks: a source that passes the node's input ports on,
 /// and a gain whose outputs are the node's output ports. It is the smallest
@@ -861,6 +901,117 @@ TEST_F(SessionProcessorTest, ALaneTheEditDoesNotTouchIsCopiedSampleForSample)
         ASSERT_EQ(outputStorage[1][frame], inputStorage[1][frame]) << "frame " << frame;
     }
     EXPECT_LT(outputStorage[0][kFrames - 1], 0.4f) << "while the faded lane did come down";
+}
+
+TEST_F(SessionProcessorTest, AFadeInCanWaitBeforeItRamps)
+{
+    // How a lane comes back over a block made afresh: held where it is
+    // while the block fills, then ramped.
+    std::unique_ptr<LiveGraph> live = makeLive();
+    for (SessionPort &port : live->outputs) {
+        port.gain = 0.0f;
+    }
+    putLive(std::move(live));
+    fillInputs(1.0f);
+
+    const std::uint32_t hold = kFrames + kFrames / 2;
+    const std::uint32_t sequence = processor.requestFade(0b1, 1.0f, kFrames, hold);
+    runCycle();
+    EXPECT_FLOAT_EQ(outputPeak(), 0.0f) << "the whole first cycle is held";
+
+    runCycle();
+    EXPECT_FLOAT_EQ(outputStorage[0][kFrames / 2 - 1], 0.0f) << "and the first half of the second";
+    EXPECT_GT(outputStorage[0][kFrames - 1], 0.45f) << "then the ramp begins";
+    EXPECT_NE(processor.telemetry().fadeDone, sequence);
+
+    float largestStep = 0.0f;
+    for (std::uint32_t frame = 1; frame < kFrames; ++frame) {
+        largestStep = std::max(largestStep, std::abs(outputStorage[0][frame] - outputStorage[0][frame - 1]));
+    }
+    EXPECT_LT(largestStep, 1.5f / static_cast<float>(kFrames)) << "and it ramps no faster for having waited";
+
+    runCycle();
+    EXPECT_EQ(processor.telemetry().fadeDone, sequence);
+    runCycle();
+    EXPECT_FLOAT_EQ(outputStorage[0][0], 1.0f);
+}
+
+TEST_F(SessionProcessorTest, AFrequencyRaisingMadeAfreshForItsOtherFrameComesInWithoutAClick)
+{
+    // **What the runtime does when a move is taken across 250 Hz**: the
+    // lane fades down, the block is replaced by a fresh one prepared for
+    // the other frame, and the lane waits for the new graph's latency
+    // before it fades back up. A 300 Hz tone on both ears; nothing the block
+    // makes of it reaches 10 kHz, so a click is whatever shows there round
+    // the change. Both ways: up to the long frame, and back down.
+    constexpr std::uint32_t kFadeFrames = 480; // 10 ms, as the node fades
+    const test::Signal tone = test::sine(4 * kRate, 300.0, kRate, 0.5f);
+    for (const bool lengthening : {true, false}) {
+        auto running = std::make_unique<blocks::FrequencyRaising>();
+        if (!lengthening) {
+            ASSERT_TRUE(running->setParam("move1SourceLow", dsp::ParamValue::ofFloat(125.0f)).has_value());
+        }
+        putLive(makeLive(kRate, false, true, running.get()));
+        const std::uint32_t before = running->info().latencySamples;
+        EXPECT_EQ(before, lengthening ? 2048U : 4096U);
+
+        std::array<test::Signal, kChannels> heard;
+        std::size_t played = 0;
+        const auto play = [&](std::size_t frames) {
+            for (std::size_t end = played + frames; played < end; played += kFrames) {
+                for (std::uint32_t channel = 0; channel < kChannels; ++channel) {
+                    std::copy_n(
+                        tone.begin() + static_cast<std::ptrdiff_t>(played), kFrames, inputStorage[channel].begin());
+                }
+                runCycle();
+                for (std::uint32_t channel = 0; channel < kChannels; ++channel) {
+                    heard[channel].insert(
+                        heard[channel].end(), outputStorage[channel].begin(), outputStorage[channel].begin() + kFrames);
+                }
+            }
+        };
+        play(kRate);
+
+        // The setting reaches the running block first, as setParam does.
+        ASSERT_TRUE(
+            running->setParam("move1SourceLow", dsp::ParamValue::ofFloat(lengthening ? 125.0f : 250.0f)).has_value());
+        ASSERT_EQ(running->preparedShape(), lengthening ? 1U : 0U);
+        const std::size_t changed = played;
+        const std::uint32_t down = processor.requestFade(0b1, 0.0f, kFadeFrames);
+        while (processor.telemetry().fadeDone != down) {
+            play(kFrames);
+        }
+
+        auto fresh = std::make_unique<blocks::FrequencyRaising>();
+        ASSERT_TRUE(fresh->loadState(running->saveState()).has_value());
+        std::unique_ptr<LiveGraph> live = makeLive(kRate, false, true, fresh.get());
+        for (SessionPort &port : live->outputs) {
+            port.gain = 0.0f;
+        }
+        const std::uint32_t latency = live->graph->latencySamples();
+        EXPECT_EQ(fresh->info().latencySamples, lengthening ? 4096U : 2048U);
+        EXPECT_EQ(latency, fresh->info().latencySamples) << "the graph is as late as the block it was built round";
+        putLive(std::move(live));
+        (void)processor.requestFade(0b1, 1.0f, kFadeFrames, latency);
+        play(kRate);
+
+        const std::size_t from = changed - 2048;
+        const std::size_t length = played - from - kRate / 2;
+        const float leftHigh = aboveDb(std::span<const float>(heard[0]).subspan(from, length), 10000.0);
+        const float rightHigh = aboveDb(std::span<const float>(heard[1]).subspan(from, length), 10000.0);
+        std::printf("[measure] frame %s by a fresh block: above 10 kHz %.1f dB left, %.1f dB right\n",
+                    lengthening ? "lengthened" : "shortened",
+                    leftHigh,
+                    rightHigh);
+        EXPECT_LT(leftHigh, -80.0f);
+        EXPECT_LT(rightHigh, -80.0f);
+        // And the tone is back, whole, on both ears.
+        const std::span<const float> settled = std::span<const float>(heard[1]).last(kRate / 4);
+        EXPECT_NEAR(*std::ranges::max_element(settled), 0.5f, 0.01f);
+
+        // Freed once the processor has let go of them, as the runtime does.
+        putLive(nullptr);
+    }
 }
 
 TEST_F(SessionProcessorTest, AFadeOfNoFramesTakesEffectAtOnce)

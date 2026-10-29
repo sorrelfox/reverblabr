@@ -14,10 +14,14 @@
 // proves nothing about where the audio went.
 //
 // And the other half of the bargain: a knob that is being dragged must
-// still cost nothing but a number on a queue.
+// still cost nothing but a number on a queue — unless the number changes
+// what its block is prepared for, as Frequency Raising's lowest move does,
+// and then only when it crosses the line.
 
 #include "blocks/applicationsource.h"
 #include "blocks/builtinblocks.h"
+#include "blocks/frequencyraising.h"
+#include "blocks/mixer.h"
 #include "blocks/outputdevice.h"
 #include "blocks/systemaudio.h"
 #include "core/editcommand.h"
@@ -305,6 +309,107 @@ TEST_F(Structural, ADraggedVolumeReplansNothingAndAChosenDeviceReplansOnce)
     const std::uint64_t beforeDevice = runtime->replanCount();
     engine.setParam(id, u"out"_s, u"device"_s, valueJson(QString::fromLatin1(kStereoSink)));
     EXPECT_EQ(runtime->replanCount(), beforeDevice + 1) << "choosing a device did not plan the session again, once";
+
+    engine.stop(id);
+}
+
+TEST_F(Structural, FrequencyRaisingsLatencyFollowsItsLowestMoveAndThePathBesideItStaysLinedUp)
+{
+    // **A Frequency Raising on one path and nothing on the other, mixed**:
+    // the tone comes out of both, and only lined up do the two add to twice
+    // the one. Held apart by the 2048 or 4096 samples the block makes it
+    // late, 1 kHz meets itself a third of a cycle out of step and comes out
+    // no louder than one path. The tone is outside every move's source, so
+    // the block passes it as it came, late.
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    const dsp::BlockRegistry registry = builtinRegistry();
+    Engine engine(registry, SessionStore{sessions.path()});
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    QSignalSpy errors(&engine, &EngineFacade::error);
+
+    engine.connectToPipeWire();
+    Waiter pump;
+    ASSERT_TRUE(pump.pumpUntil([&] { return engine.isConnected(); }));
+
+    CaptureNode device(sinkOptions("rbtest.structural.raising"));
+    const std::optional<Graph::Node> deviceNode = device.waitUntilReady();
+    ASSERT_TRUE(deviceNode.has_value());
+
+    engine.createSession(u"Raising"_s);
+    const QString id = opened.back().at(0).toString();
+    engine.applyEdit(id, addBlockEdit(u"src"_s, blocks::ApplicationSource::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"raise"_s, blocks::FrequencyRaising::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"mix"_s, blocks::Mixer::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"out"_s, blocks::OutputDevice::kTypeId));
+    engine.applyEdit(id, paramEdit(u"src"_s, u"binary"_s, u"raiseapp"_s));
+    engine.applyEdit(id, paramEdit(u"src"_s, u"outputMode"_s, u"any"_s));
+    engine.applyEdit(id, paramEdit(u"out"_s, u"device"_s, u"rbtest.structural.raising"_s));
+    for (std::uint32_t channel = 0; channel < 2; ++channel) {
+        engine.applyEdit(id, connectEdit(u"src"_s, channel, u"raise"_s, channel));
+        engine.applyEdit(id, connectEdit(u"raise"_s, channel, u"mix"_s, channel));
+        engine.applyEdit(id, connectEdit(u"src"_s, channel, u"mix"_s, 2 + channel));
+        engine.applyEdit(id, connectEdit(u"mix"_s, channel, u"out"_s, channel));
+    }
+
+    engine.start(id);
+    ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+    SessionRuntime *runtime = engine.runtimeOf(id);
+    ASSERT_NE(runtime, nullptr);
+    const std::optional<Graph::Node> ours = pump.awaitNode(runtime->node()->nodeName());
+    ASSERT_TRUE(ours.has_value());
+
+    FakeApp app(appOptions("RaiseApp", "raiseapp"));
+    ASSERT_TRUE(pump.awaitMatch(playbackStreamOf("RaiseApp")).has_value());
+    ASSERT_TRUE(pump.awaitLink(ours->id, deviceNode->id));
+    pump.pump(std::chrono::milliseconds{600});
+
+    const auto blockLatency = [&] {
+        for (const SessionRuntime::MeteredBlock &block : runtime->meters()) {
+            if (block.id == u"raise"_s) {
+                return block.latencySamples;
+            }
+        }
+        return 0U;
+    };
+    const auto toneDb = [&] { return peakOf(device.measureToneSettled(1000.0), "FL"); };
+
+    // One path alone, for what twice it is.
+    engine.setParam(id, u"mix"_s, u"mute2"_s, valueJson(true));
+    pump.pump(std::chrono::milliseconds{300});
+    const double onePath = toneDb();
+    ASSERT_GT(onePath, kTonePeakDb - 10.0) << "the tone never came through the block";
+    engine.setParam(id, u"mix"_s, u"mute2"_s, valueJson(false));
+    pump.pump(std::chrono::milliseconds{300});
+
+    struct Step {
+        float sourceLowHz;
+        std::uint32_t latency;
+        bool replans;
+    };
+    // Every move from 250 Hz up; a move to 125 Hz; further down, still the
+    // long frame; and back.
+    for (const Step &step : {Step{250.0f, 2048U, false},
+                             Step{125.0f, 4096U, true},
+                             Step{100.0f, 4096U, false},
+                             Step{300.0f, 2048U, true}}) {
+        const std::uint64_t replans = runtime->replanCount();
+        engine.setParam(id, u"raise"_s, u"move1SourceLow"_s, valueJson(step.sourceLowHz));
+        ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+        EXPECT_EQ(runtime->replanCount(), replans + (step.replans ? 1 : 0)) << step.sourceLowHz << " Hz";
+        EXPECT_EQ(blockLatency(), step.latency) << step.sourceLowHz << " Hz";
+        EXPECT_TRUE(pump.pumpUntil([&] { return runtime->latencySamples() == step.latency; }))
+            << "the session says it is " << runtime->latencySamples() << " samples late at " << step.sourceLowHz
+            << " Hz";
+        pump.pump(std::chrono::milliseconds{400});
+        const double both = toneDb();
+        std::printf("[measure] move from %.0f Hz, %u samples late: one path %.2f dB, both %.2f dB\n",
+                    static_cast<double>(step.sourceLowHz),
+                    step.latency,
+                    onePath,
+                    both);
+        EXPECT_NEAR(both, onePath + 6.02, 0.3) << "the paths are not lined up at " << step.sourceLowHz << " Hz";
+    }
 
     engine.stop(id);
 }

@@ -101,7 +101,8 @@ inline constexpr int kMaxHarmonic = 16;
 ///
 /// **A short-time Fourier transform** on RealFft (ADR-0015): frames of at
 /// least the length prepare() is given (a power of two: 1024 samples at
-/// 48 kHz for kFrameMs, 4096 for kLowFrameMs), a Hann window going in
+/// 48 kHz for kFrameMs, 2048 for kMiddleFrameMs, 4096 for kLowFrameMs), a
+/// Hann window going in
 /// and coming out, a quarter of a frame apart. Those windows add up to the
 /// same everywhere, so with nothing to move the channel comes out exactly as
 /// it went in, one frame later: latencySamples().
@@ -137,6 +138,10 @@ public:
     /// Frames for moving high sound: fine in time, about 47 Hz a bin at
     /// 48 kHz, plenty where a peak is thousands of hertz up.
     static constexpr double kFrameMs = 20.0;
+    /// Frames for moving middle sound: about 23 Hz a bin at 48 kHz (2048
+    /// samples, about 43 ms of latency), enough to tell apart the
+    /// harmonics of a voice from 250 Hz up.
+    static constexpr double kMiddleFrameMs = 40.0;
     /// Frames for moving low sound: about 12 Hz a bin at 48 kHz, so
     /// the harmonics of a 100 Hz voice are peaks of their own, at the cost
     /// of about 85 ms of latency.

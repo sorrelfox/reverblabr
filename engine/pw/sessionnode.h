@@ -110,6 +110,13 @@ struct SessionUpdate {
     /// goes from one version of the sound to the other without ever dipping,
     /// and dipping the lane around it would undo the point of it.
     QList<QString> changedBlocks;
+    /// **A block on those lanes was made afresh** (prepared again for a
+    /// new frame or layout) and holds nothing yet. Their lanes then stay
+    /// silent after the swap for as long as the new graph's latency, until
+    /// every block and every line in it has been filled, and only then come
+    /// back up: brought back at once, the silence a fresh block starts with
+    /// would end in a step, which is a click.
+    bool refilled = false;
 };
 
 /// Why a session node could not do what it was asked.
