@@ -1,0 +1,172 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The RPM spec for Fedora, as a template: packaging/rpm/srpm.sh fills in
+# @VERSION@ and the changelog's date from the release tarball and makes the
+# source RPM, which is what COPR builds (packaging/README.md).
+
+Name:           reverblabr
+Version:        @VERSION@
+Release:        1%{?dist}
+Summary:        Capture, process and route audio on your desktop
+
+# The code is MPL-2.0, the D-Bus interfaces it is generated from MIT, the
+# icons and the manual page CC-BY-SA-4.0, the desktop entry, the AppStream
+# data, the notification events and the factory presets CC0-1.0. The two
+# typefaces built into the application are OFL-1.1 (docs/adr/0005).
+License:        MPL-2.0 AND MIT AND CC-BY-SA-4.0 AND CC0-1.0 AND OFL-1.1
+URL:            https://github.com/sorrelfox/reverblabr
+Source0:        %{url}/releases/download/v%{version}/%{name}-%{version}.tar.xz
+
+# The typefaces of the Reverblabr appearance, unmodified, compiled into the
+# application so that it looks the same on every machine (app/fonts).
+Provides:       bundled(font(notosans))
+Provides:       bundled(font(jetbrainsmono))
+
+# tools/deps/fedora.txt, without the developer tools and what only the tests
+# that cannot run here need (see %%check).
+BuildRequires:  cmake
+BuildRequires:  gcc-c++
+BuildRequires:  pkgconf-pkg-config
+BuildRequires:  extra-cmake-modules
+BuildRequires:  kf6-rpm-macros
+BuildRequires:  systemd-rpm-macros
+BuildRequires:  qt6-qtbase-devel
+BuildRequires:  qt6-qtbase-private-devel
+BuildRequires:  qt6-qtdeclarative-devel
+BuildRequires:  qt6-qtsvg-devel
+BuildRequires:  qt6-qtshadertools-devel
+BuildRequires:  kf6-kirigami-devel
+BuildRequires:  kf6-ki18n-devel
+BuildRequires:  kf6-kcoreaddons-devel
+BuildRequires:  kf6-kconfig-devel
+BuildRequires:  kf6-kwindowsystem-devel
+BuildRequires:  kf6-kio-devel
+BuildRequires:  kf6-kguiaddons-devel
+BuildRequires:  kf6-knotifications-devel
+BuildRequires:  kf6-kstatusnotifieritem-devel
+BuildRequires:  kf6-kglobalaccel-devel
+BuildRequires:  kf6-kdbusaddons-devel
+BuildRequires:  kf6-kauth-devel
+BuildRequires:  pipewire-devel
+BuildRequires:  libsndfile-devel
+BuildRequires:  soxr-devel
+BuildRequires:  rnnoise-devel
+BuildRequires:  taglib-devel
+BuildRequires:  soundtouch-devel
+BuildRequires:  libavformat-free-devel
+BuildRequires:  libavcodec-free-devel
+BuildRequires:  libavutil-free-devel
+BuildRequires:  lilv-devel
+BuildRequires:  lv2-devel
+BuildRequires:  clap-devel
+BuildRequires:  gettext
+# The tests: GoogleTest, the LADSPA SDK's example plugins, and the programs
+# the test folders look for when they are configured, although the tests
+# that use them do not run here
+BuildRequires:  gtest-devel
+BuildRequires:  ladspa
+BuildRequires:  python3
+BuildRequires:  git-core
+BuildRequires:  dbus-daemon
+BuildRequires:  glibc-langpack-en
+BuildRequires:  desktop-file-utils
+BuildRequires:  appstream
+
+# What the window loads at run time, which no library link names
+Requires:       kf6-kirigami%{?_isa}
+Requires:       kf6-qqc2-desktop-style%{?_isa}
+Requires:       qt6-qtdeclarative%{?_isa}
+Requires:       qt6-qtsvg%{?_isa}
+Requires:       hicolor-icon-theme
+# The engine runs in reverblabrd, which the session bus starts
+Requires:       dbus-common
+# The password prompt for virtual devices for all users
+Recommends:     polkit
+
+%description
+Reverblabr takes the sound of an application, a microphone or everything
+the computer plays, sends it through a chain of effects, and plays it,
+records it or hands it to other applications as a microphone of its own.
+Sessions run in a background engine, so they go on with the window closed,
+and a command-line tool runs and changes them from a terminal or a script.
+
+
+%prep
+%autosetup -p1
+
+
+%build
+# The tests are built for %%check. Warnings are not errors here, as the
+# presets make them: Fedora's flags differ from the ones the project
+# builds with.
+%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
+%cmake_build
+
+
+%install
+%cmake_install
+# po/ has no catalogs yet, and an empty file list is an error. Once it has
+# some, the build stops on them as unpackaged files: then this gets
+# "%%find_lang %%{name}" and %%files gets "-f %%{name}.lang".
+
+
+%check
+desktop-file-validate %{buildroot}%{_kf6_datadir}/applications/io.github.reverblabr.Reverblabr.desktop
+appstreamcli validate --no-net %{buildroot}%{_metainfodir}/io.github.reverblabr.Reverblabr.metainfo.xml
+# The tests of the engine's layers, which run offline: real-time, DSP,
+# blocks, graph, recording, plugins, notifications, the helper's action and
+# the command line's lookups. A build root has no PipeWire, no session bus,
+# no display and no git repository, so the rest (pw, bus, ctl's daemon
+# tests, qml, i18n, tools, cmake) run in the project's own CI instead. The
+# cost tests ("costs less than N %% of a core") hold the code to the
+# developer's machine, and a builder is slower and busier than that.
+export LC_ALL=en_US.UTF-8
+export QT_QPA_PLATFORM=offscreen
+%ctest -R '^(rt|dsp|blocks|graph|record|plugin|helper|notify|ctl\.Lookup)\.' \
+       -E 'Costs?(LessThan|Little|Under|NoMore)|FitQuantum'
+
+
+# The engine's user unit is not enabled by the package: Auto Run enables it
+# while a session is set to run at login (docs/adr/0021), and the presets
+# leave it disabled. An upgrade does not restart it either, which would stop
+# every running session, so there is no %%postun: the next start of the
+# engine is the new one.
+%post
+%systemd_user_post reverblabrd.service
+
+%preun
+%systemd_user_preun reverblabrd.service
+
+
+%files
+%license LICENSE LICENSES/*.txt
+%doc README.md CREDITS.md TRADEMARKS.md
+# The window
+%{_kf6_bindir}/reverblabr
+%{_kf6_qtplugindir}/kf6/kirigami/platform/Reverblabr.so
+%{_kf6_datadir}/applications/io.github.reverblabr.Reverblabr.desktop
+%{_metainfodir}/io.github.reverblabr.Reverblabr.metainfo.xml
+%{_kf6_datadir}/icons/hicolor/scalable/apps/io.github.reverblabr.Reverblabr.svg
+%{_kf6_datadir}/icons/hicolor/16x16/apps/io.github.reverblabr.Reverblabr.svg
+%{_kf6_datadir}/knotifications6/reverblabr.notifyrc
+# The engine, and the plugin host it starts for each plugin
+%{_kf6_bindir}/reverblabrd
+%{_libexecdir}/reverblabr-plugin-host
+%{_userunitdir}/reverblabrd.service
+%{_kf6_datadir}/dbus-1/services/io.github.reverblabr.Engine.service
+# The command-line tool
+%{_kf6_bindir}/reverblabr-ctl
+%{_mandir}/man1/reverblabr-ctl.1*
+%{bash_completions_dir}/reverblabr-ctl
+%{zsh_completions_dir}/_reverblabr-ctl
+# The all-users helper, which the system bus starts as root
+%{_kf6_libexecdir}/kauth/reverblabr-virtualdevices-helper
+%{_kf6_datadir}/dbus-1/system.d/io.github.reverblabr.virtualdevices.conf
+%{_kf6_datadir}/dbus-1/system-services/io.github.reverblabr.virtualdevices.service
+%{_kf6_datadir}/polkit-1/actions/io.github.reverblabr.virtualdevices.policy
+
+
+%changelog
+* @CHANGELOG_DATE@ Reverblabr contributors <@CHANGELOG_EMAIL@> - @VERSION@-1
+- Reverblabr @VERSION@; its notes are in the AppStream data

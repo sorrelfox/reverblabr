@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 There are no packages yet. Until the first release the only way to get Reverblabr is to build it yourself, which takes a few commands and a few minutes.
 
-The first packages will be RPMs for Fedora, because Fedora is what I use and test on. Packages for Debian-based distributions and a Flatpak are planned too, but only after the first release.
+The first packages will be RPMs for Fedora, because Fedora is what I use and test on. They will come from COPR, and once the first release is published there, installing is two commands (`dnf copr enable`, then `dnf install reverblabr`); this page will say the exact name then. Packages for Debian-based distributions and a Flatpak are planned too, but only after the first release.
 
 ## What you need
 

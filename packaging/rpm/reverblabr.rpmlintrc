@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# What rpmlint reports about the binary package that is meant to be so. The
+# spec and the source RPM need no filter, and the CI's checks lint them
+# without this file: a filter that matches nothing is an error of its own.
+
+# The window is started from the launcher and the engine by the session
+# bus, not typed in a terminal, and both answer --help. reverblabr-ctl, the
+# program meant for a terminal, has its page.
+addFilter(r"no-manual-page-for-binary (reverblabr|reverblabrd)$")
