@@ -191,6 +191,23 @@ rb_add_gtest(reverblabr-record-test
 )
 set_target_properties(reverblabr-record-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
+# Streams to an internet radio server, against a server the test makes
+# (fakeserver.h), and read back through FFmpeg as a player reads them. A
+# real Icecast is tests/broadcast, outside the default run.
+rb_add_gtest(reverblabr-stream-test
+    LAYER stream
+    SOURCES
+        stream/fakeserver.h
+        stream/streamdecode.h
+        stream/test_backoff.cpp
+        stream/test_broadcaststream.cpp
+        stream/test_protocol.cpp
+        stream/test_streamencoder.cpp
+        stream/test_title.cpp
+    LIBRARIES reverblabr-stream reverblabr-rt PkgConfig::RB_TEST_FFMPEG
+)
+set_target_properties(reverblabr-stream-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
+
 # What an engine and a plugin host share, and one cycle of the host.
 rb_add_gtest(reverblabr-plugin-test
     LAYER plugin

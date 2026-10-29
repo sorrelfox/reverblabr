@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Streams to an internet radio server: the thread that drains a Broadcast
+# block's tap, encodes it through the system's FFmpeg and sends it to
+# Icecast or SHOUTcast over a plain socket (ADR-0026). Plain C++23 like the
+# recordings' layer it borrows the resampler from, so all of it runs in a
+# test against a server the test makes, with no audio server and no Qt.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(STREAM_FFMPEG REQUIRED IMPORTED_TARGET libavformat>=60 libavcodec>=60 libavutil>=58)
+
+add_library(reverblabr-stream STATIC
+    backoff.cpp
+    backoff.h
+    broadcaststream.cpp
+    broadcaststream.h
+    connection.cpp
+    connection.h
+    protocol.cpp
+    protocol.h
+    streamencoder.cpp
+    streamencoder.h
+    text.h
+    title.cpp
+    title.h
+)
+target_include_directories(reverblabr-stream PUBLIC ${PROJECT_SOURCE_DIR}/engine)
+target_link_libraries(reverblabr-stream PUBLIC reverblabr-rt PRIVATE reverblabr-record PkgConfig::STREAM_FFMPEG)
+set_target_properties(reverblabr-stream PROPERTIES AUTOMOC OFF AUTORCC OFF)

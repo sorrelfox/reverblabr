@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# The Icecast the broadcast test streams to: Fedora's own package, in
+# Fedora's own image, and nothing else. The test mounts its configuration
+# in and runs it as the icecast user the package makes.
+FROM registry.fedoraproject.org/fedora:44
+RUN dnf -y --setopt=install_weak_deps=False install icecast && dnf clean all
+USER icecast

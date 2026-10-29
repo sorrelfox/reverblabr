@@ -25,3 +25,4 @@ add_subdirectory(tools) # repository tooling such as the git hooks
 add_subdirectory(i18n)  # translation catalogs, string extraction and the literal-string lint
 add_subdirectory(design) # the application against the design prototype; not in the default run
 add_subdirectory(perf)  # benchmarks with figures to keep; not in the default run
+add_subdirectory(broadcast) # a stream against a real Icecast in a container; not in the default run
