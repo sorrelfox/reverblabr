@@ -363,7 +363,7 @@ It uses Podman; set `CONTAINER_ENGINE=docker` to use Docker instead. Only commit
 
 Ubuntu 26.04 is the secondary platform. Its build and test run differ from Fedora's in a few places, all on purpose:
 
-- **No Speech Denoise and no CLAP block.** Ubuntu 26.04 packages neither RNNoise nor the CLAP SDK, so the build leaves both out, and their tests with them.
+- **No Speech Denoise, no CLAP block and no VST3 block.** Ubuntu 26.04 packages neither RNNoise nor the CLAP SDK, and its VST3 SDK is 3.7, older than the MIT-licensed 3.8 the build takes ([ADR-0028](adr/0028-vst3-hosting.md)), so the build leaves all three out, and their tests with them.
 - **The QML tests collect garbage all at once.** Qt 6.10's QML garbage collector, which works a little at a time, now and then crashes in the long QML suite. Built against Qt 6.10, the QML tests set `QV4_GC_TIMELIMIT=0`.
 - **The Reverblabr-style QML run doesn't go through KDE's platform theme.** On Ubuntu 26.04 that theme brings Breeze's own controls into a test that picks its style with `QT_QUICK_CONTROLS_STYLE`. The application picks its style in code and is not affected.
 

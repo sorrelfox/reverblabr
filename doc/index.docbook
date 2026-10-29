@@ -79,8 +79,8 @@ application, a microphone or another input device, or everything the computer
 plays.</para></listitem>
 <listitem><para><emphasis role="strong">Effects:</emphasis> volume,
 compressors and limiters, equalisers, filters, reverb, echo, pitch shift,
-noise and hum removal, and more. LV2, CLAP and LADSPA plugins work
-too.</para></listitem>
+noise and hum removal, and more. LV2, CLAP, VST3® and LADSPA plugins
+work too.</para></listitem>
 <listitem><para><emphasis role="strong">Meters:</emphasis> peak, RMS and VU
 meters at any point in a session.</para></listitem>
 <listitem><para><emphasis role="strong">Outputs:</emphasis> any sound card, a
@@ -891,8 +891,9 @@ its own blocks. See <xref linkend="one-ear"/>.</para>
 
 <para>&reverblabr; can run plugins that are already installed on your
 computer: <emphasis role="strong">LV2</emphasis>, <emphasis
-role="strong">CLAP</emphasis> (where the build has the CLAP SDK) and
-<emphasis role="strong">LADSPA</emphasis>. The plugin row of the library lists
+role="strong">CLAP</emphasis> (where the build has the CLAP SDK), <emphasis
+role="strong">VST3</emphasis> (where the build has the VST3 SDK 3.8 or later)
+and <emphasis role="strong">LADSPA</emphasis>. The plugin row of the library lists
 what it found, and <guibutton>Look for plugins again</guibutton> looks again
 after you install something new. LSP's plugins are a good first set to
 try.</para>
@@ -901,6 +902,20 @@ try.</para>
 hangs takes nothing else down with it. Its block is bypassed, the sound goes
 on without it, and the block shows a button to restart it. A plugin's settings
 appear in a panel built from the parameters it offers.</para>
+
+<para>An LV2, CLAP or VST3 plugin that has a window of its own shows it with
+<guibutton>Plugin Window</guibutton>, and the panel and the window follow each
+other. A knob turned in the window is one step for
+<guimenuitem>Undo</guimenuitem>, however long it was held. The plugin's own
+presets are listed under <guilabel>Plugin presets</guilabel>: an LV2 plugin's
+are the ones other LV2 programs see, and a VST3 plugin's are its
+<filename>.vstpreset</filename> files in <filename>~/.vst3/presets</filename>
+and the system's preset folders. <guibutton>Save…</guibutton> keeps the
+settings as one of them, where other programs that use the plugin find it
+too.</para>
+
+<para>VST is a registered trademark of Steinberg Media Technologies
+GmbH.</para>
 
 <para><guilabel>Test Plugin</guilabel> in the same group is a plain gain built
 into &reverblabr;, which runs the way every plugin does. It is there to check
@@ -1853,7 +1868,8 @@ speakers by name.</para></answer>
 <qandaentry>
 <question><para>A block is missing from the library.</para></question>
 <answer><para>Some blocks are only built when their library was found: Speech
-Denoise needs RNNoise, the CLAP block needs the CLAP SDK. Your distribution's
+Denoise needs RNNoise, the CLAP block needs the CLAP SDK, the VST3 block needs
+the VST3 SDK 3.8 or later. Your distribution's
 package, or the build's summary, says what was left out.</para></answer>
 </qandaentry>
 <qandaentry>

@@ -233,7 +233,8 @@ SPDX-License-Identifier: MIT
     </method>
 
     <!-- A plugin block's own presets, its format's (an LV2 plugin's
-         pset:Preset, a CLAP plugin's from its preset discovery). Answered
+         pset:Preset, a CLAP plugin's from its preset discovery, a VST3
+         plugin's .vstpreset files). Answered
          by PluginPresetsListed, or Error plugin.presetRefused. -->
     <method name="ListPluginPresets">
       <arg name="sessionId" type="s" direction="in"/>
@@ -250,7 +251,7 @@ SPDX-License-Identifier: MIT
 
     <!-- Keeps what the plugin is set to as a preset of its own format,
          where other hosts of that format find it (an LV2 plugin's in
-         ~/.lv2). Answered by PluginPresetsListed with it in, or Error
+         ~/.lv2, a VST3 plugin's in ~/.vst3/presets). Answered by PluginPresetsListed with it in, or Error
          plugin.presetRefused. A CLAP plugin's settings are kept with the
          application's own presets, through SavePreset. -->
     <method name="SavePluginPreset">

@@ -102,6 +102,10 @@ These blocks work on one ear at a time. They are described on their own page, [H
 
 ## Plugins
 
-Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK) and **LADSPA**. The plugin row of the library lists what it found, and **Look for plugins again** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for. LSP's plugins are a good first set to try.
+Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK), **VST3®** (where the build has the VST3 SDK 3.8 or later) and **LADSPA**. The plugin row of the library lists what it found, and **Look for plugins again** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for. LSP's plugins are a good first set to try.
 
 Every plugin runs in a separate process, so a plugin that crashes or hangs takes nothing else down with it. Its block is bypassed, the sound goes on without it, and the block shows a button to restart it. A plugin's settings appear in a panel built from the parameters it offers.
+
+An LV2, CLAP or VST3 plugin that has a window of its own shows it with **Plugin Window**, and the panel and the window follow each other. A knob turned in the window is one step for **Undo**, however long it was held. The plugin's own presets are listed in the panel under **Plugin presets**: an LV2 plugin's are the ones other LV2 programs see, and a VST3 plugin's are its `.vstpreset` files in `~/.vst3/presets` and the system's preset folders. **Save…** keeps the settings as one of them, where other programs that use the plugin find it too.
+
+VST is a registered trademark of Steinberg Media Technologies GmbH.

@@ -23,7 +23,7 @@ The **Info** tab (Ctrl+3) has a **Diagnostics** section under *Audio system*. Un
 
 **Reverblabr refused a connection.** It refuses anything that would feed a session's sound back into its own input, because that would howl louder and louder. This usually means an Output Device is set to *Default output* while the default is the virtual device the session records from. Choose your real speakers by name.
 
-**A block is missing from the library.** Some blocks are only built when their library was found: Speech Denoise needs RNNoise, the CLAP block needs the CLAP SDK. The build's summary lists what it left out, and [What to install](dependencies.md#optional) has the details.
+**A block is missing from the library.** Some blocks are only built when their library was found: Speech Denoise needs RNNoise, the CLAP block needs the CLAP SDK, the VST3 block needs the VST3 SDK 3.8 or later. The build's summary lists what it left out, and [What to install](dependencies.md#optional) has the details.
 
 **A plugin stopped.** Plugins run in their own process, so a crash only takes the plugin down. Its block is bypassed and shows a button to restart it. If it keeps happening, try the plugin in another host, and tell me if it works there.
 

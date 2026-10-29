@@ -143,7 +143,7 @@ The released surface is written down line by line in [`dbus/io.github.reverblabr
 | `SetPluginWindow(s sessionId, s blockId, b open)` | shows or closes a plugin block's own window, which its host makes | `PluginWindowChanged` |
 | `ListPluginPresets(s sessionId, s blockId)` | a plugin block's own presets, its format's | `PluginPresetsListed`, or `plugin.presetRefused` |
 | `LoadPluginPreset(s sessionId, s blockId, s presetId)` | puts one of them on the block, as one edit to undo | `SessionPatch` for each value it changed, then `PluginPresetShown` |
-| `SavePluginPreset(s sessionId, s blockId, s name)` | keeps the plugin's settings as a preset of its format, where its other hosts find it (an LV2 plugin's in `~/.lv2`); a CLAP plugin's go with the application's own, through `SavePreset` | `PluginPresetsListed`, or `plugin.presetRefused` |
+| `SavePluginPreset(s sessionId, s blockId, s name)` | keeps the plugin's settings as a preset of its format, where its other hosts find it (an LV2 plugin's in `~/.lv2`, a VST3 plugin's in `~/.vst3/presets`); a CLAP plugin's go with the application's own, through `SavePreset` | `PluginPresetsListed`, or `plugin.presetRefused` |
 | `Analyse(s sessionId, s blockId, i channel)` | takes one block's live spectra into the session's levels (for the window's curves; an empty `blockId` stops) | not answered: the spectra travel with the levels |
 
 ### What is out there

@@ -93,7 +93,7 @@ Without any of these the build stops and says which one is missing.
 | TagLib | `taglib-devel` | `libtag-dev` | a recording's tags |
 | FFmpeg | `libavformat-free-devel`, `libavcodec-free-devel`, `libavutil-free-devel` | `libavformat-dev`, `libavcodec-dev`, `libavutil-dev` | M4A recordings (AAC and Apple Lossless), and reading them back; the **Broadcast** block's streams (MP3, Opus, Ogg Vorbis and AAC), each format offered only where this FFmpeg has its encoder; the **Live Stream** block's H.264 and AAC, in FLV over RTMP and RTMPS |
 | lilv and LV2 | `lilv-devel`, `lv2-devel` | `liblilv-dev`, `lv2-dev` | finding, describing and running LV2 plugins |
-| suil and Xlib | `suil-devel`, `libX11-devel` | `libsuil-dev`, `libx11-dev` | a plugin's own window: an LV2 plugin's UI, loaded through suil, and an X11 window of the plugin host's to show it and a CLAP plugin's in ([ADR-0025](adr/0025-plugin-windows.md)) |
+| suil and Xlib | `suil-devel`, `libX11-devel` | `libsuil-dev`, `libx11-dev` | a plugin's own window: an LV2 plugin's UI, loaded through suil, and an X11 window of the plugin host's to show it and a CLAP or VST3 plugin's in ([ADR-0025](adr/0025-plugin-windows.md)) |
 
 ## Optional
 
@@ -103,6 +103,7 @@ The build finds these by itself and says in its summary which parts it could not
 |---|---|---|---|---|
 | RNNoise | `rnnoise-devel` | not packaged in 26.04 | the **Speech Denoise** block | that block is not in the library. `-DRB_BUILD_SPEECH_DENOISE=OFF` leaves it out on purpose ([ADR-0016](adr/0016-rnnoise-optional.md)) |
 | The CLAP SDK | `clap-devel` | not packaged in 26.04 | **CLAP plugins**: the CLAP block, and CLAP plugins in the library | no CLAP block, and CLAP plugins are not looked for. `-DRB_BUILD_CLAP=OFF` leaves them out on purpose |
+| The VST3 SDK, 3.8 or later | `vst3sdk-devel` | 26.04 has only 3.7 (`libvst3sdk-dev`), which is not used | **VST3® plugins**: the VST3 block, and VST3 plugins in the library. Only the SDK's interface headers are used, from 3.8 on, which is MIT-licensed ([ADR-0028](adr/0028-vst3-hosting.md)) | no VST3 block, and VST3 plugins are not looked for. `-DRB_BUILD_VST3=OFF` leaves them out on purpose. An SDK of your own: `-DVST3SDK_INCLUDE_DIR=<the folder with pluginterfaces in it>` |
 | QtKeychain for Qt 6 | `qtkeychain-qt6-devel` | `qtkeychain-qt6-dev` | the **Broadcast** block, whose password is kept in the desktop's password store (KWallet on Plasma, the Secret Service elsewhere) and never in a session file | that block is not in the library. `-DRB_BUILD_BROADCAST=OFF` leaves it out on purpose ([ADR-0026](adr/0026-broadcast-streaming.md)) |
 | FreeType, HarfBuzz, fontconfig, and FFmpeg's libswscale | `freetype-devel`, `harfbuzz-devel`, `fontconfig-devel`, `libswscale-free-devel` | `libfreetype-dev`, `libharfbuzz-dev`, `libfontconfig-dev`, `libswscale-dev` | the **Live Stream** block, whose picture is drawn with the desktop's own fonts and converted to video. It needs QtKeychain too, for its stream key | that block is not in the library. `-DRB_BUILD_LIVESTREAM=OFF` leaves it out on purpose ([ADR-0027](adr/0027-live-stream.md)) |
 | KAuth and polkit | `kf6-kauth-devel`, `polkit` | `libkf6auth-dev`, `polkitd` | **virtual devices for all users**, after the administrator's password | virtual devices are for your own account only. The password prompt also needs the helper installed once; see [Installing](installing.md#virtual-devices-for-all-users) |
@@ -116,8 +117,9 @@ The plugin blocks host plugins that are already on your machine. Install the plu
 
 - **LV2** plugins are looked for in `LV2_PATH` when it is set, otherwise in `~/.lv2`, `/usr/local/lib64/lv2`, `/usr/local/lib/lv2`, `/usr/lib64/lv2` and `/usr/lib/lv2`.
 - **CLAP** plugins, where the build has the CLAP SDK (see [Optional](#optional)), are `.clap` files anywhere under `~/.clap`, `/usr/local/lib64/clap`, `/usr/local/lib/clap`, `/usr/lib64/clap` and `/usr/lib/clap`, and under the folders `CLAP_PATH` names. Unlike `LV2_PATH`, `CLAP_PATH` adds to those folders rather than replacing them, as the CLAP specification says.
+- **VST3** plugins, where the build has the VST3 SDK (see [Optional](#optional)), are bundles, folders ending in `.vst3`, anywhere under `~/.vst3`, `/usr/local/lib64/vst3`, `/usr/local/lib/vst3`, `/usr/lib64/vst3` and `/usr/lib/vst3`, and under the folders `VST3_PATH` names, which add to those as `CLAP_PATH` does. Their presets are the `.vstpreset` files in `~/.vst3/presets`, `/usr/share/vst3/presets` and `/usr/local/share/vst3/presets`. VST is a registered trademark of Steinberg Media Technologies GmbH.
 - **LADSPA** plugins are looked for in `LADSPA_PATH` when it is set, otherwise in `~/.ladspa`, `/usr/local/lib64/ladspa`, `/usr/local/lib/ladspa`, `/usr/lib64/ladspa` and `/usr/lib/ladspa`. Nothing has to be installed to build LADSPA hosting: the plugin host loads each library itself. LSP comes as LADSPA too (`lsp-plugins-ladspa`), and many older collections are LADSPA only (on Fedora, the `ladspa-*-plugins` packages).
-- **LSP** is a good first set: equalisers, compressors, gates and more, as LV2 (`lsp-plugins-lv2` on both) and as CLAP (`lsp-plugins-clap` on both). The tests check plugin hosting against them.
+- **LSP** is a good first set: equalisers, compressors, gates and more, as LV2 (`lsp-plugins-lv2` on both), as CLAP (`lsp-plugins-clap` on both) and as VST3 (`lsp-plugins-vst3` on both). The tests check plugin hosting against them.
 
 ## Only for development and tests
 
@@ -141,3 +143,4 @@ None of these are needed to use Reverblabr. They are what [Development](developm
 | LSP's LV2 plugins | `lsp-plugins-lv2` | `lsp-plugins-lv2` | the plugin hosting tests |
 | The LADSPA SDK's example plugins | `ladspa` | `ladspa-sdk` | the LADSPA hosting tests' common plugin, the stereo amplifier; without it those checks are skipped, and the rest run against LADSPA plugins the tests build |
 | LSP's CLAP plugins | `lsp-plugins-clap` | `lsp-plugins-clap` | the CLAP hosting tests, where the build has the CLAP SDK. The plugin windows' tests build an LV2 and a CLAP plugin of their own whose windows need no display (`tests/lv2`, `tests/clap`) |
+| LSP's VST3 plugins | `lsp-plugins-vst3` | `lsp-plugins-vst3` | the VST3 hosting test against a real plugin, where the build has the VST3 SDK; `RB_TEST_LSP_VST3` names a bundle of it elsewhere, unpacked from the package without installing it. The rest run against a VST3 plugin the tests build, whose view needs no display (`tests/vst3`) |

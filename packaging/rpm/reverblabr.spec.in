@@ -68,6 +68,8 @@ BuildRequires:  lv2-devel
 BuildRequires:  suil-devel
 BuildRequires:  libX11-devel
 BuildRequires:  clap-devel
+# VST3 plugins: the SDK's interface headers, 3.8 or later (MIT)
+BuildRequires:  vst3sdk-devel >= 3.8
 BuildRequires:  gettext
 # The tests: GoogleTest, the LADSPA SDK's example plugins, and the programs
 # the test folders look for when they are configured, although the tests
@@ -108,14 +110,14 @@ and a command-line tool runs and changes them from a terminal or a script.
 # The tests are built for %%check. Warnings are not errors here, as the
 # presets make them: Fedora's flags differ from the ones the project
 # builds with.
-# The handbook and the Broadcast and Live Stream blocks are asked for by
-# name, so that a missing KDocTools, QtKeychain or text library stops the
-# build instead of leaving them out. The Live Stream block's H.264 is not a
-# dependency: it is whatever encoder the installed FFmpeg can use, found at
-# run time (Cisco's openh264, which Fedora installs from Cisco's
-# repository, RPM Fusion's FFmpeg, or a graphics driver), and the block
-# says so when there is none (ADR-0027).
-%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON -DRB_BUILD_BROADCAST=ON -DRB_BUILD_LIVESTREAM=ON
+# The handbook, the Broadcast and Live Stream blocks and VST3 hosting are
+# asked for by name, so that a missing KDocTools, QtKeychain, text library
+# or VST3 SDK stops the build instead of leaving them out. The Live Stream
+# block's H.264 is not a dependency: it is whatever encoder the installed
+# FFmpeg can use, found at run time (Cisco's openh264, which Fedora installs
+# from Cisco's repository, RPM Fusion's FFmpeg, or a graphics driver), and
+# the block says so when there is none (ADR-0027).
+%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON -DRB_BUILD_BROADCAST=ON -DRB_BUILD_LIVESTREAM=ON -DRB_BUILD_VST3=ON
 %cmake_build
 
 

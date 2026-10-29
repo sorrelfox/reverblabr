@@ -19,6 +19,17 @@ These are system libraries, linked dynamically. None of their code is copied int
 | [PipeWire](https://pipewire.org) (libpipewire, SPA) | audio server client | MIT |
 | [SoundTouch](https://www.surina.net/soundtouch/) | the Pitch Shift block | LGPL-2.1-or-later |
 
+## Headers used at build time
+
+Only their declarations and the inline code in them end up in the programs.
+
+| Component | Used for | Licence |
+|---|---|---|
+| [CLAP](https://github.com/free-audio/clap) | hosting CLAP plugins, where the build has it | MIT |
+| [VST3 SDK](https://github.com/steinbergmedia/vst3sdk), 3.8 or later: its interface headers (`pluginterfaces`) | hosting VST3 plugins, where the build has it ([ADR-0028](docs/adr/0028-vst3-hosting.md)) | MIT |
+
+VST is a registered trademark of Steinberg Media Technologies GmbH.
+
 ## Build and test tools
 
 | Component | Used for | Licence |

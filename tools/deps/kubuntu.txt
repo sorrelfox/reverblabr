@@ -109,6 +109,9 @@ ladspa-sdk
 # CLAP plugins need the CLAP SDK's headers, which Kubuntu 26.04 does not
 # package (lsp-plugins-clap is there; the SDK is not). The build leaves the
 # CLAP block out; once there is a package, add it and lsp-plugins-clap here.
+# VST3 plugins need the VST3 SDK 3.8 or later; Kubuntu 26.04 has 3.7
+# (libvst3sdk-dev), which is not under the MIT licence, so the build leaves
+# the VST3 block out. Once 3.8 is packaged, add it and lsp-plugins-vst3 here.
 
 # Tests (Python runs the i18n and tooling checks)
 libgtest-dev
