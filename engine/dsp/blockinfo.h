@@ -138,6 +138,12 @@ struct BlockInfo {
     /// for a block that says so, because a tap is ten seconds of audio held
     /// in memory.
     bool recordsAudio = false;
+    /// Whether the block hands what it hears to a stream that sends it to a
+    /// server, through the same kind of tap (PrepareSpec::recording): the
+    /// Broadcast block. Apart from recordsAudio, so that a stream is never
+    /// mistaken for a recording and written to a file, or the other way
+    /// round.
+    bool streamsAudio = false;
 };
 
 } // namespace rb::dsp

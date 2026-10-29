@@ -91,7 +91,7 @@ Without any of these the build stops and says which one is missing.
 | SoX Resampler | `soxr-devel` | `libsoxr-dev` | a recording at another rate than its session |
 | SoundTouch | `soundtouch-devel` | `libsoundtouch-dev` | the **Pitch Shift** block: the pitch moved without the speed changing |
 | TagLib | `taglib-devel` | `libtag-dev` | a recording's tags |
-| FFmpeg | `libavformat-free-devel`, `libavcodec-free-devel`, `libavutil-free-devel` | `libavformat-dev`, `libavcodec-dev`, `libavutil-dev` | M4A recordings (AAC and Apple Lossless), and reading them back |
+| FFmpeg | `libavformat-free-devel`, `libavcodec-free-devel`, `libavutil-free-devel` | `libavformat-dev`, `libavcodec-dev`, `libavutil-dev` | M4A recordings (AAC and Apple Lossless), and reading them back; the **Broadcast** block's streams (MP3, Opus, Ogg Vorbis and AAC), each format offered only where this FFmpeg has its encoder |
 | lilv and LV2 | `lilv-devel`, `lv2-devel` | `liblilv-dev`, `lv2-dev` | finding, describing and running LV2 plugins |
 
 ## Optional
@@ -102,6 +102,7 @@ The build finds these by itself and says in its summary which parts it could not
 |---|---|---|---|---|
 | RNNoise | `rnnoise-devel` | not packaged in 26.04 | the **Speech Denoise** block | that block is not in the library. `-DRB_BUILD_SPEECH_DENOISE=OFF` leaves it out on purpose ([ADR-0016](adr/0016-rnnoise-optional.md)) |
 | The CLAP SDK | `clap-devel` | not packaged in 26.04 | **CLAP plugins**: the CLAP block, and CLAP plugins in the library | no CLAP block, and CLAP plugins are not looked for. `-DRB_BUILD_CLAP=OFF` leaves them out on purpose |
+| QtKeychain for Qt 6 | `qtkeychain-qt6-devel` | `qtkeychain-qt6-dev` | the **Broadcast** block, whose password is kept in the desktop's password store (KWallet on Plasma, the Secret Service elsewhere) and never in a session file | that block is not in the library. `-DRB_BUILD_BROADCAST=OFF` leaves it out on purpose ([ADR-0026](adr/0026-broadcast-streaming.md)) |
 | KAuth and polkit | `kf6-kauth-devel`, `polkit` | `libkf6auth-dev`, `polkitd` | **virtual devices for all users**, after the administrator's password | virtual devices are for your own account only. The password prompt also needs the helper installed once; see [Installing](installing.md#virtual-devices-for-all-users) |
 | KDocTools | `kf6-kdoctools-devel` | `libkf6doctools-dev` | the **handbook** that Help → Handbook (F1) opens in KHelpCenter, and the test that checks it is valid DocBook | no handbook is built or installed, and that test is skipped. `-DRB_BUILD_HANDBOOK=OFF` leaves it out on purpose |
 | Qt's Wayland client internals | `qt6-qtbase-private-devel` | `qt6-base-private-dev` | the **compositor's own window menu** on the title bar | the title bar shows Reverblabr's own menu instead |

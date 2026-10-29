@@ -7,9 +7,11 @@
 
 #include "core/engine.h"
 
+#include "blocks/broadcast.h"
 #include "buildversion.h"
 #include "core/audiosystem.h"
 #include "core/blockcatalogue.h"
+#include "core/broadcasts.h"
 #include "core/diagnostics.h"
 #include "core/editcommand.h"
 #include "core/edithistory.h"
@@ -24,6 +26,7 @@
 #include "core/recordinglibrary.h"
 #include "core/recordingplayer.h"
 #include "core/recordings.h"
+#include "core/secretstore.h"
 #include "core/sessionlisting.h"
 #include "core/sessionplan.h"
 #include "core/sessionruntime.h"
@@ -154,6 +157,21 @@ public:
     QTimer autosave;
     /// What a timer does when its time comes. Made once the engine is.
     std::unique_ptr<TimerRunner> timers;
+    /// **Where Broadcast blocks' passwords are kept** (ADR-0026).
+    std::unique_ptr<SecretStore> secrets = desktopSecretStore();
+    /// What each Broadcast block last said, by its secret key, and whether
+    /// the store has a password for it, once that is known: what a window
+    /// that asks is told.
+    QHash<QString, QJsonObject> broadcastStatus;
+    QHash<QString, bool> passwordStored;
+    /// **The newest request to the store about each password**, so an
+    /// answer that comes after a newer request has been made (a read that
+    /// started before a new password was written) is let go rather than
+    /// put over the newer one's.
+    QHash<QString, quint64> secretRequests;
+    /// Why the store could not be asked for a password, while that is
+    /// the last word about it: what broadcast.failed then says.
+    QHash<QString, QString> secretErrors;
 
     Private(Engine *owner, const dsp::BlockRegistry &registry, SessionStore store, PresetStore presets)
         : q(owner)
@@ -271,6 +289,94 @@ public:
             fail(ErrorCode::SessionNotFound, {sessionId});
         }
         return session;
+    }
+
+    /// Says where \a blockId's stream stands, with whether it has a password
+    /// when that is known.
+    void announceBroadcast(const QString &sessionId, const QString &blockId)
+    {
+        const QString key = broadcastSecretKey(sessionId, blockId);
+        QJsonObject status = broadcastStatus.value(key, QJsonObject{{u"state"_s, u"idle"_s}});
+        if (const auto stored = passwordStored.constFind(key); stored != passwordStored.constEnd()) {
+            status.insert(u"passwordStored"_s, *stored);
+        }
+        Q_EMIT q->broadcastStatusChanged(sessionId, blockId, asJson(status));
+    }
+
+    /// A new request to the store about \a key: its number, which an
+    /// answer has to still be the newest of to count.
+    [[nodiscard]] quint64 newSecretRequest(const QString &key)
+    {
+        return ++secretRequests[key];
+    }
+
+    [[nodiscard]] bool isNewest(const QString &key, quint64 request) const
+    {
+        return secretRequests.value(key) == request;
+    }
+
+    /// Asks the store for \a blockId's password, for its stream.
+    void readBroadcastPassword(const QString &sessionId, const QString &blockId)
+    {
+        const QString key = broadcastSecretKey(sessionId, blockId);
+        const quint64 request = newSecretRequest(key);
+        secrets->read(key, q, [this, sessionId, blockId, key, request](const SecretResult &result) {
+            if (!isNewest(key, request)) {
+                return;
+            }
+            Open *open = find(sessionId);
+            SessionRuntime *runtime = open != nullptr ? open->runtime.get() : nullptr;
+            if (!result.ok) {
+                // **Not "no password"**: the store could not be asked, which
+                // is said as it is and not remembered, so the next start
+                // asks again.
+                secretErrors.insert(key, result.error);
+                if (runtime != nullptr) {
+                    runtime->setBroadcastPasswordUnavailable(blockId);
+                }
+                return;
+            }
+            secretErrors.remove(key);
+            passwordStored.insert(key, result.secret.has_value());
+            if (runtime != nullptr) {
+                runtime->setBroadcastPassword(blockId, result.secret);
+            }
+        });
+    }
+
+    /// Removes the password kept under \a key, and everything known of it.
+    void forgetBroadcastPassword(const QString &key)
+    {
+        passwordStored.remove(key);
+        broadcastStatus.remove(key);
+        secretErrors.remove(key);
+        (void)newSecretRequest(key);
+        secrets->write(key, QString(), q, [](const SecretResult &) { });
+    }
+
+    /// **The passwords of Broadcast blocks that are gone from \a session
+    /// for good**: blocks this engine has known a password for in it, and
+    /// that are not in it now its history is let go of, so no undo can
+    /// bring them back.
+    void forgetRemovedBroadcasts(const QString &sessionId, const Session &session)
+    {
+        const QString prefix = broadcastSecretKey(sessionId, QString());
+        const QList<QString> known = passwordStored.keys();
+        for (const QString &key : known) {
+            if (key.startsWith(prefix) && session.findBlock(key.mid(prefix.size())) == nullptr) {
+                forgetBroadcastPassword(key);
+            }
+        }
+    }
+
+    /// Whether \a blockId in \a session is a Broadcast block.
+    /// **Of a type this build has**: a session made where there is a
+    /// Broadcast block, opened where there is none, has no password to keep.
+    [[nodiscard]] bool isBroadcast(const Open &session, const QString &blockId) const
+    {
+        const BlockInstance *block = session.session.findBlock(blockId);
+        return block != nullptr && block->type.toStdString() == blocks::Broadcast::kTypeId
+            && registry.contains(std::string{blocks::Broadcast::kTypeId});
     }
 
     void sendSnapshot(const Open &session)
@@ -769,6 +875,9 @@ void Engine::closeSession(const QString &sessionId)
     // have most of a second left on it, and after this there is no session
     // to write.
     d->write(*session);
+    // Its history goes with it, so a Broadcast block taken out can no
+    // longer come back with an undo, and its password has no use.
+    d->forgetRemovedBroadcasts(sessionId, session->session);
     d->open.erase(sessionId);
     Q_EMIT sessionClosed(sessionId);
 }
@@ -780,6 +889,18 @@ void Engine::deleteSession(const QString &sessionId)
     // writing a file about to be deleted is at best wasted and at worst a
     // file that comes back.
     d->unsaved.remove(sessionId);
+    // **Its passwords go with it**: a secret nothing can use any more is
+    // one more thing in the store for nothing.
+    std::expected<Session, SessionLoadFailure> doomed = d->find(sessionId) != nullptr
+        ? std::expected<Session, SessionLoadFailure>(d->find(sessionId)->session)
+        : d->store.load(id);
+    if (doomed) {
+        for (const BlockInstance &block : doomed->blocks) {
+            if (block.type.toStdString() == blocks::Broadcast::kTypeId) {
+                d->forgetBroadcastPassword(broadcastSecretKey(sessionId, block.id));
+            }
+        }
+    }
     if (d->find(sessionId) != nullptr) {
         closeSession(sessionId);
     }
@@ -1117,6 +1238,66 @@ void Engine::controlRecording(const QString &sessionId, const QString &blockId, 
     }
 }
 
+void Engine::setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    if (!d->isBroadcast(*session, blockId)) {
+        d->fail(ErrorCode::BroadcastPasswordNotSaved, {u"notABroadcast"_s}, blockId);
+        return;
+    }
+    const QString key = broadcastSecretKey(sessionId, blockId);
+    const quint64 request = d->newSecretRequest(key);
+    d->secrets->write(
+        key, password, this, [this, sessionId, blockId, key, password, request](const SecretResult &result) {
+            if (!d->isNewest(key, request)) {
+                return;
+            }
+            if (!result.ok) {
+                d->fail(ErrorCode::BroadcastPasswordNotSaved, {result.error}, blockId);
+                return;
+            }
+            d->passwordStored.insert(key, !password.isEmpty());
+            d->secretErrors.remove(key);
+            if (Private::Open *open = d->find(sessionId); open != nullptr && open->runtime) {
+                open->runtime->setBroadcastPassword(
+                    blockId, password.isEmpty() ? std::nullopt : std::optional<QString>(password));
+            }
+            d->announceBroadcast(sessionId, blockId);
+        });
+}
+
+void Engine::getBroadcastStatus(const QString &sessionId, const QString &blockId)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    const QString key = broadcastSecretKey(sessionId, blockId);
+    if (!d->isBroadcast(*session, blockId) || d->passwordStored.contains(key)) {
+        d->announceBroadcast(sessionId, blockId);
+        return;
+    }
+    // Whether there is a password is the store's to say, the first time.
+    const quint64 request = d->newSecretRequest(key);
+    d->secrets->read(key, this, [this, sessionId, blockId, key, request](const SecretResult &result) {
+        if (!d->isNewest(key, request)) {
+            return;
+        }
+        if (result.ok) {
+            d->passwordStored.insert(key, result.secret.has_value());
+        }
+        d->announceBroadcast(sessionId, blockId);
+    });
+}
+
+void Engine::setSecretStore(std::unique_ptr<SecretStore> store)
+{
+    d->secrets = std::move(store);
+}
+
 void Engine::restartPlugin(const QString &sessionId, const QString &blockId)
 {
     Private::Open *session = d->require(sessionId);
@@ -1266,6 +1447,43 @@ void Engine::start(const QString &sessionId)
                 [this](const QString &blockId, const QString &path) {
                     d->fail(ErrorCode::RecordingTagsNotWritten, {path}, blockId);
                 });
+        // **A Broadcast block's password**, from the secret store, the first
+        // time its stream starts in this runtime.
+        connect(session->runtime.get(),
+                &SessionRuntime::broadcastPasswordWanted,
+                this,
+                [this, sessionId](const QString &blockId) { d->readBroadcastPassword(sessionId, blockId); });
+        connect(session->runtime.get(),
+                &SessionRuntime::broadcastStatusChanged,
+                this,
+                [this, sessionId](const QString &blockId, const QJsonObject &status) {
+                    const QString key = broadcastSecretKey(sessionId, blockId);
+                    const QJsonObject was = d->broadcastStatus.value(key);
+                    d->broadcastStatus.insert(key, status);
+                    // **Said once each time it gives up**, on the block:
+                    // a stream that stops trying is something a person
+                    // has to put right.
+                    const QString state = status.value(u"state"_s).toString();
+                    if (state == "failed"_L1
+                        && (was.value(u"state"_s).toString() != state
+                            || was.value(u"error"_s) != status.value(u"error"_s))) {
+                        const Private::Open *open = d->find(sessionId);
+                        const BlockInstance *block = open != nullptr ? open->session.findBlock(blockId) : nullptr;
+                        QString station =
+                            block != nullptr ? block->params.value("stationName"_L1).toString() : QString();
+                        if (station.trimmed().isEmpty()) {
+                            station = block != nullptr && !block->nickname.isEmpty() ? block->nickname : blockId;
+                        }
+                        // A store that could not be asked says why, in its
+                        // own words.
+                        QString reason = status.value(u"error"_s).toString();
+                        if (reason == "passwordUnavailable"_L1) {
+                            reason = d->secretErrors.value(key, reason);
+                        }
+                        d->fail(ErrorCode::BroadcastFailed, {station, reason}, blockId);
+                    }
+                    d->announceBroadcast(sessionId, blockId);
+                });
         connect(session->runtime.get(),
                 &SessionRuntime::recordingLowDiskSpace,
                 this,
@@ -1345,7 +1563,9 @@ void Engine::getInventory()
 
 void Engine::getBlockCatalogue()
 {
-    Q_EMIT blockCatalogueChanged(asJson(blockCatalogueJson(d->registry, recordingUnavailableChoices())));
+    UnavailableChoices unavailable = recordingUnavailableChoices();
+    unavailable.merge(broadcastUnavailableChoices());
+    Q_EMIT blockCatalogueChanged(asJson(blockCatalogueJson(d->registry, unavailable)));
 }
 
 void Engine::getAudioSystem()

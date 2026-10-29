@@ -154,6 +154,8 @@ find_package(Qt6 QUIET OPTIONAL_COMPONENTS WaylandClientPrivate)
 report(Qt6WaylandClientPrivate "${Qt6WaylandClientPrivate_VERSION}")
 find_package(KF6Auth QUIET CONFIG)
 report(KF6Auth "${KF6Auth_VERSION}")
+find_package(Qt6Keychain QUIET CONFIG)
+report(Qt6Keychain "${Qt6Keychain_VERSION}")
 find_package(KF6DocTools QUIET CONFIG)
 report(KF6DocTools "${KF6DocTools_VERSION}")
 find_package(GTest QUIET CONFIG)
@@ -189,6 +191,9 @@ check optional "Qt6 Wayland client internals (the compositor's window menu)" \
 for component in Kirigami I18n CoreAddons DBusAddons WindowSystem KIO GuiAddons Notifications StatusNotifierItem GlobalAccel; do
     check required "KF6 $component" "${probe[KF6$component]:-}" "$MIN_KF"
 done
+# Optional: the Broadcast block, whose password is kept in the desktop's
+# secret store (ADR-0026). Without it that one block is left out.
+check optional "QtKeychain (the Broadcast block)" "${probe[Qt6Keychain]:-}" "0.14"
 # Optional: without KAuth the app builds without the all-users virtual
 # devices helper, and a device for all users is refused as needing it.
 check optional "KF6 Auth (virtual devices for all users)" "${probe[KF6Auth]:-}" "$MIN_KF"

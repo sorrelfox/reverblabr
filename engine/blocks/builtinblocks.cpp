@@ -11,6 +11,9 @@
 #include "blocks/autolevel.h"
 #include "blocks/balance.h"
 #include "blocks/basstreble.h"
+#ifdef RB_HAVE_BROADCAST
+#include "blocks/broadcast.h"
+#endif
 #include "blocks/channels.h"
 #include "blocks/declick.h"
 #include "blocks/dehum.h"
@@ -104,6 +107,10 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
 #ifdef RB_HAVE_CLAP
     // Where the build has the CLAP SDK.
     all = all && registry.add(std::string{PluginBlock::kClapTypeId}, &PluginBlock::makeClap).has_value();
+#endif
+#ifdef RB_HAVE_BROADCAST
+    // Where the build can keep its password (ADR-0026).
+    all = all && registry.add(std::string{Broadcast::kTypeId}, &Broadcast::make).has_value();
 #endif
 #ifdef RB_HAVE_RNNOISE
     // Where the distribution has RNNoise (ADR-0016).

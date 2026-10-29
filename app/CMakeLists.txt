@@ -56,6 +56,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/BlockPanels.qml
     qml/BlockPort.qml
     qml/BlockTile.qml
+    qml/BroadcastPanel.qml
+    qml/BroadcastWords.qml
     qml/CanvasPlaceholder.qml
     qml/CanvasWire.qml
     qml/ChannelsFace.qml
@@ -387,6 +389,8 @@ target_sources(reverblabr-ui PRIVATE
     recordingpreview.h
     recordingstatus.cpp
     recordingstatus.h
+    broadcaststatus.cpp
+    broadcaststatus.h
     sessionoverview.cpp
     sessionoverview.h
     trayicon.cpp
@@ -422,6 +426,9 @@ target_include_directories(reverblabr-ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(reverblabr-ui
     PUBLIC
         reverblabr-engine
+        # The bit rates a Broadcast block's format takes, from the stream's
+        # own table.
+        reverblabr-stream
         # What is worth a desktop notification, and its words, shared
         # with the daemon; the notifier's header is one main.cpp includes.
         reverblabr-notify

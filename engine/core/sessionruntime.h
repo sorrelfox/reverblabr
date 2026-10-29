@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace rb::pw
@@ -137,6 +138,15 @@ public:
     /// unknownAction.
     [[nodiscard]] std::expected<void, QString> controlRecording(const QString &blockId, const QString &action);
 
+    /// **A Broadcast block's password**, from the secret store: nothing when
+    /// the store has none. Kept in memory for as long as the runtime is, and
+    /// handed to the block's stream now and whenever it starts again; a
+    /// stream with none says so and waits (broadcastPasswordWanted()).
+    void setBroadcastPassword(const QString &blockId, const std::optional<QString> &password);
+    /// The secret store could not be asked for \a blockId's password. The
+    /// stream says so; nothing is remembered, so the next start asks again.
+    void setBroadcastPasswordUnavailable(const QString &blockId);
+
     /// How many times the running session has been planned again since it
     /// started. **What a test can count**: a knob that is being dragged
     /// must not raise it, or every mouse move would recompile the graph.
@@ -232,6 +242,13 @@ Q_SIGNALS:
     /// A Recorder's finished file could not be given its tags. The
     /// audio in it is whole.
     void recordingTagsNotWritten(const QString &blockId, const QString &path);
+    /// **A Broadcast block's stream has started, and needs its
+    /// password**, which the runtime has not been given: the engine asks
+    /// the secret store and answers with setBroadcastPassword().
+    void broadcastPasswordWanted(const QString &blockId);
+    /// Where a Broadcast block's stream stands, as core::broadcastStatusJson()
+    /// spells it: when it changes, and once a second while it is on the air.
+    void broadcastStatusChanged(const QString &blockId, const QJsonObject &status);
 
     /// **A plugin's host failed, and the block is linked around**:
     /// \a reason is "crashed" or "hung". Once a failure.

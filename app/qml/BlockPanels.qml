@@ -185,6 +185,12 @@ QtObject {
         RecorderPanel {}
     }
 
+    /// The Broadcast block: what its stream is doing, and its Setup,
+    /// Metadata and Status tabs.
+    readonly property Component broadcast: Component {
+        BroadcastPanel {}
+    }
+
     /// The Input Switch panel: the two inputs and a switch standing
     /// between them.
     readonly property Component inputSwitch: Component {
@@ -325,6 +331,7 @@ QtObject {
         "meter.vu": panels.vu,
         "advanced.sync": panels.sync,
         "advanced.timeshift": panels.timeShift,
+        "output.broadcast": panels.broadcast,
         "output.recorder": panels.recorder,
         "plugin.builtin": panels.plugin,
         "plugin.lv2": panels.plugin,

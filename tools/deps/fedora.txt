@@ -45,6 +45,9 @@ kf6-kglobalaccel-devel
 # New Session, hands its request to the running one
 kf6-kdbusaddons-devel
 kf6-qqc2-desktop-style
+# Optional: the Broadcast block, whose password is kept in the desktop's
+# secret store (KWallet). Without it that one block is left out.
+qtkeychain-qt6-devel
 # Optional: virtual devices for all users, through the administrator's
 # password prompt. polkit asks for the password.
 kf6-kauth-devel
@@ -66,8 +69,9 @@ rnnoise-devel
 taglib-devel
 # Pitch Shift: SoundTouch, LGPL-2.1, linked dynamically
 soundtouch-devel
-# M4A recordings. ffmpeg-free's own AAC and ALAC encoders; the app
-# asks at run time which ones are there.
+# M4A recordings and the Broadcast block's streams. ffmpeg-free's own
+# AAC and ALAC encoders, and LAME, libopus and libvorbis; the app asks at
+# run time which ones are there.
 libavformat-free-devel
 libavcodec-free-devel
 libavutil-free-devel

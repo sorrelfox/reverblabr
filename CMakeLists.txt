@@ -123,6 +123,27 @@ elseif(NOT RB_BUILD_CLAP)
     message(STATUS "CLAP plugins will not be hosted: RB_BUILD_CLAP is off.")
 endif()
 
+# **The Broadcast block** (ADR-0026): its password is kept in the
+# desktop's secret store (KWallet on Plasma, the Secret Service elsewhere)
+# through QtKeychain, in the engine. Optional — a build without QtKeychain
+# has every other block and no Broadcast block, since a stream with nowhere
+# safe to keep its password is not one to offer.
+find_package(Qt6Keychain 0.14 QUIET CONFIG)
+set_package_properties(Qt6Keychain PROPERTIES
+    TYPE OPTIONAL
+    PURPOSE "The Broadcast block's password, in the desktop's secret store"
+)
+option(RB_BUILD_BROADCAST "Build the Broadcast block (needs QtKeychain for Qt 6)" ${Qt6Keychain_FOUND})
+if(RB_BUILD_BROADCAST AND NOT Qt6Keychain_FOUND)
+    message(FATAL_ERROR "RB_BUILD_BROADCAST is on, but QtKeychain for Qt 6 was not found (qtkeychain-qt6-devel / qtkeychain-qt6-dev)")
+endif()
+add_feature_info(Broadcast RB_BUILD_BROADCAST "the Broadcast block, its password kept through QtKeychain (qtkeychain-qt6-devel on Fedora, qtkeychain-qt6-dev on Kubuntu)")
+if(NOT Qt6Keychain_FOUND)
+    message(STATUS "The Broadcast block will not be built: QtKeychain for Qt 6 was not found. Every other block is; see ADR-0026.")
+elseif(NOT RB_BUILD_BROADCAST)
+    message(STATUS "The Broadcast block will not be built: RB_BUILD_BROADCAST is off.")
+endif()
+
 if(BUILD_TESTING)
     find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test QuickTest)
     find_package(GTest REQUIRED)

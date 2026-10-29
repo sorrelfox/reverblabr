@@ -116,6 +116,8 @@ public:
     void redo(const QString &) override { }
     void getUndoState(const QString &) override { }
     void controlRecording(const QString &, const QString &, const QString &) override { }
+    void setBroadcastPassword(const QString &, const QString &, const QString &) override { }
+    void getBroadcastStatus(const QString &, const QString &) override { }
     void restartPlugin(const QString &, const QString &) override { }
     void analyse(const QString &, const QString &, int) override { }
     void start(const QString &) override { }

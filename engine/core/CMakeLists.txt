@@ -51,6 +51,8 @@ add_library(reverblabr-engine STATIC
     mockengine.h
     blockcatalogue.cpp
     blockcatalogue.h
+    broadcasts.cpp
+    broadcasts.h
     paramjson.cpp
     paramjson.h
     pluginscanner.cpp
@@ -71,6 +73,8 @@ add_library(reverblabr-engine STATIC
     recordingplayer.h
     recordings.cpp
     recordings.h
+    secretstore.cpp
+    secretstore.h
     sessionlisting.cpp
     sessionlisting.h
     sessionplan.cpp
@@ -97,8 +101,12 @@ target_link_libraries(reverblabr-engine
     # The recordings index is SQLite, through Qt: a Qt module with no
     # GUI in it, as the daemon the engine becomes allows.
     PRIVATE Qt6::Sql
-    PRIVATE reverblabr-pw reverblabr-blocks reverblabr-record reverblabr-pluginproto reverblabr-version
+    PRIVATE reverblabr-pw reverblabr-blocks reverblabr-record reverblabr-stream reverblabr-pluginproto reverblabr-version
 )
+# A Broadcast block's password, in the desktop's secret store (ADR-0026).
+if(RB_BUILD_BROADCAST)
+    target_link_libraries(reverblabr-engine PRIVATE Qt6Keychain::Qt6Keychain)
+endif()
 # The facade is a QObject, so moc runs here.
 set_target_properties(reverblabr-engine PROPERTIES AUTOMOC ON AUTORCC ON)
 

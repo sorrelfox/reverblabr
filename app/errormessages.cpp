@@ -113,6 +113,12 @@ constexpr std::array kMessages{
     Message{"recording.tagsNotSaved",
             kli18nc("@info %1 is a recording's file, with its folder",
                     "The tags of the recording %1 couldn't be saved. The file is as it was.")},
+    Message{"broadcast.passwordNotSaved",
+            kli18nc("@info %1 is why", "The stream's password wasn't saved: %1. It wasn't written anywhere else.")},
+    Message{"broadcast.failed",
+            kli18nc("@info %1 is a radio station's name, or the block's when it has none; %2 is why",
+                    "The stream “%1” stopped trying to reach its server: %2. It tries again when you change its "
+                    "settings or its password.")},
     Message{"recording.lowDiskSpace",
             kli18nc("@info %1 is a recording's file, with its folder; %2 is a number of megabytes",
                     "Only %2 MB are left on the disk the recording %1 is on. It's still recording, and it stops "
@@ -259,6 +265,18 @@ constexpr std::array kReasons{
             kli18nc("@info why a recording format is not offered",
                     "this system's FFmpeg has no encoder for it. Install the full FFmpeg (on Fedora, from RPM "
                     "Fusion), or record to Opus or FLAC instead")},
+    // A Broadcast block's password, and why its stream stopped trying.
+    Message{"noSecretStore",
+            kli18nc("@info a reason a password was not saved",
+                    "there is no password store, such as KWallet, to keep it in")},
+    Message{"secretStoreDenied",
+            kli18nc("@info a reason a password was not saved", "the password store didn't open, or was told not to")},
+    Message{"secretStoreFailed", kli18nc("@info a reason a password was not saved", "the password store refused it")},
+    Message{"notABroadcast", kli18nc("@info a reason a password was not saved", "that block isn't a Broadcast block")},
+    Message{"authRejected", kli18nc("@info a reason a stream stopped", "the server refused the user name or password")},
+    Message{"noPassword", kli18nc("@info a reason a stream stopped", "no password is set")},
+    Message{"notConfigured", kli18nc("@info a reason a stream stopped", "no server is set")},
+    Message{"encoderFailed", kli18nc("@info a reason a stream stopped", "the encoder stopped")},
     // Pausing, resuming or splitting a recording.
     Message{"notARecorder", kli18nc("@info a reason a recording command was refused", "that block isn't a Recorder")},
     Message{"unknownAction",

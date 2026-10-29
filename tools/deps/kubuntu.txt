@@ -60,6 +60,9 @@ libkf6globalaccel-dev
 # New Session, hands its request to the running one
 libkf6dbusaddons-dev
 libqt6sql6-sqlite
+# Optional: the Broadcast block, whose password is kept in the desktop's
+# secret store (KWallet). Without it that one block is left out.
+qtkeychain-qt6-dev
 # Optional: virtual devices for all users, through the administrator's
 # password prompt. polkitd asks for the password.
 libkf6auth-dev
@@ -83,7 +86,7 @@ libsoxr-dev
 libtag-dev
 # Pitch Shift: SoundTouch, LGPL-2.1, linked dynamically
 libsoundtouch-dev
-# M4A recordings
+# M4A recordings and the Broadcast block's streams
 libavformat-dev
 libavcodec-dev
 libavutil-dev

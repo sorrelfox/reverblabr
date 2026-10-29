@@ -503,6 +503,45 @@ output</guilabel>, it could follow the default to the very device the session
 records from, and &reverblabr; refuses that connection.</para>
 </sect2>
 
+<sect2 id="block-output-broadcast">
+<title>Broadcast</title>
+<para>Sends what reaches it to an internet radio server, Icecast or SHOUTcast,
+as MP3, Opus, Ogg Vorbis or AAC, and passes the sound on unchanged. It
+connects when the session runs and lets go when it stops. Its settings have
+three tabs:</para>
+<variablelist>
+<varlistentry><term><guilabel>Setup</guilabel></term>
+<listitem><para>The kind of server, its host and port, and for Icecast the
+mount point and the user (usually <literal>source</literal>). A SHOUTcast
+server takes its stream on the port after the one you give, as SHOUTcast
+always has. The password is kept in your desktop's password store
+(&kwallet; on &plasma;), never in the session file: a session you copy or
+send to somebody carries none. Then the format, the bit rate, and stereo or
+mono.</para></listitem></varlistentry>
+<varlistentry><term><guilabel>Metadata</guilabel></term>
+<listitem><para>The station's name, genre, web page and description, and
+whether the server may list it in a public directory. The title listeners
+see is made from a template: <literal>%artist</literal>,
+<literal>%title</literal> and <literal>%album</literal> are what is playing,
+and <literal>%session</literal> is the session's name. Text between two of
+them is left out when either is empty, so <literal>%artist - %title</literal>
+with no artist is the title alone. What is playing can come from a text file
+whose first line is the title, which many players can write; it is read again
+whenever it changes.</para></listitem></varlistentry>
+<varlistentry><term><guilabel>Status</guilabel></term>
+<listitem><para>How long it has been connected, how much it has sent, the bit
+rate it is sending at, how many times it has connected again, and what last
+went wrong.</para></listitem></varlistentry>
+</variablelist>
+<para>When the server goes away, or the network does, the block tries again
+after a second, then after twice as long each time, up to once a minute. A
+wrong password, a missing password or a format this system cannot make stops
+it until you change the setting, and says so. Icecast 2.4 shows no title for
+an Opus stream on its own pages; listeners' players show it.</para>
+<para>The block is there in a build made with QtKeychain, which keeps its
+password.</para>
+</sect2>
+
 <sect2 id="block-output-recorder">
 <title>Recorder</title>
 <para>Writes what reaches it to a file and passes the sound on unchanged. See
@@ -1679,8 +1718,14 @@ connected to. The &plasma; audio applet does not list it, so look there if you
 need to know.</para></listitem>
 </itemizedlist>
 
-<para>&reverblabr; itself does not use the network at all: no usage
-statistics, no update checks. An Application block can be set to open a web
+<para>&reverblabr; itself does not use the network on its own account: no
+usage statistics, no update checks. The one block that does is Broadcast,
+which sends a running session to the radio server you name, with the station
+details you give it; nothing else goes there. Its password is kept in your
+desktop's password store (&kwallet; on &plasma;), not in the session file, and
+it travels to the server the way the server's protocol sends it, which is in
+the clear unless the server is on a network you trust. An Application block
+can be set to open a web
 address when its session starts, but that address is opened by your browser or
 player, not by &reverblabr;. When you copy diagnostics for a bug report, your
 home folder, user name and computer name are left out, but please read the

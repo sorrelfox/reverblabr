@@ -10,6 +10,7 @@
 #include "blocks/applicationsource.h"
 #include "blocks/outputdevice.h"
 #include "blocks/pluginblock.h"
+#include "core/broadcasts.h"
 #include "core/paramjson.h"
 #include "core/recordings.h"
 #include "core/sessionplan.h"
@@ -26,6 +27,7 @@
 #include "record/recordingwriter.h"
 #include "rt/audiotap.h"
 #include "rt/meter.h"
+#include "stream/broadcaststream.h"
 
 #include <QElapsedTimer>
 #include <QJsonArray>
@@ -209,6 +211,11 @@ public:
         /// Whether the writer has been told to record this block, which is
         /// what switching it off or stopping the session undoes.
         bool recordingOn = false;
+        /// Where a block that streams leaves its audio for its stream, as a
+        /// recording block's tap is, and the stream's key while it has one:
+        /// zero when it is not streaming.
+        std::shared_ptr<rt::AudioTap> streamTap;
+        std::uint64_t broadcastKey = 0;
 
         /// Everything a PrepareSpec is made of that can change while a
         /// session is open. The rest — the longest cycle, where the meter
@@ -371,6 +378,21 @@ public:
     std::mutex recordingEventsMutex;
     std::vector<record::RecordingEvent> recordingEvents;
     bool recordingDeliveryPosted = false;
+    /// What the streams have said and the engine thread has not passed on
+    /// yet, by key, and which block each key is.
+    std::mutex broadcastStatusMutex;
+    std::vector<std::pair<std::uint64_t, stream::BroadcastStatus>> broadcastStatuses;
+    bool broadcastDeliveryPosted = false;
+    QHash<quint64, QString> broadcastBlocks;
+    std::uint64_t nextBroadcastKey = 1;
+    /// The passwords the engine has handed over, by block: nothing for a
+    /// block the secret store has none for. A block not in here has not
+    /// been asked about yet.
+    QHash<QString, std::optional<QString>> broadcastPasswords;
+    /// **After what they report to, so they go first**: a stream's thread
+    /// says it has stopped as it stops.
+    std::map<std::uint64_t, std::unique_ptr<stream::BroadcastStream>> broadcasts;
+
     /// **Last, so it goes first**: its thread may still be reporting while
     /// it finishes, and what it reports to must outlive it.
     std::unique_ptr<record::RecordingWriter> writer;
@@ -888,12 +910,136 @@ public:
     void ensureTaps()
     {
         for (Instance &instance : instances) {
-            if (instance.tap || !instance.block->info().recordsAudio) {
+            const std::uint32_t channels = std::max<std::uint32_t>(instance.block->info().inputs.maxCount, 1);
+            if (!instance.tap && instance.block->info().recordsAudio) {
+                instance.tap = std::make_shared<rt::AudioTap>(channels, tapFrames(sampleRate));
+                instance.recordingKey = nextRecordingKey++;
+            }
+            // A stream's tap is as long as a recording's: ten seconds the
+            // network may stall for before audio is lost.
+            if (!instance.streamTap && instance.block->info().streamsAudio) {
+                instance.streamTap = std::make_shared<rt::AudioTap>(channels, tapFrames(sampleRate));
+            }
+        }
+    }
+
+    /// **Starts a stream for every Broadcast block that is on and has none,
+    /// and gives every one the settings it has now.** Before the graph that
+    /// runs them goes live, like the recordings. A block's password comes
+    /// from the engine, which asks the secret store when it is told one is
+    /// wanted.
+    void beginBroadcasts(const Session &wanted)
+    {
+        for (Instance &instance : instances) {
+            if (!instance.streamTap || !instance.enabled) {
                 continue;
             }
-            const std::uint32_t channels = std::max<std::uint32_t>(instance.block->info().inputs.maxCount, 1);
-            instance.tap = std::make_shared<rt::AudioTap>(channels, tapFrames(sampleRate));
-            instance.recordingKey = nextRecordingKey++;
+            const stream::BroadcastSettings settings = broadcastSettings(*instance.block, wanted.name);
+            if (instance.broadcastKey != 0) {
+                broadcasts.at(instance.broadcastKey)->configure(settings);
+                continue;
+            }
+            const std::uint64_t key = nextBroadcastKey++;
+            instance.broadcastKey = key;
+            broadcastBlocks.insert(key, instance.id);
+            auto made = std::make_unique<stream::BroadcastStream>(
+                instance.streamTap,
+                [this, key](const stream::BroadcastStatus &status) { queueBroadcastStatus(key, status); });
+            made->configure(settings);
+            if (const auto known = broadcastPasswords.constFind(instance.id); known != broadcastPasswords.constEnd()) {
+                made->setPassword(known->has_value() ? std::optional<std::string>((*known)->toStdString())
+                                                     : std::nullopt);
+            } else {
+                Q_EMIT q->broadcastPasswordWanted(instance.id);
+            }
+            broadcasts.emplace(key, std::move(made));
+        }
+    }
+
+    /// Stops the streams of Broadcast blocks that have been switched off or
+    /// taken out. After the graph that stopped running them is live.
+    void endBroadcasts()
+    {
+        std::vector<std::uint64_t> ending;
+        for (Instance &instance : instances) {
+            if (instance.broadcastKey != 0 && !instance.enabled) {
+                ending.push_back(std::exchange(instance.broadcastKey, 0));
+            }
+        }
+        for (Instance &gone : retiring) {
+            if (gone.broadcastKey != 0) {
+                ending.push_back(std::exchange(gone.broadcastKey, 0));
+            }
+        }
+        stopBroadcasts(ending);
+    }
+
+    /// **Tells every one of \a keys' streams to stop, and only then lets go
+    /// of them**, so they wind down together: each takes a few tens of
+    /// milliseconds to notice, and one after another that adds up.
+    void stopBroadcasts(const std::vector<std::uint64_t> &keys)
+    {
+        for (const std::uint64_t key : keys) {
+            if (const auto found = broadcasts.find(key); found != broadcasts.end()) {
+                found->second->requestStop();
+            }
+        }
+        for (const std::uint64_t key : keys) {
+            broadcasts.erase(key);
+        }
+    }
+
+    /// Stops every stream, and says so before returning.
+    void finishBroadcasts()
+    {
+        for (Instance &instance : instances) {
+            instance.broadcastKey = 0;
+        }
+        for (Instance &gone : retiring) {
+            gone.broadcastKey = 0;
+        }
+        std::vector<std::uint64_t> keys;
+        for (const auto &[key, stream] : broadcasts) {
+            keys.push_back(key);
+        }
+        stopBroadcasts(keys);
+        deliverBroadcastStatuses();
+    }
+
+    /// A stream's thread: keep what it said, and make sure the engine
+    /// thread hears of it.
+    void queueBroadcastStatus(std::uint64_t key, const stream::BroadcastStatus &status)
+    {
+        bool post = false;
+        {
+            const std::lock_guard lock(broadcastStatusMutex);
+            broadcastStatuses.emplace_back(key, status);
+            post = !std::exchange(broadcastDeliveryPosted, true);
+        }
+        if (post) {
+            QMetaObject::invokeMethod(q, [this] { deliverBroadcastStatuses(); }, Qt::QueuedConnection);
+        }
+    }
+
+    /// The engine thread: says what the streams said, the last word of each
+    /// only.
+    void deliverBroadcastStatuses()
+    {
+        std::vector<std::pair<std::uint64_t, stream::BroadcastStatus>> statuses;
+        {
+            const std::lock_guard lock(broadcastStatusMutex);
+            statuses.swap(broadcastStatuses);
+            broadcastDeliveryPosted = false;
+        }
+        std::map<std::uint64_t, const stream::BroadcastStatus *> last;
+        for (const auto &[key, status] : statuses) {
+            last[key] = &status;
+        }
+        for (const auto &[key, status] : last) {
+            const QString blockId = broadcastBlocks.value(key);
+            if (!blockId.isEmpty()) {
+                Q_EMIT q->broadcastStatusChanged(blockId, broadcastStatusJson(*status));
+            }
         }
     }
 
@@ -1207,7 +1353,7 @@ public:
             // a gain reduction. The levels either side of it are the graph's
             // to measure and need nothing from the block.
             prepare.meter = instance.meter.get();
-            prepare.recording = instance.tap.get();
+            prepare.recording = instance.tap ? instance.tap.get() : instance.streamTap.get();
             if (!instance.block->prepare(prepare)) {
                 return std::unexpected(RuntimeError::BlockRefused);
             }
@@ -1576,12 +1722,14 @@ std::expected<void, RuntimeError> SessionRuntime::start(const Session &session)
     }
 
     d->beginRecordings(session);
+    d->beginBroadcasts(session);
     d->segments.resize(built->graphs.size());
     for (std::uint32_t segment = 0; segment < d->segments.size(); ++segment) {
         if (const std::expected<void, RuntimeError> started = d->startSegment(segment, session, *built); !started) {
             d->stopSegments();
             d->hosts.clear();
             d->finishRecordings();
+            d->finishBroadcasts();
             return std::unexpected(started.error());
         }
     }
@@ -1613,6 +1761,7 @@ void SessionRuntime::stop()
     // **Once no cycle can reach the taps**, so everything the session heard
     // is in the files by the time it is said to have stopped.
     d->finishRecordings();
+    d->finishBroadcasts();
     // The nodes are gone, and with them the processors and whatever graphs
     // they were holding, so nothing points at the blocks an earlier edit
     // retired, or at a boundary.
@@ -1672,6 +1821,7 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
     }
 
     d->beginRecordings(session);
+    d->beginBroadcasts(session);
     const std::size_t before = d->segments.size();
     const std::size_t after = built->graphs.size();
     d->segments.resize(std::max(before, after));
@@ -1707,6 +1857,7 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
     }
     d->segments.resize(after);
     d->endRecordings();
+    d->endBroadcasts();
     // **Now, and not before.** Every node has taken its new graph by now —
     // an update does not come back until the audio thread has — so the
     // graphs that pointed at the blocks this edit took out are out of use
@@ -1777,6 +1928,12 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
         const QString name = block != nullptr && !block->nickname.isEmpty() ? block->nickname : instance->id;
         d->writer->start(instance->recordingKey, recordingSettings(*instance->block, d->session.name, name));
     }
+    // **A Broadcast block's settings reach its stream** at once: a title
+    // template as the next title, a server or a format as a new
+    // connection.
+    if (d->running && instance->broadcastKey != 0) {
+        d->broadcasts.at(instance->broadcastKey)->configure(broadcastSettings(*instance->block, d->session.name));
+    }
 
     // **A parameter the session plan reads is not queued.** Nothing on the
     // audio thread would read the number — what the change means is other
@@ -1832,6 +1989,24 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     change.value = static_cast<float>(*number);
     (void)node->queueParam(change);
     return effect;
+}
+
+void SessionRuntime::setBroadcastPasswordUnavailable(const QString &blockId)
+{
+    // Not kept: the next start asks the store again.
+    d->broadcastPasswords.remove(blockId);
+    if (Private::Instance *instance = d->find(blockId); instance != nullptr && instance->broadcastKey != 0) {
+        d->broadcasts.at(instance->broadcastKey)->setPasswordUnavailable();
+    }
+}
+
+void SessionRuntime::setBroadcastPassword(const QString &blockId, const std::optional<QString> &password)
+{
+    d->broadcastPasswords.insert(blockId, password);
+    if (Private::Instance *instance = d->find(blockId); instance != nullptr && instance->broadcastKey != 0) {
+        d->broadcasts.at(instance->broadcastKey)
+            ->setPassword(password ? std::optional<std::string>(password->toStdString()) : std::nullopt);
+    }
 }
 
 std::expected<void, QString> SessionRuntime::controlRecording(const QString &blockId, const QString &action)

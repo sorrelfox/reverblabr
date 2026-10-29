@@ -137,6 +137,8 @@ The released surface is written down line by line in [`dbus/io.github.reverblabr
 | `GetSessionState(s sessionId)` | how it is | `StateChanged` |
 | `Resynchronise(s sessionId)` | the whole session again, after a missed patch | `SessionSnapshot` |
 | `ControlRecording(s sessionId, s blockId, s action)` | a running Recorder: `pause`, `resume`, or `split` (end this file and start the next, with no gap) | `RecordingPaused`, the files' own signals, or `recording.refused` |
+| `SetBroadcastPassword(s sessionId, s blockId, s password)` | a Broadcast block's password, kept in the desktop's password store (KWallet, or the Secret Service) and never in the session; empty removes it. A running stream tries again with it at once | `BroadcastStatusChanged`, or `broadcast.passwordNotSaved` |
+| `GetBroadcastStatus(s sessionId, s blockId)` | where a Broadcast block's stream stands, and whether it has a password | `BroadcastStatusChanged` |
 | `RestartPlugin(s sessionId, s blockId)` | starts a plugin block's plugin again in a host of its own | `plugin.restartRefused` if it cannot |
 | `Analyse(s sessionId, s blockId, i channel)` | takes one block's live spectra into the session's levels (for the window's curves; an empty `blockId` stops) | not answered: the spectra travel with the levels |
 
@@ -216,6 +218,7 @@ The all-users devices are written by a privileged helper the window asks through
 | `RecordingFileFinished(s sessionId, s blockId, s path, s detailsJson)` | a Recorder's file is closed and complete: `{frames, sampleRate, seconds}` |
 | `RecordingPaused(s sessionId, s blockId, b paused)` | a Recorder was paused or resumed |
 | `RecordingStopped(s sessionId, s blockId, s reason)` | a Recorder ended by itself: `timeLimit` or `silence` |
+| `BroadcastStatusChanged(s sessionId, s blockId, s statusJson)` | where a Broadcast block's stream stands: `{state, error, connectedSince, bytesSent, kbps, reconnects, retryIn, title, sampleRate, passwordStored}`, described in the interface XML; when it changes, and once a second while it is on the air |
 | `PluginsChanged(s pluginsJson)` | the installed plugins, whether a scan runs, the blocklisted ones, and the files a scan got only part of the way through (`incomplete`) |
 | `PluginDescribed(s format, s id, s descriptionJson)` | one plugin's settings |
 | `RecordingsChanged(s sessionId, s recordingsJson)` | a session's recordings, newest first |
@@ -257,6 +260,8 @@ Each is the `code` of an `Error` signal. Its arguments arrive by name in `argsJs
 | `recording.notFound` | file | there is no such recording in the list |
 | `recording.renameRefused` | file, reason | a recording was not renamed: `invalidName`, `exists`, `notFound` or `failed` |
 | `recording.tagsNotSaved` | file | a recording's tags could not be written; the file is as it was |
+| `broadcast.passwordNotSaved` | reason | a Broadcast block's password could not be put in the password store or taken out of it: `noSecretStore`, `secretStoreDenied`, `secretStoreFailed`, or `notABroadcast`; nothing was written anywhere else (*block*) |
+| `broadcast.failed` | station, reason | a Broadcast block's stream stopped trying, because trying again cannot help: `authRejected`, `noPassword`, `notConfigured` or `encoderMissing`; it tries again when its settings or its password change (*block*) |
 | `plugin.crashed` | plugin | a plugin's host went; the block is bypassed and can be restarted (*block*) |
 | `plugin.stoppedResponding` | plugin | a plugin's host stopped responding and was ended; as above (*block*) |
 | `plugin.restartRefused` | reason | a plugin could not be restarted (*block*) |
@@ -298,6 +303,7 @@ Every action a person takes on the engine from the window is one of these calls.
 | A block's presets: apply, save, rename, delete | `ListPresets`, `ApplyPreset`, `SavePreset`, `RenamePreset`, `DeletePreset` |
 | Run / Stop, and what the status bar says | `Start`, `Stop`, `GetSessionState` |
 | A Recorder's Pause, Resume and Split | `ControlRecording` |
+| A Broadcast block's password and its Status tab | `SetBroadcastPassword`, `GetBroadcastStatus` |
 | Restarting a plugin | `RestartPlugin` |
 | A curve with the sound drawn behind it | `Analyse` |
 | The block library | `GetBlockCatalogue` |

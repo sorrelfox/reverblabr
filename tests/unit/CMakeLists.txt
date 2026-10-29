@@ -166,6 +166,10 @@ rb_add_gtest(reverblabr-blocks-test
 if(RB_BUILD_SPEECH_DENOISE)
     target_sources(reverblabr-blocks-test PRIVATE blocks/test_speechdenoise.cpp)
 endif()
+# Broadcast, where the build can keep its password (ADR-0026).
+if(RB_BUILD_BROADCAST)
+    target_sources(reverblabr-blocks-test PRIVATE blocks/test_broadcast.cpp)
+endif()
 set_target_properties(reverblabr-blocks-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
 # Recordings on the disk. Read back through libsndfile directly, which
@@ -325,6 +329,10 @@ target_compile_definitions(reverblabr-engine-test PRIVATE
     RB_TEST_HOME="${RB_TEST_HOME}"
 )
 # It must also be a D-Bus interface, not merely an XML file that looks like one.
+# What the engine makes of a Broadcast block, where the build has one.
+if(RB_BUILD_BROADCAST)
+    target_sources(reverblabr-engine-test PRIVATE core/test_broadcasts.cpp)
+endif()
 add_dependencies(reverblabr-engine-test reverblabr-engine-interface)
 
 # The plugin scanner describes with the real plugin host.

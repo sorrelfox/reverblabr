@@ -193,6 +193,25 @@ SPDX-License-Identifier: MIT
       <arg name="action" type="s" direction="in"/>
     </method>
 
+    <!-- A Broadcast block's password for its server, kept in the desktop's
+         secret store (KWallet, or the Secret Service) and never in the
+         session file; empty removes it. Answered by BroadcastStatusChanged
+         with "passwordStored", or by Error broadcast.passwordNotSaved. A
+         running stream that had none, or had a refused one, tries again with
+         it at once. -->
+    <method name="SetBroadcastPassword">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="password" type="s" direction="in"/>
+    </method>
+
+    <!-- Where a Broadcast block's stream stands, and whether it has a
+         password. Answered by BroadcastStatusChanged. -->
+    <method name="GetBroadcastStatus">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+    </method>
+
     <!-- Start a plugin block's plugin again in a host of its own:
          after its host crashed or stopped responding, or to start it
          fresh. The block stays linked around until the new host is ready,
@@ -688,6 +707,32 @@ SPDX-License-Identifier: MIT
       <arg name="sessionId" type="s"/>
       <arg name="blockId" type="s"/>
       <arg name="reason" type="s"/>
+    </signal>
+
+    <!-- Where a Broadcast block's stream stands, a JSON object:
+           { "state": "idle" | "waitingForPassword" | "connecting" | "connected"
+                    | "retrying" | "failed",
+             "error": "authRejected" | "noPassword" | "notConfigured"
+                    | "encoderMissing" | "encoderFailed" | "resolveFailed"
+                    | "connectFailed" | "timedOut" | "closed" | "mountInUse"
+                    | "rejected" | "badResponse",
+             "connectedSince": 1767225600000, "bytesSent": 1048576,
+             "kbps": 128.4, "reconnects": 1, "retryIn": 4000,
+             "title": "Artist - Title", "sampleRate": 48000,
+             "passwordStored": true }
+         "error" says why it is retrying or has failed, or why it last lost
+         the server; it is left out when nothing went wrong. Times are in
+         milliseconds, connectedSince since the epoch and 0 while it is not
+         connected; bytesSent counts every connection since the session
+         started; kbps is measured over the last few seconds; reconnects
+         counts the times it connected again after losing the server.
+         "passwordStored" is there once the engine knows. Sent when it
+         changes, once a second while connected, and in answer to
+         GetBroadcastStatus and SetBroadcastPassword. -->
+    <signal name="BroadcastStatusChanged">
+      <arg name="sessionId" type="s"/>
+      <arg name="blockId" type="s"/>
+      <arg name="statusJson" type="s"/>
     </signal>
 
     <!-- The plugins installed on this machine, a JSON object:

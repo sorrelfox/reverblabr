@@ -47,6 +47,7 @@ BuildRequires:  kf6-knotifications-devel
 BuildRequires:  kf6-kstatusnotifieritem-devel
 BuildRequires:  kf6-kglobalaccel-devel
 BuildRequires:  kf6-kdbusaddons-devel
+BuildRequires:  qtkeychain-qt6-devel
 BuildRequires:  kf6-kauth-devel
 BuildRequires:  kf6-kdoctools-devel
 BuildRequires:  pipewire-devel
@@ -101,9 +102,9 @@ and a command-line tool runs and changes them from a terminal or a script.
 # The tests are built for %%check. Warnings are not errors here, as the
 # presets make them: Fedora's flags differ from the ones the project
 # builds with.
-# The handbook is asked for by name, so that a missing KDocTools stops the
-# build instead of leaving F1 with nothing to open.
-%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON
+# The handbook and the Broadcast block are asked for by name, so that a
+# missing KDocTools or QtKeychain stops the build instead of leaving them out.
+%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON -DRB_BUILD_BROADCAST=ON
 %cmake_build
 
 

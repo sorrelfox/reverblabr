@@ -396,6 +396,17 @@ private:
             && !item->property("text").toString().trimmed().isEmpty();
     }
 
+    /// **A password field has no name to read.** Qt Quick's accessible
+    /// object hides the name of anything in password mode, whatever it is
+    /// set to, because a text field's default name is what is typed in it.
+    /// Such a field says what it is for in its description, which is
+    /// read out as a name is, and is held to that instead.
+    static bool describesItself(const QObject *attached, QAccessible::Role role)
+    {
+        return role == QAccessible::EditableText && attached->property("passwordEdit").toBool()
+            && !attached->property("description").toString().trimmed().isEmpty();
+    }
+
     static void walk(QQuickItem *item, QVariantList &found, int &looked, int depth)
     {
         if (item == nullptr || !item->isVisible() || depth > 400) {
@@ -405,7 +416,7 @@ private:
             ++looked;
             const auto role = QAccessible::Role(attached->property("role").toInt());
             if (acts(role) && attached->property("name").toString().trimmed().isEmpty()
-                && !standInsOwnEditor(item, role) && !readsItself(item, role)) {
+                && !standInsOwnEditor(item, role) && !readsItself(item, role) && !describesItself(attached, role)) {
                 found.append(QVariantMap{{u"role"_s, int(role)}, {u"path"_s, pathOf(item)}});
             }
         }

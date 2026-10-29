@@ -82,6 +82,12 @@ pkg_check_modules(RB_PW_TEST_SNDFILE REQUIRED IMPORTED_TARGET sndfile)
 if(RB_BUILD_SPEECH_DENOISE)
     target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_HAVE_RNNOISE)
 endif()
+# A Broadcast block in a running engine, where the build has one, against
+# the stream tests' own server.
+if(RB_BUILD_BROADCAST)
+    target_sources(reverblabr-pw-session-test PRIVATE test_broadcast.cpp)
+    target_include_directories(reverblabr-pw-session-test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../unit/stream)
+endif()
 # The CLAP sessions, where the build hosts CLAP plugins.
 if(RB_BUILD_CLAP)
     target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_HAVE_CLAP)
@@ -170,6 +176,14 @@ set_tests_properties(pw.plugin-sessions PROPERTIES TIMEOUT 300)
 add_test(NAME pw.preview COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test>
          --gtest_filter=Preview.*)
 set_tests_properties(pw.preview PROPERTIES TIMEOUT 300)
+
+# A Broadcast block in a running engine: its password from a store in
+# memory, its stream to a server the test makes, nothing on the network.
+if(RB_BUILD_BROADCAST)
+    add_test(NAME pw.broadcast COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test>
+             --gtest_filter=Broadcasting.*)
+    set_tests_properties(pw.broadcast PROPERTIES TIMEOUT 300)
+endif()
 
 add_executable(reverblabr-pw-virtualdevices-test test_virtualdevices.cpp)
 target_link_libraries(reverblabr-pw-virtualdevices-test PRIVATE reverblabr-pwtest reverblabr-pw GTest::gtest_main)

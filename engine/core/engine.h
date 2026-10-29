@@ -29,6 +29,8 @@ class VirtualDeviceManager;
 namespace rb::core
 {
 
+class SecretStore;
+
 /// The engine, answering the interface for real.
 ///
 /// **It owns everything below the facade**: the sessions on disk, the ones
@@ -116,6 +118,11 @@ public:
     /// its slot could not be put in shared memory.
     [[nodiscard]] int shareTelemetry(const QString &sessionId) const;
 
+    /// **Where Broadcast blocks' passwords are kept**: the desktop's secret
+    /// store unless something else is put here. For a test, which must not
+    /// touch the store of whoever runs it.
+    void setSecretStore(std::unique_ptr<SecretStore> store);
+
     /// What listSessions() says, as its JSON array, **without saying it**:
     /// for the daemon's own bookkeeping (Auto Run), which must not put
     /// a SessionsListed on the bus for every client each time it looks.
@@ -147,6 +154,8 @@ public Q_SLOTS:
     void getUndoState(const QString &sessionId) override;
 
     void controlRecording(const QString &sessionId, const QString &blockId, const QString &action) override;
+    void setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password) override;
+    void getBroadcastStatus(const QString &sessionId, const QString &blockId) override;
     void restartPlugin(const QString &sessionId, const QString &blockId) override;
     void analyse(const QString &sessionId, const QString &blockId, int channel) override;
     void start(const QString &sessionId) override;

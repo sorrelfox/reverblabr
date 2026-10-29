@@ -83,6 +83,8 @@ public:
     void redo(const QString &sessionId) override;
     void getUndoState(const QString &sessionId) override;
     void controlRecording(const QString &sessionId, const QString &blockId, const QString &action) override;
+    void setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password) override;
+    void getBroadcastStatus(const QString &sessionId, const QString &blockId) override;
     void restartPlugin(const QString &sessionId, const QString &blockId) override;
     void analyse(const QString &sessionId, const QString &blockId, int channel) override;
     void start(const QString &sessionId) override;

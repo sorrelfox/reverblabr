@@ -55,6 +55,7 @@ namespace
         u"ListPlugins"_s,
         u"DescribePlugin"_s,
         u"Analyse"_s,
+        u"GetBroadcastStatus"_s,
     };
     return kLasting.contains(method);
 }
@@ -478,6 +479,16 @@ void RemoteEngine::getUndoState(const QString &sessionId)
 void RemoteEngine::controlRecording(const QString &sessionId, const QString &blockId, const QString &action)
 {
     d->call(u"ControlRecording"_s, {sessionId, blockId, action});
+}
+
+void RemoteEngine::setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password)
+{
+    d->call(u"SetBroadcastPassword"_s, {sessionId, blockId, password});
+}
+
+void RemoteEngine::getBroadcastStatus(const QString &sessionId, const QString &blockId)
+{
+    d->call(u"GetBroadcastStatus"_s, {sessionId, blockId});
 }
 
 void RemoteEngine::restartPlugin(const QString &sessionId, const QString &blockId)

@@ -8,6 +8,7 @@
 #include "core/mockengine.h"
 
 #include "blocks/autolevel.h"
+#include "blocks/broadcast.h"
 #include "blocks/builtinblocks.h"
 #include "blocks/declick.h"
 #include "blocks/dehum.h"
@@ -26,6 +27,7 @@
 #include "blocks/vumeter.h"
 #include "core/audiosystem.h"
 #include "core/blockcatalogue.h"
+#include "core/broadcasts.h"
 #include "core/diagnostics.h"
 #include "core/editcommand.h"
 #include "core/edithistory.h"
@@ -184,6 +186,9 @@ public:
 
     MockEngine *q = nullptr;
     std::map<QString, Open> open;
+    /// **Broadcast blocks' passwords, in memory**: the mock never touches
+    /// the desktop's secret store. By session and block.
+    QHash<QString, QString> broadcastPasswords;
     /// Everything the mock pretends the machine has.
     pw::Inventory made;
     /// The node names that are unplugged at the moment. Kept apart from
@@ -767,6 +772,30 @@ public:
     /// **Pretend Recorders**: a file that starts when the session
     /// does, named as the engine would name it, so an interface built
     /// against the mock shows a recording going. Nothing is written.
+    /// **What a Broadcast block's stream would be doing**: on the air
+    /// while its session runs and it has a password, waiting for one while
+    /// it runs without, and idle otherwise. The numbers are the ones a
+    /// stream has just after it connects.
+    void announceBroadcast(const Open &session, const QString &sessionId, const QString &blockId)
+    {
+        const BlockInstance *block = session.session.findBlock(blockId);
+        const bool stored = broadcastPasswords.contains(sessionId + u'/' + blockId);
+        stream::BroadcastStatus status;
+        if (session.state == sessionState::running && block != nullptr && block->enabled) {
+            if (stored) {
+                status.state = stream::BroadcastStatus::State::Connected;
+                status.connectedSinceMs = QDateTime::currentMSecsSinceEpoch();
+                status.sampleRate = 48000;
+            } else {
+                status.state = stream::BroadcastStatus::State::Failed;
+                status.error = stream::StreamError::NoPassword;
+            }
+        }
+        QJsonObject json = broadcastStatusJson(status);
+        json.insert(u"passwordStored"_s, stored);
+        Q_EMIT q->broadcastStatusChanged(sessionId, blockId, asJson(json));
+    }
+
     [[nodiscard]] static QList<const BlockInstance *> recorders(const Session &session)
     {
         QList<const BlockInstance *> found;
@@ -1409,6 +1438,34 @@ void MockEngine::controlRecording(const QString &sessionId, const QString &block
     Q_EMIT recordingFileStarted(sessionId, blockId, file);
 }
 
+void MockEngine::setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    const BlockInstance *block = session->session.findBlock(blockId);
+    if (block == nullptr || block->type != QLatin1StringView{blocks::Broadcast::kTypeId}) {
+        d->fail(ErrorCode::BroadcastPasswordNotSaved, {u"notABroadcast"_s}, blockId);
+        return;
+    }
+    const QString key = sessionId + u'/' + blockId;
+    if (password.isEmpty()) {
+        d->broadcastPasswords.remove(key);
+    } else {
+        d->broadcastPasswords.insert(key, password);
+    }
+    d->announceBroadcast(*session, sessionId, blockId);
+}
+
+void MockEngine::getBroadcastStatus(const QString &sessionId, const QString &blockId)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session != nullptr) {
+        d->announceBroadcast(*session, sessionId, blockId);
+    }
+}
+
 void MockEngine::start(const QString &sessionId)
 {
     Private::Open *session = d->require(sessionId);
@@ -1433,6 +1490,11 @@ void MockEngine::start(const QString &sessionId)
         for (const BlockInstance *recorder : Private::recorders(session->session)) {
             Q_EMIT recordingFileStarted(sessionId, recorder->id, Private::pretendFile(session->session, *recorder));
         }
+        for (const BlockInstance &block : session->session.blocks) {
+            if (block.type == QLatin1StringView{blocks::Broadcast::kTypeId}) {
+                d->announceBroadcast(*session, sessionId, block.id);
+            }
+        }
         for (const QString &url : urlsToOpen(session->session)) {
             Q_EMIT openUrlRequested(sessionId, url);
         }
@@ -1455,6 +1517,11 @@ void MockEngine::stop(const QString &sessionId)
             }
         }
         d->setState(*session, sessionState::idle);
+        for (const BlockInstance &block : session->session.blocks) {
+            if (block.type == QLatin1StringView{blocks::Broadcast::kTypeId}) {
+                d->announceBroadcast(*session, sessionId, block.id);
+            }
+        }
     }
 }
 
@@ -1678,7 +1745,9 @@ void MockEngine::getBlockCatalogue()
     // interface work can start before the engine is finished; a made-up list
     // of parameters would be the one thing an interface cannot be built
     // against, because the panel is generated from exactly these.
-    Q_EMIT blockCatalogueChanged(asJson(blockCatalogueJson(d->registry, recordingUnavailableChoices())));
+    UnavailableChoices unavailable = recordingUnavailableChoices();
+    unavailable.merge(broadcastUnavailableChoices());
+    Q_EMIT blockCatalogueChanged(asJson(blockCatalogueJson(d->registry, unavailable)));
 }
 
 namespace

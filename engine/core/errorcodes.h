@@ -50,6 +50,8 @@ enum class ErrorCode {
     DaemonUnreachable,
     TimerNotFound,
     TimerLate,
+    BroadcastPasswordNotSaved,
+    BroadcastFailed,
     Count, ///< Not an error; the number of codes.
 };
 
@@ -160,6 +162,18 @@ inline constexpr std::array kErrorCodes{
     // the timer's time, as after the machine slept through it. Nothing was
     // started; the next time is kept.
     ErrorCodeInfo{ErrorCode::TimerLate, "timer.late", {"timer"}},
+    // A Broadcast block's password could not be put in the desktop's secret
+    // store, or taken out of it: the reason is "noSecretStore" (there is no
+    // store to use), "secretStoreDenied" (the store would not open, or the
+    // person said no) or "secretStoreFailed"; or "notABroadcast" for a block
+    // that is not one.
+    // Nothing was written anywhere else.
+    ErrorCodeInfo{ErrorCode::BroadcastPasswordNotSaved, "broadcast.passwordNotSaved", {"reason"}},
+    // A Broadcast block's stream has stopped trying, because trying again
+    // cannot help: the reason is a status's error, "authRejected",
+    // "noPassword", "notConfigured" or "encoderMissing". Once each time it
+    // stops; it tries again when its settings or its password change.
+    ErrorCodeInfo{ErrorCode::BroadcastFailed, "broadcast.failed", {"station", "reason"}},
 };
 
 static_assert(kErrorCodes.size() == static_cast<std::size_t>(ErrorCode::Count),

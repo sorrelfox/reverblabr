@@ -132,6 +132,16 @@ public Q_SLOTS:
     /// "pause", "resume" or "split".
     virtual void controlRecording(const QString &sessionId, const QString &blockId, const QString &action) = 0;
 
+    /// **A Broadcast block's password**, kept in the desktop's secret
+    /// store and never in the session (ADR-0026). Empty removes it.
+    /// Answered by broadcastStatusChanged(), with passwordStored, or by
+    /// error() with broadcast.passwordNotSaved. A running stream that had
+    /// none, or a refused one, tries again with it at once.
+    virtual void setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password) = 0;
+    /// Where a Broadcast block's stream stands, and whether it has a
+    /// password. Answered by broadcastStatusChanged().
+    virtual void getBroadcastStatus(const QString &sessionId, const QString &blockId) = 0;
+
     /// **Starts a plugin block's plugin again**, after its host
     /// crashed or stopped responding. Refused with plugin.restartRefused.
     virtual void restartPlugin(const QString &sessionId, const QString &blockId) = 0;
@@ -299,6 +309,12 @@ Q_SIGNALS:
     /// A Recorder ended its recording by itself, "timeLimit" or "silence",
     /// and finished its file.
     void recordingStopped(const QString &sessionId, const QString &blockId, const QString &reason);
+    /// **Where a Broadcast block's stream stands**, as the interface XML
+    /// describes it: `{state, error?, connectedSince, bytesSent, kbps,
+    /// reconnects, retryIn, title, sampleRate, passwordStored?}`. Sent when
+    /// it changes, once a second while it is on the air, and in answer to
+    /// getBroadcastStatus() and setBroadcastPassword().
+    void broadcastStatusChanged(const QString &sessionId, const QString &blockId, const QString &statusJson);
     /// \a sessionId's recordings, newest first, as the interface XML
     /// describes them. Sent in answer to listRecordings() and whenever the
     /// list changes.

@@ -80,8 +80,10 @@ struct PrepareSpec {
     /// nothing from the block; this is for what only the block knows.
     rt::BlockMeter *meter = nullptr;
     /// **Where a recording block leaves what it hears** for a writer off the
-    /// audio thread to put in a file. Given only to a block that says it
-    /// records (BlockInfo::recordsAudio), and outlives the block: a block
+    /// audio thread to put in a file, or a streaming one for the stream that
+    /// sends it to a server. Given only to a block that says it records or
+    /// streams (BlockInfo::recordsAudio, streamsAudio), and outlives the
+    /// block: a block
     /// that is replaced by a fresh one for a new rate is handed the same
     /// tap, so the recording carries on across it. Null when nobody is
     /// recording, which a block must cope with.

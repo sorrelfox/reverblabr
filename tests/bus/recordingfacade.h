@@ -110,6 +110,14 @@ public:
     {
         record("controlRecording", {sessionId, blockId, action});
     }
+    void setBroadcastPassword(const QString &sessionId, const QString &blockId, const QString &password) override
+    {
+        record("setBroadcastPassword", {sessionId, blockId, password});
+    }
+    void getBroadcastStatus(const QString &sessionId, const QString &blockId) override
+    {
+        record("getBroadcastStatus", {sessionId, blockId});
+    }
     void restartPlugin(const QString &sessionId, const QString &blockId) override
     {
         record("restartPlugin", {sessionId, blockId});
