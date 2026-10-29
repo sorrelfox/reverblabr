@@ -81,6 +81,14 @@ TestCase {
     }
 
     Component {
+        id: dragSpy
+
+        SignalSpy {
+            signalName: "activeChanged"
+        }
+    }
+
+    Component {
         id: chosenSpy
 
         SignalSpy {
@@ -478,11 +486,14 @@ TestCase {
         mouseClick(row, row.width / 2, row.height / 2);
         compare(chosen.count, 1, "a plain click should still choose the block");
 
-        // A press that moved is a drag.
+        // A press that moved is a drag. Counted as Drag.active changes:
+        // offscreen, Qt 6.10 ends an automatic drag at once, so it may be
+        // false again by the time the moves return.
+        const started = createTemporaryObject(dragSpy, testCase, { target: row.Drag });
         mousePress(row, row.width / 2, row.height / 2);
         mouseMove(row, row.width / 2 + 40, row.height / 2 + 30);
         mouseMove(row, row.width / 2 + 120, row.height / 2 + 90);
-        verify(row.Drag.active, "the gesture should have become a drag");
+        verify(started.count > 0, "the gesture should have become a drag");
         mouseRelease(row, row.width / 2 + 120, row.height / 2 + 90);
 
         // **What the button is told afterwards is the window system's, not

@@ -22,6 +22,14 @@ target_link_libraries(reverblabr-qml-test PRIVATE
 )
 
 add_test(NAME qml.mainwindow COMMAND reverblabr-qml-test)
+# **Qt 6.10's QML garbage collector, working a little at a time, crashes now
+# and then** in this suite: in two of six runs of the accessibility walk
+# through every panel, on Ubuntu 26.04's Qt 6.10.2, and in none of six with
+# the collection done all at once. Qt 6.11 has not been seen to.
+set(RB_QML_TEST_GC "")
+if(Qt6_VERSION VERSION_LESS 6.11)
+    set(RB_QML_TEST_GC "QV4_GC_TIMELIMIT=0;")
+endif()
 # The harness already hands the window its own config file; the XDG entries
 # are for anything that asks QStandardPaths directly, so that no test can
 # write into the home directory of whoever runs it. LC_ALL keeps the numbers
@@ -31,7 +39,7 @@ set(RB_QML_TEST_HOME "${CMAKE_CURRENT_BINARY_DIR}/test-home")
 file(MAKE_DIRECTORY "${RB_QML_TEST_HOME}")
 set_tests_properties(qml.mainwindow PROPERTIES
     ENVIRONMENT
-        "QT_QPA_PLATFORM=offscreen;QT_QUICK_CONTROLS_STYLE=Basic;LC_ALL=en_US.UTF-8;XDG_DATA_HOME=${RB_QML_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_TEST_HOME}/cache"
+        "${RB_QML_TEST_GC}QT_QPA_PLATFORM=offscreen;QT_QUICK_CONTROLS_STYLE=Basic;LC_ALL=en_US.UTF-8;XDG_DATA_HOME=${RB_QML_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_TEST_HOME}/cache"
 )
 
 # **The same suite under the Reverblabr control style** ([ADR-0012]).
@@ -47,6 +55,15 @@ set_tests_properties(qml.mainwindow PROPERTIES
 # label the desktop's light palette and font — and the one in which a menu
 # drawn with them opened light in a dark window. Without the platform theme
 # or the scheme the run still runs, on Qt's own defaults.
+#
+# **Not through KDE's platform theme on Qt 6.10.** There (Kubuntu 26.04,
+# with Plasma 6.6) the theme brings Breeze's own controls into a test that
+# names its style in QT_QUICK_CONTROLS_STYLE, and their load errors fail the
+# run. The application names its style in code and never meets them.
+set(RB_QML_STYLE_PLATFORM_THEME "QT_QPA_PLATFORMTHEME=kde;")
+if(Qt6_VERSION VERSION_LESS 6.11)
+    set(RB_QML_STYLE_PLATFORM_THEME "")
+endif()
 add_test(NAME qml.mainwindow.reverblabr-style COMMAND reverblabr-qml-test)
 set(RB_QML_STYLE_TEST_HOME "${CMAKE_CURRENT_BINARY_DIR}/test-home-reverblabr-style")
 file(MAKE_DIRECTORY "${RB_QML_STYLE_TEST_HOME}/config")
@@ -56,5 +73,5 @@ if(EXISTS "/usr/share/color-schemes/BreezeLight.colors")
 endif()
 set_tests_properties(qml.mainwindow.reverblabr-style PROPERTIES
     ENVIRONMENT
-        "QT_QPA_PLATFORM=offscreen;QT_QPA_PLATFORMTHEME=kde;QT_QUICK_CONTROLS_STYLE=Reverblabr;LC_ALL=en_US.UTF-8;XDG_DATA_HOME=${RB_QML_STYLE_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_STYLE_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_STYLE_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_STYLE_TEST_HOME}/cache"
+        "${RB_QML_TEST_GC}QT_QPA_PLATFORM=offscreen;${RB_QML_STYLE_PLATFORM_THEME}QT_QUICK_CONTROLS_STYLE=Reverblabr;LC_ALL=en_US.UTF-8;XDG_DATA_HOME=${RB_QML_STYLE_TEST_HOME}/data;XDG_CONFIG_HOME=${RB_QML_STYLE_TEST_HOME}/config;XDG_STATE_HOME=${RB_QML_STYLE_TEST_HOME}/state;XDG_CACHE_HOME=${RB_QML_STYLE_TEST_HOME}/cache"
 )
