@@ -16,7 +16,7 @@ namespace rb::daemon
 
 /// The systemd user units a session's timer becomes (core/timers.h): a
 /// `.timer` that elapses at the timer's times, and the `.service` it starts,
-/// which runs `reverblabr-ctl timer-fire <id>`. Only the text of them;
+/// which runs `reverblabr-ctl timer-fire --scheduled -- <id>`. Only the text of them;
 /// TimerSchedule writes them and tells the service manager.
 ///
 /// **Ours, and marked so**: every file starts with kWrittenBy, and nothing
@@ -38,8 +38,8 @@ inline constexpr auto kWrittenBy = "# Written by reverblabrd.";
 /// The `.timer` unit: OnCalendar= from core::onCalendar(), to the second,
 /// and not run late for a time that passed while the machine was off.
 [[nodiscard]] QString timerUnit(const core::Timer &timer, const QString &sessionName);
-/// The `.service` unit the timer starts: \a ctlPath with `timer-fire` and
-/// the timer's id, once.
+/// The `.service` unit the timer starts: \a ctlPath with `timer-fire
+/// --scheduled --` and the timer's id, once.
 [[nodiscard]] QString serviceUnit(const core::Timer &timer, const QString &sessionName, const QString &ctlPath);
 
 } // namespace timerunits

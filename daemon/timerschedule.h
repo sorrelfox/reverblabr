@@ -12,6 +12,7 @@
 #include <QString>
 #include <QTimer>
 
+#include <chrono>
 #include <deque>
 #include <functional>
 
@@ -41,6 +42,13 @@ namespace rb::daemon
 ///   when a timer or a session's name is edited, a session opens or closes,
 ///   and whenever anybody lists the sessions. \a listing is the engine's
 ///   list, read without being announced.
+/// - **Never over somebody else's**: a unit of one of our names that does
+///   not say it was written here is left as it is, and said in the log.
+/// - **Tries again**: a timer whose unit is not enabled (the manager refused,
+///   or there was none) is enabled at the next look, and a refusal has it
+///   look again a minute later.
+/// - **A one-off that has passed** has its units removed, so they are not
+///   left enabled for ever.
 /// - **Without a service manager** (a desktop with no systemd user
 ///   instance) the files are still kept in step, and the log says the
 ///   manager could not be asked.
@@ -64,6 +72,10 @@ public:
     /// Looks again now rather than after the usual pause.
     void refresh();
 
+    /// How long after a call the manager refused it looks again; a minute
+    /// unless a test says otherwise.
+    void setRetryInterval(std::chrono::milliseconds interval);
+
 Q_SIGNALS:
     /// A look at the units is over: every file is written or removed, and
     /// the manager has answered every call about them.
@@ -84,6 +96,9 @@ private:
     QString m_ctlPath;
     std::function<QString()> m_listing;
     QTimer m_listSoon;
+    QTimer m_retry;
+    /// The manager refused a call in this look: look again later.
+    bool m_failed = false;
     std::deque<Step> m_steps;
     bool m_busy = false;
     /// Something changed while a look was under way: look again after it.

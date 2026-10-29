@@ -14,6 +14,7 @@
 #include <QDBusError>
 #include <QDBusMessage>
 #include <QDBusPendingCallWatcher>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -39,6 +40,8 @@ namespace
 {
 
 constexpr auto kListDelay = std::chrono::milliseconds(100);
+/// How long a manager that refused a call is left before it is asked again.
+constexpr auto kRetryDelay = std::chrono::seconds(60);
 
 /// Whether the file at \a path was written here: its first line says so.
 bool isOurs(const QString &path)
@@ -89,6 +92,11 @@ TimerSchedule::TimerSchedule(core::EngineFacade *engine,
     m_listSoon.setSingleShot(true);
     m_listSoon.setInterval(kListDelay);
     connect(&m_listSoon, &QTimer::timeout, this, [this] { reconcile(m_listing()); });
+    m_retry.setSingleShot(true);
+    m_retry.setInterval(kRetryDelay);
+    connect(&m_retry, &QTimer::timeout, this, &TimerSchedule::refresh);
+    // A one-off that has fired has no more use for its units.
+    connect(m_engine, &core::EngineFacade::timerFired, this, [this] { m_listSoon.start(); });
 
     connect(m_engine, &core::EngineFacade::sessionsListed, this, &TimerSchedule::reconcile);
     connect(m_engine, &core::EngineFacade::sessionOpened, this, [this] { m_listSoon.start(); });
@@ -103,6 +111,11 @@ TimerSchedule::TimerSchedule(core::EngineFacade *engine,
 QString TimerSchedule::userUnitDirectory()
 {
     return QDir(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)).filePath(u"systemd/user"_s);
+}
+
+void TimerSchedule::setRetryInterval(std::chrono::milliseconds interval)
+{
+    m_retry.setInterval(interval);
 }
 
 void TimerSchedule::refresh()
@@ -131,15 +144,19 @@ void TimerSchedule::reconcile(const QString &sessionsJson)
         return;
     }
     const QDir directory(m_directory);
+    const QDateTime now = QDateTime::currentDateTime();
 
-    // **What the timers want**: two units for each that is on.
+    // **What the timers want**: two units for each that is on and will
+    // come round again.
     std::map<QString, Units> wanted;
     const QJsonArray sessions = QJsonDocument::fromJson(sessionsJson.toUtf8()).array();
     for (const QJsonValue &value : sessions) {
         const QJsonObject session = value.toObject();
         const QString name = session.value("name"_L1).toString();
         for (const core::Timer &timer : core::timersFromJson(session.value("timers"_L1).toArray())) {
-            if (!timer.enabled) {
+            // A one-off whose time has passed, fired or not, has no more use
+            // for a unit: it goes, so it is not left enabled for ever.
+            if (!timer.enabled || !core::nextRun(timer, now)) {
                 continue;
             }
             const QString base = timerunits::baseName(timer.id);
@@ -171,14 +188,28 @@ void TimerSchedule::reconcile(const QString &sessionsJson)
             removed.append(base);
         }
     }
+    // **New or changed**, to be written; and written already but not
+    // enabled, as after a manager that refused or was not there, to be
+    // enabled again. Both are then started again.
     std::map<QString, Units> changed;
+    QStringList toEnable;
     for (const auto &[base, units] : wanted) {
-        if (contentsOf(directory.filePath(base + u".timer"_s)) != units.timer.toUtf8()
-            || contentsOf(directory.filePath(base + u".service"_s)) != units.service.toUtf8()) {
+        const QString timerPath = directory.filePath(base + u".timer"_s);
+        const QString servicePath = directory.filePath(base + u".service"_s);
+        // **Never over somebody else's file**, whatever it is called.
+        if ((QFile::exists(timerPath) && !isOurs(timerPath)) || (QFile::exists(servicePath) && !isOurs(servicePath))) {
+            qCWarning(lcTimers) << "not writing" << base << ": a unit of that name that Reverblabr did not write is in"
+                                << directory.path();
+            continue;
+        }
+        if (contentsOf(timerPath) != units.timer.toUtf8() || contentsOf(servicePath) != units.service.toUtf8()) {
             changed.emplace(base, units);
+            toEnable.append(base);
+        } else if (!QFileInfo(directory.filePath(u"timers.target.wants/"_s + base + u".timer"_s)).isSymLink()) {
+            toEnable.append(base);
         }
     }
-    if (removed.isEmpty() && changed.empty()) {
+    if (removed.isEmpty() && toEnable.isEmpty()) {
         Q_EMIT settled();
         return;
     }
@@ -221,8 +252,10 @@ void TimerSchedule::reconcile(const QString &sessionsJson)
     // **Then as `systemctl --user daemon-reload`, `enable` and `restart`**:
     // the manager reads the new files, the timer is started at every login
     // from now on, and its next time is worked out from what it now says.
-    m_steps.emplace_back([this] { call("Reload", {}); });
-    for (const auto &[base, units] : changed) {
+    if (!removed.isEmpty() || !changed.empty()) {
+        m_steps.emplace_back([this] { call("Reload", {}); });
+    }
+    for (const QString &base : std::as_const(toEnable)) {
         m_steps.emplace_back(
             [this, base] { call("EnableUnitFiles", {QStringList{base + u".timer"_s}, false, false}); });
         m_steps.emplace_back([this, base] { call("RestartUnit", {QString(base + u".timer"_s), u"replace"_s}); });
@@ -251,6 +284,7 @@ void TimerSchedule::call(const char *method, const QVariantList &arguments)
             } else if (error.name() != "org.freedesktop.systemd1.NoSuchUnit"_L1) {
                 // A unit that is not loaded has nothing to stop.
                 qCWarning(lcTimers) << method << "failed:" << error.name() << error.message();
+                m_failed = true;
             }
         }
         next();
@@ -266,6 +300,12 @@ void TimerSchedule::next()
         return;
     }
     m_busy = false;
+    // **Asked again later** when the manager refused something: a timer
+    // left not enabled is found so next time, and enabled then.
+    if (std::exchange(m_failed, false)) {
+        qCInfo(lcTimers) << "trying again in" << m_retry.interval() / 1000 << "s";
+        m_retry.start();
+    }
     Q_EMIT settled();
     if (std::exchange(m_again, false)) {
         reconcile(m_listing());

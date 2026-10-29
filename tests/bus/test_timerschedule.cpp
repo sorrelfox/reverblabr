@@ -90,8 +90,8 @@ TEST(TimerUnits, TheTimerUnitElapsesAtTheTimersTimesToTheSecond)
 TEST(TimerUnits, TheServiceRunsTimerFireOnce)
 {
     const QString unit = daemon::timerunits::serviceUnit(weekdays(), u"Morning radio"_s, u"/usr/bin/reverblabr-ctl"_s);
-    EXPECT_TRUE(
-        unit.contains(u"\n[Service]\nType=oneshot\nExecStart=\"/usr/bin/reverblabr-ctl\" timer-fire morning\n"_s))
+    EXPECT_TRUE(unit.contains(
+        u"\n[Service]\nType=oneshot\nExecStart=\"/usr/bin/reverblabr-ctl\" timer-fire --scheduled -- morning\n"_s))
         << unit.toStdString();
     EXPECT_FALSE(unit.contains(u"[Install]"_s)) << "started by its timer, never at login";
 }
@@ -109,7 +109,7 @@ TEST(TimerUnits, ANameOrAPathCannotChangeWhatTheUnitSays)
     EXPECT_EQ(timer.count(u"\nExecStart"_s), 0);
 
     const QString service = daemon::timerunits::serviceUnit(weekdays(), name, u"/opt/My Apps/$HOME/%n/ctl"_s);
-    EXPECT_TRUE(service.contains(u"\nExecStart=\"/opt/My Apps/$$HOME/%%n/ctl\" timer-fire morning\n"_s))
+    EXPECT_TRUE(service.contains(u"\nExecStart=\"/opt/My Apps/$$HOME/%%n/ctl\" timer-fire --scheduled -- morning\n"_s))
         << service.toStdString();
 }
 
@@ -137,6 +137,8 @@ class FakeManager : public QObject
 public:
     QString directory;
     QStringList calls;
+    /// How many EnableUnitFiles to refuse, as a manager in trouble would.
+    int refuseEnables = 0;
 
 public Q_SLOTS:
     QDBusObjectPath StopUnit(const QString &name, const QString &mode)
@@ -155,6 +157,14 @@ public Q_SLOTS:
     {
         EXPECT_FALSE(runtime) << "enabled for good, not until the next boot";
         EXPECT_FALSE(force) << "never over somebody else's unit";
+        if (refuseEnables > 0) {
+            --refuseEnables;
+            calls.append(u"refused enable "_s + files.join(u','));
+            message.setDelayedReply(true);
+            QDBusConnection::connectToBus(QDBusConnection::SessionBus, u"fake-manager"_s)
+                .send(message.createErrorReply(u"org.freedesktop.DBus.Error.AccessDenied"_s, u"Not now"_s));
+            return false;
+        }
         for (const QString &file : files) {
             if (!QFile::exists(QDir(directory).filePath(file))) {
                 message.setDelayedReply(true);
@@ -164,6 +174,11 @@ public Q_SLOTS:
             }
         }
         calls.append(u"enable "_s + files.join(u','));
+        // As systemd does: the link that has timers.target pull it in.
+        QDir(directory).mkpath(u"timers.target.wants"_s);
+        for (const QString &file : files) {
+            QFile::link(QDir(directory).filePath(file), QDir(directory).filePath(u"timers.target.wants/"_s + file));
+        }
         return true;
     }
 
@@ -171,6 +186,9 @@ public Q_SLOTS:
     {
         EXPECT_FALSE(runtime);
         calls.append(u"disable "_s + files.join(u','));
+        for (const QString &file : files) {
+            QFile::remove(QDir(directory).filePath(u"timers.target.wants/"_s + file));
+        }
     }
 
     void Reload()
@@ -259,7 +277,7 @@ TEST_F(TimerScheduleTest, ATimerThatIsOnIsWrittenReloadedEnabledAndStarted)
                            u"restart reverblabr-timer-morning.timer replace"_s}));
     EXPECT_TRUE(readAll(path(u"reverblabr-timer-morning.timer"_s)).contains(u"OnCalendar=Mon..Fri *-*-* 07:30:00\n"_s));
     EXPECT_TRUE(readAll(path(u"reverblabr-timer-morning.service"_s))
-                    .contains(u"ExecStart=\"/usr/bin/reverblabr-ctl\" timer-fire morning\n"_s));
+                    .contains(u"ExecStart=\"/usr/bin/reverblabr-ctl\" timer-fire --scheduled -- morning\n"_s));
 
     // **Nothing changed, nothing asked**: listing the sessions again,
     // or editing something else, leaves the units alone.
@@ -367,6 +385,74 @@ TEST_F(TimerScheduleTest, OnlyOurOwnUnitsAreEverRemoved)
               (QStringList{u"stop reverblabr-timer-gone.timer replace"_s,
                            u"disable reverblabr-timer-gone.timer"_s,
                            u"reload"_s}));
+}
+
+// **Never over somebody else's file**: a unit of one of our names that
+// does not say it was written here is neither rewritten nor enabled.
+TEST_F(TimerScheduleTest, AUnitSomebodyElseWroteIsNeverOverwritten)
+{
+    {
+        QFile theirs(path(u"reverblabr-timer-morning.service"_s));
+        ASSERT_TRUE(theirs.open(QIODevice::WriteOnly));
+        theirs.write("[Service]\nExecStart=/usr/bin/true\n");
+    }
+    apply(core::SetTimer{core::timerToJson(weekdays())});
+    startSchedule();
+    ASSERT_TRUE(settle());
+    EXPECT_EQ(readAll(path(u"reverblabr-timer-morning.service"_s)), u"[Service]\nExecStart=/usr/bin/true\n"_s);
+    EXPECT_FALSE(QFile::exists(path(u"reverblabr-timer-morning.timer"_s)));
+    EXPECT_TRUE(manager.calls.isEmpty()) << manager.calls.join(u"; "_s).toStdString();
+}
+
+// **A refusal is not the end of it**: a timer the manager would not enable
+// is enabled when it is asked again, and a link somebody took away is put
+// back, without the files being written again.
+TEST_F(TimerScheduleTest, ATimerTheManagerRefusedIsEnabledWhenItIsAskedAgain)
+{
+    manager.refuseEnables = 1;
+    apply(core::SetTimer{core::timerToJson(weekdays())});
+    startSchedule();
+    schedule->setRetryInterval(std::chrono::milliseconds(200));
+    ASSERT_TRUE(settle());
+    EXPECT_EQ(manager.calls.value(1), u"refused enable reverblabr-timer-morning.timer"_s);
+    manager.calls.clear();
+    ASSERT_TRUE(settle()) << "it looks again by itself";
+    EXPECT_EQ(
+        manager.calls,
+        (QStringList{u"enable reverblabr-timer-morning.timer"_s, u"restart reverblabr-timer-morning.timer replace"_s}));
+
+    ASSERT_TRUE(QFile::remove(path(u"timers.target.wants/reverblabr-timer-morning.timer"_s)));
+    manager.calls.clear();
+    QSignalSpy settled(schedule.get(), &daemon::TimerSchedule::settled);
+    engine.listSessions();
+    ASSERT_TRUE(settled.count() > 0 || settled.wait(5000));
+    ASSERT_TRUE(waitFor([this] { return manager.calls.size() == 2; }));
+    EXPECT_EQ(
+        manager.calls,
+        (QStringList{u"enable reverblabr-timer-morning.timer"_s, u"restart reverblabr-timer-morning.timer replace"_s}));
+}
+
+// **A one-off whose time has passed needs no unit**: one set in the past
+// is never written, and one that has been and gone is removed.
+TEST_F(TimerScheduleTest, AOneOffInThePastHasNoUnits)
+{
+    core::Timer once = weekdays();
+    once.repeat = core::TimerRepeat::Once;
+    once.date = QDate::currentDate().addDays(-1);
+    apply(core::SetTimer{core::timerToJson(once)});
+    startSchedule();
+    ASSERT_TRUE(settle());
+    EXPECT_FALSE(QFile::exists(path(u"reverblabr-timer-morning.timer"_s)));
+
+    once.date = QDate::currentDate().addDays(1);
+    apply(core::SetTimer{core::timerToJson(once)});
+    ASSERT_TRUE(settle());
+    ASSERT_TRUE(QFile::exists(path(u"reverblabr-timer-morning.timer"_s)));
+
+    once.date = QDate::currentDate().addDays(-1); // as if its day had come and gone
+    apply(core::SetTimer{core::timerToJson(once)});
+    ASSERT_TRUE(settle());
+    EXPECT_FALSE(QFile::exists(path(u"reverblabr-timer-morning.timer"_s)));
 }
 
 // **No service manager on the bus** (a desktop without a systemd user

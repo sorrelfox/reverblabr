@@ -103,12 +103,14 @@ QString serviceUnit(const core::Timer &timer, const QString &sessionName, const 
     // **Oneshot**: the command asks the engine and returns once the
     // session is starting; the engine, started by the bus if it is not
     // running, does the rest and stops the session when the time is up.
+    // **--scheduled** has the engine refuse a fire that comes long after
+    // its time, as after a sleep; **--** ends the options before the id.
     return header(sessionName)
         + u"\n[Unit]\n"
           u"Description=Reverblabr timer: %1\n"
           u"\n[Service]\n"
           u"Type=oneshot\n"
-          u"ExecStart=%2 timer-fire %3\n"_s.arg(asDescription(sessionName), asCommandWord(ctlPath), timer.id);
+          u"ExecStart=%2 timer-fire --scheduled -- %3\n"_s.arg(asDescription(sessionName), asCommandWord(ctlPath), timer.id);
 }
 
 } // namespace rb::daemon::timerunits

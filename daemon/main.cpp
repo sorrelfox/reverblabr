@@ -42,6 +42,7 @@
 #include <csignal>
 #include <functional>
 #include <memory>
+#include <optional>
 
 using namespace Qt::StringLiterals;
 
@@ -179,12 +180,17 @@ int main(int argc, char **argv)
     // **The sessions' timers**, as systemd user timers whose service runs
     // `reverblabr-ctl timer-fire`, installed beside this program; that call
     // is what brings the engine up when the time comes. Kept in step in
-    // safe mode too: only a timer's firing starts anything.
-    rb::daemon::TimerSchedule timerSchedule(engine.get(),
-                                            bus,
-                                            rb::daemon::TimerSchedule::userUnitDirectory(),
-                                            QDir(QCoreApplication::applicationDirPath()).filePath(u"reverblabr-ctl"_s),
-                                            sessionListing);
+    // safe mode too: only a timer's firing starts anything. **Never for
+    // the mock engine**: a test's or a developer's pretend sessions must not
+    // touch the person's systemd timers.
+    std::optional<rb::daemon::TimerSchedule> timerSchedule;
+    if (!parser.isSet(mock)) {
+        timerSchedule.emplace(engine.get(),
+                              bus,
+                              rb::daemon::TimerSchedule::userUnitDirectory(),
+                              QDir(QCoreApplication::applicationDirPath()).filePath(u"reverblabr-ctl"_s),
+                              sessionListing);
+    }
     if (parser.isSet(safeMode)) {
         qCInfo(lcDaemon) << "safe mode: opening no sessions";
     } else {
