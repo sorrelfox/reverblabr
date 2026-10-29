@@ -65,6 +65,15 @@ public:
     /// output. addFakeInventory() takes them away again.
     Q_INVOKABLE void addFakeVirtualDevices();
 
+    /// Pairs a wireless headset with the made-up machine, or switches the
+    /// one already there to another profile: its microphone as an input and
+    /// its earpieces as an output, both wireless. **In its playback profile
+    /// the microphone is listed but hears nothing**, which is what a real
+    /// headset looks like when WirePlumber has not switched it, and the one
+    /// thing about it an interface has to be built against without one.
+    /// addFakeInventory() takes it away again.
+    Q_INVOKABLE void addFakeHeadset(bool playbackProfile);
+
     /// Adds a virtual device to the made-up machine without asking for it,
     /// the way one somebody made earlier — or an administrator made for
     /// every user — is simply there. \a deviceJson is

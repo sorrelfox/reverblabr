@@ -383,6 +383,93 @@ TestCase {
         tryVerify(() => !panel.unavailable, testCase.noticeMs, "a microphone that came back read as unavailable");
     }
 
+    // --- a wireless headset on the wrong profile ---
+
+    readonly property string headset: "bluez_input.00:1B:66:A1:B2:C3"
+
+    /// Runs the session with the input block pointed at \a node, and
+    /// answers the panel, its wait shortened.
+    function runningPanelOn(node) {
+        SessionModel.setParam("in", "device", node);
+        const panel = createTemporaryObject(inputPanelComponent, null, { blockId: "in", profileGraceMs: 100 });
+        Meters.watch(testCase.sessionId);
+        TestEngine.start(testCase.sessionId);
+        testCase.running = true;
+        tryVerify(() => Meters.live, 1000, "a running session published nothing");
+        return panel;
+    }
+
+    property bool running: false
+
+    function cleanup() {
+        if (!testCase.running) {
+            return;
+        }
+        TestEngine.clearFakeLevels(testCase.sessionId);
+        TestEngine.stop(testCase.sessionId);
+        Meters.watch("");
+        testCase.running = false;
+    }
+
+    function test_aHeadsetOnItsPlaybackProfileSaysWhyItIsSilent() {
+        // The criterion: the hint appears when the chosen input is a
+        // wireless headset on its playback profile, the session runs and
+        // the meters see nothing; and goes once the profile is switched.
+        TestEngine.addFakeHeadset(true);
+        const panel = testCase.runningPanelOn(testCase.headset);
+        verify(!panel.unavailable, "a headset that is there read as unavailable");
+
+        tryVerify(() => panel.profileMessage.visible, 1000, "a silent headset on its playback profile said nothing");
+        verify(panel.profileMessage.text.startsWith("Wireless Headset is on its playback profile"),
+               "the hint does not name the headset: " + panel.profileMessage.text);
+        verify(panel.profileMessage.text.includes("headset profile"), "the hint does not say what to switch to");
+
+        // WirePlumber, or a person in the sound settings, switches it.
+        TestEngine.addFakeHeadset(false);
+        tryVerify(() => !panel.profileMessage.visible, testCase.noticeMs,
+                  "the hint stayed after the microphone came on");
+    }
+
+    function test_theHintWaitsForTheSwitchWirePlumberMakesItself() {
+        // Linking a recording to the headset is what makes WirePlumber switch
+        // it, so the first moments of silence are not worth a word.
+        TestEngine.addFakeHeadset(true);
+        const panel = testCase.runningPanelOn(testCase.headset);
+        panel.profileGraceMs = 2000;
+        verify(panel.silentHeadset, "the panel did not see the silence");
+        wait(500);
+        verify(!panel.profileMessage.visible, "the hint did not wait for the switch");
+    }
+
+    function test_theHintIsOnlyForASilentHeadsetWhileTheSessionRuns() {
+        // Not before the session runs: nothing is being recorded to miss.
+        TestEngine.addFakeHeadset(true);
+        SessionModel.setParam("in", "device", testCase.headset);
+        const stopped = createTemporaryObject(inputPanelComponent, null, { blockId: "in", profileGraceMs: 50 });
+        wait(200);
+        verify(!stopped.profileMessage.visible, "the hint was shown with nothing running");
+
+        // Not for a headset whose meters see something.
+        const panel = testCase.runningPanelOn(testCase.headset);
+        TestEngine.setFakeLevel(testCase.sessionId, "in", 0.5);
+        tryVerify(() => Meters.levels("in").active ?? false, 1000, "the block never metered the signal");
+        wait(300);
+        verify(!panel.profileMessage.visible, "the hint was shown for a headset that is being heard");
+    }
+
+    function test_theHintIsNeverShownForADeviceRecordingNormally() {
+        // A silent USB microphone, and a silent headset on its headset
+        // profile: quiet is not a wrong profile.
+        TestEngine.addFakeHeadset(false);
+        const microphone = testCase.runningPanelOn("alsa_input.usb-Microphone");
+        wait(300);
+        verify(!microphone.profileMessage.visible, "the hint was shown for a USB microphone");
+
+        SessionModel.setParam("in", "device", testCase.headset);
+        wait(300);
+        verify(!microphone.profileMessage.visible, "the hint was shown for a headset on its headset profile");
+    }
+
     function test_aBlockFollowingTheDefaultFollowsItSomewhereElse() {
         // **A default that is not there is not a default.** A block
         // following it has to follow it, which is the whole reason the

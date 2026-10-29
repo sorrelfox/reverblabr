@@ -59,3 +59,11 @@ path = ".github/ISSUE_TEMPLATE/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Reverblabr contributors"
 SPDX-License-Identifier = "CC0-1.0"
+
+# Graphs written out by hand the way pw-dump writes them, for the tests of
+# devices no test machine has. JSON has no room for a header.
+[[annotations]]
+path = "tests/unit/pw/graphs/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Reverblabr contributors"
+SPDX-License-Identifier = "CC0-1.0"

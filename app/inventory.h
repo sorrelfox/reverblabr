@@ -161,6 +161,11 @@ public:
     [[nodiscard]] Q_INVOKABLE QStringList outputChannels(const QString &node) const;
     [[nodiscard]] Q_INVOKABLE QStringList inputChannels(const QString &node) const;
 
+    /// Whether the input is a wireless headset on its playback profile:
+    /// listed and running, and recording silence until the profile changes.
+    /// False for anything else, a device that is not there included.
+    [[nodiscard]] Q_INVOKABLE bool inputOnPlaybackProfile(const QString &node) const;
+
     /// Reads an inventory that did not come from the engine. **For tests**,
     /// so that a picker can be checked against devices no machine has.
     void setInventory(const QJsonObject &inventory);

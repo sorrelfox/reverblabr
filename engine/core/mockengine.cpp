@@ -961,6 +961,31 @@ void MockEngine::addFakeInventory()
     d->publishInventory();
 }
 
+void MockEngine::addFakeHeadset(bool playbackProfile)
+{
+    // Named as WirePlumber names a headset's loopback source and its sink.
+    const QString microphoneName = u"bluez_input.00:1B:66:A1:B2:C3"_s;
+    const QString earpiecesName = u"bluez_output.00_1B_66_A1_B2_C3.1"_s;
+    d->made.inputs.removeIf([&](const pw::InventoryDevice &device) { return device.name == microphoneName; });
+    d->made.outputs.removeIf([&](const pw::InventoryDevice &device) { return device.name == earpiecesName; });
+
+    pw::InventoryDevice microphone = device(microphoneName, u"Wireless Headset"_s, false, {u"MONO"_s});
+    microphone.mediaClass = u"Audio/Source"_s;
+    microphone.isWireless = true;
+    microphone.isOnPlaybackProfile = playbackProfile;
+    // Stereo while it only plays, one channel each way once it is a headset.
+    pw::InventoryDevice earpieces = device(earpiecesName,
+                                           u"Wireless Headset"_s,
+                                           false,
+                                           playbackProfile ? QStringList{u"FL"_s, u"FR"_s} : QStringList{u"MONO"_s});
+    earpieces.mediaClass = u"Audio/Sink"_s;
+    earpieces.isWireless = true;
+
+    d->made.inputs.append(microphone);
+    d->made.outputs.append(earpieces);
+    d->publishInventory();
+}
+
 void MockEngine::addFakeVirtualDevices()
 {
     const QStringList stereo{u"FL"_s, u"FR"_s};

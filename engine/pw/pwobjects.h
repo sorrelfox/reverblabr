@@ -224,6 +224,18 @@ struct PwDefaults {
     [[nodiscard]] bool operator==(const PwDefaults &other) const = default;
 };
 
+/// The typed fields of a node, a port and a device, read out of the object's
+/// own properties (`props`), as the mirror reads them every time the server
+/// says something new about one.
+///
+/// **Apart from the mirror so that a graph written out by hand is read the
+/// same way**: a test loads a pw-dump and gets the objects the mirror would
+/// have made. What needs the rest of the graph, a node's client and whether
+/// the node is ours, is still the mirror's to fill in.
+void readNodeProperties(PwNode &node);
+void readPortProperties(PwPort &port);
+void readDeviceProperties(PwDevice &device);
+
 } // namespace rb::pw
 
 Q_DECLARE_METATYPE(rb::pw::PwNode)

@@ -59,6 +59,12 @@ QtObject {
     readonly property bool listed: Inventory.revision >= 0
         && (reading.output ? Inventory.hasOutput(reading.node) : Inventory.hasInput(reading.node))
 
+    /// Whether the input is a wireless headset on its playback profile,
+    /// whose microphone records nothing until the profile changes. Never
+    /// for an output, which plays in either profile.
+    readonly property bool playbackProfile: !reading.output && Inventory.revision >= 0 && reading.node !== ""
+        && Inventory.inputOnPlaybackProfile(reading.node)
+
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(reading.blockId) : ({})
     /// Whether the engine is publishing anything about this block at all.
     readonly property bool metered: Meters.live && (reading.levels.values ?? []).length > 0

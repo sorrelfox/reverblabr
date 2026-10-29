@@ -56,6 +56,53 @@ lessByLabel(const QString &leftLabel, const QString &leftKey, const QString &rig
         || node.props.contains(u"reverblabr.virtual-device"_s);
 }
 
+// **What a Bluetooth device looks like in the graph**, read off PipeWire's
+// SPA headers (`spa/utils/keys.h`, `spa/utils/names.h`) and WirePlumber
+// 0.5's Bluetooth scripts (`monitors/bluez/*.lua`,
+// `device/autoswitch-bluetooth-profile.lua`), with no headset to try it on:
+//
+// - the device says `device.api = bluez5`, and each node it makes carries
+//   `device.id` and the `api.bluez5.*` properties;
+// - for a device with a headset profile, WirePlumber puts a loopback in
+//   front of the microphone: an `Audio/Source` called `bluez_input.<address>`
+//   with `bluez5.loopback = true` and the device's `device.id`, there in
+//   every profile, so that a recording can be linked to it before the
+//   microphone exists;
+// - the microphone itself, `bluez_input.<address>.<n>`, is made only in a
+//   profile that has one (`headset-head-unit`, an A2DP codec with a back
+//   channel, `bap-duplex`), with `bluez5.loopback = false`. In a playback
+//   profile (`a2dp-sink`) the loopback has nothing behind it.
+
+[[nodiscard]] bool isBluetoothLoopback(const PwNode &node)
+{
+    return node.props.value(u"bluez5.loopback"_s) == "true"_L1;
+}
+
+/// Whether a node belongs to a Bluetooth device, by its own properties or
+/// its device's.
+[[nodiscard]] bool isWirelessDevice(const PwNode &node, const QHash<std::uint32_t, const PwDevice *> &devices)
+{
+    const auto bluez = [](const QHash<QString, QString> &props) { return props.value(u"device.api"_s) == "bluez5"_L1; };
+    if (bluez(node.props) || isBluetoothLoopback(node) || node.props.contains(u"api.bluez5.address"_s)) {
+        return true;
+    }
+    const PwDevice *device = node.deviceId != 0 ? devices.value(node.deviceId) : nullptr;
+    return device != nullptr && bluez(device->props);
+}
+
+/// Whether a wireless input is WirePlumber's loopback with no microphone
+/// behind it: none of its device's other nodes is a source.
+[[nodiscard]] bool isOnPlaybackProfile(const PwNode &node, const QList<PwNode> &nodes)
+{
+    if (!isBluetoothLoopback(node) || node.deviceId == 0) {
+        return false;
+    }
+    return std::none_of(nodes.cbegin(), nodes.cend(), [&node](const PwNode &other) {
+        return other.object.id != node.object.id && other.deviceId == node.deviceId && !isBluetoothLoopback(other)
+            && other.mediaClass.startsWith("Audio/Source"_L1);
+    });
+}
+
 /// What the inventory wants out of a `.desktop` file: its icon, and the
 /// names the program it starts goes by.
 struct DesktopEntry {
@@ -271,8 +318,15 @@ QString desktopIconName(const QString &flatpakId, const QString &binary, const Q
 Inventory inventoryOf(const QList<PwNode> &nodes,
                       const QList<PwPort> &ports,
                       const QList<PwLink> &links,
-                      const PwDefaults &defaults)
+                      const PwDefaults &defaults,
+                      const QList<PwDevice> &devices)
 {
+    QHash<std::uint32_t, const PwDevice *> devicesById;
+    devicesById.reserve(devices.size());
+    for (const PwDevice &device : devices) {
+        devicesById.insert(device.object.id, &device);
+    }
+
     QHash<std::uint32_t, const PwNode *> byId;
     byId.reserve(nodes.size());
     for (const PwNode &node : nodes) {
@@ -320,6 +374,8 @@ Inventory inventoryOf(const QList<PwNode> &nodes,
         device.channels = channelsOf(node.object.id, direction);
         device.isDefault = !node.name.isEmpty() && node.name == defaultName;
         device.isVirtual = isVirtualDevice(node);
+        device.isWireless = isWirelessDevice(node, devicesById);
+        device.isOnPlaybackProfile = direction == PortDirection::Output && isOnPlaybackProfile(node, nodes);
         return device;
     };
 
@@ -464,6 +520,8 @@ namespace
         {"default"_L1, device.isDefault},
         {"virtual"_L1, device.isVirtual},
         {"monitor"_L1, device.isMonitor},
+        {"wireless"_L1, device.isWireless},
+        {"playbackProfile"_L1, device.isOnPlaybackProfile},
     };
 }
 
@@ -531,7 +589,8 @@ public:
     {
         settle.stop();
         pending = false;
-        Inventory now = inventoryOf(mirror.nodes(), mirror.ports(), mirror.links(), mirror.defaults());
+        Inventory now =
+            inventoryOf(mirror.nodes(), mirror.ports(), mirror.links(), mirror.defaults(), mirror.devices());
         if (now == current) {
             return;
         }
@@ -578,6 +637,8 @@ InventoryWatcher::InventoryWatcher(RegistryMirror &mirror, QObject *parent)
     connect(&mirror, &RegistryMirror::linkAdded, this, touch);
     connect(&mirror, &RegistryMirror::linkRemoved, this, touch);
     connect(&mirror, &RegistryMirror::defaultsChanged, this, touch);
+    connect(&mirror, &RegistryMirror::deviceAdded, this, touch);
+    connect(&mirror, &RegistryMirror::deviceRemoved, this, touch);
     // The first picture, and the empty inventory a lost connection leaves,
     // are news whether or not a burst is under way.
     connect(&mirror, &RegistryMirror::ready, this, [this] { d->announce(); });

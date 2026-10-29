@@ -11,6 +11,7 @@
 // alert, a name nobody set — costs nothing.
 
 #include "pw/inventory.h"
+#include "pwdump.h"
 
 #include <QDir>
 #include <QFile>
@@ -78,6 +79,23 @@ std::uint32_t nextId = 1;
     ports.append(port(made, PortDirection::Input, 0, u"FL"_s));
     ports.append(port(made, PortDirection::Input, 1, u"FR"_s));
     return made;
+}
+
+[[nodiscard]] const InventoryDevice *deviceNamed(const QList<InventoryDevice> &devices, const QString &name)
+{
+    for (const InventoryDevice &device : devices) {
+        if (device.name == name) {
+            return &device;
+        }
+    }
+    return nullptr;
+}
+
+/// The inventory of a graph written out the way `pw-dump` writes one.
+[[nodiscard]] Inventory inventoryOfDump(const QString &file)
+{
+    const rb::test::PwDump dump = rb::test::readPwDump(QStringLiteral(RB_PW_GRAPHS_DIR) + u'/' + file);
+    return inventoryOf(dump.nodes, dump.ports, dump.links, {}, dump.devices);
 }
 
 [[nodiscard]] const InventoryApp *appNamed(const Inventory &inventory, const QString &displayName)
@@ -446,4 +464,88 @@ TEST(InventoryTest, TheJsonSaysWhatTheGuiReads)
     EXPECT_EQ(json.value("defaults"_L1).toObject().value("sink"_L1).toString(), u"alsa.speakers"_s);
     EXPECT_TRUE(json.value("inputs"_L1).toArray().isEmpty());
     EXPECT_TRUE(json.value("otherStreams"_L1).toArray().isEmpty());
+}
+
+// A Bluetooth headset, in the two graphs written out in graphs/: the same
+// device in its playback profile (A2DP) and in its headset profile
+// (HSP/HFP), as WirePlumber 0.5 arranges it. The USB microphone beside it
+// is the device that records normally.
+
+TEST(InventoryTest, AHeadsetOnItsPlaybackProfileIsAnInputThatHearsNothing)
+{
+    // WirePlumber's loopback is there in both profiles, so the headset is
+    // listed either way; in this one nothing stands behind it.
+    const Inventory inventory = inventoryOfDump(u"bluez-headset-a2dp.json"_s);
+    ASSERT_EQ(inventory.inputs.size(), 2) << "the headset or the USB microphone was not listed, or something else was";
+
+    const InventoryDevice *headset = deviceNamed(inventory.inputs, u"bluez_input.00:1B:66:A1:B2:C3"_s);
+    ASSERT_NE(headset, nullptr);
+    EXPECT_EQ(headset->description, u"Wireless Headset"_s);
+    EXPECT_EQ(headset->channels, QStringList{u"MONO"_s});
+    EXPECT_TRUE(headset->isWireless);
+    EXPECT_TRUE(headset->isOnPlaybackProfile);
+    EXPECT_FALSE(headset->isVirtual);
+
+    const InventoryDevice *usb = deviceNamed(inventory.inputs, u"alsa_input.usb-Microphone-00.mono-fallback"_s);
+    ASSERT_NE(usb, nullptr);
+    EXPECT_FALSE(usb->isWireless);
+    EXPECT_FALSE(usb->isOnPlaybackProfile);
+
+    // The headphones are wireless too, and the profile is nothing to them.
+    const InventoryDevice *headphones = deviceNamed(inventory.outputs, u"bluez_output.00_1B_66_A1_B2_C3.1"_s);
+    ASSERT_NE(headphones, nullptr);
+    EXPECT_TRUE(headphones->isWireless);
+    EXPECT_FALSE(headphones->isOnPlaybackProfile);
+}
+
+TEST(InventoryTest, AHeadsetOnItsHeadsetProfileRecordsNormally)
+{
+    const Inventory inventory = inventoryOfDump(u"bluez-headset-hfp.json"_s);
+
+    const InventoryDevice *headset = deviceNamed(inventory.inputs, u"bluez_input.00:1B:66:A1:B2:C3"_s);
+    ASSERT_NE(headset, nullptr);
+    EXPECT_TRUE(headset->isWireless);
+    EXPECT_FALSE(headset->isOnPlaybackProfile) << "a headset with its microphone there read as on its playback profile";
+    // The microphone behind the loopback is WirePlumber's internal node, not
+    // a second input to choose.
+    EXPECT_EQ(deviceNamed(inventory.inputs, u"bluez_input.00_1B_66_A1_B2_C3.0"_s), nullptr);
+    EXPECT_EQ(inventory.inputs.size(), 2);
+}
+
+TEST(InventoryTest, ADeviceIsWirelessByWhatItsDeviceSays)
+{
+    // A node that says nothing about Bluetooth itself is still wireless when
+    // the device it belongs to does; a card's node is not.
+    QList<PwPort> ports;
+    PwNode speaker = sink(u"speaker"_s, u"Speaker"_s, ports);
+    PwNode card = sink(u"card"_s, u"Card"_s, ports);
+    PwDevice bluetooth;
+    bluetooth.object.id = 900;
+    bluetooth.props.insert(u"device.api"_s, u"bluez5"_s);
+    PwDevice alsa;
+    alsa.object.id = 901;
+    alsa.props.insert(u"device.api"_s, u"alsa"_s);
+    speaker.deviceId = bluetooth.object.id;
+    card.deviceId = alsa.object.id;
+
+    const Inventory inventory = inventoryOf({speaker, card}, ports, {}, {}, {bluetooth, alsa});
+
+    EXPECT_TRUE(deviceNamed(inventory.outputs, u"speaker"_s)->isWireless);
+    EXPECT_FALSE(deviceNamed(inventory.outputs, u"card"_s)->isWireless);
+    // Without the devices there is nothing to tell by.
+    EXPECT_FALSE(deviceNamed(inventoryOf({speaker}, ports, {}, {}).outputs, u"speaker"_s)->isWireless);
+}
+
+TEST(InventoryTest, TheJsonSaysWhichInputIsOnItsPlaybackProfile)
+{
+    const QJsonObject json = inventoryToJson(inventoryOfDump(u"bluez-headset-a2dp.json"_s));
+    bool sawHeadset = false;
+    for (const QJsonValue &entry : json.value("inputs"_L1).toArray()) {
+        const QJsonObject input = entry.toObject();
+        const bool headset = input.value("node"_L1).toString() == "bluez_input.00:1B:66:A1:B2:C3"_L1;
+        sawHeadset = sawHeadset || headset;
+        EXPECT_EQ(input.value("wireless"_L1).toBool(), headset);
+        EXPECT_EQ(input.value("playbackProfile"_L1).toBool(), headset);
+    }
+    EXPECT_TRUE(sawHeadset);
 }

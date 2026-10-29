@@ -466,6 +466,11 @@ linkend="virtual-devices">virtual output</link> that other programs play into.
 <guilabel>Default input</guilabel> follows whatever your desktop records from;
 choose a device by name to keep it fixed. Virtual devices are listed at the
 end, under <guilabel>Virtual devices</guilabel>.</para>
+<para>A wireless headset's microphone works only in the headset's headset
+profile (HSP/HFP). The system normally switches to it as soon as a session
+records from the headset; if the headset stays on its playback profile (A2DP)
+and the session hears nothing, the block's settings say so, and the profile
+can be changed in the system's sound settings.</para>
 </sect2>
 
 <sect2 id="block-source-system">

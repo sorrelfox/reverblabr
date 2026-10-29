@@ -31,8 +31,6 @@ namespace
 constexpr const char *kDefaultMetadataName = "default";
 /// The one the server keeps its clock settings in.
 constexpr const char *kSettingsMetadataName = "settings";
-/// The key the desktop portal puts a sandboxed application's id under.
-constexpr const char *kPortalAppIdKey = "pipewire.access.portal.app_id";
 
 QHash<QString, QString> allProps(const spa_dict *props)
 {
@@ -263,7 +261,7 @@ public:
     void onGlobal(std::uint32_t id, const char *type, std::uint32_t version, const spa_dict *props);
     void onGlobalRemoved(std::uint32_t id);
 
-    void fillNode(PwNode &node, const QHash<QString, QString> &props) const;
+    void fillNode(PwNode &node) const;
     /// Takes what a node did not say about the application from the client
     /// that owns it. A stream often carries only its name, while the process
     /// it belongs to is known to its client.
@@ -271,9 +269,7 @@ public:
     /// Fills in every node that belongs to \a clientId, for when the client
     /// is announced after its nodes.
     void refillNodesOfClient(std::uint32_t clientId);
-    void fillPort(PwPort &port, const QHash<QString, QString> &props) const;
     void fillClient(PwClient &client, const QHash<QString, QString> &props) const;
-    void fillDevice(PwDevice &device, const QHash<QString, QString> &props) const;
 
     [[nodiscard]] bool looksLikeOurs(const PwNode &node) const;
     /// Re-marks every node, for when our own client is announced after some
@@ -337,7 +333,7 @@ const pw_node_events &nodeEvents()
             for (auto entry = fromInfo.cbegin(); entry != fromInfo.cend(); ++entry) {
                 watched->value.props.insert(entry.key(), entry.value());
             }
-            watched->owner->fillNode(watched->value, watched->value.props);
+            watched->owner->fillNode(watched->value);
             Q_EMIT watched->owner->q->nodeChanged(watched->value);
         };
         return result;
@@ -362,7 +358,7 @@ const pw_port_events &portEvents()
                 for (auto entry = fromInfo.cbegin(); entry != fromInfo.cend(); ++entry) {
                     watched->value.props.insert(entry.key(), entry.value());
                 }
-                watched->owner->fillPort(watched->value, watched->value.props);
+                readPortProperties(watched->value);
             }
         };
         return result;
@@ -458,7 +454,7 @@ const pw_device_events &deviceEvents()
             for (auto entry = fromInfo.cbegin(); entry != fromInfo.cend(); ++entry) {
                 watched->value.props.insert(entry.key(), entry.value());
             }
-            watched->owner->fillDevice(watched->value, watched->value.props);
+            readDeviceProperties(watched->value);
         };
         return result;
     }();
@@ -540,46 +536,11 @@ const pw_registry_events &registryEvents()
 
 } // namespace
 
-void RegistryMirror::Private::fillNode(PwNode &node, const QHash<QString, QString> &props) const
+void RegistryMirror::Private::fillNode(PwNode &node) const
 {
-    node.name = merged(props, PW_KEY_NODE_NAME);
-    node.description = merged(props, PW_KEY_NODE_DESCRIPTION);
-    node.nick = merged(props, PW_KEY_NODE_NICK);
-    node.mediaClass = merged(props, PW_KEY_MEDIA_CLASS);
-    node.kind = nodeKindFromMediaClass(node.mediaClass);
-    node.mediaRole = merged(props, PW_KEY_MEDIA_ROLE);
-    node.applicationName = merged(props, PW_KEY_APP_NAME);
-    node.applicationBinary = merged(props, PW_KEY_APP_PROCESS_BINARY);
-    node.applicationPid = mergedNumber(props, PW_KEY_APP_PROCESS_ID, -1);
-    node.applicationIconName = merged(props, PW_KEY_APP_ICON_NAME);
-    node.flatpakId = props.value(QString::fromUtf8(kPortalAppIdKey));
-    if (node.flatpakId.isEmpty()) {
-        node.flatpakId = merged(props, PW_KEY_APP_ID);
-    }
-    node.linkGroup = merged(props, PW_KEY_NODE_LINK_GROUP);
-    node.eventId = props.value(u"event.id"_s);
-    node.isVirtual = merged(props, PW_KEY_NODE_VIRTUAL) == u"true"_s;
-    node.clientId = static_cast<std::uint32_t>(mergedNumber(props, PW_KEY_CLIENT_ID, 0));
-    node.deviceId = static_cast<std::uint32_t>(mergedNumber(props, PW_KEY_DEVICE_ID, 0));
-    node.driverId = static_cast<std::uint32_t>(mergedNumber(props, "node.driver-id", 0));
-    node.canDrive = merged(props, PW_KEY_NODE_DRIVER) == u"true"_s;
+    readNodeProperties(node);
     fillFromClient(node);
     node.isOurs = looksLikeOurs(node);
-}
-
-void RegistryMirror::Private::fillPort(PwPort &port, const QHash<QString, QString> &props) const
-{
-    port.nodeId = static_cast<std::uint32_t>(mergedNumber(props, PW_KEY_NODE_ID, 0));
-    port.index = static_cast<std::uint32_t>(mergedNumber(props, PW_KEY_PORT_ID, 0));
-    port.name = merged(props, PW_KEY_PORT_NAME);
-    port.channel = merged(props, PW_KEY_AUDIO_CHANNEL);
-    port.isMonitor = merged(props, PW_KEY_PORT_MONITOR) == u"true"_s;
-    const QString direction = merged(props, PW_KEY_PORT_DIRECTION);
-    if (direction == u"in"_s || direction == u"input"_s) {
-        port.direction = PortDirection::Input;
-    } else if (direction == u"out"_s || direction == u"output"_s) {
-        port.direction = PortDirection::Output;
-    }
 }
 
 void RegistryMirror::Private::fillClient(PwClient &client, const QHash<QString, QString> &props) const
@@ -595,14 +556,6 @@ void RegistryMirror::Private::fillClient(PwClient &client, const QHash<QString, 
     // Before the server has told us our id, the process is the best we have.
     const std::uint32_t ours = connection.clientId();
     client.isUs = ours != 0 ? client.object.id == ours : client.applicationPid == static_cast<qint64>(::getpid());
-}
-
-void RegistryMirror::Private::fillDevice(PwDevice &device, const QHash<QString, QString> &props) const
-{
-    device.name = merged(props, PW_KEY_DEVICE_NAME);
-    device.description = merged(props, PW_KEY_DEVICE_DESCRIPTION);
-    device.nick = merged(props, PW_KEY_DEVICE_NICK);
-    device.mediaClass = merged(props, PW_KEY_MEDIA_CLASS);
 }
 
 void RegistryMirror::Private::fillFromClient(PwNode &node) const
@@ -761,7 +714,7 @@ void RegistryMirror::Private::onGlobal(std::uint32_t id, const char *type, std::
         watched->id = id;
         watched->value.object = object;
         watched->value.props = announced;
-        fillNode(watched->value, announced);
+        fillNode(watched->value);
         watched->proxy = static_cast<pw_proxy *>(bind(PW_TYPE_INTERFACE_Node, PW_VERSION_NODE, 0));
         if (watched->proxy != nullptr) {
             pw_node_add_listener(
@@ -780,7 +733,7 @@ void RegistryMirror::Private::onGlobal(std::uint32_t id, const char *type, std::
         watched->id = id;
         watched->value.object = object;
         watched->value.props = announced;
-        fillPort(watched->value, announced);
+        readPortProperties(watched->value);
         watched->proxy = static_cast<pw_proxy *>(bind(PW_TYPE_INTERFACE_Port, PW_VERSION_PORT, 0));
         if (watched->proxy != nullptr) {
             pw_port_add_listener(
@@ -846,7 +799,7 @@ void RegistryMirror::Private::onGlobal(std::uint32_t id, const char *type, std::
         watched->id = id;
         watched->value.object = object;
         watched->value.props = announced;
-        fillDevice(watched->value, announced);
+        readDeviceProperties(watched->value);
         watched->proxy = static_cast<pw_proxy *>(bind(PW_TYPE_INTERFACE_Device, PW_VERSION_DEVICE, 0));
         if (watched->proxy != nullptr) {
             pw_device_add_listener(

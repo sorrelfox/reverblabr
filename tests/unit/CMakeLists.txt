@@ -225,6 +225,8 @@ rb_add_gtest(reverblabr-pw-test
     SOURCES
         dsp/gainblock.cpp
         dsp/gainblock.h
+        pw/pwdump.cpp
+        pw/pwdump.h
         pw/sessionblocks.cpp
         pw/sessionblocks.h
         pw/test_feedbackguard.cpp
@@ -236,6 +238,9 @@ rb_add_gtest(reverblabr-pw-test
     LIBRARIES reverblabr-pw reverblabr-blocks reverblabr-dsp-testkit
 )
 set_target_properties(reverblabr-pw-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
+# Graphs written out the way pw-dump writes them, for devices no test
+# machine has.
+target_compile_definitions(reverblabr-pw-test PRIVATE RB_PW_GRAPHS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/pw/graphs")
 
 # What the all-users helper does as root, whether KAuth is here or not.
 rb_add_gtest(reverblabr-helper-test

@@ -204,6 +204,26 @@ TEST(InventoryTest, ADefaultThatIsNotThereResolvesToNothing)
     EXPECT_FALSE(following.inventory.hasOutput(following.inventory.defaultDevice()));
 }
 
+TEST(InventoryTest, KnowsAHeadsetThatIsOnItsPlaybackProfile)
+{
+    // The headset's microphone is listed in both profiles; only in the
+    // playback one does it record nothing.
+    Following following;
+    const QString headset = u"bluez_input.00:1B:66:A1:B2:C3"_s;
+    EXPECT_FALSE(following.inventory.inputOnPlaybackProfile(headset));
+
+    following.engine.addFakeHeadset(true);
+    EXPECT_TRUE(following.inventory.hasInput(headset));
+    EXPECT_TRUE(following.inventory.inputOnPlaybackProfile(headset));
+    EXPECT_TRUE(following.inventory.input(headset).value(u"wireless"_s).toBool());
+    EXPECT_FALSE(following.inventory.inputOnPlaybackProfile(u"alsa_input.usb-Microphone"_s));
+
+    following.engine.addFakeHeadset(false);
+    EXPECT_TRUE(following.inventory.hasInput(headset));
+    EXPECT_FALSE(following.inventory.inputOnPlaybackProfile(headset));
+    EXPECT_EQ(nodesOf(following.inventory.inputs()).count(headset), 1) << "switching the profile listed it twice";
+}
+
 TEST(InventoryTest, ReadsAnInventoryThatDidNotComeFromAnEngine)
 {
     ui::Inventory inventory;

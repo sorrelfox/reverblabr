@@ -457,7 +457,9 @@ SPDX-License-Identifier: MIT
              "inputs":  [ { "node": "…", "description": "…", "nick": "…",
                             "mediaClass": "Audio/Source",
                             "channels": [ "FL", "FR" ], "channelCount": 2,
-                            "default": true, "virtual": false } ],
+                            "default": true, "virtual": false,
+                            "monitor": false, "wireless": false,
+                            "playbackProfile": false } ],
              "outputs": [ … as inputs … ],
              "defaults": { "sink": "…", "source": "…",
                            "configuredSink": "…", "configuredSource": "…" } }
@@ -467,7 +469,10 @@ SPDX-License-Identifier: MIT
          streams of one application share a name. "configured" is what the
          user chose, which differs from what is in use when the chosen
          device is unplugged. Our own nodes are in none of the lists, and a
-         re-play or an alert is never an application. -->
+         re-play or an alert is never an application. "wireless" is a
+         Bluetooth device; "playbackProfile" is a wireless input whose
+         device is on a profile without a microphone, so that it records
+         silence until the profile changes. -->
     <signal name="InventoryChanged">
       <arg name="inventoryJson" type="s"/>
     </signal>

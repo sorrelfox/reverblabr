@@ -101,6 +101,18 @@ struct InventoryDevice {
     /// virtual output, offered for recording. It is the same node as the
     /// output of the same name, read on its output ports.
     bool isMonitor = false;
+    /// **A Bluetooth device**: a headset, earbuds, a speaker. Its node or
+    /// the device it belongs to says `device.api = bluez5`, or the node is
+    /// WirePlumber's stand-in for a headset's microphone (`bluez5.loopback`).
+    bool isWireless = false;
+    /// **A wireless input that records silence until the device's profile
+    /// changes.** A headset's microphone only works in a headset profile
+    /// (HSP/HFP); in its playback profile (A2DP) WirePlumber still offers a
+    /// source for it, which runs and looks healthy, but nothing reaches it.
+    /// WirePlumber switches the profile for a recording stream on its own,
+    /// so this is normally true only for a moment, or when it has been told
+    /// not to.
+    bool isOnPlaybackProfile = false;
 
     [[nodiscard]] int channelCount() const;
     [[nodiscard]] bool operator==(const InventoryDevice &other) const = default;
@@ -149,10 +161,15 @@ struct Inventory {
 /// The one thing it reaches outside its arguments for is the icon: an
 /// application that does not name one is looked up among the installed
 /// `.desktop` files.
+///
+/// \a devices are the cards and Bluetooth devices the nodes belong to,
+/// which is where a node's own properties may not say what kind of device
+/// it is.
 [[nodiscard]] Inventory inventoryOf(const QList<PwNode> &nodes,
                                     const QList<PwPort> &ports,
                                     const QList<PwLink> &links,
-                                    const PwDefaults &defaults);
+                                    const PwDefaults &defaults,
+                                    const QList<PwDevice> &devices = {});
 
 /// The inventory as the facade sends it, and as the GUI reads it.
 [[nodiscard]] QJsonObject inventoryToJson(const Inventory &inventory);

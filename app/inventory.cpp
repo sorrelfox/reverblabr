@@ -331,4 +331,10 @@ QStringList Inventory::inputChannels(const QString &node) const
     return d->inputs.find(d->resolve(node, d->defaultInput)).value("channels"_L1).toStringList();
 }
 
+bool Inventory::inputOnPlaybackProfile(const QString &node) const
+{
+    const QVariantMap input = d->inputs.find(d->resolve(node, d->defaultInput));
+    return input.value("wireless"_L1).toBool() && input.value("playbackProfile"_L1).toBool();
+}
+
 } // namespace rb::ui

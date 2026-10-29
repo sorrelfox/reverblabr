@@ -1,0 +1,473 @@
+[
+  {
+    "id": 40,
+    "type": "PipeWire:Interface:Device",
+    "version": 3,
+    "permissions": [
+      "r",
+      "w",
+      "x",
+      "m"
+    ],
+    "info": {
+      "change-mask": [
+        "props",
+        "params"
+      ],
+      "props": {
+        "object.id": 40,
+        "object.serial": 40,
+        "client.id": 33,
+        "factory.id": 13,
+        "spa.object.id": 0,
+        "device.api": "bluez5",
+        "device.bus": "bluetooth",
+        "device.name": "bluez_card.00_1B_66_A1_B2_C3",
+        "device.description": "Wireless Headset",
+        "device.alias": "Wireless Headset",
+        "device.form-factor": "headset",
+        "device.icon-name": "audio-headset-bluetooth",
+        "device.string": "00:1B:66:A1:B2:C3",
+        "api.bluez5.address": "00:1B:66:A1:B2:C3",
+        "api.bluez5.class": "0x240404",
+        "api.bluez5.connection": "connected",
+        "api.bluez5.path": "/org/bluez/hci0/dev_00_1B_66_A1_B2_C3",
+        "media.class": "Audio/Device"
+      },
+      "params": {
+        "EnumProfile": [
+          {
+            "index": 0,
+            "name": "off",
+            "description": "Off",
+            "available": "yes",
+            "priority": 0,
+            "classes": [
+              0
+            ]
+          },
+          {
+            "index": 1,
+            "name": "a2dp-sink",
+            "description": "High Fidelity Playback (A2DP Sink)",
+            "available": "yes",
+            "priority": 40,
+            "classes": [
+              1,
+              [
+                "Audio/Sink",
+                1,
+                "card.profile.devices",
+                [
+                  1
+                ]
+              ]
+            ]
+          },
+          {
+            "index": 2,
+            "name": "headset-head-unit",
+            "description": "Headset Head Unit (HSP/HFP)",
+            "available": "yes",
+            "priority": 30,
+            "classes": [
+              2,
+              [
+                "Audio/Source",
+                1,
+                "card.profile.devices",
+                [
+                  0
+                ]
+              ],
+              [
+                "Audio/Sink",
+                1,
+                "card.profile.devices",
+                [
+                  1
+                ]
+              ]
+            ]
+          }
+        ],
+        "Profile": [
+          {
+            "index": 1,
+            "name": "a2dp-sink",
+            "description": "High Fidelity Playback (A2DP Sink)",
+            "available": "yes",
+            "priority": 40,
+            "save": false
+          }
+        ],
+        "EnumRoute": [
+          {
+            "index": 0,
+            "direction": "Input",
+            "name": "headset-input",
+            "description": "Headset",
+            "priority": 0,
+            "available": "yes",
+            "profiles": [
+              2
+            ],
+            "devices": [
+              0
+            ]
+          },
+          {
+            "index": 1,
+            "direction": "Output",
+            "name": "headset-output",
+            "description": "Headset",
+            "priority": 0,
+            "available": "yes",
+            "profiles": [
+              1,
+              2
+            ],
+            "devices": [
+              1
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": 41,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "max-input-ports": 2,
+      "max-output-ports": 0,
+      "change-mask": [
+        "input-ports",
+        "output-ports",
+        "state",
+        "props",
+        "params"
+      ],
+      "n-input-ports": 2,
+      "n-output-ports": 0,
+      "state": "suspended",
+      "error": null,
+      "props": {
+        "object.id": 41,
+        "object.serial": 41,
+        "node.name": "bluez_output.00_1B_66_A1_B2_C3.1",
+        "node.description": "Wireless Headset",
+        "media.class": "Audio/Sink",
+        "device.id": 40,
+        "factory.name": "api.bluez5.a2dp.sink",
+        "spa.object.id": 1,
+        "api.bluez5.address": "00:1B:66:A1:B2:C3",
+        "api.bluez5.profile": "a2dp-sink",
+        "api.bluez5.codec": "sbc",
+        "api.bluez5.transport": "",
+        "audio.channels": 2,
+        "audio.position": "[ FL, FR ]",
+        "node.driver": true,
+        "priority.session": 1010
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 43,
+    "type": "PipeWire:Interface:Port",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "direction": "input",
+      "change-mask": [
+        "props",
+        "params"
+      ],
+      "props": {
+        "object.id": 43,
+        "object.serial": 43,
+        "node.id": 41,
+        "port.direction": "in",
+        "port.id": 0,
+        "port.name": "playback_FL",
+        "audio.channel": "FL",
+        "format.dsp": "32 bit float mono audio"
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 44,
+    "type": "PipeWire:Interface:Port",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "direction": "input",
+      "change-mask": [
+        "props",
+        "params"
+      ],
+      "props": {
+        "object.id": 44,
+        "object.serial": 44,
+        "node.id": 41,
+        "port.direction": "in",
+        "port.id": 1,
+        "port.name": "playback_FR",
+        "audio.channel": "FR",
+        "format.dsp": "32 bit float mono audio"
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 45,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "max-input-ports": 1,
+      "max-output-ports": 0,
+      "change-mask": [
+        "input-ports",
+        "output-ports",
+        "state",
+        "props",
+        "params"
+      ],
+      "n-input-ports": 1,
+      "n-output-ports": 0,
+      "state": "suspended",
+      "error": null,
+      "props": {
+        "object.id": 45,
+        "object.serial": 45,
+        "node.name": "bluez_capture_internal.00:1B:66:A1:B2:C3",
+        "node.description": "Bluetooth internal capture stream for Wireless Headset",
+        "media.class": "Stream/Input/Audio/Internal",
+        "bluez5.loopback": true,
+        "node.passive": true,
+        "node.dont-fallback": true,
+        "node.linger": true,
+        "stream.dont-remix": true,
+        "audio.channels": 1,
+        "audio.position": "[MONO]",
+        "target.object": "bluez_input.00_1B_66_A1_B2_C3.0",
+        "node.link-group": "loopback-1201-18",
+        "node.loop.name": "data-loop.0"
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 46,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "max-input-ports": 0,
+      "max-output-ports": 1,
+      "change-mask": [
+        "input-ports",
+        "output-ports",
+        "state",
+        "props",
+        "params"
+      ],
+      "n-input-ports": 0,
+      "n-output-ports": 1,
+      "state": "suspended",
+      "error": null,
+      "props": {
+        "object.id": 46,
+        "object.serial": 46,
+        "node.name": "bluez_input.00:1B:66:A1:B2:C3",
+        "node.description": "Wireless Headset",
+        "media.class": "Audio/Source",
+        "bluez5.loopback": true,
+        "device.id": 40,
+        "node.virtual": false,
+        "card.profile.device": 0,
+        "device.routes": "1",
+        "priority.session": 2010,
+        "audio.position": "[MONO]",
+        "node.link-group": "loopback-1201-18"
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 47,
+    "type": "PipeWire:Interface:Port",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "direction": "input",
+      "change-mask": [
+        "props",
+        "params"
+      ],
+      "props": {
+        "object.id": 47,
+        "object.serial": 47,
+        "node.id": 45,
+        "port.direction": "in",
+        "port.id": 0,
+        "port.name": "input_MONO",
+        "audio.channel": "MONO",
+        "format.dsp": "32 bit float mono audio"
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 48,
+    "type": "PipeWire:Interface:Port",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "direction": "output",
+      "change-mask": [
+        "props",
+        "params"
+      ],
+      "props": {
+        "object.id": 48,
+        "object.serial": 48,
+        "node.id": 46,
+        "port.direction": "out",
+        "port.id": 0,
+        "port.name": "capture_MONO",
+        "audio.channel": "MONO",
+        "format.dsp": "32 bit float mono audio"
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 50,
+    "type": "PipeWire:Interface:Device",
+    "version": 3,
+    "permissions": [
+      "r",
+      "w",
+      "x",
+      "m"
+    ],
+    "info": {
+      "change-mask": [
+        "props",
+        "params"
+      ],
+      "props": {
+        "object.id": 50,
+        "object.serial": 50,
+        "device.api": "alsa",
+        "device.bus": "usb",
+        "device.name": "alsa_card.usb-Microphone-00",
+        "device.description": "USB Microphone",
+        "media.class": "Audio/Device"
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 51,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "max-input-ports": 0,
+      "max-output-ports": 1,
+      "change-mask": [
+        "input-ports",
+        "output-ports",
+        "state",
+        "props",
+        "params"
+      ],
+      "n-input-ports": 0,
+      "n-output-ports": 1,
+      "state": "suspended",
+      "error": null,
+      "props": {
+        "object.id": 51,
+        "object.serial": 51,
+        "node.name": "alsa_input.usb-Microphone-00.mono-fallback",
+        "node.description": "USB Microphone Mono",
+        "node.nick": "USB Microphone",
+        "media.class": "Audio/Source",
+        "device.api": "alsa",
+        "device.id": 50,
+        "factory.name": "api.alsa.pcm.source",
+        "audio.channels": 1,
+        "audio.position": "[ MONO ]",
+        "node.driver": true
+      },
+      "params": {}
+    }
+  },
+  {
+    "id": 52,
+    "type": "PipeWire:Interface:Port",
+    "version": 3,
+    "permissions": [
+      "r",
+      "x",
+      "m"
+    ],
+    "info": {
+      "direction": "output",
+      "change-mask": [
+        "props",
+        "params"
+      ],
+      "props": {
+        "object.id": 52,
+        "object.serial": 52,
+        "node.id": 51,
+        "port.direction": "out",
+        "port.id": 0,
+        "port.name": "capture_MONO",
+        "audio.channel": "MONO",
+        "format.dsp": "32 bit float mono audio"
+      },
+      "params": {}
+    }
+  }
+]
