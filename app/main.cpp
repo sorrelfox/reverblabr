@@ -36,10 +36,12 @@
 #include <QDBusConnection>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLibraryInfo>
 #include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QTimer>
+#include <QVersionNumber>
 #include <QtQml/QQmlExtensionPlugin>
 
 #include <memory>
@@ -51,6 +53,16 @@ using namespace Qt::StringLiterals;
 
 int main(int argc, char *argv[])
 {
+    // **QML's garbage is collected all at once on Qt 6.10.** Its collector,
+    // working a little at a time, crashed in two of six runs of the QML
+    // tests' walk through every panel on Ubuntu 26.04's Qt 6.10.2, and in
+    // none of six with the collection done at once; Qt 6.11 has not been
+    // seen to.
+    // Read when the first QML engine starts, so it is set before anything,
+    // and only where the user has not chosen for themselves.
+    if (QLibraryInfo::version() < QVersionNumber(6, 11) && !qEnvironmentVariableIsSet("QV4_GC_TIMELIMIT")) {
+        qputenv("QV4_GC_TIMELIMIT", "0");
+    }
     // QApplication rather than QGuiApplication: the native Breeze controls
     // (org.kde.desktop) draw through the widget style.
     QApplication app(argc, argv);
