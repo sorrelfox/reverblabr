@@ -58,6 +58,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/BlockTile.qml
     qml/BroadcastPanel.qml
     qml/BroadcastWords.qml
+    qml/NowPlayingRows.qml
     qml/CanvasPlaceholder.qml
     qml/CanvasWire.qml
     qml/ChannelsFace.qml

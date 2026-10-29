@@ -115,7 +115,7 @@ endif()
 # Broadcast, where the build can keep its password (ADR-0026). Its stream
 # and its settings are the engine's; the block is only offered here.
 if(RB_BUILD_BROADCAST)
-    target_sources(reverblabr-blocks PRIVATE broadcast.cpp)
+    target_sources(reverblabr-blocks PRIVATE broadcast.cpp streamtap.cpp)
     target_compile_definitions(reverblabr-blocks PUBLIC RB_HAVE_BROADCAST)
 endif()
 set_target_properties(reverblabr-blocks PROPERTIES AUTOMOC OFF AUTORCC OFF)

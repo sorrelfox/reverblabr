@@ -62,6 +62,12 @@ public:
     static constexpr std::string_view kNowPlayingFile = "file";
     static constexpr std::string_view kNowPlayingPlayer = "player";
 
+    /// The three, as the nowPlaying setting offers them. **Shared with
+    /// every block whose title follows what is playing** (Live Stream), so
+    /// a new source is offered by all of them at once, and the engine
+    /// follows a player for any of them alike.
+    [[nodiscard]] static std::vector<std::string> nowPlayingChoices();
+
     /// What listeners see when the template is left as it is.
     static constexpr std::string_view kDefaultTitleTemplate = "%artist - %title";
 

@@ -7,6 +7,7 @@
 
 #include "blocks/broadcast.h"
 
+#include "blocks/streamtap.h"
 #include "rt/audiotap.h"
 
 #include <algorithm>
@@ -90,15 +91,18 @@ std::vector<ParamDescriptor> Broadcast::makeDescriptors()
     descriptors.push_back(std::move(listed));
 
     text("titleTemplate", kDefaultTitleTemplate);
-    choice("nowPlaying",
-           {std::string{kNowPlayingNone}, std::string{kNowPlayingFile}, std::string{kNowPlayingPlayer}},
-           kNowPlayingNone);
+    choice("nowPlaying", nowPlayingChoices(), kNowPlayingNone);
     text("nowPlayingFile", {});
     // **The player the session captures, unless one is named**: what
     // somebody streaming the music they play means, and it follows them
     // from one player to another.
     text("nowPlayingPlayer", {});
     return descriptors;
+}
+
+std::vector<std::string> Broadcast::nowPlayingChoices()
+{
+    return {std::string{kNowPlayingNone}, std::string{kNowPlayingFile}, std::string{kNowPlayingPlayer}};
 }
 
 Broadcast::Broadcast()
@@ -134,37 +138,7 @@ std::expected<void, BlockError> Broadcast::prepare(const PrepareSpec &spec)
 
 void Broadcast::process(ProcessContext &context) noexcept RB_NONBLOCKING
 {
-    const std::uint32_t channels = std::min(context.output.channelCount(), context.input.channelCount());
-    std::array<const float *, kChannels> streamed{};
-    for (std::uint32_t channel = 0; channel < kChannels; ++channel) {
-        const std::span<float> in =
-            channel < context.input.channelCount() ? context.input.channel(channel) : std::span<float>{};
-        // A channel with no storage is silence, which the tap writes as
-        // zeros when it is handed a null pointer.
-        streamed[channel] = in.size() >= context.frames ? in.data() : nullptr;
-        if (channel >= channels) {
-            continue;
-        }
-        const std::span<float> out = context.output.channel(channel);
-        if (out.empty()) {
-            continue;
-        }
-        // **Sample for sample.** Streaming something must not change it.
-        if (streamed[channel] != nullptr) {
-            std::copy_n(streamed[channel], context.frames, out.data());
-        } else {
-            std::fill_n(out.data(), context.frames, 0.0f);
-        }
-    }
-
-    if (m_tap != nullptr) {
-        // **Every cycle, pauses and all.** A stream is a radio station:
-        // its listeners hear time pass, and a source that has stopped
-        // playing is silence on the air rather than a gap the stream
-        // closes up, as a recording does.
-        m_tap->announceRate(m_sampleRate);
-        (void)m_tap->write(streamed, context.frames);
-    }
+    passOnAndTap(context, m_tap, m_sampleRate);
 }
 
 void Broadcast::reset() noexcept RB_NONBLOCKING

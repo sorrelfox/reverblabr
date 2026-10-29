@@ -9,7 +9,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
-import QtQuick.Dialogs as QtDialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.ki18n
@@ -38,12 +37,6 @@ ColumnLayout {
     readonly property string server: panel.params.server ?? "icecast"
     readonly property bool icecast: panel.server === "icecast"
     readonly property string format: panel.params.format ?? "mp3"
-    readonly property string nowPlaying: panel.params.nowPlaying ?? "none"
-    readonly property string nowPlayingPlayer: panel.params.nowPlayingPlayer ?? ""
-    /// The players a title can follow. **The bus is read only while the
-    /// title is to come from one**: until then MediaPlayers is never asked.
-    readonly property var playerChoices: words.playerChoices(
-        panel.nowPlaying === "player" ? MediaPlayers.players : [], panel.nowPlayingPlayer)
     readonly property bool mono: (panel.params.channels ?? "stereo") === "mono"
     /// **Only the rates the format takes for so many channels**, which the
     /// engine says: Vorbis wants more than 32 kbit/s for stereo and takes
@@ -87,10 +80,10 @@ ColumnLayout {
     readonly property alias stationFields: stationFields
     readonly property alias listedCheck: listedControl
     readonly property alias templateField: templateControl
-    readonly property alias nowPlayingBox: nowPlayingControl
-    readonly property alias nowPlayingFileField: nowPlayingFileControl
-    readonly property alias playerBox: playerControl
-    readonly property alias playerLine: playerHint
+    readonly property alias nowPlayingBox: nowPlayingRows.sourceBox
+    readonly property alias nowPlayingFileField: nowPlayingRows.fileField
+    readonly property alias playerBox: nowPlayingRows.playerBox
+    readonly property alias playerLine: nowPlayingRows.playerLine
     readonly property alias titleLine: titleText
     readonly property alias statusGrid: statusGrid
     readonly property alias sentLabel: sentText
@@ -620,96 +613,12 @@ ColumnLayout {
                               "%artist, %title and %album are what is playing; %session is the session's name.")
         }
 
-        RowLayout {
+        NowPlayingRows {
+            id: nowPlayingRows
+
+            blockId: panel.blockId
+            params: panel.params
             Layout.fillWidth: true
-            spacing: AppMetrics.labelSpacing
-
-            FieldLabel {
-                text: KI18n.i18nc("@label:listbox where a stream's title comes from", "Now playing")
-            }
-
-            QQC2.ComboBox {
-                id: nowPlayingControl
-
-                Layout.preferredWidth: 1
-                Layout.fillWidth: true
-                model: words.nowPlayingChoices.map(id => words.nowPlayingName(id))
-                Accessible.name: KI18n.i18nc("@label:listbox", "Now playing")
-                onActivated: index => panel.set("nowPlaying", words.nowPlayingChoices[index])
-
-                SessionBound {
-                    control: nowPlayingControl
-                    property: "currentIndex"
-                    value: words.nowPlayingChoices.indexOf(panel.nowPlaying)
-                }
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.labelSpacing
-            visible: panel.nowPlaying === "file"
-
-            FieldLabel {
-                text: KI18n.i18nc("@label:textbox the text file a stream's title is read from", "File")
-            }
-
-            ParamField {
-                id: nowPlayingFileControl
-
-                paramId: "nowPlayingFile"
-                placeholderText: KI18n.i18nc("@info:placeholder", "Its first line is the title")
-                Accessible.name: KI18n.i18nc("@label:textbox", "File")
-            }
-
-            QQC2.ToolButton {
-                icon.name: "document-open"
-                display: QQC2.AbstractButton.IconOnly
-                text: KI18n.i18nc("@action:button choose the text file a stream's title is read from", "Choose File…")
-                Accessible.name: text
-                QQC2.ToolTip.text: text
-                QQC2.ToolTip.visible: hovered
-                onClicked: fileDialog.open()
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.labelSpacing
-            visible: panel.nowPlaying === "player"
-
-            FieldLabel {
-                text: KI18n.i18nc("@label:listbox the media player a stream's title follows", "Player")
-            }
-
-            QQC2.ComboBox {
-                id: playerControl
-
-                Layout.preferredWidth: 1
-                Layout.fillWidth: true
-                model: panel.playerChoices.map(choice => choice.name)
-                Accessible.name: KI18n.i18nc("@label:listbox", "Player")
-                onActivated: index => panel.set("nowPlayingPlayer", panel.playerChoices[index].id)
-                // **A player that comes or goes is a new list**, which puts
-                // the box back to its first line whatever the block holds.
-                onModelChanged: Qt.callLater(playerBound.settle)
-
-                SessionBound {
-                    id: playerBound
-
-                    control: playerControl
-                    property: "currentIndex"
-                    value: panel.playerChoices.findIndex(choice => choice.id === panel.nowPlayingPlayer)
-                }
-            }
-        }
-
-        InfoLine {
-            id: playerHint
-
-            visible: panel.nowPlaying === "player" && panel.nowPlayingPlayer === ""
-            text: KI18n.i18nc("@info how a stream's title picks the media player it follows",
-                              "A player this session's Application blocks capture, or the one playing when they capture none.")
         }
 
         InfoLine {
@@ -719,15 +628,6 @@ ColumnLayout {
             text: KI18n.i18nc("@info %1 is the title a stream's listeners see now", "Listeners see: %1",
                               panel.status.title ?? "")
         }
-    }
-
-    QtDialogs.FileDialog {
-        id: fileDialog
-
-        title: KI18n.i18nc("@title:window", "Choose the Now Playing File")
-        nameFilters: [KI18n.i18nc("@item:inlistbox a file type", "Text files (*.txt)"),
-            KI18n.i18nc("@item:inlistbox a file type", "All files (*)")]
-        onAccepted: panel.set("nowPlayingFile", RecordingStatus.folderFromUrl(fileDialog.selectedFile))
     }
 
     // --- Status ---
