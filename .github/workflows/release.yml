@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# A release. A pushed tag vX.Y.Z has to be VERSION's (tools/check-release-tag.sh).
+# The workflow makes the source tarball, builds and tests Reverblabr from that
+# tarball on Fedora 44, and creates a draft GitHub Release with the tarball and
+# SHA256SUMS, to be reviewed and published by hand. The tarball gets a build
+# provenance attestation, which `gh attestation verify` checks. The Release's
+# notes are the version's entry in the AppStream data (tools/release-notes.py).
+# "Run workflow" (workflow_dispatch) builds and tests without releasing.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sources:
+    name: Source tarball
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: The tag is VERSION's
+        if: startsWith(github.ref, 'refs/tags/')
+        run: tools/check-release-tag.sh
+      - name: Tarball and checksum
+        run: |
+          version=$(head -n 1 VERSION | tr -d '[:space:]')
+          mkdir dist
+          git archive --format=tar --prefix="reverblabr-$version/" HEAD | xz -9 > "dist/reverblabr-$version.tar.xz"
+          (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sources
+          path: dist/
+          if-no-files-found: error
+
+  # From the tarball, not the checkout: what is released is what is tested,
+  # and a tree without git has to say the plain version.
+  build:
+    name: Build and test the tarball (Fedora 44)
+    needs: sources
+    runs-on: ubuntu-24.04
+    container: registry.fedoraproject.org/fedora:44
+    timeout-minutes: 150
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: sources, path: dist }
+      - name: Unpack
+        run: |
+          dnf -y install xz tar > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+          tar -xf dist/reverblabr-*.tar.xz
+          mv reverblabr-*/ src
+      - name: Packages (tools/deps/fedora.txt)
+        working-directory: src
+        run: dnf -y install $(sed 's/#.*//' tools/deps/fedora.txt) > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+      - name: Build
+        working-directory: src
+        run: |
+          cmake --preset release
+          cmake --build --preset release -- -j 4
+      - name: Test
+        working-directory: src
+        run: ctest --preset release --output-junit ctest-junit.xml
+      # tools.versions lets a build from git add "+..." to the version; from
+      # the tarball it has to be the plain one. The answer starts with the
+      # application's name, which for the daemon is "reverblabr".
+      - name: Every program says the release's version
+        working-directory: src
+        run: |
+          version=$(head -n 1 VERSION | tr -d '[:space:]')
+          for program in reverblabrd reverblabr-ctl reverblabr-plugin-host; do
+            answer=$(build/release/bin/$program --version | head -n 1)
+            echo "$program: $answer"
+            [ "${answer##* }" = "$version" ] || { echo "::error::$program says \"$answer\", the release is $version"; exit 1; }
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            src/build/release/ctest-junit.xml
+            src/build/release/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
+
+  release:
+    name: Draft release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [sources, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      # For the attestation: a short-lived signing certificate, and the
+      # attestation store.
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: sources, path: dist }
+      - name: Build provenance attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.tar.xz
+      - name: Draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          python3 tools/release-notes.py "$version" > notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --draft \
+            --title "Reverblabr $version" --notes-file notes.md
