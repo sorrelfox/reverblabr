@@ -29,8 +29,8 @@ set_target_properties(reverblabr-pluginhost-ladspa PROPERTIES AUTOMOC OFF AUTORC
 # describing them: everything of the host but its node. A library of its
 # own, as LADSPA's is, so a test runs a plugin and its window as the host
 # does, with no host process and no server.
-add_library(reverblabr-pluginhost-formats STATIC atomring.h editor.h lv2plugin.cpp lv2plugin.h scan.cpp scan.h
-                                                 x11window.cpp x11window.h)
+add_library(reverblabr-pluginhost-formats STATIC atomring.h base64.cpp base64.h editor.h lv2plugin.cpp lv2plugin.h
+                                                 scan.cpp scan.h x11window.cpp x11window.h)
 target_include_directories(reverblabr-pluginhost-formats PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(reverblabr-pluginhost-formats PUBLIC reverblabr-pluginproto reverblabr-pluginhost-ladspa
                                                            PkgConfig::LILV PkgConfig::SUIL PkgConfig::X11)
