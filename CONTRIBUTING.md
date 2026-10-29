@@ -19,7 +19,7 @@ Open an issue on GitHub and use the bug template. Most useful are the steps that
 
 Development happens on the `dev` branch, and `main` only gets releases, so please base your work on `dev` and open pull requests against it. For anything bigger than a small fix, open an issue first and describe what you have in mind, so we can agree on the approach before you spend time on it.
 
-CI only runs for `main` and for pull requests into it, not for `dev`. Before you open a pull request, please run the checks listed in [Before a change goes in](docs/development.md#before-a-change-goes-in) and say in the description what you ran.
+CI doesn't run on pull requests: it is started by hand before a release, to save the project's limited GitHub Actions minutes. Before you open a pull request, please run the checks listed in [Before a change goes in](docs/development.md#before-a-change-goes-in) and say in the description what you ran.
 
 ## Signing off your commits
 
@@ -56,4 +56,4 @@ Reverblabr is an original work. Reimplementing a feature you know from another p
 
 ## What CI checks
 
-For `main` and pull requests into it, GitHub Actions checks the sign-offs, the clean-room rule, `reuse lint` and `clang-format`, then builds on Fedora 44 with warnings as errors, runs the whole test suite and treats any qmllint warning as an error.
+Before a release, GitHub Actions checks the sign-offs, the clean-room rule, `reuse lint` and `clang-format`, then builds on Fedora 44 with warnings as errors, runs the whole test suite and treats any qmllint warning as an error.

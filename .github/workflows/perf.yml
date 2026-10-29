@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Reverblabr contributors
 # SPDX-License-Identifier: CC0-1.0
 #
-# The nightly performance run: the benchmarks, what the reference session
+# The performance run: the benchmarks, what the reference session
 # costs, and a soak of hours, on a machine kept for it. The figures are kept
 # as an artifact and held against the last good run's; a figure that got
 # worse than it may fails the run, and GitHub tells whoever watches the
@@ -19,11 +19,11 @@
 # and workflow_dispatch only ever check out this repository's own branches.
 name: Performance
 
+# Started by hand only. Once the runner exists, a schedule can be added
+# here (a self-hosted runner spends none of the project's Actions minutes):
+#   schedule:
+#     - cron: "17 2 * * *"
 on:
-  schedule:
-    # Every night at 02:17 UTC: off the hour, when GitHub's scheduler is
-    # least busy.
-    - cron: "17 2 * * *"
   workflow_dispatch:
     inputs:
       soak-hours:
@@ -54,7 +54,7 @@ defaults:
     shell: bash
 
 jobs:
-  nightly:
+  perf:
     name: Benchmarks and soak
     if: vars.RB_PERF_RUNNER == 'true'
     runs-on: [self-hosted, linux, x64, reverblabr-perf]

@@ -1,16 +1,15 @@
 # SPDX-FileCopyrightText: 2026 Reverblabr contributors
 # SPDX-License-Identifier: CC0-1.0
 #
-# Checks, the build and the whole test suite on Fedora 44, for main and for
-# pull requests into it. Work on dev is checked on the developer's machine
-# instead (docs/development.md, "Before a change goes in").
+# Checks, the build and the whole test suite on Fedora 44, started by hand
+# (Actions, CI, Run workflow) on the branch about to be released, and on
+# nothing else. The project's Actions minutes are limited, so no push and no
+# pull request starts it: changes are checked on the developer's machine
+# (docs/development.md, "Before a change goes in"), and this run is the last
+# look before a release.
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

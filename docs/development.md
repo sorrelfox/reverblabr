@@ -185,9 +185,9 @@ tools/perf/report.py build/release/perf-results --baseline before.json --markdow
 
 A figure is a regression when it moved the wrong way by more than its noise and by more than its tolerance (10 % when it gives none); the exit status is then 1. Runs from another processor or another build kind are compared with a warning and never fail. `--history` adds earlier runs as columns, oldest first, for the trend. `tools.perf-report`, in the ordinary suite, checks these rules, and that a block made twice as slow on purpose (`reverblabr-bench-dsp --inject-cost 100`) is caught.
 
-#### The nightly run
+#### The performance run
 
-[`.github/workflows/perf.yml`](../.github/workflows/perf.yml) runs every night and by hand (Actions, Performance, Run workflow) on a self-hosted runner labelled `reverblabr-perf`: the release build, the benchmarks with longer measurements, the session's cost, and a soak of `RB_SOAK_HOURS` hours (a repository variable, 4 when unset). The figures are compared with the last successful run's on the same branch, or with `tools/perf/baseline.json` when that file exists, and uploaded as the `perf-results` artifact with the report, which also goes to the job's summary. A regression fails the run, and GitHub notifies about failed runs. A failed run is never a baseline, so a regression goes on failing until it's fixed or a baseline is chosen on purpose.
+[`.github/workflows/perf.yml`](../.github/workflows/perf.yml) runs by hand (Actions, Performance, Run workflow) on a self-hosted runner labelled `reverblabr-perf`: the release build, the benchmarks with longer measurements, the session's cost, and a soak of `RB_SOAK_HOURS` hours (a repository variable, 4 when unset). The figures are compared with the last successful run's on the same branch, or with `tools/perf/baseline.json` when that file exists, and uploaded as the `perf-results` artifact with the report, which also goes to the job's summary. A regression fails the run, and GitHub notifies about failed runs. A failed run is never a baseline, so a regression goes on failing until it's fixed or a baseline is chosen on purpose.
 
 By hand, the run takes three inputs: `soak-hours` (72 for the long soak), `skip-soak` for the benchmarks alone, and `inject-cost`, which makes every block that many per cent slower to prove that the alert fires.
 
@@ -196,8 +196,8 @@ The job runs only when the repository variable `RB_PERF_RUNNER` is `true`. Witho
 1. A machine kept for it, running Fedora 44, with nothing else to do while the job runs, and an ordinary user account for the runner. Install the build dependencies and the GitHub CLI: `sudo dnf install $(sed 's/#.*//' tools/deps/fedora.txt) gh`, then check with `tools/check-deps.sh`.
 2. On GitHub: Settings, Actions, Runners, New self-hosted runner, Linux x64. Run the download and `config.sh` commands it shows as that user, adding `--labels reverblabr-perf` to `config.sh`. Then install it as a service so it survives a reboot: `sudo ./svc.sh install <user>` and `sudo ./svc.sh start`.
 3. Settings, Actions, General: under fork pull request workflows, require approval for all outside collaborators. Only this workflow asks for the runner's label and it has no pull request trigger; keep it that way, because a self-hosted runner on a public repository runs whatever code it's given.
-4. Settings, Secrets and variables, Actions, Variables: add `RB_PERF_RUNNER` with the value `true`, and `RB_SOAK_HOURS` to change the nightly soak's length.
-5. Run the workflow by hand with `skip-soak` ticked: it should pass with "No baseline yet". Run it again with `inject-cost` set to `100`: it should fail and name the blocks. Then let the nightly runs build the baseline, or commit a trusted run's `merged.json` (from the artifact) as `tools/perf/baseline.json`.
+4. Settings, Secrets and variables, Actions, Variables: add `RB_PERF_RUNNER` with the value `true`, and `RB_SOAK_HOURS` to change the soak's length.
+5. Run the workflow by hand with `skip-soak` ticked: it should pass with "No baseline yet". Run it again with `inject-cost` set to `100`: it should fail and name the blocks. Then let later runs build the baseline (a schedule can be added to the workflow once the runner exists; the file says how), or commit a trusted run's `merged.json` (from the artifact) as `tools/perf/baseline.json`.
 
 ## Sanitizers
 
@@ -246,7 +246,7 @@ PipeWire unloads its modules (`dlclose`) when a client shuts down. Memory a modu
 
 ## Before a change goes in
 
-CI builds and tests `main` and pull requests into it, but not `dev`, so on `dev` these checks are yours to run. This is the full list:
+CI runs only when started by hand, right before a release: the project's GitHub Actions minutes are limited, so no push or pull request starts it, and the checks are yours to run. This is the full list:
 
 ```sh
 reuse lint
@@ -369,9 +369,12 @@ tools/release.sh prepare 0.2.0   # writes VERSION, adds a dated 0.2.0 release to
 $EDITOR app/io.github.reverblabr.Reverblabr.metainfo.xml   # the notes, in place of @NOTES@
 # the checks from "Before a change goes in"
 tools/release.sh tag             # commits "release: 0.2.0" (signed off) and tags v0.2.0; never pushes
+git push origin dev              # then Actions, CI, Run workflow on dev, and wait for it to pass
 git switch main && git merge --ff-only dev && git switch dev
-git push origin dev main v0.2.0
+git push origin main v0.2.0
 ```
+
+CI is the one run of the whole check on GitHub before the release; nothing starts it by itself, because the project's Actions minutes are limited. Start it once, on `dev` with the release commit, after the local checks have passed: it is a last look, not where problems are found.
 
 `prepare` refuses a tree with changes, a version that isn't newer, or a tag that already exists. `tag` refuses notes that still say `@NOTES@` and changes to anything but `VERSION`, the AppStream data and the handbook, and makes nothing when it refuses. `tools.desktop-entry` fails whenever the newest AppStream release isn't `VERSION`'s or its notes are missing, and `tools.handbook-release` whenever the handbook's `<releaseinfo>` isn't, so none of them can drift apart unnoticed. `prepare` also sets the handbook's `<date>` to the release's day.
 
