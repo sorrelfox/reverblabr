@@ -61,7 +61,7 @@ Without any of these the build stops and says which one is missing.
 |---|---|---|---|
 | Qt Base | `qt6-qtbase-devel` | `qt6-base-dev`, `qt6-base-dev-tools` | Core, Gui, Widgets, D-Bus, SQL, Test |
 | Qt Declarative | `qt6-qtdeclarative-devel` | `qt6-declarative-dev`, `qt6-declarative-dev-tools` | the QML interface, and `qmllint` |
-| Qt SVG | `qt6-qtsvg-devel` | `qt6-svg-dev` | the blocks' icons |
+| Qt SVG | `qt6-qtsvg-devel` | `qt6-svg-dev`, `qt6-svg-plugins` | the blocks' icons and the application's own; on Kubuntu the part that draws an SVG as an icon or an image is a package of its own |
 | Qt's SQLite driver | part of `qt6-qtbase` | `libqt6sql6-sqlite` | the recordings index in the Files tab |
 | Qt Quick modules | part of `qt6-qtdeclarative` | `qml6-module-qtquick`, `qml6-module-qtquick-controls`, `qml6-module-qtquick-templates`, `qml6-module-qtquick-layouts`, `qml6-module-qtquick-window`, `qml6-module-qtquick-shapes`, `qml6-module-qtqml-workerscript`, `qml6-module-qttest` | the window at run time, and the QML tests |
 
@@ -122,9 +122,9 @@ None of these are needed to use Reverblabr. They are what [Development](developm
 
 | What | Fedora | Kubuntu | For |
 |---|---|---|---|
-| A real locale | `glibc-langpack-en` | (installed) | the translation tests; without a locale gettext loads no catalogs |
-| KDE's platform theme, DejaVu Sans | `plasma-integration`, `dejavu-sans-fonts` | (installed) | the pseudo-locale check, which measures text as a Plasma desktop draws it; DejaVu Sans draws the `⟦ ⟧` that Noto Sans has no glyphs for |
-| Plasma's QML controls, kpackagetool6 | `libplasma` | (installed) | the panel widget's tests, which draw it with Plasma's controls and check its package with `kpackagetool6`; without them the representations' test is left out and the package is checked without `kpackagetool6` |
+| A real locale | `glibc-langpack-en` | `locales-all` | the translation tests, and the tests that read numbers in English; without a locale gettext loads no catalogs |
+| KDE's platform theme, DejaVu Sans | `plasma-integration`, `dejavu-sans-fonts` | `plasma-integration`, `fonts-dejavu-core` | the pseudo-locale check, which measures text as a Plasma desktop draws it; DejaVu Sans draws the `⟦ ⟧` that Noto Sans has no glyphs for |
+| Plasma's QML controls, kpackagetool6 | `libplasma` | `plasma-desktoptheme`, `kpackagetool6` | the panel widget's tests, which draw it with Plasma's controls and check its package with `kpackagetool6`; without them the representations' test is left out and the package is checked without `kpackagetool6` |
 | Clang and its sanitizer runtimes | `clang`, `llvm`, `compiler-rt` | `clang`, `llvm`, `libclang-rt-dev` | the `rtsan` preset |
 | GCC's sanitizer runtimes | `libasan`, `libubsan`, `libtsan` | part of `g++` | the `asan` preset |
 | clang-format, clang-tidy | `clang-tools-extra` | `clang-format`, `clang-tidy` | the format check and lint |
@@ -134,7 +134,7 @@ None of these are needed to use Reverblabr. They are what [Development](developm
 | A graph view | `qpwgraph` | `qpwgraph` | seeing the PipeWire graph while you work |
 | jq | `jq` | `jq` | querying `pw-dump` |
 | The tests' own PipeWire | `pipewire`, `pipewire-pulseaudio`, `pulseaudio-utils`, `dbus-daemon` | `pipewire`, `pipewire-pulse`, `pulseaudio-utils`, `dbus` | the private PipeWire, Pulse client and D-Bus session the integration tests run in |
-| libcanberra | `libcanberra` | `libcanberra0` | a test that plays a notification sound the way KDE does |
+| libcanberra | `libcanberra` | `libcanberra0`, `libcanberra-pulse` | a test that plays a notification sound the way KDE does, through PulseAudio as KDE does |
 | LSP's LV2 plugins | `lsp-plugins-lv2` | `lsp-plugins-lv2` | the plugin hosting tests |
 | The LADSPA SDK's example plugins | `ladspa` | `ladspa-sdk` | the LADSPA hosting tests' common plugin, the stereo amplifier; without it those checks are skipped, and the rest run against LADSPA plugins the tests build |
 | LSP's CLAP plugins | `lsp-plugins-clap` | `lsp-plugins-clap` | the CLAP hosting tests, where the build has the CLAP SDK |

@@ -41,7 +41,7 @@ Both candidate distributions ship Plasma 6.6, on Wayland only for Kubuntu 26.04 
 - Users of other desktops are not served. GNOME users would have to install Plasma.
 - **Code must build against the Kubuntu floor while developers work on newer Fedora.** Using an API newer than Qt 6.10 or KF 6.24 breaks the secondary platform. The guards against this:
   - `tools/container-check.sh ubuntu:26.04 test`
-  - a Kubuntu CI job (later)
+  - the Ubuntu 26.04 job in CI, which builds, runs the tests and lints the QML there
   - the "since" notes in the API docs
 - Plugin editors that only support X11 open through XWayland from the plugin host process.
 

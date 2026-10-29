@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Reverblabr contributors
 # SPDX-License-Identifier: CC0-1.0
 #
-# Checks, the build and the whole test suite on Fedora 44, started by hand
-# (Actions, CI, Run workflow) on the branch about to be released, and on
-# nothing else. The project's Actions minutes are limited, so no push and no
-# pull request starts it: changes are checked on the developer's machine
-# (docs/development.md, "Before a change goes in"), and this run is the last
-# look before a release.
+# Checks, the build and the whole test suite on Fedora 44 and on Ubuntu
+# 26.04, started by hand (Actions, CI, Run workflow) on the branch about to be
+# released, and on nothing else. The project's Actions minutes are limited, so
+# no push and no pull request starts it: changes are checked on the
+# developer's machine (docs/development.md, "Before a change goes in"), and
+# this run is the last look before a release.
 name: CI
 
 on:
@@ -113,6 +113,53 @@ jobs:
         if: always()
         with:
           name: test-results
+          path: |
+            build/debug/ctest-junit.xml
+            build/debug/Testing/Temporary/LastTest.log
+            qmllint.log
+          if-no-files-found: ignore
+
+  # The secondary platform. Ubuntu 26.04 has the oldest Qt (6.10) and KDE
+  # Frameworks (6.24) the project supports, so a use of anything newer, which
+  # builds on Fedora, fails here. QML only fails when it is loaded, which is
+  # why the QML tests and the QML lint run here as well as the build.
+  build-and-test-ubuntu:
+    name: Build and test (Ubuntu 26.04)
+    needs: checks
+    runs-on: ubuntu-24.04
+    container: docker.io/library/ubuntu:26.04
+    timeout-minutes: 150
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Git
+        run: |
+          { apt-get update && apt-get -y install --no-install-recommends git ca-certificates; } > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: actions/checkout@v4
+      - name: Packages (tools/deps/kubuntu.txt)
+        run: apt-get -y install --no-install-recommends $(sed 's/#.*//' tools/deps/kubuntu.txt) > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
+      - name: Configure
+        run: cmake --preset debug
+      - name: Build
+        run: cmake --build --preset debug -- -j 4
+      - name: Test
+        run: ctest --preset debug --output-junit ctest-junit.xml
+      # Two warnings only Qt 6.10's qmllint gives, about code that is right:
+      # a property that holds a function on purpose (use-proper-function, a
+      # check Qt 6.11 no longer has), and KAboutData, whose QML type
+      # information KDE Frameworks 6.24 does not install.
+      - name: QML lint
+        run: |
+          cmake --build --preset debug --target all_qmllint -- -j 4 2>&1 | tee qmllint.log
+          if grep '^Warning:' qmllint.log | grep -v -e '\[use-proper-function\]' -e 'Type "KAboutData"' | grep -q .; then
+            echo "::error::qmllint found problems; see the warnings above."
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-ubuntu
           path: |
             build/debug/ctest-junit.xml
             build/debug/Testing/Temporary/LastTest.log

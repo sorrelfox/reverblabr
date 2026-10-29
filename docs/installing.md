@@ -13,7 +13,8 @@ The first packages will be RPMs for Fedora, because Fedora is what I use and tes
 
 - **KDE Plasma 6 on Wayland.** Reverblabr is written for Plasma and nothing else. It may start on another desktop, but I don't try it there.
 - **PipeWire 1.6 or newer**, with **WirePlumber 0.5 or newer**. Current distributions run both by default.
-- **Fedora 44 or newer.** This is where Reverblabr is developed. Kubuntu 26.04 is the oldest system I try to stay compatible with (it decides the minimum versions of Qt and KDE Frameworks), and there is a package list for it, but it gets much less testing than Fedora.
+- **Fedora 44 or newer.** This is where Reverblabr is developed.
+- **Kubuntu 26.04 LTS**, the secondary platform. It is the oldest system I stay compatible with (it decides the minimum versions of Qt and KDE Frameworks). Its builds and tests are checked in an Ubuntu 26.04 container, and CI checks them again before each release, but I rarely use it on a desktop, so it gets much less real use than Fedora.
 
 ## Build it
 
@@ -85,7 +86,7 @@ It is built only when KAuth is found (`kf6-kauth-devel` on Fedora). Without it, 
 A few parts are built only when their library is there. The build's summary says which ones it left out:
 
 - **Speech Denoise** needs RNNoise (`rnnoise-devel`). Fedora packages it, Kubuntu 26.04 doesn't.
-- **CLAP plugins** need the CLAP SDK (`clap-devel`).
+- **CLAP plugins** need the CLAP SDK (`clap-devel`). Fedora packages it, Kubuntu 26.04 doesn't.
 - **Virtual devices for all users** need KAuth, as above.
 
 The full list is in [What to install](dependencies.md#optional).

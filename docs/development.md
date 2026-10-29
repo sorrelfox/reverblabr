@@ -14,7 +14,7 @@ Reverblabr targets **KDE Plasma on Wayland** only.
 | Platform | Role |
 |---|---|
 | **Fedora 44 or newer, KDE Plasma** | Where development happens, and what gets tested the most |
-| **Kubuntu 26.04 LTS** | Secondary. It ships the oldest libraries Reverblabr supports, so it sets the minimum versions below |
+| **Kubuntu 26.04 LTS** | Secondary. It ships the oldest libraries Reverblabr supports, so it sets the minimum versions below. CI, started by hand before a release, builds and tests on Ubuntu 26.04 as well as on Fedora |
 
 The build checks these minimum versions:
 
@@ -27,7 +27,9 @@ The build checks these minimum versions:
 | PipeWire | 1.6 |
 | WirePlumber (at run time) | 0.5 |
 
-Stay within the Qt 6.10 and KDE Frameworks 6.24 APIs. Fedora ships newer versions, so code that uses something newer builds fine there and then breaks on Kubuntu. Check the "since" note in the API documentation before using a recent function.
+Stay within the Qt 6.10 and KDE Frameworks 6.24 APIs. Fedora ships newer versions, so code that uses something newer builds fine there and then breaks on Kubuntu. Check the "since" note in the API documentation before using a recent function. QML is the easy place to slip: a type from Qt 6.11 builds, and only fails when the file is loaded. `qmllint` on Qt 6.10 and the QML tests catch it: run `tools/container-check.sh ubuntu:26.04 test` (below) for a change that touches QML or a recent API, and the Ubuntu job of the CI run before a release runs both.
+
+`tools/container-check.sh ubuntu:26.04 test` builds and tests the committed tree on Ubuntu 26.04 on your own machine (see [Checking a clean install in a container](#checking-a-clean-install-in-a-container)).
 
 For reference, my machine and a Kubuntu install as of September 2026:
 
@@ -246,7 +248,7 @@ PipeWire unloads its modules (`dlclose`) when a client shuts down. Memory a modu
 
 ## Before a change goes in
 
-CI runs only when started by hand, right before a release: the project's GitHub Actions minutes are limited, so no push or pull request starts it, and the checks are yours to run. This is the full list:
+CI runs only when started by hand, right before a release, on Fedora 44 and on Ubuntu 26.04: the project's GitHub Actions minutes are limited, so no push or pull request starts it, and the checks are yours to run. This is the full list:
 
 ```sh
 reuse lint
@@ -352,9 +354,18 @@ Reverblabr's nodes are named `reverblabr.<session-id>.seg<N>`, and their descrip
 tools/container-check.sh fedora:44              # install, check, configure
 tools/container-check.sh fedora:44 test         # also build and run the tests
 tools/container-check.sh ubuntu:26.04           # the secondary platform
+tools/container-check.sh ubuntu:26.04 test      # what CI's Ubuntu job runs
 ```
 
 It uses Podman; set `CONTAINER_ENGINE=docker` to use Docker instead. Only committed changes are checked.
+
+### What is different on Ubuntu 26.04
+
+Ubuntu 26.04 is the secondary platform. Its build and test run differ from Fedora's in a few places, all on purpose:
+
+- **No Speech Denoise and no CLAP block.** Ubuntu 26.04 packages neither RNNoise nor the CLAP SDK, so the build leaves both out, and their tests with them.
+- **The QML tests collect garbage all at once.** Qt 6.10's QML garbage collector, which works a little at a time, now and then crashes in the long QML suite. Built against Qt 6.10, the QML tests set `QV4_GC_TIMELIMIT=0`.
+- **The Reverblabr-style QML run doesn't go through KDE's platform theme.** On Ubuntu 26.04 that theme brings Breeze's own controls into a test that picks its style with `QT_QUICK_CONTROLS_STYLE`. The application picks its style in code and is not affected.
 
 ## Making a release
 

@@ -20,6 +20,9 @@ qt6-base-dev-tools
 qt6-declarative-dev
 qt6-declarative-dev-tools
 qt6-svg-dev
+# Qt's SVG icon engine and image reader, which Fedora ships with Qt SVG itself:
+# without them the application icon and every SVG glyph draw as nothing
+qt6-svg-plugins
 qt6-shadertools-dev
 # Optional: Qt's Wayland client internals, for the compositor's own window
 # menu on the frameless window
@@ -98,9 +101,22 @@ ladspa-sdk
 # Tests (Python runs the i18n and tooling checks)
 libgtest-dev
 python3
+# The pseudo-locale check measures text as a Plasma desktop draws it: with
+# KDE's platform theme, and with DejaVu Sans for the ⟦ ⟧ that Noto Sans has
+# no glyphs for. A Plasma desktop has both; a container image has neither.
+plasma-integration
+fonts-dejavu-core
+# The panel widget's tests draw it with Plasma's own QML controls, which
+# Ubuntu ships in plasma-desktoptheme, and check its package with
+# kpackagetool6. A Plasma desktop has both; a container image has neither.
+plasma-desktoptheme
+kpackagetool6
 
-# Translation catalogs (xgettext, msgfmt)
+# Translation catalogs (xgettext, msgfmt), and the English locale the tests
+# pin their numbers to, which a desktop installed in another language and a
+# container image don't have
 gettext
+locales-all
 
 # Quality tools: Clang with the sanitizer runtimes (the rtsan preset),
 # clang-format and clang-tidy, licence linting
@@ -124,9 +140,11 @@ jq
 # The private PipeWire instance of the integration tests (tests/pw/harness):
 # the daemons, a Pulse client and a private D-Bus session. The tests also use
 # pw-link, pw-loopback and wpctl from the debugging tools above, and
-# libcanberra to play a notification sound the way KDE does.
+# libcanberra to play a notification sound the way KDE does, through its
+# PulseAudio backend (a package of its own here).
 pipewire
 pipewire-pulse
 pulseaudio-utils
 dbus
 libcanberra0
+libcanberra-pulse
