@@ -1,0 +1,67 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The Fedora packages on COPR. Publishing a release on GitHub sends its source
+# RPM, the one the release workflow built and attached, to COPR, which builds
+# it for every Fedora the COPR project is set up for and publishes the
+# packages. Not before: a draft release is still being looked at.
+#
+# It needs two settings of the repository (packaging/README.md, "COPR"):
+#   - the secret COPR_CONFIG, the API configuration COPR shows at
+#     https://copr.fedorainfracloud.org/api/ (the whole file);
+#   - optionally the variable COPR_PROJECT, OWNER/PROJECT on COPR, which is
+#     the token owner's "reverblabr" when it is not set.
+# Without the secret the job says so and does nothing.
+#
+# "Run workflow" sends an already published release's source RPM again, for
+# a COPR build that failed for reasons of its own.
+name: COPR
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release's tag, vX.Y.Z"
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  copr:
+    name: Build on COPR
+    runs-on: ubuntu-24.04
+    container: registry.fedoraproject.org/fedora:44
+    # COPR builds and runs the tests for each Fedora in turn, and copr-cli
+    # waits for all of them, so the job fails when a build does.
+    timeout-minutes: 300
+    env:
+      COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
+      COPR_PROJECT: ${{ vars.COPR_PROJECT || 'reverblabr' }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Without the COPR secret, nothing to do
+        if: env.COPR_CONFIG == ''
+        run: echo "::notice::COPR_CONFIG is not set, so the release was not sent to COPR (packaging/README.md, \"COPR\")."
+      - name: Tools
+        if: env.COPR_CONFIG != ''
+        run: dnf -y install copr-cli gh > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+      - name: The release's source RPM
+        if: env.COPR_CONFIG != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.src.rpm' --pattern SHA256SUMS --dir dist
+          (cd dist && sha256sum --check --ignore-missing SHA256SUMS)
+      - name: Build
+        if: env.COPR_CONFIG != ''
+        run: |
+          mkdir -p ~/.config
+          printf '%s\n' "$COPR_CONFIG" > ~/.config/copr
+          copr-cli build "$COPR_PROJECT" dist/*.src.rpm

@@ -22,16 +22,16 @@ defaults:
     shell: bash
 
 jobs:
-  # Sign-off, clean-room, licences and formatting: about a minute, so an
-  # unsigned commit or a stray term doesn't wait for a build.
+  # Sign-off, clean-room, licences, formatting and the RPM spec: about a
+  # minute, so an unsigned commit or a stray term doesn't wait for a build.
   checks:
-    name: Sign-off, clean-room, licences, formatting
+    name: Sign-off, clean-room, licences, formatting, RPM spec
     runs-on: ubuntu-24.04
     container: registry.fedoraproject.org/fedora:44
     steps:
       - name: Tools
         run: |
-          dnf -y install git clang-tools-extra reuse python3 diffutils > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+          dnf -y install git clang-tools-extra reuse python3 diffutils rpm-build rpmlint xz > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
           # The job is root in the container and the checkout is not, which
           # git refuses to read ("dubious ownership") until told it is ours.
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -64,6 +64,16 @@ jobs:
         run: reuse lint
       - name: Formatting
         run: git ls-files '*.cpp' '*.h' | xargs clang-format --dry-run -Werror
+      # The RPM spec, filled in from a tarball of this commit as a release
+      # fills it: rpmbuild has to read it and rpmlint to accept it. The
+      # packages themselves are built by the release workflow.
+      - name: RPM spec
+        run: |
+          version=$(head -n 1 VERSION | tr -d '[:space:]')
+          mkdir -p /tmp/rpm
+          git archive --format=tar --prefix="reverblabr-$version/" HEAD | xz > "/tmp/rpm/reverblabr-$version.tar.xz"
+          packaging/rpm/srpm.sh "/tmp/rpm/reverblabr-$version.tar.xz"
+          rpmlint /tmp/rpm/reverblabr.spec /tmp/rpm/*.src.rpm
 
   build-and-test:
     name: Build and test (Fedora 44)
