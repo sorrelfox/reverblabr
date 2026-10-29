@@ -1285,6 +1285,145 @@ TEST_F(PluginHosts, AnLspClapPluginsWindowNeedsADisplay)
 
 #endif
 
+#ifdef RB_HAVE_VST3
+
+namespace
+{
+
+constexpr const char *kTestVst3 = "5242565354334741494E53544552454F";
+
+/// The tests' VST3 plugin's notes, and a home for its presets, of the
+/// test's own.
+class Vst3Folder
+{
+public:
+    Vst3Folder()
+        : m_log("RB_TEST_VST3_LOG", m_dir.path().toStdString() + "/view.log")
+        , m_home("HOME", m_dir.path().toStdString() + "/home")
+        , m_state("XDG_STATE_HOME", m_dir.path().toStdString() + "/state")
+    {
+        QDir(m_dir.path()).mkpath(QStringLiteral("home"));
+    }
+
+    [[nodiscard]] QStringList told() const
+    {
+        return linesOf(m_dir.path() + QStringLiteral("/view.log"));
+    }
+
+private:
+    QTemporaryDir m_dir;
+    ScopedEnv m_log;
+    ScopedEnv m_home;
+    ScopedEnv m_state;
+};
+
+[[nodiscard]] QString testVst3Bundle()
+{
+    return QStringLiteral(RB_TEST_VST3_DIR "/rb-test-vst3.vst3");
+}
+
+} // namespace
+
+TEST_F(PluginHosts, AVst3PluginRunsWithBothHalvesStatesAndItsPresets)
+{
+    const Vst3Folder folder;
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(
+        host, 0, QString::fromLatin1(kTestVst3), QStringLiteral("vst3"), QStringLiteral("dualMono"), testVst3Bundle());
+    EXPECT_TRUE(folder.told().contains(QStringLiteral("hello 7"))) << folder.told().join(u',').toStdString();
+
+    // **The panel's change is heard**, as a plain value.
+    ASSERT_TRUE(host.setParam(0, 2.0f));
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 2.0f) < 1e-3f; }, 1s))
+        << "heard at " << m_chain->m_ratio.load();
+    // And reaches the controller, on the host's turn.
+    EXPECT_TRUE(spinUntil([&] { return folder.told().contains(QStringLiteral("gain 2.00")); }, 2s))
+        << folder.told().join(u',').toStdString();
+
+    // **Its state, put back** into a plugin that had moved on.
+    const std::optional<QString> state = host.stateNow();
+    ASSERT_TRUE(state.has_value());
+    ASSERT_TRUE(host.setParam(0, 1.0f));
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 1.0f) < 1e-3f; }, 1s));
+    host.setState(*state);
+    EXPECT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 2.0f) < 1e-3f; }, 2s))
+        << "heard at " << m_chain->m_ratio.load();
+    EXPECT_TRUE(folder.told().contains(QStringLiteral("zoom 1"))) << "the controller's own state did not go in";
+
+    // **A preset saved here** is a .vstpreset file, listed and put back.
+    host.savePreset(QStringLiteral("Twice"));
+    ASSERT_TRUE(spinUntil([&] { return said.saved.has_value(); }, 3s));
+    EXPECT_TRUE(said.saved->endsWith(QStringLiteral("/.vst3/presets/Reverblabr/Reverblabr test gain/Twice.vstpreset")))
+        << said.saved->toStdString();
+    ASSERT_TRUE(host.setParam(0, 0.5f));
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 0.5f) < 1e-3f; }, 1s));
+    host.listPresets();
+    ASSERT_TRUE(spinUntil([&] { return said.listed == 1; }, 2s));
+    ASSERT_EQ(said.presets.size(), 1);
+    EXPECT_EQ(said.presets[0].second, QStringLiteral("Twice"));
+    host.loadPreset(said.presets[0].first);
+    ASSERT_TRUE(spinUntil([&] { return std::abs(m_chain->m_ratio.load() - 2.0f) < 1e-3f; }, 2s))
+        << "heard at " << m_chain->m_ratio.load();
+    ASSERT_TRUE(spinUntil([&] { return !said.shown.isEmpty() && said.shown.back() == said.presets[0].first; }, 1s));
+    ASSERT_FALSE(said.values.isEmpty());
+    EXPECT_TRUE(said.values.back().first) << "a preset a person chose is an edit";
+
+    // A value moved away from it: no preset's.
+    ASSERT_TRUE(host.setParam(0, 1.0f));
+    ASSERT_TRUE(spinUntil([&] { return said.shown.back().isEmpty(); }, 1s));
+}
+
+TEST_F(PluginHosts, AVst3PluginsViewNeedsADisplay)
+{
+    // **No display, no window**: a VST3 view is put in an X11 window of the
+    // host's. The view itself, with what a person does in it, is tested
+    // with a parent of a test's own (tests/unit); showing a real one is the
+    // owner's desktop check.
+    const Vst3Folder folder;
+    const ScopedEnv noDisplay("DISPLAY", std::nullopt);
+    const ScopedEnv noWayland("WAYLAND_DISPLAY", std::nullopt);
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(
+        host, 0, QString::fromLatin1(kTestVst3), QStringLiteral("vst3"), QStringLiteral("dualMono"), testVst3Bundle());
+    host.openUi();
+    ASSERT_TRUE(spinUntil([&] { return !said.closed.isEmpty(); }, 3s));
+    EXPECT_EQ(said.closed.front(), QStringLiteral("unavailable"));
+    EXPECT_EQ(said.opened, 0);
+    EXPECT_TRUE(host.isRunning()) << "a window that cannot be shown takes nothing else down";
+}
+
+TEST_F(PluginHosts, AnLspVst3CompressorRunsInItsHost)
+{
+    // **Where the distribution puts it**, or a bundle of LSP's VST3 build
+    // that RB_TEST_LSP_VST3 names (unpacked from the package, say).
+    const QString bundle = qEnvironmentVariableIsEmpty("RB_TEST_LSP_VST3")
+        ? QStringLiteral("/usr/lib64/vst3/lsp-plugins.vst3")
+        : qEnvironmentVariable("RB_TEST_LSP_VST3");
+    if (!QFileInfo::exists(bundle)) {
+        GTEST_SKIP() << "LSP's VST3 plugins are not installed (lsp-plugins-vst3), and RB_TEST_LSP_VST3 names none";
+    }
+    const Vst3Folder folder;
+    PluginHostProcess host;
+    HostSaid said(host);
+    // **Compressor Stereo**, by its class id.
+    startChain(host,
+               0,
+               QStringLiteral("647370206B31732020202020756E7363"),
+               QStringLiteral("vst3"),
+               QStringLiteral("dualMono"),
+               bundle);
+    const std::optional<QString> state = host.stateNow();
+    ASSERT_TRUE(state.has_value());
+    EXPECT_GT(state->size(), 100) << "both halves' states, as base64";
+    host.setState(*state);
+    EXPECT_TRUE(spinUntil([&] { return !said.values.isEmpty(); }, 3s)) << "the values a state holds came back";
+    EXPECT_TRUE(host.isRunning());
+}
+
+#endif
+
 namespace
 {
 

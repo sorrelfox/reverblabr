@@ -12,7 +12,7 @@
 pkg_check_modules(LILV REQUIRED IMPORTED_TARGET lilv-0>=0.24)
 # A plugin's own window (ADR-0025): an LV2 UI is loaded through suil, and
 # shown in an X11 window of the host's own, which on a Wayland desktop is
-# XWayland's. CLAP plugins' windows are X11 windows too.
+# XWayland's. CLAP and VST3 plugins' windows are X11 windows too.
 pkg_check_modules(SUIL REQUIRED IMPORTED_TARGET suil-0>=0.10)
 pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
 
@@ -25,8 +25,8 @@ target_include_directories(reverblabr-pluginhost-ladspa PUBLIC ${CMAKE_CURRENT_S
 target_link_libraries(reverblabr-pluginhost-ladspa PUBLIC reverblabr-pluginproto PRIVATE ${CMAKE_DL_LIBS})
 set_target_properties(reverblabr-pluginhost-ladspa PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
-# The LV2 and CLAP plugins as blocks, with their windows and presets, and
-# describing them: everything of the host but its node. A library of its
+# The LV2, CLAP and VST3 plugins as blocks, with their windows and presets,
+# and describing them: everything of the host but its node. A library of its
 # own, as LADSPA's is, so a test runs a plugin and its window as the host
 # does, with no host process and no server.
 add_library(reverblabr-pluginhost-formats STATIC atomring.h base64.cpp base64.h editor.h lv2plugin.cpp lv2plugin.h
@@ -39,6 +39,13 @@ target_link_libraries(reverblabr-pluginhost-formats PUBLIC reverblabr-pluginprot
 if(RB_BUILD_CLAP)
     target_sources(reverblabr-pluginhost-formats PRIVATE clapplugin.cpp clapplugin.h)
     target_link_libraries(reverblabr-pluginhost-formats PUBLIC PkgConfig::CLAP ${CMAKE_DL_LIBS})
+endif()
+# VST3's, where the build has the VST3 SDK (ADR-0028): loaded with dlopen,
+# described and run through the SDK's interface headers, and none of its
+# sources.
+if(RB_BUILD_VST3)
+    target_sources(reverblabr-pluginhost-formats PRIVATE vst3module.cpp vst3module.h vst3plugin.cpp vst3plugin.h)
+    target_link_libraries(reverblabr-pluginhost-formats PUBLIC Vst3Sdk::Interfaces ${CMAKE_DL_LIBS})
 endif()
 set_target_properties(reverblabr-pluginhost-formats PROPERTIES AUTOMOC OFF AUTORCC OFF)
 

@@ -30,4 +30,8 @@ target_link_libraries(reverblabr-pluginproto PUBLIC reverblabr-dsp reverblabr-rt
 if(RB_BUILD_CLAP)
     target_compile_definitions(reverblabr-pluginproto PUBLIC RB_HAVE_CLAP)
 endif()
+# And VST3 plugins, the same way.
+if(RB_BUILD_VST3)
+    target_compile_definitions(reverblabr-pluginproto PUBLIC RB_HAVE_VST3)
+endif()
 set_target_properties(reverblabr-pluginproto PROPERTIES AUTOMOC OFF AUTORCC OFF)

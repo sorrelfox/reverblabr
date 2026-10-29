@@ -23,6 +23,9 @@
 #ifdef RB_HAVE_CLAP
 #include "clapplugin.h"
 #endif
+#ifdef RB_HAVE_VST3
+#include "vst3plugin.h"
+#endif
 #include "plugin/hostprocessor.h"
 #include "plugin/messages.h"
 #include "plugin/shared.h"
@@ -63,7 +66,7 @@ struct Options {
     /// What a mono plugin does on a stereo lane: "dualMono" or "downmix".
     std::string mono = "dualMono";
     /// Where the plugin is, for a format whose id does not say: the
-    /// `.clap` file of a CLAP plugin.
+    /// `.clap` file of a CLAP plugin, the `.vst3` bundle of a VST3 one.
     std::string location;
 };
 
@@ -280,6 +283,10 @@ struct Host {
     /// The CLAP file, loaded once, for a host of a CLAP plugin.
     std::shared_ptr<pluginhost::ClapLibrary> clap;
 #endif
+#ifdef RB_HAVE_VST3
+    /// The VST3 bundle, loaded once, for a host of a VST3 plugin.
+    std::shared_ptr<pluginhost::Vst3Module> vst3;
+#endif
     /// The latency last told to the engine.
     std::uint32_t reportedLatency = 0;
     std::string nodeName;
@@ -430,6 +437,18 @@ struct Host {
                                                                               : pluginhost::ClapPlugin::Mono::DualMono);
             }
 #endif
+#ifdef RB_HAVE_VST3
+        } else if (options.format == "vst3") {
+            if (!vst3) {
+                vst3 = pluginhost::Vst3Module::open(options.location);
+            }
+            if (vst3) {
+                made = pluginhost::Vst3Plugin::make(vst3,
+                                                    options.plugin,
+                                                    options.mono == "downmix" ? pluginhost::Vst3Plugin::Mono::Downmix
+                                                                              : pluginhost::Vst3Plugin::Mono::DualMono);
+            }
+#endif
         } else {
             made = plugin::makeBuiltinPlugin(options.plugin, options.latency);
         }
@@ -442,7 +461,12 @@ struct Host {
 #else
         const void *clapPlugin = nullptr;
 #endif
-        if (state != nullptr && lv2Plugin == nullptr && clapPlugin == nullptr) {
+#ifdef RB_HAVE_VST3
+        auto *vst3Plugin = dynamic_cast<pluginhost::Vst3Plugin *>(made.get());
+#else
+        const void *vst3Plugin = nullptr;
+#endif
+        if (state != nullptr && lv2Plugin == nullptr && clapPlugin == nullptr && vst3Plugin == nullptr) {
             (void)made->loadState(parseState(*made, *state));
         }
         dsp::PrepareSpec spec;
@@ -460,6 +484,12 @@ struct Host {
 #ifdef RB_HAVE_CLAP
         // So does a CLAP one: CLAP's state is the plugin's own bytes.
         if (state != nullptr && clapPlugin != nullptr && !state->empty() && !clapPlugin->loadStateText(*state)) {
+            return nullptr;
+        }
+#endif
+#ifdef RB_HAVE_VST3
+        // And a VST3 one: both halves' states, as a preset holds them.
+        if (state != nullptr && vst3Plugin != nullptr && !state->empty() && !vst3Plugin->loadStateText(*state)) {
             return nullptr;
         }
 #endif
@@ -521,6 +551,12 @@ struct Host {
         // **CLAP's own**: the plugin's bytes, as base64.
         if (const auto *clapPlugin = dynamic_cast<const pluginhost::ClapPlugin *>(block.get()); clapPlugin != nullptr) {
             return clapPlugin->stateText();
+        }
+#endif
+#ifdef RB_HAVE_VST3
+        // **VST3's own**: both halves' states, as base64.
+        if (const auto *vst3Plugin = dynamic_cast<const pluginhost::Vst3Plugin *>(block.get()); vst3Plugin != nullptr) {
+            return vst3Plugin->stateText();
         }
 #endif
         std::string text;
@@ -788,6 +824,25 @@ void onRateCheck(void *data, std::uint64_t)
         }
     }
 #endif
+#ifdef RB_HAVE_VST3
+    // **A VST3 plugin's turn**: made again with its state when its buses
+    // changed, and activated again to take on a new latency when it says so.
+    if (auto *vst3Plugin = dynamic_cast<pluginhost::Vst3Plugin *>(host->block.get()); vst3Plugin != nullptr) {
+        if (vst3Plugin->idle()) {
+            const std::string state = host->stateText();
+            const std::uint32_t rate = host->shared.block().preparedRate.load();
+            if (std::unique_ptr<dsp::Block> next = host->make(rate, &state)) {
+                host->install(std::move(next), rate);
+            }
+        }
+        const std::uint32_t latency = host->block->info().latencySamples;
+        if (latency != host->reportedLatency) {
+            host->reportedLatency = latency;
+            host->shared.block().latencySamples.store(latency, std::memory_order_relaxed);
+            host->send(plugin::MessageType::Latency, std::to_string(latency));
+        }
+    }
+#endif
     host->checkShownPreset();
     host->sendLaterToAudio();
     host->mainLoop.sweep();
@@ -819,10 +874,11 @@ int main(int argc, char **argv)
     }
     const std::optional<Options> options = parse(argc, argv);
     if (!options) {
-        std::fprintf(stderr,
-                     "usage: reverblabr-plugin-host --format builtin|lv2|ladspa|clap --plugin <id> --instance <id> "
-                     "--control-fd <fd> --shm-fd <fd> [--latency <samples>] [--mono dualMono|downmix] "
-                     "[--location <path>]\n");
+        std::fprintf(
+            stderr,
+            "usage: reverblabr-plugin-host --format builtin|lv2|ladspa|clap|vst3 --plugin <id> --instance <id> "
+            "--control-fd <fd> --shm-fd <fd> [--latency <samples>] [--mono dualMono|downmix] "
+            "[--location <path>]\n");
         return 2;
     }
     std::expected<plugin::SharedMemory, plugin::SharedError> shared = plugin::SharedMemory::map(options->sharedFd);
@@ -834,6 +890,9 @@ int main(int argc, char **argv)
     const bool known = options->format == "builtin" || options->format == "lv2" || options->format == "ladspa"
 #ifdef RB_HAVE_CLAP
         || options->format == "clap"
+#endif
+#ifdef RB_HAVE_VST3
+        || options->format == "vst3"
 #endif
         ;
     if (!known) {

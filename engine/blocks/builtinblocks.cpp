@@ -111,6 +111,10 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
     // Where the build has the CLAP SDK.
     all = all && registry.add(std::string{PluginBlock::kClapTypeId}, &PluginBlock::makeClap).has_value();
 #endif
+#ifdef RB_HAVE_VST3
+    // Where the build has the VST3 SDK.
+    all = all && registry.add(std::string{PluginBlock::kVst3TypeId}, &PluginBlock::makeVst3).has_value();
+#endif
 #ifdef RB_HAVE_BROADCAST
     // Where the build can keep its password (ADR-0026).
     all = all && registry.add(std::string{Broadcast::kTypeId}, &Broadcast::make).has_value();

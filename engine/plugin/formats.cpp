@@ -160,6 +160,43 @@ public:
 };
 #endif
 
+#ifdef RB_HAVE_VST3
+/// **VST3**: a plugin is a bundle, a folder ending in `.vst3`, anywhere
+/// under `~/.vst3` and the system's VST3 folders, and under the folders
+/// `VST3_PATH` names, which other Linux hosts read too: those as well,
+/// not instead. A bundle may sit in a vendor's folder of its own.
+class Vst3Format final : public PluginFormat
+{
+public:
+    [[nodiscard]] std::string_view name() const override
+    {
+        return "vst3";
+    }
+
+    [[nodiscard]] std::vector<fs::path> searchPaths() const override
+    {
+        std::vector<fs::path> paths = pathsFrom("VST3_PATH", {});
+        for (fs::path &path : pathsFrom(
+                 kVst3DefaultPathVariable,
+                 {"~/.vst3", "/usr/local/lib64/vst3", "/usr/local/lib/vst3", "/usr/lib64/vst3", "/usr/lib/vst3"})) {
+            paths.push_back(std::move(path));
+        }
+        return paths;
+    }
+
+    [[nodiscard]] bool isCandidate(const fs::directory_entry &entry) const override
+    {
+        std::error_code error;
+        return entry.is_directory(error) && endsWith(entry.path(), ".vst3");
+    }
+
+    [[nodiscard]] bool searchesSubfolders() const override
+    {
+        return true;
+    }
+};
+#endif
+
 [[nodiscard]] std::vector<std::unique_ptr<PluginFormat>> makeFormats()
 {
     std::vector<std::unique_ptr<PluginFormat>> made;
@@ -168,6 +205,9 @@ public:
     made.push_back(std::make_unique<LadspaFormat>());
 #ifdef RB_HAVE_CLAP
     made.push_back(std::make_unique<ClapFormat>());
+#endif
+#ifdef RB_HAVE_VST3
+    made.push_back(std::make_unique<Vst3Format>());
 #endif
     return made;
 }
@@ -372,9 +412,15 @@ std::vector<Candidate> candidatesOf(const PluginFormat &format)
             continue;
         }
         if (format.searchesSubfolders()) {
-            for (const fs::directory_entry &entry :
-                 fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied, error)) {
-                consider(entry);
+            for (fs::recursive_directory_iterator walk(root, fs::directory_options::skip_permission_denied, error);
+                 !error && walk != fs::recursive_directory_iterator();
+                 walk.increment(error)) {
+                // **A candidate folder is not looked into**: what is inside
+                // a VST3 bundle is the plugin's own.
+                if (format.isCandidate(*walk)) {
+                    consider(*walk);
+                    walk.disable_recursion_pending();
+                }
             }
         } else {
             for (const fs::directory_entry &entry : fs::directory_iterator(root, error)) {

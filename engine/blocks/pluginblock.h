@@ -47,12 +47,14 @@ class PluginBlock final : public dsp::Block
 {
 public:
     /// The plugins built into the host. Each format is a type of its own,
-    /// `plugin.<format>`: `plugin.lv2`, `plugin.ladspa`, and
-    /// `plugin.clap` where the build has the CLAP SDK.
+    /// `plugin.<format>`: `plugin.lv2`, `plugin.ladspa`, `plugin.clap`
+    /// where the build has the CLAP SDK, and `plugin.vst3` where it has the
+    /// VST3 SDK.
     static constexpr std::string_view kTypeId = "plugin.builtin";
     static constexpr std::string_view kLv2TypeId = "plugin.lv2";
     static constexpr std::string_view kLadspaTypeId = "plugin.ladspa";
     static constexpr std::string_view kClapTypeId = "plugin.clap";
+    static constexpr std::string_view kVst3TypeId = "plugin.vst3";
     static constexpr std::string_view kTypePrefix = "plugin.";
 
     static constexpr std::string_view kPluginParam = "plugin";
@@ -75,13 +77,15 @@ public:
     /// words are the interface's.
     static constexpr std::size_t kHostStateValue = 0;
 
-    /// A plugin block of \a format: "builtin", "lv2", "ladspa" or "clap".
+    /// A plugin block of \a format: "builtin", "lv2", "ladspa", "clap" or
+    /// "vst3".
     explicit PluginBlock(std::string format = "builtin");
 
     [[nodiscard]] static std::unique_ptr<dsp::Block> make();
     [[nodiscard]] static std::unique_ptr<dsp::Block> makeLv2();
     [[nodiscard]] static std::unique_ptr<dsp::Block> makeLadspa();
     [[nodiscard]] static std::unique_ptr<dsp::Block> makeClap();
+    [[nodiscard]] static std::unique_ptr<dsp::Block> makeVst3();
 
     /// Whether \a typeId is a plugin block's, of any format.
     [[nodiscard]] static bool isPluginType(std::string_view typeId) noexcept

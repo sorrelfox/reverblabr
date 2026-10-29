@@ -697,8 +697,8 @@ public:
             spec.instance = hostInstance(instance.id);
             spec.latencySamples = plugin->builtinLatency();
             spec.monoMode = QString::fromStdString(plugin->monoMode());
-            // **Where the scan found it**: a CLAP plugin's host has to
-            // be told which file to load.
+            // **Where the scan found it**: a CLAP or a VST3 plugin's host
+            // has to be told which file or bundle to load.
             if (const std::optional<plugin::PluginDescription> described =
                     plugin::describePlugin(plugin->format(), plugin->pluginId());
                 described && plugin->format() != "builtin") {

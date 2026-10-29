@@ -233,6 +233,11 @@ if(RB_BUILD_CLAP)
     target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_TEST_CLAP_DIR="${RB_TEST_CLAP_DIR}")
     add_dependencies(reverblabr-pw-session-test rb-test-clap)
 endif()
+# The tests' VST3 plugin, where the build hosts VST3 plugins.
+if(RB_BUILD_VST3)
+    target_compile_definitions(reverblabr-pw-pluginhost-test PRIVATE RB_HAVE_VST3 RB_TEST_VST3_DIR="${RB_TEST_VST3_DIR}")
+    add_dependencies(reverblabr-pw-pluginhost-test rb-test-vst3)
+endif()
 add_test(NAME pw.plugin-host COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-pluginhost-test>)
 set_tests_properties(pw.plugin-host PROPERTIES TIMEOUT 180)
 

@@ -178,6 +178,11 @@ std::unique_ptr<Block> PluginBlock::makeClap()
     return std::make_unique<PluginBlock>("clap");
 }
 
+std::unique_ptr<Block> PluginBlock::makeVst3()
+{
+    return std::make_unique<PluginBlock>("vst3");
+}
+
 void PluginBlock::becomePlugin(const std::string &plugin)
 {
     // What was set before, which survives as far as the new plugin has

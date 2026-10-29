@@ -21,6 +21,12 @@ set(RB_TEST_CLAP_DIR "${CMAKE_CURRENT_BINARY_DIR}/clap/plugins")
 if(RB_BUILD_CLAP)
     add_subdirectory(clap)
 endif()
+# A VST3 plugin with a stand-in view that needs no display, presets and
+# both halves' states, where the build hosts VST3 plugins.
+set(RB_TEST_VST3_DIR "${CMAKE_CURRENT_BINARY_DIR}/vst3/plugins")
+if(RB_BUILD_VST3)
+    add_subdirectory(vst3)
+endif()
 add_subdirectory(unit)  # GoogleTest, one executable per engine layer
 add_subdirectory(sanitizers) # checks that the sanitizers catch what they should
 add_subdirectory(qml)   # Qt Quick Test for the QML user interface

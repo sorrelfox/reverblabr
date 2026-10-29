@@ -122,6 +122,39 @@ if(NOT CLAP_FOUND)
 elseif(NOT RB_BUILD_CLAP)
     message(STATUS "CLAP plugins will not be hosted: RB_BUILD_CLAP is off.")
 endif()
+# **VST3 plugins** (ADR-0028): the VST3 SDK's interface headers, the
+# distribution's, and nothing else of it. Only 3.8 and later, which are
+# MIT-licensed; earlier releases were not. Optional for the same reason as
+# CLAP — Fedora packages 3.8 (vst3sdk-devel) and Kubuntu 26.04 only 3.7 —
+# and a build without it has no VST3 block and does not look for VST3
+# plugins.
+find_path(VST3SDK_INCLUDE_DIR pluginterfaces/vst/ivstaudioprocessor.h PATH_SUFFIXES vst3sdk)
+set(VST3SDK_FOUND FALSE)
+if(VST3SDK_INCLUDE_DIR)
+    file(STRINGS "${VST3SDK_INCLUDE_DIR}/pluginterfaces/vst/vsttypes.h" _rb_vst3_lines
+         REGEX "^#define[ \t]+kVstVersion(Major|Minor|Sub)[ \t]")
+    set(VST3SDK_VERSION "")
+    foreach(_rb_part Major Minor Sub)
+        string(REGEX MATCH "kVstVersion${_rb_part}[ \t]+([0-9]+)" _rb_match "${_rb_vst3_lines}")
+        list(APPEND VST3SDK_VERSION "${CMAKE_MATCH_1}")
+    endforeach()
+    list(JOIN VST3SDK_VERSION "." VST3SDK_VERSION)
+    if(VST3SDK_VERSION VERSION_GREATER_EQUAL 3.8)
+        set(VST3SDK_FOUND TRUE)
+        add_library(Vst3Sdk::Interfaces INTERFACE IMPORTED)
+        target_include_directories(Vst3Sdk::Interfaces INTERFACE "${VST3SDK_INCLUDE_DIR}")
+    endif()
+endif()
+option(RB_BUILD_VST3 "Host VST3 plugins (needs the VST3 SDK 3.8)" ${VST3SDK_FOUND})
+if(RB_BUILD_VST3 AND NOT VST3SDK_FOUND)
+    message(FATAL_ERROR "RB_BUILD_VST3 is on, but the VST3 SDK 3.8 was not found (vst3sdk-devel on Fedora)")
+endif()
+add_feature_info(Vst3Plugins RB_BUILD_VST3 "VST3 plugins in the plugin host (vst3sdk-devel on Fedora; Kubuntu 26.04 packages only 3.7)")
+if(NOT VST3SDK_FOUND)
+    message(STATUS "VST3 plugins will not be hosted: the VST3 SDK 3.8 was not found. LV2 plugins are.")
+elseif(NOT RB_BUILD_VST3)
+    message(STATUS "VST3 plugins will not be hosted: RB_BUILD_VST3 is off.")
+endif()
 
 # **The Broadcast block** (ADR-0026): its password is kept in the
 # desktop's secret store (KWallet on Plasma, the Secret Service elsewhere)

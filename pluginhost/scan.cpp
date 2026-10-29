@@ -13,6 +13,9 @@
 #ifdef RB_HAVE_CLAP
 #include "clapplugin.h"
 #endif
+#ifdef RB_HAVE_VST3
+#include "vst3module.h"
+#endif
 
 #include <lilv/lilv.h>
 #include <lv2/core/lv2.h>
@@ -280,6 +283,24 @@ int scanClap(const std::string &path)
 }
 #endif
 
+#ifdef RB_HAVE_VST3
+/// **A VST3 bundle, described by loading it**: its `moduleinfo.json`
+/// names its plugins, but only their code says what their settings and
+/// channels are. What the plugins print goes to standard error, as for
+/// CLAP.
+int scanVst3(const std::string &path)
+{
+    std::fflush(stdout);
+    const int lines = ::dup(STDOUT_FILENO);
+    ::dup2(STDERR_FILENO, STDOUT_FILENO);
+    const bool read = describeVst3(path, [lines](const PluginDescription &description) { emit(description, lines); });
+    std::fflush(stdout);
+    ::dup2(lines, STDOUT_FILENO);
+    ::close(lines);
+    return read ? 0 : kScanUnreadable;
+}
+#endif
+
 } // namespace
 
 namespace
@@ -320,6 +341,11 @@ int scan(const std::string &format, const std::string &path)
 #ifdef RB_HAVE_CLAP
     if (format == "clap") {
         return scanClap(path);
+    }
+#endif
+#ifdef RB_HAVE_VST3
+    if (format == "vst3") {
+        return scanVst3(path);
     }
 #endif
     std::fprintf(stderr, "no describer for the format %s\n", format.c_str());

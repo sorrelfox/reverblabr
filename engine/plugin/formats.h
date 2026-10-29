@@ -22,7 +22,7 @@ namespace rb::plugin
 {
 
 /// **Something on the disk that may hold plugins**: an LV2 bundle, a
-/// CLAP file, a LADSPA library. It is found by looking at names and never
+/// CLAP file, a LADSPA library, a VST3 bundle. It is found by looking at names and never
 /// by loading anything, so finding one is safe in the engine; what is in it
 /// is found in a host process, where a plugin that crashes on being looked
 /// at takes only that process with it.
@@ -69,7 +69,8 @@ struct PluginParam {
 struct PluginDescription {
     std::string format;
     /// The format's own id for it: an LV2 URI, a CLAP id, a LADSPA
-    /// library and label. What the plugin block's "plugin" setting holds.
+    /// library and label, a VST3 class id. What the plugin block's
+    /// "plugin" setting holds.
     std::string id;
     std::string name;
     /// Who made it, as the plugin says.
@@ -84,7 +85,7 @@ struct PluginDescription {
     std::vector<PluginParam> params;
     /// **Where it was found**: the bundle, file or library a scan looked
     /// into. What a host is told to load for a format whose id does not
-    /// say where the plugin is, as a CLAP id does not.
+    /// say where the plugin is, as a CLAP id and a VST3 class id do not.
     std::string location;
 
     [[nodiscard]] bool operator==(const PluginDescription &other) const = default;
@@ -116,7 +117,7 @@ class PluginFormat
 public:
     virtual ~PluginFormat() = default;
 
-    /// "builtin", "lv2", "clap", "ladspa": the plugin block's type is
+    /// "builtin", "lv2", "clap", "ladspa", "vst3": the plugin block's type is
     /// `plugin.<name>`.
     [[nodiscard]] virtual std::string_view name() const = 0;
     /// The folders its plugins are in, in the order the format says to
@@ -155,6 +156,9 @@ inline constexpr const char *kTestPluginPathVariable = "REVERBLABR_TEST_PLUGIN_P
 /// names, as the CLAP specification says; this names the folders to search
 /// instead of them, for a test that must not see the machine's plugins.
 inline constexpr const char *kClapDefaultPathVariable = "REVERBLABR_CLAP_DEFAULT_PATH";
+/// **VST3's own folders**, likewise, searched as well as those `VST3_PATH`
+/// names.
+inline constexpr const char *kVst3DefaultPathVariable = "REVERBLABR_VST3_DEFAULT_PATH";
 
 /// The paths a colon-separated variable names, or \a fallback when it is
 /// unset or empty. A leading `~/` is the home folder.

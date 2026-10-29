@@ -265,6 +265,13 @@ if(RB_BUILD_CLAP)
     target_compile_definitions(reverblabr-plugin-test PRIVATE RB_TEST_CLAP_DIR="${RB_TEST_CLAP_DIR}")
     add_dependencies(reverblabr-plugin-test rb-test-clap)
 endif()
+# The tests' VST3 plugin and its stand-in view, where the build hosts VST3
+# plugins.
+if(RB_BUILD_VST3)
+    target_sources(reverblabr-plugin-test PRIVATE plugin/test_vst3plugin.cpp)
+    target_compile_definitions(reverblabr-plugin-test PRIVATE RB_TEST_VST3_DIR="${RB_TEST_VST3_DIR}")
+    add_dependencies(reverblabr-plugin-test rb-test-vst3)
+endif()
 
 rb_add_gtest(reverblabr-graph-test
     LAYER graph

@@ -101,7 +101,7 @@ private:
 
 } // namespace
 
-#ifdef RB_HAVE_CLAP
+#if defined(RB_HAVE_CLAP) || defined(RB_HAVE_VST3)
 
 namespace
 {
@@ -116,6 +116,10 @@ namespace
 }
 
 } // namespace
+
+#endif
+
+#ifdef RB_HAVE_CLAP
 
 TEST(ClapFormat, APluginIsAClapFileAnywhereUnderItsFolders)
 {
@@ -175,6 +179,55 @@ TEST(ClapFormat, TheUsualFoldersAreTheHomeFoldersAndTheSystems)
 TEST(ClapFormat, ABuildWithoutTheClapSdkDoesNotLookForClapPlugins)
 {
     EXPECT_EQ(formatNamed("clap"), nullptr);
+}
+
+#endif
+
+#ifdef RB_HAVE_VST3
+
+TEST(Vst3Format, APluginIsABundleAnywhereUnderItsFoldersAndNotLookedInto)
+{
+    const Folder named;
+    const Folder defaults;
+    // A bundle is a folder; a vendor may keep its own in a folder of its own.
+    const fs::path top = named.file("top.vst3/Contents/x86_64-linux/top.so").parent_path().parent_path().parent_path();
+    const fs::path deep =
+        named.file("Vendor/deep.vst3/Contents/x86_64-linux/deep.so").parent_path().parent_path().parent_path();
+    // **Inside a bundle is the plugin's own**: a folder there that ends in
+    // .vst3 is not another plugin.
+    fs::create_directories(top / "Contents" / "Resources" / "inner.vst3");
+    (void)named.file("loose.vst3.txt");
+    (void)named.file("file.vst3");
+    const Variable path("VST3_PATH", named.path());
+    const Variable instead(kVst3DefaultPathVariable, defaults.path());
+    const PluginFormat *vst3 = formatNamed("vst3");
+    ASSERT_NE(vst3, nullptr) << "a build with the VST3 SDK looks for VST3 plugins";
+    EXPECT_TRUE(vst3->searchesSubfolders());
+    std::vector<std::string> expected{deep.string(), top.string()};
+    std::ranges::sort(expected);
+    EXPECT_EQ(pathsOf(candidatesOf(*vst3)), expected) << "folders ending in .vst3, however deep, and nothing in them";
+}
+
+TEST(Vst3Format, TheUsualFoldersAreTheHomeFoldersAndTheSystemsAndVst3PathAddsToThem)
+{
+    const Variable home("HOME", "/home/somebody");
+    const Variable path("VST3_PATH", "/opt/mine/vst3");
+    const Variable instead(kVst3DefaultPathVariable, nullptr);
+    const PluginFormat *vst3 = formatNamed("vst3");
+    ASSERT_NE(vst3, nullptr);
+    const std::vector<fs::path> searched = vst3->searchPaths();
+    ASSERT_GE(searched.size(), 3U);
+    EXPECT_EQ(searched[0], fs::path{"/opt/mine/vst3"}) << "what VST3_PATH names comes first";
+    EXPECT_EQ(searched[1], fs::path{"/home/somebody/.vst3"});
+    EXPECT_NE(std::ranges::find(searched, fs::path{"/usr/lib/vst3"}), searched.end());
+    EXPECT_NE(std::ranges::find(searched, fs::path{"/usr/lib64/vst3"}), searched.end()) << "where Fedora installs them";
+}
+
+#else
+
+TEST(Vst3Format, ABuildWithoutTheVst3SdkDoesNotLookForVst3Plugins)
+{
+    EXPECT_EQ(formatNamed("vst3"), nullptr);
 }
 
 #endif
