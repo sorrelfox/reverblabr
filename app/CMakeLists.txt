@@ -46,6 +46,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/Announcer.qml
     qml/ApplicationPicker.qml
     qml/ApplicationSourceFace.qml
+    qml/ApplicationSourceHelp.qml
     qml/ApplicationSourcePanel.qml
     qml/AutoLevelFace.qml
     qml/AutoLevelHelp.qml
@@ -63,8 +64,10 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/BlockPanels.qml
     qml/BlockPort.qml
     qml/BlockTile.qml
+    qml/BroadcastHelp.qml
     qml/BroadcastPanel.qml
     qml/BroadcastWords.qml
+    qml/LiveStreamHelp.qml
     qml/LiveStreamPanel.qml
     qml/LiveStreamWords.qml
     qml/NowPlayingRows.qml
@@ -140,6 +143,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/HearingCompensationPanel.qml
     qml/HighPassHelp.qml
     qml/InfoLine.qml
+    qml/InputDeviceHelp.qml
     qml/InputDevicePanel.qml
     qml/InputSwitchControl.qml
     qml/InputSwitchFace.qml
@@ -165,6 +169,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/MultibandCompressorHelp.qml
     qml/MultibandCompressorPanel.qml
     qml/MultibandWords.qml
+    qml/OutputDeviceHelp.qml
     qml/OutputDevicePanel.qml
     qml/PanHelp.qml
     qml/ParamFormat.qml
@@ -222,6 +227,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SyncPanel.qml
     qml/SyncScale.qml
     qml/SystemAudioFace.qml
+    qml/SystemAudioHelp.qml
     qml/SystemAudioPanel.qml
     qml/TimeShiftFace.qml
     qml/TimeShiftHelp.qml
@@ -238,6 +244,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/VuPanel.qml
     qml/WaveFace.qml
     qml/VolumePanel.qml
+    qml/WaveHelp.qml
     qml/WavePanel.qml
     qml/WaveWords.qml
     # The slider as the prototype draws it: one groove and one ring,

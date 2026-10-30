@@ -183,6 +183,13 @@ TestCase {
     function controlsOf(item, names, covered, found) {
         for (let i = 0; i < item.children.length; ++i) {
             const child = item.children[i];
+            // **Not a message with nothing to press.** Kirigami's
+            // InlineMessage always holds a close button, hidden unless it
+            // is asked for; a warning that offers neither it nor an action
+            // has no control in it, whatever its parts are.
+            if (child instanceof Kirigami.InlineMessage && !child.showCloseButton && child.actions.length === 0) {
+                continue;
+            }
             const own = child.Accessible.name || "";
             const coveredHere = covered || (own !== "" && names.indexOf(own) >= 0);
             // **The templates' types**: a style's control is a type of its
