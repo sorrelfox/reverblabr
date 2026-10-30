@@ -1446,6 +1446,23 @@ TestCase {
         ];
     }
 
+    /// The choices under \a item a person picks one of to see another part
+    /// of a panel (a tab, a view, a band), visible now, in the order they
+    /// are drawn.
+    function choicesOf(item) {
+        let found = [];
+        for (const child of item.children) {
+            if (!child.visible) {
+                continue;
+            }
+            if (child instanceof SegmentedChoice) {
+                found.push(child);
+            }
+            found = found.concat(testCase.choicesOf(child));
+        }
+        return found;
+    }
+
     function test_everyBlocksPanelFitsTheWindow(data) {
         // With its audiogram open, Hearing Compensation 16's panel
         // asked for 609 pixels in a card of 460, and everything in it ran
@@ -1453,9 +1470,13 @@ TestCase {
         // above opens no folded section, and never saw it. In the smallest
         // window every card was wider than the canvas and half outside it.
         //
-        // **In the whole window, with every section open**: the card inside
-        // the window, and nothing a person reads or presses past the card's
-        // edge, less its margin.
+        // **In the whole window, with every section open and on every
+        // tab**: the card inside the window, and nothing a person reads or
+        // presses past the card's edge, less its margin. The Recorder's
+        // Limits tab once ran a third of the card past its edge, and pulled
+        // the status line and the buttons above it out with it, while a
+        // check that looked only at the tab a panel opens on saw General,
+        // which fitted.
         const window = createTemporaryObject(mainWindow, testCase);
         window.width = data.width > 0 ? data.width : window.minimumWidth;
         window.height = data.height > 0 ? data.height : window.minimumHeight;
@@ -1489,15 +1510,41 @@ TestCase {
                 return widest <= card.width - margin + 1;
             };
             // Settled, not at the first frame (see above).
-            for (let turn = 0; turn < 20 && !fits(); ++turn) {
-                wait(50);
-            }
+            const settle = () => {
+                for (let turn = 0; turn < 20 && !fits(); ++turn) {
+                    wait(50);
+                }
+            };
+            settle();
             const place = card.mapToItem(null, 0, 0);
             if (place.x < -0.5 || place.x + card.width > window.width + 0.5) {
                 faults.push(type + ": the card is at " + Math.round(place.x) + "–" + Math.round(place.x + card.width)
                             + " in a window " + window.width + " wide");
             } else if (!fits()) {
                 faults.push(type + ": reaches " + Math.round(widest) + " of a card " + card.width + " wide (" + what + ")");
+            } else {
+                // **Every tab, and every part a choice shows**: each choice
+                // picked in turn, then any a part it showed has, until there
+                // are none left that have not been picked.
+                const picked = [];
+                for (let next = 0; next < 64; ++next) {
+                    const choice = testCase.choicesOf(card.body.item).find(candidate => picked.indexOf(candidate) < 0);
+                    if (choice === undefined) {
+                        break;
+                    }
+                    picked.push(choice);
+                    if (!choice.enabled) {
+                        continue;
+                    }
+                    choice.clicked();
+                    testCase.openEverySection(card.body.item);
+                    settle();
+                    if (!fits()) {
+                        faults.push(type + ", on \"" + choice.text + "\": reaches " + Math.round(widest) + " of a card "
+                                    + card.width + " wide (" + what + ")");
+                        break;
+                    }
+                }
             }
             canvas.closeSettings();
             SessionModel.removeBlocks([block]);

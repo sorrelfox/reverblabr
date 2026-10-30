@@ -133,6 +133,48 @@ ColumnLayout {
         Layout.preferredWidth: AppMetrics.panelLabelWidth
     }
 
+    // **A limit's row, which wraps**: the check box and what it acts on,
+    // then the values it takes. Side by side they asked for 420 pixels in a
+    // card of 320, and every row of the panel, the status line and the
+    // buttons too, was then laid out that wide and ran off the card's edge.
+    // Where there is room they read as one line, as the design draws them;
+    // where there is not, the values go onto the next line, under the check
+    // box's words, and shrink to what that line has.
+    component LimitRow: GridLayout {
+        id: limitRow
+
+        /// Whether the values fit beside what they belong to: measured from
+        /// what the two ask for, never from where they were put, so a row
+        /// that wrapped can come back.
+        readonly property bool oneLine: limitRow.children.length < 2
+            || limitRow.children[0].implicitWidth + limitRow.columnSpacing + limitRow.children[1].implicitWidth
+               <= limitRow.width
+
+        Layout.fillWidth: true
+        // Its own width is the panel's: left to itself, a grid is no wider
+        // than its widest item allows, and a row that had wrapped would never
+        // be given the room to come back.
+        Layout.maximumWidth: Number.POSITIVE_INFINITY
+        columns: limitRow.oneLine ? 2 : 1
+        columnSpacing: AppMetrics.smallSpacing
+        rowSpacing: AppMetrics.smallSpacing
+    }
+
+    /// The values of a limit's row: a number and its unit, or how long.
+    component LimitValues: RowLayout {
+        /// Whether they went onto a line of their own.
+        property bool wrapped: false
+
+        Layout.fillWidth: true
+        // Under the check box's words, not under its box.
+        Layout.leftMargin: wrapped ? panel.checkIndent : 0
+        spacing: AppMetrics.smallSpacing
+    }
+
+    /// From a check box's edge to its words.
+    readonly property real checkIndent: splitEnabled.leftPadding + (splitEnabled.indicator?.width ?? 0)
+                                        + splitEnabled.spacing
+
     // --- what it is doing ---
     Rectangle {
         Layout.fillWidth: true
@@ -702,14 +744,19 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: AppMetrics.panelRowGap
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.smallSpacing
+        LimitRow {
+            id: splitRow
 
             QQC2.CheckBox {
                 id: splitEnabled
 
                 text: KI18n.i18nc("@option:check followed by a number and a unit", "Start a new file every")
+                Layout.fillWidth: true
+                Layout.maximumWidth: implicitWidth
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 3
+                QQC2.ToolTip.text: text
+                QQC2.ToolTip.visible: hovered && implicitWidth > width
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                 onToggled: panel.set("splitEnabled", splitEnabled.checked)
 
                 SessionBound {
@@ -719,48 +766,63 @@ ColumnLayout {
                 }
             }
 
-            QQC2.SpinBox {
-                id: splitEvery
+            LimitValues {
+                wrapped: !splitRow.oneLine
 
-                from: 1
-                to: 100000
-                editable: true
-                Accessible.name: KI18n.i18nc("@label:spinbox", "Start a new file every")
-                onValueModified: panel.set("splitEvery", splitEvery.value)
+                QQC2.SpinBox {
+                    id: splitEvery
 
-                SessionBound {
-                    control: splitEvery
-                    property: "value"
-                    value: panel.params.splitEvery ?? 30
+                    from: 1
+                    to: 100000
+                    editable: true
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+                    Accessible.name: KI18n.i18nc("@label:spinbox", "Start a new file every")
+                    onValueModified: panel.set("splitEvery", splitEvery.value)
+
+                    SessionBound {
+                        control: splitEvery
+                        property: "value"
+                        value: panel.params.splitEvery ?? 30
+                    }
                 }
-            }
 
-            QQC2.ComboBox {
-                id: splitUnit
+                QQC2.ComboBox {
+                    id: splitUnit
 
-                readonly property var units: ["minutes", "hours", "megabytes"]
+                    readonly property var units: ["minutes", "hours", "megabytes"]
 
-                model: [KI18n.i18nc("@item a unit", "minutes"), KI18n.i18nc("@item a unit", "hours"),
-                    KI18n.i18nc("@item a unit", "MB")]
-                Accessible.name: KI18n.i18nc("@label:listbox", "Unit")
-                onActivated: index => panel.set("splitUnit", splitUnit.units[index])
+                    model: [KI18n.i18nc("@item a unit", "minutes"), KI18n.i18nc("@item a unit", "hours"),
+                        KI18n.i18nc("@item a unit", "MB")]
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+                    Accessible.name: KI18n.i18nc("@label:listbox", "Unit")
+                    onActivated: index => panel.set("splitUnit", splitUnit.units[index])
 
-                SessionBound {
-                    control: splitUnit
-                    property: "currentIndex"
-                    value: splitUnit.units.indexOf(panel.params.splitUnit ?? "minutes")
+                    SessionBound {
+                        control: splitUnit
+                        property: "currentIndex"
+                        value: splitUnit.units.indexOf(panel.params.splitUnit ?? "minutes")
+                    }
                 }
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.smallSpacing
+        LimitRow {
+            id: endRow
 
             QQC2.CheckBox {
                 id: endEnabled
 
                 text: KI18n.i18nc("@option:check followed by a number and a unit", "End the recording after")
+                Layout.fillWidth: true
+                Layout.maximumWidth: implicitWidth
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 3
+                QQC2.ToolTip.text: text
+                QQC2.ToolTip.visible: hovered && implicitWidth > width
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                 onToggled: panel.set("endEnabled", endEnabled.checked)
 
                 SessionBound {
@@ -770,99 +832,124 @@ ColumnLayout {
                 }
             }
 
-            QQC2.SpinBox {
-                id: endAfter
+            LimitValues {
+                wrapped: !endRow.oneLine
 
-                from: 1
-                to: 100000
-                editable: true
-                Accessible.name: KI18n.i18nc("@label:spinbox", "End the recording after")
-                onValueModified: panel.set("endAfter", endAfter.value)
+                QQC2.SpinBox {
+                    id: endAfter
 
-                SessionBound {
-                    control: endAfter
-                    property: "value"
-                    value: panel.params.endAfter ?? 1
+                    from: 1
+                    to: 100000
+                    editable: true
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+                    Accessible.name: KI18n.i18nc("@label:spinbox", "End the recording after")
+                    onValueModified: panel.set("endAfter", endAfter.value)
+
+                    SessionBound {
+                        control: endAfter
+                        property: "value"
+                        value: panel.params.endAfter ?? 1
+                    }
                 }
-            }
 
-            QQC2.ComboBox {
-                id: endUnit
+                QQC2.ComboBox {
+                    id: endUnit
 
-                readonly property var units: ["minutes", "hours"]
+                    readonly property var units: ["minutes", "hours"]
 
-                model: [KI18n.i18nc("@item a unit", "minutes"), KI18n.i18nc("@item a unit", "hours")]
-                Accessible.name: KI18n.i18nc("@label:listbox", "Unit")
-                onActivated: index => panel.set("endUnit", endUnit.units[index])
+                    model: [KI18n.i18nc("@item a unit", "minutes"), KI18n.i18nc("@item a unit", "hours")]
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+                    Accessible.name: KI18n.i18nc("@label:listbox", "Unit")
+                    onActivated: index => panel.set("endUnit", endUnit.units[index])
 
-                SessionBound {
-                    control: endUnit
-                    property: "currentIndex"
-                    value: endUnit.units.indexOf(panel.params.endUnit ?? "hours")
+                    SessionBound {
+                        control: endUnit
+                        property: "currentIndex"
+                        value: endUnit.units.indexOf(panel.params.endUnit ?? "hours")
+                    }
                 }
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.smallSpacing
+        LimitRow {
+            id: silenceRow
 
-            QQC2.CheckBox {
-                id: silenceEnabled
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.maximumWidth: implicitWidth
+                spacing: AppMetrics.smallSpacing
 
-                Accessible.name: KI18n.i18nc("@option:check", "Act on silence")
-                onToggled: panel.set("silenceEnabled", silenceEnabled.checked)
+                QQC2.CheckBox {
+                    id: silenceEnabled
 
-                SessionBound {
-                    control: silenceEnabled
-                    property: "checked"
-                    value: panel.params.silenceEnabled ?? false
+                    Accessible.name: KI18n.i18nc("@option:check", "Act on silence")
+                    onToggled: panel.set("silenceEnabled", silenceEnabled.checked)
+
+                    SessionBound {
+                        control: silenceEnabled
+                        property: "checked"
+                        value: panel.params.silenceEnabled ?? false
+                    }
+                }
+
+                QQC2.ComboBox {
+                    id: silenceAction
+
+                    readonly property var actions: ["remove", "split", "stop"]
+
+                    model: [KI18n.i18nc("@item what silence does to a recording", "Remove silence"),
+                        KI18n.i18nc("@item what silence does to a recording", "Split on silence"),
+                        KI18n.i18nc("@item what silence does to a recording", "Stop on silence")]
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+                    Accessible.name: KI18n.i18nc("@label:listbox", "What silence does")
+                    onActivated: index => panel.set("silenceAction", silenceAction.actions[index])
+
+                    SessionBound {
+                        control: silenceAction
+                        property: "currentIndex"
+                        value: silenceAction.actions.indexOf(panel.params.silenceAction ?? "remove")
+                    }
                 }
             }
 
-            QQC2.ComboBox {
-                id: silenceAction
+            LimitValues {
+                wrapped: !silenceRow.oneLine
 
-                readonly property var actions: ["remove", "split", "stop"]
-
-                model: [KI18n.i18nc("@item what silence does to a recording", "Remove silence"),
-                    KI18n.i18nc("@item what silence does to a recording", "Split on silence"),
-                    KI18n.i18nc("@item what silence does to a recording", "Stop on silence")]
-                Accessible.name: KI18n.i18nc("@label:listbox", "What silence does")
-                onActivated: index => panel.set("silenceAction", silenceAction.actions[index])
-
-                SessionBound {
-                    control: silenceAction
-                    property: "currentIndex"
-                    value: silenceAction.actions.indexOf(panel.params.silenceAction ?? "remove")
+                QQC2.Label {
+                    text: KI18n.i18nc("@label followed by a number of seconds", "after")
                 }
-            }
 
-            QQC2.Label {
-                text: KI18n.i18nc("@label followed by a number of seconds", "after")
-            }
+                QQC2.SpinBox {
+                    id: silenceSeconds
 
-            QQC2.SpinBox {
-                id: silenceSeconds
+                    // Tenths of a second, as the spin box counts whole numbers.
+                    from: 1
+                    to: 36000
+                    editable: true
+                    textFromValue: (value, locale) => Number(value / 10).toLocaleString(locale, "f", 1)
+                    valueFromText: (text, locale) => Math.round(Number.fromLocaleString(locale, text) * 10)
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+                    Accessible.name: KI18n.i18nc("@label:spinbox", "Seconds of silence")
+                    onValueModified: panel.set("silenceSeconds", silenceSeconds.value / 10)
 
-                // Tenths of a second, as the spin box counts whole numbers.
-                from: 1
-                to: 36000
-                editable: true
-                textFromValue: (value, locale) => Number(value / 10).toLocaleString(locale, "f", 1)
-                valueFromText: (text, locale) => Math.round(Number.fromLocaleString(locale, text) * 10)
-                Accessible.name: KI18n.i18nc("@label:spinbox", "Seconds of silence")
-                onValueModified: panel.set("silenceSeconds", silenceSeconds.value / 10)
-
-                SessionBound {
-                    control: silenceSeconds
-                    property: "value"
-                    value: Math.round(Number(panel.params.silenceSeconds ?? 2) * 10)
+                    SessionBound {
+                        control: silenceSeconds
+                        property: "value"
+                        value: Math.round(Number(panel.params.silenceSeconds ?? 2) * 10)
+                    }
                 }
-            }
 
-            QQC2.Label {
-                text: KI18n.i18nc("@label after a number", "seconds")
+                QQC2.Label {
+                    text: KI18n.i18nc("@label after a number", "seconds")
+                }
             }
         }
 

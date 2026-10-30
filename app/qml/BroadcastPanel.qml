@@ -579,9 +579,22 @@ ColumnLayout {
         QQC2.CheckBox {
             id: listedControl
 
-            Layout.leftMargin: AppMetrics.panelLabelWidth + AppMetrics.labelSpacing
+            readonly property real indent: AppMetrics.panelLabelWidth + AppMetrics.labelSpacing
+
+            // **Under the fields where there is room**, and at the edge where
+            // there is not: under them it asked for 306 pixels in a card the
+            // smallest window leaves 266 of, and the whole panel was laid out
+            // that wide. Narrower still, the words elide and are whole on hover.
+            Layout.leftMargin: listedControl.indent + listedControl.implicitWidth <= listedControl.parent.width
+                               ? listedControl.indent : 0
+            Layout.fillWidth: true
+            Layout.maximumWidth: implicitWidth
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 3
             text: KI18n.i18nc("@option:check let the server list a station in a public directory",
                               "List in public directories")
+            QQC2.ToolTip.text: text
+            QQC2.ToolTip.visible: hovered && implicitWidth > width
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
             onToggled: panel.set("listed", listedControl.checked)
 
             SessionBound {

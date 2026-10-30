@@ -67,6 +67,18 @@ TestCase {
         return face;
     }
 
+    /// Waits until \a item has stayed where it is for a few frames.
+    function waitUntilStill(item) {
+        let last = "";
+        for (let still = 0, turn = 0; still < 3 && turn < 50; ++turn) {
+            waitForRendering(item, 100);
+            const place = item.mapToItem(null, 0, 0);
+            const now = place.x + "," + place.y + "," + item.width;
+            still = now === last ? still + 1 : 0;
+            last = now;
+        }
+    }
+
     function makePanel() {
         const panel = createTemporaryObject(panelComponent, null).panel;
         panel.blockId = "rec";
@@ -195,6 +207,11 @@ TestCase {
         compare(SessionModel.param("rec", "format"), "opus");
         panel.bitrateBox.activated(panel.words.bitrates.indexOf(96));
         compare(SessionModel.param("rec", "bitrate"), 96);
+        // **Pressed where it is drawn once the section has opened**, not
+        // where it was before: the section lays itself out a frame or two
+        // after it is told to open, and a press before that lands on
+        // whatever was there.
+        testCase.waitUntilStill(panel.constantButton);
         mouseClick(panel.constantButton);
         compare(SessionModel.param("rec", "bitrateMode"), "cbr");
         mouseClick(panel.monoButton);
@@ -317,5 +334,35 @@ TestCase {
             }
             return false;
         });
+    }
+
+    function test_theLimitsWrapRatherThanRunOffTheCard() {
+        // **Side by side where there is room, and under the words where
+        // there is not**: each limit's values once asked for a line of 420
+        // pixels in a card of 320, and the whole panel, its status line and
+        // its buttons too, was laid out that wide.
+        const panel = testCase.makePanel();
+        panel.section = "limits";
+        const rows = [[panel.splitCheck, panel.splitUnitBox], [panel.endCheck, panel.endUnitBox],
+                      [panel.silenceCheck, panel.silenceSecondsBox]];
+        const rightOf = item => item.mapToItem(panel, item.width, 0).x;
+        const topOf = item => item.mapToItem(panel, 0, 0).y;
+
+        panel.width = 260;
+        testCase.waitUntilStill(panel.silenceSecondsBox);
+        for (const [check, last] of rows) {
+            verify(rightOf(last) <= panel.width + 0.5,
+                   String(last) + " ends at " + rightOf(last) + " in a panel 260 wide");
+            verify(topOf(last) > topOf(check), "the values did not go under what they belong to");
+        }
+        verify(rightOf(panel.splitButton) <= panel.width + 0.5, "the buttons ran off the panel");
+        verify(rightOf(panel.statusLabel) <= panel.width + 0.5, "the status line ran off the panel");
+
+        panel.width = 900;
+        testCase.waitUntilStill(panel.silenceSecondsBox);
+        for (const [check, last] of rows) {
+            compare(Math.round(topOf(last) + last.height / 2), Math.round(topOf(check) + check.height / 2),
+                    "with room for one line, " + String(last) + " is not beside what it belongs to");
+        }
     }
 }
