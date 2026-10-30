@@ -35,6 +35,50 @@ QtObject {
     readonly property string whenTitle: KI18n.i18nc("@title a part of a block's help page", "When to use it")
     readonly property string tipsTitle: KI18n.i18nc("@title a part of a block's help page", "Tips")
 
+    readonly property Component declick: Component {
+        DeclickHelp {}
+    }
+
+    readonly property Component dehum: Component {
+        DehumHelp {}
+    }
+
+    readonly property Component denoise: Component {
+        DenoiseHelp {}
+    }
+
+    readonly property Component ducking: Component {
+        DuckingHelp {}
+    }
+
+    readonly property Component firFilter: Component {
+        FirFilterHelp {}
+    }
+
+    readonly property Component inputSwitch: Component {
+        InputSwitchHelp {}
+    }
+
+    readonly property Component mixer: Component {
+        MixerHelp {}
+    }
+
+    readonly property Component parametricEq: Component {
+        ParametricEqHelp {}
+    }
+
+    readonly property Component speechDenoise: Component {
+        SpeechDenoiseHelp {}
+    }
+
+    readonly property Component sync: Component {
+        SyncHelp {}
+    }
+
+    readonly property Component timeShift: Component {
+        TimeShiftHelp {}
+    }
+
     readonly property Component volume: Component {
         VolumeHelp {}
     }
@@ -82,6 +126,17 @@ QtObject {
     /// Type id to page. A block's help adds its entry here, and comes off
     /// the list of those still to write (tests/tools/help-pending.txt).
     readonly property var pages: ({
+        "advanced.declick": help.declick,
+        "advanced.dehum": help.dehum,
+        "advanced.denoise": help.denoise,
+        "advanced.ducking": help.ducking,
+        "advanced.firfilter": help.firFilter,
+        "advanced.inputswitch": help.inputSwitch,
+        "advanced.mixer": help.mixer,
+        "advanced.parametriceq": help.parametricEq,
+        "advanced.speechdenoise": help.speechDenoise,
+        "advanced.sync": help.sync,
+        "advanced.timeshift": help.timeShift,
         "effect.volume": help.volume,
         "meter.peakrms": help.peakRms,
         "output.recorder": help.recorder,

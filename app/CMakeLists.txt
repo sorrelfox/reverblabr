@@ -79,12 +79,15 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/CutoffFace.qml
     qml/CutoffPanel.qml
     qml/DeclickFace.qml
+    qml/DeclickHelp.qml
     qml/DeclickPanel.qml
     qml/DeclickWords.qml
     qml/DehumFace.qml
+    qml/DehumHelp.qml
     qml/DehumPanel.qml
     qml/DehumWords.qml
     qml/DenoiseFace.qml
+    qml/DenoiseHelp.qml
     qml/DenoisePanel.qml
     qml/DenoiseState.qml
     qml/DestructiveMenuItem.qml
@@ -94,6 +97,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/DeviceState.qml
     qml/DiagnosticsSection.qml
     qml/DuckingFace.qml
+    qml/DuckingHelp.qml
     qml/DuckingPanel.qml
     qml/DuckingWords.qml
     qml/DynamicsFace.qml
@@ -112,6 +116,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/FilesPane.qml
     qml/FilterWords.qml
     qml/FirFilterFace.qml
+    qml/FirFilterHelp.qml
     qml/FirFilterPanel.qml
     qml/FirFilterState.qml
     qml/FrequencyLoweringFace.qml
@@ -134,6 +139,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/InputDevicePanel.qml
     qml/InputSwitchControl.qml
     qml/InputSwitchFace.qml
+    qml/InputSwitchHelp.qml
     qml/InputSwitchPanel.qml
     qml/LevelBar.qml
     qml/LevelMeter.qml
@@ -143,6 +149,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/LimiterWords.qml
     qml/LowPassHelp.qml
     qml/MixerFace.qml
+    qml/MixerHelp.qml
     qml/MixerPanel.qml
     qml/MixerStrip.qml
     qml/Main.qml
@@ -159,6 +166,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ParamRow.qml
     qml/ParametricEqBands.qml
     qml/ParametricEqFace.qml
+    qml/ParametricEqHelp.qml
     qml/ParametricEqPanel.qml
     qml/PeakRmsFace.qml
     qml/PeakRmsHelp.qml
@@ -197,6 +205,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SimpleCompressorHelp.qml
     qml/SimpleCompressorPanel.qml
     qml/SpeechDenoiseFace.qml
+    qml/SpeechDenoiseHelp.qml
     qml/SpeechDenoisePanel.qml
     qml/SpeechDenoiseState.qml
     qml/StatusBarRow.qml
@@ -204,11 +213,13 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/StereoPositionPanel.qml
     qml/StereoPositionWords.qml
     qml/SyncFace.qml
+    qml/SyncHelp.qml
     qml/SyncPanel.qml
     qml/SyncScale.qml
     qml/SystemAudioFace.qml
     qml/SystemAudioPanel.qml
     qml/TimeShiftFace.qml
+    qml/TimeShiftHelp.qml
     qml/TimeShiftPanel.qml
     qml/ShortcutTargets.qml
     qml/TimeShiftState.qml
