@@ -64,7 +64,7 @@ A cleaner way to do this, especially for several programs at once, is a [virtual
 
 Everything can be changed while the session runs, without clicks or gaps:
 
-- **Volume:** drag the slider on its tile, or open its settings to type a number. 200 % is twice the level, and overdrive takes it further.
+- **Volume:** drag the slider on its tile or in its settings. It stops at 100 %, the level the sound arrived at, so it can only turn the sound down. To make the sound louder, choose an Overdrive in its settings: 2×, 3× or 4× lets the slider go up to 200, 300 or 400 %.
 - **Dynamics Processor:** open its settings and drag the handles on the curve. The upper one is where compression starts, the lower one where the expander starts. The dot shows where the sound is on the curve while you draw it, and the meter after the block shows what your change did.
 - **Presets:** the row at the bottom of a block's settings. Some blocks come with presets, and **⋮ → Save as Preset…** keeps your own. **⋮ → Reset to Default Settings…** puts the block back to how a new one starts.
 - **Help:** the **?** button beside **⋮** explains the block and each of its settings, in a window you can keep open beside them.

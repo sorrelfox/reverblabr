@@ -183,8 +183,10 @@ A cleaner way, especially for several programs at once, is a <link
 linkend="virtual-devices">virtual device</link>.</para>
 
 <para>Everything can be changed while the session runs, without clicks or
-gaps. Drag the slider on the Volume tile, or open its settings to type a
-number: 200 % is twice the level, and overdrive takes it further. In the
+gaps. Drag the slider on the Volume tile or in its settings. It stops at
+100 %, the level the sound arrived at; to make the sound louder, choose an
+<guilabel>Overdrive</guilabel> in its settings, which lets the slider go up to
+200, 300 or 400 %. In the
 Dynamics Processor's settings, drag the handles on the curve: the upper one is
 where compression starts, the lower one where the expander starts.</para>
 
@@ -747,9 +749,10 @@ controls, and shows what that choice sets.</para>
 <sect2 id="block-effect-volume">
 <title>Volume</title>
 <para>Turns a lane up or down, to match it to the others. Drag the slider on
-its tile, or open its settings to type a number: 200 % is twice the level, and
-with overdrive on it goes up to 400 %, with a limiter that keeps it from
-clipping.</para>
+its tile or in its settings. It stops at 100 %, the level the sound arrived
+at, unless you choose an <guilabel>Overdrive</guilabel> (2×, 3× or 4×) in its
+settings, which lets it go up to 200, 300 or 400 %. A limiter keeps the louder
+sound from clipping.</para>
 </sect2>
 </sect1>
 
