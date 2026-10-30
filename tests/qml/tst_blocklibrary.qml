@@ -593,10 +593,11 @@ TestCase {
         return null;
     }
 
-    /// The style's text menu on \a field, or null in a style without one.
+    /// The style's text menu on \a field, or null in a style or on a Qt
+    /// without one.
     function textMenuOf(field) {
         for (const child of field.data) {
-            if (child.editor === field && typeof child.popup === "function") {
+            if (child.editor === field && child.available === true) {
                 return child;
             }
         }

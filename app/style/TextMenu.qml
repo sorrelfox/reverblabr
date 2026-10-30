@@ -32,6 +32,9 @@ QtObject {
 
     /// The menu while it is open, for a test; null otherwise.
     property T.Menu menu: null
+    /// Whether a right click opens anything (qt6.10/TextMenu.qml has no
+    /// menu to open).
+    readonly property bool available: true
 
     /// Opens the menu at \a position, in the editor's coordinates.
     function popup(position: point) {

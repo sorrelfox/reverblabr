@@ -19,6 +19,8 @@ QtObject {
     property Item editor
 
     readonly property T.Menu menu: null
+    /// Whether a right click opens anything: not on this Qt.
+    readonly property bool available: false
 
     function popup(position: point) {
     }
