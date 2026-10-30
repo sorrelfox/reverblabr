@@ -419,7 +419,7 @@ ColumnLayout {
             text: KI18n.i18nc("@option:check put silence where the application plays nothing",
                               "Fill playback gaps with silence")
             explanation: KI18n.i18nc("@info:whatsthis what filling the gaps does",
-                                     "If the application plays nothing, silence is generated.")
+                                     "While the application plays nothing, a Recorder after this block records silence, so the recording keeps time. Unticked, it leaves the pauses out. What you hear is the same either way.")
             onToggled: SessionModel.setParam(panel.blockId, "fillGapsWithSilence", gapsCheck.checked)
 
             SessionBound {

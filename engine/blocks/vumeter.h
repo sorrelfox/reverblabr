@@ -66,7 +66,7 @@ public:
 
     enum Param : std::uint32_t {
         Reference = 0,
-        ShowInTray, ///< Kept now, used when there is a tray (M4).
+        ShowInTray, ///< Whether the tray shows this meter (app/traystate.cpp).
     };
 
     VuMeter();

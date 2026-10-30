@@ -23,8 +23,9 @@ namespace rb::blocks
 /// Lifts a source whose loudness keeps changing towards a steady level, and
 /// leaves anything already loud enough alone.
 ///
-/// **Upward only.** It measures the short-term loudness of what arrives
-/// (dsp::GatedLoudness: K-weighted, 400 ms) and boosts by how far that
+/// **Upward only.** It measures the loudness of what arrives
+/// (dsp::GatedLoudness: K-weighted and gated, over the last 3 s, worked
+/// out ten times a second, so pauses don't count) and boosts by how far that
 /// is below the target, never more than the maximum and never below 0 dB.
 /// Loud material is not turned down: that is a compressor's job, and a
 /// leveller that did both would pump.

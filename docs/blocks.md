@@ -41,7 +41,7 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 | **High Pass Filter** | Rolls off rumble, handling noise and the thump of a room below a cutoff between 20 Hz and 2 kHz, at 12 or 24 dB per octave. |
 | **Echo** | Repeats the sound from a millisecond to two seconds later, each repeat quieter and duller than the one before, mixed in behind the original. |
 | **Reverb** | Puts the sound in a room. See [below](#reverb). |
-| **Pitch Shift** | Moves the pitch up or down by up to an octave, in semitones and cents, without making the sound faster or slower. See [below](#pitch-shift). |
+| **Pitch Shift** | Moves the pitch up or down by up to an octave in semitones, and a little further with cents, without making the sound faster or slower. See [below](#pitch-shift). |
 | **Balance** | Turns the left or the right side of a stereo lane down against the other, all the way to silence. |
 | **Pan** | Places a lane anywhere between left and right. The sound is folded to mono first and keeps the same loudness wherever you put it. |
 | **Channels** | Swaps the sides, folds to mono, copies one side to both, mutes or inverts a side, or keeps only what differs between them, fading from one setting to the next. |

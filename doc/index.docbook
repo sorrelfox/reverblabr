@@ -707,8 +707,8 @@ mono first and keeps the same loudness wherever you put it.</para>
 
 <sect2 id="block-effect-pitchshift">
 <title>Pitch Shift</title>
-<para>Moves the pitch up or down by up to an octave without making the sound
-faster or slower. <guilabel>Semitones</guilabel> moves it in whole steps, like
+<para>Moves the pitch up or down, by up to an octave in whole steps and a
+semitone more with cents, without making the sound faster or slower. <guilabel>Semitones</guilabel> moves it in whole steps, like
 the keys of a piano. <guilabel>Cents</guilabel> are hundredths of a semitone on
 top, for tuning one sound to another. The sound comes out about 60 ms late,
 and a new setting fades in over a few tens of milliseconds, so a change never
