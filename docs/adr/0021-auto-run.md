@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # ADR-0021: Auto Run is a session setting; the background engine starts those sessions, and keeps its unit enabled while there are any
 
-- **Status:** Accepted; amended by [ADR-0023](0023-krunner-runner-in-the-daemon.md) (once a login, and again after a crash, rather than every time the engine starts)
+- **Status:** Accepted; amended by [ADR-0023](0023-krunner-runner-in-the-daemon.md) (once a login, and again after a crash, rather than every time the engine starts; every engine start stays a choice in the Settings menu)
 - **Date:** 2026-09-29
 
 ## Context
