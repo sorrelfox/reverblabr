@@ -733,3 +733,5 @@ The window turns it into one block of **English, untranslated** text, the way `r
 ## Open decisions
 
 The first three spikes have answered theirs: capture and linking ([ADR-0007](adr/0007-capture-and-linking.md)), the filter-node runtime ([ADR-0008](adr/0008-filter-runtime.md)) and canvas rendering ([ADR-0009](adr/0009-canvas-rendering.md)). What they left open is recorded in those records, for example a Bluetooth microphone's capture node on real hardware and the Qt 6.10 baseline for the canvas.
+
+VST is a registered trademark of Steinberg Media Technologies GmbH.

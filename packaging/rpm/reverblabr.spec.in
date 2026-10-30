@@ -93,6 +93,9 @@ Requires:       hicolor-icon-theme
 Requires:       dbus-common
 # The password prompt for virtual devices for all users
 Recommends:     polkit
+# H.264 for the Live Stream block, through the system's FFmpeg (ADR-0027).
+# Fedora installs it from Cisco's repository, which a package cannot require.
+Recommends:     openh264
 
 %description
 Reverblabr takes the sound of an application, a microphone or everything

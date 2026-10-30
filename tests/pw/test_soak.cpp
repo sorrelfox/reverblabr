@@ -614,7 +614,7 @@ namespace
 using SessionCost = SessionTest;
 
 // **What the reference session costs**, at the rate and quantum the scope
-// states its budget for (3 % of one core at 48 kHz / 1024) and at 256,
+// states its budget for (4 % of one core at 48 kHz / 1024) and at 256,
 // where a cycle's fixed costs count four times as often. Charged as in
 // pw.scenarios: the process running the session, less the same process with
 // the same tones playing and the session stopped.

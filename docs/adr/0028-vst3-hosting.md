@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # ADR-0028: VST3 plugins through the distribution's VST3 SDK headers, 3.8 or later, with a host side of our own
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-29
 
 ## Context
@@ -38,7 +38,7 @@ What had to be settled first was the SDK the format is defined in, and how the b
 ## Consequences
 
 - `vst3sdk-devel` is a build dependency on Fedora. A Kubuntu 26.04 build has no VST3 block until Ubuntu packages 3.8 or later; a build from a 3.7 SDK is refused rather than made GPL 3.0 without anyone deciding so.
-- What of the SDK ends up in the program is what its headers define inline. CREDITS.md lists the SDK with its licence, and the documentation that names VST3 carries Steinberg's attribution. The VST logo is not used; whether and where the project shows it (the README, the AppStream entry, an About page) is a decision of its own, against the usage guidelines.
+- What of the SDK ends up in the program is what its headers define inline. CREDITS.md lists the SDK with its licence, and the documentation that names VST3 carries Steinberg's attribution. **The attribution line, and no logo**: wherever a page names VST3, it carries the line "VST is a registered trademark of Steinberg Media Technologies GmbH.", and the VST logo is not shown anywhere. The README, the AppStream entry and the About page don't name VST3; the plugin formats there are named in general.
 - **What one half of a plugin sends from the audio thread is dropped**, not queued for later: holding on to it would mean the plugin's own message objects travelling between threads. Plugins built on the SDK send from the main thread, as its own hosts drop the rest too.
 - **Approximations**, all of them where a plugin is unusual: a value between two points of a continuous parameter is near, not exact, what the plugin makes of it; a parameter whose values turn back on themselves is shown as the plugin's own 0 to 1; a parameter change takes effect from the cycle's first sample.
 - **Not offered**: a plugin's program lists (the presets some plugins keep inside themselves rather than as files), notes in or out, a side chain from another lane, and a run loop asked of the host rather than of the window's frame, which the format does not promise.

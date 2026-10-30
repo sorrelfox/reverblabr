@@ -50,3 +50,5 @@ journalctl --user -u reverblabrd
 Please open an issue at <https://github.com/sorrelfox/reverblabr/issues>. Tell me what you did, what you expected and what happened instead, and paste what **Copy Diagnostics** gives you. Steps that make the problem happen again are the most useful thing you can send, and a session file or a short recording of the sound can help too.
 
 I work on Reverblabr in my free time, so it may take me a while to answer.
+
+VST is a registered trademark of Steinberg Media Technologies GmbH.

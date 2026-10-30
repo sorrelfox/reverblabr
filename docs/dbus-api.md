@@ -337,3 +337,5 @@ Every action a person takes on the engine from the window is one of these calls.
 `io.github.reverblabr.Telemetry`, on the same object, hands the window and the panel widget of the same build the memory a session's levels are published in ([ADR-0018](adr/0018-telemetry-in-shared-memory.md), [ADR-0024](adr/0024-panel-widget.md)). Its layout is fixed by the build and checked by a fingerprint, and it may change in any release. Nothing outside Reverblabr should use it.
 
 `org.kde.krunner1`, on `/io/github/reverblabr/Runner` under the same name, is what KRunner calls to offer the sessions ([ADR-0023](adr/0023-krunner-runner-in-the-daemon.md)). It speaks KRunner's protocol, says things in words for people rather than codes, and may change in any release. A script runs and stops sessions with `Start` and `Stop` above.
+
+VST is a registered trademark of Steinberg Media Technologies GmbH.
