@@ -645,6 +645,10 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
+        // **Named as a group**, so a screen reader says what the numbered
+        // chips are.
+        Accessible.role: Accessible.Grouping
+        Accessible.name: KI18n.i18nc("@label the moves of a Frequency Lowering or Raising block", "Moves")
 
         Repeater {
             id: chipRepeater
@@ -727,6 +731,10 @@ ColumnLayout {
         SegmentedFrame {
             Kirigami.FormData.label: KI18n.i18nc("@label how a Frequency Lowering or Raising move carries sound",
                                                  "Method:")
+            // The form's label is drawn beside the choices, not given to
+            // them: the group says it.
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@label how a Frequency Lowering or Raising move carries sound", "Method")
 
             QQC2.ButtonGroup {
                 id: methodGroup
@@ -903,6 +911,9 @@ ColumnLayout {
         SegmentedFrame {
             Kirigami.FormData.label: KI18n.i18nc("@label what becomes of the range a Frequency Lowering or Raising move takes sound from",
                                                  "Leave the source:")
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@label what becomes of the range a Frequency Lowering or Raising move takes sound from",
+                                         "Leave the source")
 
             QQC2.ButtonGroup {
                 id: sourceGroup
@@ -939,6 +950,8 @@ ColumnLayout {
 
         SegmentedFrame {
             Kirigami.FormData.label: KI18n.i18nc("@label when a Frequency Lowering or Raising move acts", "Acts:")
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@label when a Frequency Lowering or Raising move acts", "Acts")
 
             QQC2.ButtonGroup {
                 id: whenGroup

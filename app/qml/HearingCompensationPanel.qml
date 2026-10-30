@@ -1053,6 +1053,8 @@ ColumnLayout {
             id: removeControl
 
             visible: panel.throughPoints && panel.selected >= 0
+            // Sixteen bands have no points to take out: not there at all.
+            Accessible.ignored: !panel.throughPoints
             text: KI18n.i18nc("@action:button take a control point out of the curves", "Remove Point")
             icon.name: "list-remove"
             onClicked: panel.removePoint(panel.selected)
@@ -1105,6 +1107,10 @@ ColumnLayout {
                 columns: 3
                 columnSpacing: Kirigami.Units.smallSpacing
                 rowSpacing: 0
+                // **Named as a group**: a line for each frequency, read under
+                // the audiogram's name.
+                Accessible.role: Accessible.Grouping
+                Accessible.name: KI18n.i18nc("@title:group the quietest levels one ear hears, at each frequency", "Audiogram")
 
                 Repeater {
                     model: panel.audiogramHz
