@@ -146,19 +146,7 @@ ColumnLayout {
     // engine**: the catalogue holds stable ids and the words are the
     // interface's, translated and keyed by them.
     function holdLabel(choiceId: string): string {
-        switch (choiceId) {
-        case "off":
-            return KI18n.i18nc("@item:inlistbox the peak line does not wait at all", "Off");
-        case "1s":
-            return KI18n.i18nc("@item:inlistbox how long the peak line waits", "1 second");
-        case "2s":
-            return KI18n.i18nc("@item:inlistbox how long the peak line waits", "2 seconds");
-        case "5s":
-            return KI18n.i18nc("@item:inlistbox how long the peak line waits", "5 seconds");
-        case "forever":
-            return KI18n.i18nc("@item:inlistbox the peak line never comes down", "Until reset");
-        }
-        return choiceId;
+        return ChoiceWords.label("meter.peakrms", "peakHold", choiceId);
     }
 
     // --- the meters themselves ---

@@ -59,17 +59,7 @@ ColumnLayout {
     // the engine**: the catalogue holds stable ids and the words are the
     // interface's, translated and keyed by them.
     function overdriveLabel(choiceId: string): string {
-        switch (choiceId) {
-        case "off":
-            return KI18n.i18nc("@option:check the volume slider stops at 100 %", "Off");
-        case "2x":
-            return KI18n.i18nc("@option:check the volume slider goes up to 200 %", "2×");
-        case "3x":
-            return KI18n.i18nc("@option:check the volume slider goes up to 300 %", "3×");
-        case "4x":
-            return KI18n.i18nc("@option:check the volume slider goes up to 400 %", "4×");
-        }
-        return choiceId;
+        return ChoiceWords.label("effect.volume", "overdrive", choiceId);
     }
 
     /// Chooses an overdrive setting and brings the gain within it.

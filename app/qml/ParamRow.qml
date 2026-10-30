@@ -168,10 +168,9 @@ RowLayout {
         QQC2.ComboBox {
             id: choiceControl
 
-            // The ids, until the catalogue content task gives each choice a
-            // word. A person reading "2x" is not being failed by that. **A
-            // plugin's choices come with the plugin's words**.
-            model: row.descriptor.choiceLabels ?? row.descriptor.choices ?? []
+            // **A plugin's choices come with the plugin's words**; a
+            // built-in block's are ChoiceWords', keyed by their ids.
+            model: row.descriptor.choiceLabels ?? ChoiceWords.labels(SessionModel.blockType(row.blockId), row.descriptor)
             Accessible.name: row.label
             onActivated: SessionModel.setParam(row.blockId, row.paramId,
                                                String((row.descriptor.choices ?? [])[choiceControl.currentIndex]))

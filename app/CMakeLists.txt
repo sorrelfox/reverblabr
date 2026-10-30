@@ -34,6 +34,8 @@ set_source_files_properties(qml/BlockHelp.qml PROPERTIES QT_QML_SINGLETON_TYPE T
 set_source_files_properties(qml/AppGlyphs.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The one voice the window speaks to a screen reader with, unasked.
 set_source_files_properties(qml/Announcer.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+# The words for every built-in block's choices.
+set_source_files_properties(qml/ChoiceWords.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/AppGlyphs.qml
 )
@@ -77,6 +79,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ChannelsHelp.qml
     qml/ChannelsPanel.qml
     qml/ChannelsWords.qml
+    qml/ChoiceWords.qml
     qml/CollapsibleSection.qml
     qml/CompressorWords.qml
     qml/CutoffFace.qml

@@ -250,6 +250,36 @@ TestCase {
         compare(JSON.stringify(SessionModel.params(id)), JSON.stringify(before));
     }
 
+    /// The ParamRow for \a paramId in \a item, or null.
+    function rowFor(item: Item, paramId: string): var {
+        for (let index = 0; index < item.children.length; ++index) {
+            const child = item.children[index];
+            if (child.descriptor !== undefined && child.paramId === paramId) {
+                return child;
+            }
+            const inner = testCase.rowFor(child, paramId);
+            if (inner !== null) {
+                return inner;
+            }
+        }
+        return null;
+    }
+
+    function test_speedAndUnitAreInWordsNotIds() {
+        const id = testCase.newBlock("");
+        const window = testCase.openPanel(id);
+        const panel = window.panel;
+        panel.audiogramSection.expanded = true;
+        const speed = testCase.rowFor(panel, "speed");
+        verify(speed !== null, "no Speed in the panel");
+        compare(speed.activeControl.model, ["Syllabic", "Slow", "Adaptive"]);
+        compare(speed.activeControl.currentText, "Adaptive");
+        const unit = testCase.rowFor(panel, "audiogramUnit");
+        verify(unit !== null, "no Measured in in the panel");
+        compare(unit.activeControl.model, ["dB HL", "dBFS"]);
+        compare(unit.activeControl.currentText, "dB HL");
+    }
+
     /// Takes out the blocks earlier tests left, so "the other ear" is the
     /// one a test made.
     function clearSession() {

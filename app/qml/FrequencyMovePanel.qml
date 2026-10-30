@@ -743,30 +743,12 @@ ColumnLayout {
             Repeater {
                 id: methodRepeater
 
-                model: moves.raises ? [
-                    {
-                        "id": "compress",
-                        "text": KI18n.i18nc("@option:radio squeeze the source range into the destination", "Squeeze")
-                    },
-                    {
-                        "id": "transpose",
-                        "text": KI18n.i18nc("@option:radio copy the source range up into the destination", "Copy up")
-                    },
-                    {
-                        "id": "harmonics",
-                        "text": KI18n.i18nc("@option:radio give each sound of the source range its harmonics in the destination, keeping its pitch",
-                                            "Add harmonics")
-                    }
-                ] : [
-                    {
-                        "id": "compress",
-                        "text": KI18n.i18nc("@option:radio squeeze the source range into the destination", "Squeeze")
-                    },
-                    {
-                        "id": "transpose",
-                        "text": KI18n.i18nc("@option:radio copy the source range down into the destination", "Copy down")
-                    }
-                ]
+                // The words are ChoiceWords', which the generic panel's
+                // list of the same choices reads too.
+                model: (moves.raises ? ["compress", "transpose", "harmonics"] : ["compress", "transpose"]).map(id => ({
+                            "id": id,
+                            "text": ChoiceWords.moveMethodName(moves.typeId, id)
+                        }))
 
                 delegate: SegmentedChoice {
                     required property var modelData
@@ -922,20 +904,10 @@ ColumnLayout {
             Repeater {
                 id: sourceRepeater
 
-                model: [
-                    {
-                        "id": "keep",
-                        "text": KI18n.i18nc("@option:radio leave the source range as it was", "As it was")
-                    },
-                    {
-                        "id": "lower",
-                        "text": KI18n.i18nc("@option:radio make the source range quieter", "Quieter")
-                    },
-                    {
-                        "id": "remove",
-                        "text": KI18n.i18nc("@option:radio take the sound out of the source range", "Empty")
-                    }
-                ]
+                model: ["keep", "lower", "remove"].map(id => ({
+                            "id": id,
+                            "text": ChoiceWords.moveSourceName(id)
+                        }))
 
                 delegate: SegmentedChoice {
                     required property var modelData
@@ -960,20 +932,10 @@ ColumnLayout {
             Repeater {
                 id: whenRepeater
 
-                model: [
-                    {
-                        "id": "always",
-                        "text": KI18n.i18nc("@option:radio a Frequency Lowering or Raising move acts all the time", "Always")
-                    },
-                    {
-                        "id": "needed",
-                        "text": moves.raises
-                            ? KI18n.i18nc("@option:radio a Frequency Raising move acts only while its low range is louder than what is above it, as with a voice or a hum",
-                                          "On low sounds")
-                            : KI18n.i18nc("@option:radio a Frequency Lowering move acts only on hissing sounds such as s and f",
-                                          "On s, sh, f")
-                    }
-                ]
+                model: ["always", "needed"].map(id => ({
+                            "id": id,
+                            "text": ChoiceWords.moveWhenName(moves.typeId, id)
+                        }))
 
                 delegate: SegmentedChoice {
                     required property var modelData
