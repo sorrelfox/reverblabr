@@ -389,4 +389,26 @@ TestCase {
         compare(TestEngine.fakeLastRescanRetried(), true);
         tryVerify(() => !InstalledPlugins.scanning, 1000, "the rescan never ended");
     }
+
+    // **The plugins are ranked as the blocks are**: a name that starts
+    // with what was typed before one only its maker matches, the format
+    // with the best match first, and Enter adds that one.
+    function test_theBestPluginMatchComesFirstAndEnterAddsIt() {
+        TestEngine.addFakePlugin("ladspa", "tape.so:tape", "Warm Tape", "Equinox Audio");
+        TestEngine.addFakePlugin("lv2", "urn:example:eight", "Equalizer Eight", "Somebody");
+        TestEngine.addFakePlugin("lv2", "urn:example:graphic", "Graphic Equalizer", "Somebody");
+        const window = createTemporaryObject(libraryWindow, null);
+        const library = window.library;
+        waitForRendering(library);
+        let chosen = "";
+        library.blockChosen.connect(typeId => chosen = typeId);
+        library.searchField.forceActiveFocus();
+        library.searchField.text = "equ";
+        compare(testCase.pluginsPart(library),
+                ["section:lv2:2", "Equalizer Eight", "Graphic Equalizer", "section:ladspa:1", "Warm Tape"]);
+        compare(library.rows[0].id, "plugins", "Plugins, with the best match, is not the first heading");
+        keyClick(Qt.Key_Return);
+        compare(chosen, InstalledPlugins.entryKey("lv2", "urn:example:eight"));
+        library.searchField.text = "";
+    }
 }

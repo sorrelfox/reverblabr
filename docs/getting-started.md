@@ -109,7 +109,7 @@ Several sources can feed one lane. Wire them all to the same block and they're m
 
 Everything on this page can be done from the keyboard, and the canvas works with a screen reader.
 
-- **Add a block:** Ctrl+F jumps to the library's search. Type part of a name and press Enter for the first match, or walk the list with the arrow keys.
+- **Add a block:** Ctrl+F jumps to the library's search. Type part of a name and press Enter for the best match, which the list shows first, or walk the list with the arrow keys.
 - **Move between blocks:** Tab and Shift+Tab go from block to block. A screen reader says each block's name, whether it's on and what it's wired to.
 - **Wire two blocks:** on a block, press **C**. The wire aims at the first input that would take it, the arrow keys move it to the next one, **Enter** connects and Escape cancels.
 - **Remove a wire:** on a block, press **D**, pick the wire with the arrow keys and press **Enter** or **Delete**.

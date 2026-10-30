@@ -668,4 +668,60 @@ TestCase {
                   "Ctrl+Z after a click on a tile did not undo the session's last edit");
         window.blockLibrary.searchField.text = "";
     }
+
+    // **Enter adds the best match, and the list reads best first.**
+    // "Peak" and Enter added Output Device, whose description says
+    // "speakers", because Outputs comes before Meters; "eq" has to be an
+    // EQ, not a block whose description says "frequency".
+    function test_enterAddsTheBestMatchAndTheListShowsItFirst() {
+        const library = testCase.openLibrary();
+        let chosen = "";
+        library.blockChosen.connect(typeId => chosen = typeId);
+        library.searchField.forceActiveFocus();
+
+        library.searchField.text = "Peak";
+        verify(testCase.shownTypes(library).indexOf("output.device") >= 0,
+               "the test needs a description match that the name match has to beat");
+        compare(testCase.shownTypes(library)[0], "meter.peakrms", "the name that starts with it is not first");
+        keyClick(Qt.Key_Return);
+        compare(chosen, "meter.peakrms", "Enter did not add the block whose name starts with what was typed");
+
+        library.searchField.text = "eq";
+        const shown = testCase.shownTypes(library);
+        verify(shown.some(typeId => !BlockPresentation.name(typeId).toLowerCase().includes("eq")),
+               "the test needs a block that only its description finds");
+        keyClick(Qt.Key_Return);
+        verify(/\bEQ\b/.test(BlockPresentation.name(chosen)), "Enter on eq added " + BlockPresentation.name(chosen));
+
+        // **Inside a category, the best match first**: a name before a
+        // description, and a name with a word that starts with it before
+        // one that has it inside a word.
+        let category = "";
+        let previous = -1;
+        for (const row of library.rows) {
+            if (row.kind === "category") {
+                category = row.id;
+                previous = -1;
+            } else if (row.kind === "block") {
+                const rank = library.rankOf(row.id, "eq");
+                verify(rank >= previous, row.id + " came after a better match in " + category);
+                previous = rank;
+            }
+        }
+        const frequency = shown.find(typeId => BlockPresentation.name(typeId).toLowerCase().startsWith("frequency"));
+        if (frequency !== undefined) {
+            verify(shown.indexOf(frequency) > shown.indexOf(chosen), "Frequency came before the EQ");
+        }
+
+        // **The categories follow their best match**: Meters, with the
+        // name that starts with "peak", comes before Outputs.
+        library.searchField.text = "peak";
+        const categories = testCase.shownCategories(library);
+        verify(categories.indexOf("meters") < categories.indexOf("outputs"), "Meters is not first: " + categories);
+
+        // **With nothing typed, the catalogue's own order** is kept.
+        library.searchField.text = "";
+        compare(testCase.shownCategories(library), BlockPresentation.categories.filter(
+                    category => testCase.shownCategories(library).indexOf(category) >= 0));
+    }
 }

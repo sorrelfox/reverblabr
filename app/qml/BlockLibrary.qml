@@ -89,44 +89,79 @@ Item {
     /// Every line the list shows, headings and blocks together. Rebuilt
     /// when the search text, the catalogue or the folding changes — which
     /// is what a person does now and again, not sixty times a second.
+    ///
+    /// **While something is typed, the best match comes first**: inside
+    /// each category, and the categories themselves in the order of the
+    /// best each holds, so the first block in the list is the one Enter
+    /// adds. "Peak" added Output Device, whose description says
+    /// "speakers", because Outputs comes before Meters. With nothing typed
+    /// it is the catalogue in its own order, as before.
     readonly property var rows: {
         const available = BlockCatalogue.ready ? BlockCatalogue.types : [];
         const needle = search.text.toLocaleLowerCase();
-        const built = [];
-        for (const category of BlockPresentation.categories) {
+        const categories = [];
+        for (const [order, category] of BlockPresentation.categories.entries()) {
             const found = [];
             for (const typeId of available) {
-                if (BlockPresentation.category(typeId) === category && library.matches(typeId, needle)) {
-                    found.push(typeId);
+                if (BlockPresentation.category(typeId) !== category) {
+                    continue;
+                }
+                const rank = library.rankOf(typeId, needle);
+                if (rank >= 0) {
+                    found.push({ id: typeId, rank: rank, name: BlockPresentation.name(typeId) });
                 }
             }
             // **Every plugin is an entry of its own** under Plugins, after
-            // the blocks that are there to pick one.
-            const plugins = category === "plugins"
-                ? library.offeredPlugins.filter(plugin => library.pluginMatches(plugin, needle))
-                : [];
+            // the blocks that are there to pick one unless it is a better
+            // match than they are.
+            const plugins = [];
+            if (category === "plugins") {
+                for (const entry of library.pluginWords) {
+                    const rank = library.pluginRankOf(entry, needle);
+                    if (rank >= 0) {
+                        plugins.push({ plugin: entry.plugin, rank: rank });
+                    }
+                }
+            }
             if (found.length === 0 && plugins.length === 0) {
                 continue;
             }
             // **In the reader's alphabet**, not in the engine's id order:
             // "Input Device" and "source.device" sort differently, and it
             // is the name that is being read.
-            found.sort((first, second) =>
-                BlockPresentation.name(first).localeCompare(BlockPresentation.name(second)));
-            built.push({ kind: "category", id: category, count: found.length + plugins.length });
-            if (library.isCollapsed(category)) {
+            found.sort((first, second) => first.rank - second.rank || first.name.localeCompare(second.name));
+            categories.push({ id: category, order: order, found: found, plugins: plugins,
+                              best: Math.min(library.bestOf(found), library.bestOf(plugins)) });
+        }
+        categories.sort((first, second) => first.best - second.best || first.order - second.order);
+
+        const built = [];
+        for (const category of categories) {
+            built.push({ kind: "category", id: category.id, count: category.found.length + category.plugins.length });
+            if (library.isCollapsed(category.id)) {
                 continue;
             }
-            for (const typeId of found) {
-                built.push({ kind: "block", id: typeId, count: 0 });
-            }
-            for (const group of library.byFormat(plugins)) {
+            // The category's own blocks, then a heading for each format;
+            // **a format with a better match goes before the blocks**, so
+            // the first entry under Plugins is still the best one there.
+            const groups = library.byFormat(category.plugins);
+            const blocksGroup = { format: "", plugins: [], best: library.bestOf(category.found) };
+            const blocksAt = groups.findIndex(group => group.best >= blocksGroup.best);
+            groups.splice(blocksAt < 0 ? groups.length : blocksAt, 0, blocksGroup);
+            for (const group of groups) {
+                if (group === blocksGroup) {
+                    for (const block of category.found) {
+                        built.push({ kind: "block", id: block.id, count: 0 });
+                    }
+                    continue;
+                }
                 const section = library.sectionOf(group.format);
                 built.push({ kind: "section", id: section, format: group.format, count: group.plugins.length });
                 if (library.isCollapsed(section)) {
                     continue;
                 }
-                for (const plugin of group.plugins) {
+                for (const ranked of group.plugins) {
+                    const plugin = ranked.plugin;
                     built.push({ kind: "plugin", id: plugin.key, count: 0, name: plugin.name, vendor: plugin.vendor,
                                  format: plugin.format, type: plugin.type, category: plugin.category,
                                  audioInputs: plugin.audioInputs, audioOutputs: plugin.audioOutputs });
@@ -136,6 +171,28 @@ Item {
         return built;
     }
 
+    /// The words a plugin is searched by, lower-cased once when the
+    /// plugins change rather than on every key: a few hundred plugins is
+    /// a few hundred names, makers and kinds to lower-case each time.
+    readonly property var pluginWords: library.offeredPlugins.map(plugin => ({
+        plugin: plugin,
+        name: plugin.name.toLocaleLowerCase(),
+        vendor: plugin.vendor.toLocaleLowerCase(),
+        category: plugin.category.toLocaleLowerCase()
+    }))
+
+    /// The best rank among \a entries, or one past the worst for none.
+    function bestOf(entries: var): int {
+        let best = library.noRank;
+        for (const entry of entries) {
+            best = Math.min(best, entry.rank);
+        }
+        return best;
+    }
+
+    /// One past the worst rank a match can have.
+    readonly property int noRank: 5
+
     /// What a format's heading under Plugins is folded away as. **Beside
     /// the categories' ids**, so the folding is remembered the same way;
     /// the slash keeps it from ever being taken for one.
@@ -143,25 +200,29 @@ Item {
         return "plugins/" + format;
     }
 
-    /// \a plugins a format at a time: `[{ format, plugins }]`, the formats
-    /// and the plugins under each in the reader's alphabet. **By the name
-    /// a person reads**, as the blocks are: the scan's order is the order
-    /// it found the files in.
+    /// \a plugins, ranked as `{ plugin, rank }`, a format at a time:
+    /// `[{ format, plugins, best }]`. **The best match first**, and among
+    /// equals in the reader's alphabet, as the blocks are: the scan's
+    /// order is the order it found the files in. With nothing typed every
+    /// rank is the same, and the formats and plugins are in alphabetical
+    /// order.
     function byFormat(plugins: var): var {
         const groups = [];
-        for (const plugin of plugins) {
-            let group = groups.find(entry => entry.format === plugin.format);
+        for (const ranked of plugins) {
+            let group = groups.find(entry => entry.format === ranked.plugin.format);
             if (group === undefined) {
-                group = { format: plugin.format, plugins: [] };
+                group = { format: ranked.plugin.format, plugins: [], best: library.noRank };
                 groups.push(group);
             }
-            group.plugins.push(plugin);
+            group.plugins.push(ranked);
+            group.best = Math.min(group.best, ranked.rank);
         }
         for (const group of groups) {
-            group.plugins.sort((first, second) => first.name.localeCompare(second.name));
+            group.plugins.sort((first, second) =>
+                first.rank - second.rank || first.plugin.name.localeCompare(second.plugin.name));
         }
-        groups.sort((first, second) =>
-            PluginWords.formatName(first.format).localeCompare(PluginWords.formatName(second.format)));
+        groups.sort((first, second) => first.best - second.best
+            || PluginWords.formatName(first.format).localeCompare(PluginWords.formatName(second.format)));
         return groups;
     }
 
@@ -170,28 +231,73 @@ Item {
         return entry.kind === "category" || entry.kind === "section";
     }
 
-    /// Whether \a typeId is one of the blocks \a needle is looking for.
-    /// **The name and the description both**, because half of what somebody
-    /// types is what a block does rather than what it is called — and
-    /// lower-cased in the reader's locale, so that a Turkish dotless i
-    /// matches the way a Turkish reader expects.
-    function matches(typeId: string, needle: string): bool {
+    /// How well \a typeId answers \a needle, best first: 0 when its name
+    /// starts with it, 1 when a later word of the name does, 2 when the
+    /// name has it inside a word, 3 when a word of the description starts
+    /// with it, 4 when the description has it anywhere; -1 when it is not
+    /// a match. **The name and the description both**, because half of
+    /// what somebody types is what a block does rather than what it is
+    /// called, **but the name first**: "eq" is the EQ blocks before
+    /// Frequency Lowering, and both before every description that says
+    /// "frequency". Lower-cased in the reader's locale, so that a Turkish
+    /// dotless i matches the way a Turkish reader expects.
+    function rankOf(typeId: string, needle: string): int {
         if (needle === "") {
-            return true;
+            return 0;
         }
-        return BlockPresentation.name(typeId).toLocaleLowerCase().includes(needle)
-            || BlockPresentation.description(typeId).toLocaleLowerCase().includes(needle);
+        const name = library.placeIn(BlockPresentation.name(typeId).toLocaleLowerCase(), needle);
+        if (name >= 0) {
+            return name;
+        }
+        return library.describedRank(library.placeIn(BlockPresentation.description(typeId).toLocaleLowerCase(),
+                                                     needle));
     }
 
-    /// Whether a plugin is one \a needle is looking for: by its name, who
-    /// made it, or what kind of plugin it says it is.
-    function pluginMatches(plugin: var, needle: string): bool {
+    /// The same for a plugin, from its pluginWords entry: by its name
+    /// first, then by who made it or what kind of plugin it says it is.
+    function pluginRankOf(entry: var, needle: string): int {
         if (needle === "") {
-            return true;
+            return 0;
         }
-        return plugin.name.toLocaleLowerCase().includes(needle)
-            || plugin.vendor.toLocaleLowerCase().includes(needle)
-            || plugin.category.toLocaleLowerCase().includes(needle);
+        const name = library.placeIn(entry.name, needle);
+        if (name >= 0) {
+            return name;
+        }
+        const vendor = library.placeIn(entry.vendor, needle);
+        const category = library.placeIn(entry.category, needle);
+        return library.describedRank(vendor < 0 ? category : category < 0 ? vendor : Math.min(vendor, category));
+    }
+
+    /// The rank of a match outside the name, from where in the words it
+    /// was: a word that starts with what was typed before a word that only
+    /// has it inside.
+    function describedRank(place: int): int {
+        return place < 0 ? -1 : place < 2 ? 3 : 4;
+    }
+
+    /// Where \a needle is in \a text: 0 at the start, 1 at the start of a
+    /// later word, 2 only inside a word, -1 not at all.
+    function placeIn(text: string, needle: string): int {
+        let at = text.indexOf(needle);
+        if (at < 0) {
+            return -1;
+        }
+        if (at === 0) {
+            return 0;
+        }
+        for (; at >= 0; at = text.indexOf(needle, at + 1)) {
+            if (!library.isWordCharacter(text[at - 1])) {
+                return 1;
+            }
+        }
+        return 2;
+    }
+
+    /// Whether \a character is part of a word: a letter of any alphabet
+    /// that has capitals, or a digit. "Peak/RMS" is two words, and so is
+    /// "10-Band EQ" three.
+    function isWordCharacter(character: string): bool {
+        return character.toLocaleUpperCase() !== character.toLocaleLowerCase() || (character >= "0" && character <= "9");
     }
 
     function isCollapsed(category: string): bool {
@@ -264,9 +370,10 @@ Item {
             // Down out of the field and into the list, so that typing a few
             // letters and pressing Down is the whole gesture.
             KeyNavigation.down: list
-            // **The first block it found**, not the first row: that is the
-            // heading the block is under, and Enter folded it. Nor a
-            // format's heading under Plugins, for the same reason.
+            // **The first block in the list**, which is the best match
+            // (rows), not the first row: that is the heading the block is
+            // under, and Enter folded it. Nor a format's heading under
+            // Plugins, for the same reason.
             Keys.onReturnPressed: library.activate(library.rows.find(entry => !library.isHeading(entry)))
             Keys.onEnterPressed: library.activate(library.rows.find(entry => !library.isHeading(entry)))
         }

@@ -266,7 +266,9 @@ dropped it and is not wired to anything: you picked the place, so &reverblabr;
 does not guess. <keycombo action="simul">&Ctrl;<keycap>F</keycap></keycombo>
 (<menuchoice><guimenu>Edit</guimenu><guimenuitem>Find
 Block…</guimenuitem></menuchoice>) jumps to the library's search: type part of
-a name and press &Enter; for the first match.</para>
+a name and press &Enter; for the best match. While you type, the list shows the
+best matches first: a name that starts with what you typed, then a name with it
+in it, then a description.</para>
 
 <para>Drag a block by its title to move it. The rest of the tile is for its
 controls, like the Volume slider. To take a block out, select it and press
@@ -382,7 +384,8 @@ works with a screen reader.</para>
 <term>Add a block</term>
 <listitem><para><keycombo action="simul">&Ctrl;<keycap>F</keycap></keycombo>
 jumps to the library's search. Type part of a name and press &Enter; for the
-first match, or walk the list with the arrow keys.</para></listitem>
+best match, which the list shows first, or walk the list with the arrow
+keys.</para></listitem>
 </varlistentry>
 <varlistentry>
 <term>Move between blocks</term>
@@ -917,7 +920,8 @@ role="strong">VST3</emphasis> (where the build has the VST3 SDK 3.8 or later)
 and <emphasis role="strong">LADSPA</emphasis>. The library lists what it found
 under <guilabel>Plugins</guilabel>, a heading for each format with the plugins
 under it in alphabetical order; click a heading to fold it away. The search
-looks through all of them. <guibutton>Look for plugins again</guibutton> looks
+looks through all of them, by name first and then by maker and kind, and shows
+the best matches first. <guibutton>Look for plugins again</guibutton> looks
 again after you install something new. LSP's plugins are a good first set to
 try.</para>
 
