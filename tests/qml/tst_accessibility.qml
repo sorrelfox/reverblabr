@@ -158,8 +158,8 @@ TestCase {
         tryVerify(() => window.sessionCanvas.sessionList.visible, 1000, "the list did not show");
         waitForRendering(window.contentItem);
         problems = problems.concat(testCase.unnamedUnder("list", window.sessionCanvas.sessionList));
-        const rowsWithoutName = Object.keys(window.sessionCanvas.sessionList.rows).filter(
-            id => window.sessionCanvas.sessionList.rows[id].Accessible.name === "");
+        const rowsWithoutName = window.sessionCanvas.sessionList.allRows().filter(
+            row => row.Accessible.name === "").map(row => row.blockId);
         WindowState.listShown = false;
         compare(rowsWithoutName.length, 0, "rows with no name: " + rowsWithoutName.join(", "));
         compare(problems.length, 0, "controls with no name:\n" + problems.join("\n"));

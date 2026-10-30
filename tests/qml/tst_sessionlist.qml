@@ -120,7 +120,7 @@ TestCase {
     function test_oneTabStopAndTheArrowsGoAcrossTheLanes() {
         const s = testCase.twoIntoOne();
         const list = s.canvas.sessionList;
-        const stops = Object.keys(list.rows).filter(id => list.rows[id].activeFocusOnTab);
+        const stops = list.allRows().filter(row => row.activeFocusOnTab);
         compare(stops.length, 1, "the list is more than one Tab stop");
         list.focusRow(s.first);
         verify(list.rowFor(s.first).activeFocus);
@@ -135,7 +135,7 @@ TestCase {
         verify(list.rowFor(s.second).activeFocus, "End did not go to the last row");
         keyClick(Qt.Key_Home);
         verify(list.rowFor(s.first).activeFocus, "Home did not go to the first row");
-        compare(Object.keys(list.rows).filter(id => list.rows[id].activeFocusOnTab), [s.first],
+        compare(list.allRows().filter(row => row.activeFocusOnTab).map(row => row.blockId), [s.first],
                 "the Tab stop did not follow the keyboard");
     }
 

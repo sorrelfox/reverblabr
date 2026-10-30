@@ -39,8 +39,6 @@ Rectangle {
 
     /// The row Tab comes back to.
     property string currentId: ""
-    /// The rows there are, by block, for moving between them.
-    property var rows: ({})
     /// Where the list is scrolled to, for a panel placed beside a row.
     readonly property real scrollY: flick.contentY
     /// How far down the list starts, to leave the canvas's connection mode
@@ -121,8 +119,30 @@ Rectangle {
         return [].concat(...list.lanes);
     }
 
+    /// The rows there are, lane by lane. **Asked of the repeaters each
+    /// time**, never kept in a property: Qt 6.10 holds an object put in a
+    /// \c var property as a map of bare pointers, which outlive the rows,
+    /// and writing to it while the rows are rebuilt crashes the engine.
+    function allRows(): var {
+        const found = [];
+        for (let lane = 0; lane < laneRepeater.count; ++lane) {
+            // A lane's rows are made by the one child of it that is a
+            // repeater.
+            for (const child of laneRepeater.itemAt(lane)?.children ?? []) {
+                const rows = child as Repeater;
+                for (let index = 0; rows !== null && index < rows.count; ++index) {
+                    const row = rows.itemAt(index);
+                    if (row !== null) {
+                        found.push(row);
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
     function rowFor(blockId: string): var {
-        return list.rows[blockId] ?? null;
+        return list.allRows().find(row => row.blockId === blockId) ?? null;
     }
 
     /// Gives the keyboard to \a blockId's row.
@@ -140,12 +160,7 @@ Rectangle {
 
     /// The block whose row has the keyboard, or nothing.
     function focusedId(): string {
-        for (const blockId of Object.keys(list.rows)) {
-            if (list.rows[blockId]?.activeFocus) {
-                return blockId;
-            }
-        }
-        return "";
+        return list.allRows().find(row => row.activeFocus)?.blockId ?? "";
     }
 
     /// Scrolls \a blockId's row into sight.
@@ -189,14 +204,10 @@ Rectangle {
     }
 
     // **One Tab stop.** Moved here rather than bound on each row, so that
-    // the order is ours: see focusRow(). A row can be gone before its
-    // onDestruction takes it off the list (seen on Qt 6.10); it is skipped.
+    // the order is ours: see focusRow().
     onCurrentIdChanged: {
-        for (const blockId of Object.keys(list.rows)) {
-            const row = list.rows[blockId];
-            if (row) {
-                row.activeFocusOnTab = blockId === list.currentId;
-            }
+        for (const row of list.allRows()) {
+            row.activeFocusOnTab = row.blockId === list.currentId;
         }
     }
 
@@ -246,6 +257,8 @@ Rectangle {
             spacing: Kirigami.Units.largeSpacing
 
             Repeater {
+                id: laneRepeater
+
                 model: list.lanes
 
                 delegate: Column {
@@ -312,19 +325,7 @@ Rectangle {
                             Accessible.selected: row.selected
                             Accessible.onPressAction: list.canvas.activateBlock(row.blockId)
 
-                            Component.onCompleted: {
-                                const rows = list.rows;
-                                rows[row.blockId] = row;
-                                list.rows = rows;
-                                row.activeFocusOnTab = row.blockId === list.currentId;
-                            }
-                            Component.onDestruction: {
-                                const rows = list.rows;
-                                if (rows[row.blockId] === row) {
-                                    delete rows[row.blockId];
-                                    list.rows = rows;
-                                }
-                            }
+                            Component.onCompleted: row.activeFocusOnTab = row.blockId === list.currentId
 
                             onActiveFocusChanged: if (row.activeFocus) {
                                 list.currentId = row.blockId;
