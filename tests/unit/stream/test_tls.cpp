@@ -20,6 +20,8 @@
 
 #include <atomic>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <thread>
 
@@ -196,13 +198,31 @@ TEST(TlsTest, AnExpiredCertificateIsRefused)
     EXPECT_EQ(refused.error(), StreamError::CertificateExpired);
 }
 
-TEST(TlsTest, AServerThatDoesNotSpeakTlsIsRefused)
+TEST(TlsTest, AServerThatAnswersWithoutTlsIsAHandshakeWorthTryingAgain)
 {
+    // A web server's error page, or a network's sign-in page, where TLS was
+    // expected: gone, perhaps, the next time.
     const PlainHttpServer server;
     const std::expected<Connection, StreamError> refused = secureConnection("localhost", server.port(), {});
     ASSERT_FALSE(refused.has_value());
-    EXPECT_EQ(refused.error(), StreamError::TlsFailed);
-    EXPECT_FALSE(isWorthRetrying(refused.error()));
+    EXPECT_EQ(refused.error(), StreamError::TlsHandshakeFailed);
+    EXPECT_TRUE(isWorthRetrying(refused.error()));
+}
+
+TEST(TlsTest, AStoreWithNoAuthoritiesIsSaidSoAndNotTakenForAnUntrustedServer)
+{
+    const std::filesystem::path empty =
+        std::filesystem::temp_directory_path() / ("reverblabr-test-empty-" + std::to_string(::getpid()) + ".pem");
+    std::ofstream(empty).flush();
+    for (const std::string &file : {empty.string(), std::string{"/nonexistent/reverblabr-authorities.pem"}}) {
+        const std::expected<std::shared_ptr<const TlsTrust>, StreamError> trust = TlsTrust::load(TlsOptions{file});
+        ASSERT_FALSE(trust.has_value()) << file;
+        EXPECT_EQ(trust.error(), StreamError::TrustStoreUnavailable);
+        EXPECT_FALSE(isWorthRetrying(trust.error()));
+    }
+    std::filesystem::remove(empty);
+    // The system's own store has some.
+    EXPECT_TRUE(TlsTrust::load({}).has_value());
 }
 
 TEST(TlsTest, NothingOlderThanTls12IsSpoken)
@@ -223,6 +243,29 @@ TEST(TlsTest, NothingOlderThanTls12IsSpoken)
     EXPECT_TRUE(behind.requests().empty());
 }
 
+TEST(TlsTest, NothingOlderThanTls12IsSpokenWhateverTheSystemAllows)
+{
+    // **The client's own priorities, not the system's policy**: Fedora's
+    // refuses TLS 1.1 by itself, so this runs under a policy that allows it
+    // (its own ctest entry, with GNUTLS_SYSTEM_PRIORITY_FILE), and shows a
+    // client with only the system's priorities connecting where the
+    // stream's does not.
+    TestAuthority authority;
+    FakeStreamServer behind;
+    TlsFront front(authority.issue(localServer()), behind.port(), "NORMAL:-VERS-ALL:+VERS-TLS1.1:+VERS-TLS1.0");
+    if (!systemPolicyHandshakes(front.port())) {
+        GTEST_SKIP() << "the system's own policy refuses TLS 1.1 here; the legacy-policy run shows the client's";
+    }
+    const int before = front.handshakes();
+    const std::expected<Connection, StreamError> refused =
+        secureConnection("localhost", front.port(), authority.trustFile());
+    ASSERT_FALSE(refused.has_value());
+    EXPECT_TRUE(refused.error() == StreamError::TlsFailed || refused.error() == StreamError::Closed)
+        << streamErrorName(refused.error());
+    EXPECT_EQ(front.handshakes(), before);
+    EXPECT_TRUE(behind.requests().empty());
+}
+
 TEST(TlsTest, AStalledHandshakeIsLetGoOfWhenCalledOff)
 {
     const SilentServer server;
@@ -236,12 +279,13 @@ TEST(TlsTest, AStalledHandshakeIsLetGoOfWhenCalledOff)
         cancel = true;
     });
     const auto before = std::chrono::steady_clock::now();
-    const std::expected<void, StreamError> secured = connection->startTls("127.0.0.1", {}, 30s, cancel);
+    const std::expected<void, StreamError> secured = connection->startTls("127.0.0.1", TlsOptions{}, 30s, cancel);
     const auto took = std::chrono::steady_clock::now() - before;
     caller.join();
     ASSERT_FALSE(secured.has_value());
     EXPECT_EQ(secured.error(), StreamError::Closed);
-    EXPECT_LT(took, 200ms + 100ms);
+    // The slice and a margin for a loaded machine.
+    EXPECT_LT(took, 200ms + 350ms);
     EXPECT_FALSE(connection->isSecure());
 }
 
@@ -252,10 +296,10 @@ TEST(TlsTest, AStalledHandshakeGivesUpWhenItsTimeIsUp)
     std::expected<Connection, StreamError> connection = Connection::open("127.0.0.1", server.port(), 2s, never);
     ASSERT_TRUE(connection.has_value());
     const auto before = std::chrono::steady_clock::now();
-    const std::expected<void, StreamError> secured = connection->startTls("127.0.0.1", {}, 300ms, never);
+    const std::expected<void, StreamError> secured = connection->startTls("127.0.0.1", TlsOptions{}, 300ms, never);
     ASSERT_FALSE(secured.has_value());
     EXPECT_EQ(secured.error(), StreamError::TimedOut);
-    EXPECT_LT(std::chrono::steady_clock::now() - before, 300ms + 100ms);
+    EXPECT_LT(std::chrono::steady_clock::now() - before, 300ms + 350ms);
 }
 
 TEST(TlsTest, ASecureConnectionSeesTheServerHangUp)

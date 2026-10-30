@@ -165,9 +165,17 @@ enum class StreamError : std::uint8_t {
     /// The server's certificate was refused for another reason: revoked,
     /// or signed with an algorithm too weak to trust.
     CertificateInvalid,
-    /// No secure connection could be agreed on: the server does not speak
-    /// TLS on that port, or only a version older than 1.2.
+    /// No secure connection could be agreed on: the server takes only a
+    /// TLS version older than 1.2, or no cipher this computer allows.
     TlsFailed,
+    /// The secure connection's handshake broke off: the server sent an
+    /// error, something that is not TLS (a network's sign-in page, say),
+    /// or nothing in time. Worth another try.
+    TlsHandshakeFailed,
+    /// This computer's trusted authorities could not be read, or there are
+    /// none (no ca-certificates installed). Tried again when the stream is
+    /// started again.
+    TrustStoreUnavailable,
 };
 
 /// The name a status carries, "authRejected" and the like.

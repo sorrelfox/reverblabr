@@ -59,9 +59,8 @@ public:
         bool sent = false;
     };
 
-    TitleSender(const std::atomic<bool> &stopping, TlsOptions tls)
+    explicit TitleSender(const std::atomic<bool> &stopping)
         : m_stopping(stopping)
-        , m_tls(std::move(tls))
         , m_thread([this] { run(); })
     {
     }
@@ -80,12 +79,13 @@ public:
     TitleSender &operator=(const TitleSender &) = delete;
 
     /// Sends \a title to \a server, for the connection numbered
-    /// \a connection, in place of any title still waiting.
-    void post(ServerSettings server, std::string title, std::uint64_t connection)
+    /// \a connection, in place of any title still waiting; over TLS with
+    /// \a trust when the server is secure.
+    void post(ServerSettings server, std::shared_ptr<const TlsTrust> trust, std::string title, std::uint64_t connection)
     {
         {
             const std::lock_guard lock(m_mutex);
-            m_waiting = Waiting{std::move(server), std::move(title), connection};
+            m_waiting = Waiting{std::move(server), std::move(trust), std::move(title), connection};
         }
         m_wake.notify_all();
     }
@@ -100,6 +100,7 @@ public:
 private:
     struct Waiting {
         ServerSettings server;
+        std::shared_ptr<const TlsTrust> trust;
         std::string title;
         std::uint64_t connection = 0;
     };
@@ -117,13 +118,14 @@ private:
                 next = std::move(*m_waiting);
                 m_waiting.reset();
             }
-            const bool sent = send(next.server, next.title);
+            const bool sent = send(next.server, next.trust, next.title);
             const std::lock_guard lock(m_mutex);
             m_results.push_back(Result{std::move(next.title), next.connection, sent});
         }
     }
 
-    [[nodiscard]] bool send(const ServerSettings &server, const std::string &title) const
+    [[nodiscard]] bool
+    send(const ServerSettings &server, const std::shared_ptr<const TlsTrust> &trust, const std::string &title) const
     {
         std::expected<Connection, StreamError> admin =
             Connection::open(server.host, server.port, kTitleTimeout, m_stopping);
@@ -132,7 +134,7 @@ private:
         }
         // **Over TLS when the stream is**: the request carries the
         // password too.
-        if (server.secure && !admin->startTls(server.host, m_tls, kTitleTimeout, m_stopping)) {
+        if (server.secure && !admin->startTls(server.host, trust, kTitleTimeout, m_stopping)) {
             return false;
         }
         if (!admin->send(metadataRequest(server, title), kTitleTimeout, m_stopping)) {
@@ -150,7 +152,6 @@ private:
     }
 
     const std::atomic<bool> &m_stopping;
-    const TlsOptions m_tls;
     std::mutex m_mutex;
     std::condition_variable m_wake;
     std::optional<Waiting> m_waiting;
@@ -337,7 +338,11 @@ void BroadcastStream::run()
     std::optional<Clock::time_point> waitingForRate;
 
     // The title.
-    TitleSender titles(shared.stopping, options.tls);
+    TitleSender titles(shared.stopping);
+    // **The authorities, read once** for every connection and title request
+    // of this stream, and again after a certificate was refused, so one
+    // added to the system's store in the meantime counts.
+    std::shared_ptr<const TlsTrust> trust;
     NowPlayingFile nowPlayingFile;
     Track fileTrack;
     std::string titleSent;
@@ -402,6 +407,17 @@ void BroadcastStream::run()
         }
         disconnect();
         status.error = error;
+        switch (error) {
+        case StreamError::CertificateUntrusted:
+        case StreamError::CertificateExpired:
+        case StreamError::CertificateWrongHost:
+        case StreamError::CertificateInvalid:
+        case StreamError::TrustStoreUnavailable:
+            trust.reset();
+            break;
+        default:
+            break;
+        }
         if (isWorthRetrying(error)) {
             status.state = State::Retrying;
             retryAt = Clock::now() + backoff.next();
@@ -472,7 +488,7 @@ void BroadcastStream::run()
             return;
         }
         titleAsked = title;
-        titles.post(live, title, connectionNumber);
+        titles.post(live, live.secure ? trust : nullptr, title, connectionNumber);
     };
 
     const auto connect = [&] {
@@ -555,8 +571,15 @@ void BroadcastStream::run()
             }
             // **TLS before a word is said**, the password least of all.
             if (server.secure) {
+                if (!trust) {
+                    std::expected<std::shared_ptr<const TlsTrust>, StreamError> loaded = TlsTrust::load(options.tls);
+                    if (!loaded) {
+                        return std::unexpected(loaded.error());
+                    }
+                    trust = std::move(*loaded);
+                }
                 if (const std::expected<void, StreamError> secured =
-                        opened->startTls(server.host, options.tls, options.connectTimeout, shared.stopping);
+                        opened->startTls(server.host, trust, options.connectTimeout, shared.stopping);
                     !secured) {
                     return std::unexpected(secured.error());
                 }

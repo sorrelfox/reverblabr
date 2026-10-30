@@ -83,6 +83,41 @@ waitFor(int fd, short events, std::chrono::steady_clock::time_point deadline, co
     return StreamError::CertificateInvalid;
 }
 
+/// **What a handshake that failed comes to.** Nothing in common with the
+/// server (a version older than 1.2, no cipher this computer allows) stays
+/// so, and is not tried again; anything else (an error the server sent
+/// part way, something that is not TLS, such as a network's sign-in page,
+/// or nothing in time) may be gone the next time.
+[[nodiscard]] StreamError handshakeError(int result, gnutls_session_t session) noexcept
+{
+    switch (result) {
+    case GNUTLS_E_UNSUPPORTED_VERSION_PACKET:
+    case GNUTLS_E_NO_CIPHER_SUITES:
+    case GNUTLS_E_UNKNOWN_CIPHER_SUITE:
+    case GNUTLS_E_INSUFFICIENT_CREDENTIALS:
+    case GNUTLS_E_NO_COMMON_KEY_SHARE:
+        return StreamError::TlsFailed;
+    case GNUTLS_E_TIMEDOUT:
+        return StreamError::TimedOut;
+    case GNUTLS_E_PREMATURE_TERMINATION:
+    case GNUTLS_E_PULL_ERROR:
+    case GNUTLS_E_PUSH_ERROR:
+        return StreamError::Closed;
+    case GNUTLS_E_FATAL_ALERT_RECEIVED:
+        // The server's own word for the same mismatch.
+        switch (gnutls_alert_get(session)) {
+        case GNUTLS_A_PROTOCOL_VERSION:
+        case GNUTLS_A_INSUFFICIENT_SECURITY:
+        case GNUTLS_A_HANDSHAKE_FAILURE:
+            return StreamError::TlsFailed;
+        default:
+            return StreamError::TlsHandshakeFailed;
+        }
+    default:
+        return StreamError::TlsHandshakeFailed;
+    }
+}
+
 /// Whether \a host is an address rather than a name: an address is not
 /// sent as the server's name (RFC 6066 has no room for one), and is checked
 /// against the addresses the certificate is made out to.
@@ -94,10 +129,36 @@ waitFor(int fd, short events, std::chrono::steady_clock::time_point deadline, co
 
 } // namespace
 
-/// A TLS session over the connection's socket, and the authorities it
-/// checks the server against.
-struct Connection::Tls {
+std::expected<std::shared_ptr<const TlsTrust>, StreamError> TlsTrust::load(const TlsOptions &options)
+{
     gnutls_certificate_credentials_t credentials = nullptr;
+    if (gnutls_certificate_allocate_credentials(&credentials) < 0) {
+        return std::unexpected(StreamError::TlsFailed);
+    }
+    std::shared_ptr<const TlsTrust> trust(new TlsTrust(credentials));
+    // **The system's authorities, and nothing to switch the check off.** A
+    // server whose certificate is the server's own can be trusted by adding
+    // it to the system's store, as for any other program. The count is
+    // what was read: none is a store that is missing, not a server to
+    // distrust.
+    const int read = options.trustFile.empty()
+        ? gnutls_certificate_set_x509_system_trust(credentials)
+        : gnutls_certificate_set_x509_trust_file(credentials, options.trustFile.c_str(), GNUTLS_X509_FMT_PEM);
+    if (read <= 0) {
+        return std::unexpected(StreamError::TrustStoreUnavailable);
+    }
+    return trust;
+}
+
+TlsTrust::~TlsTrust()
+{
+    gnutls_certificate_free_credentials(m_credentials);
+}
+
+/// A TLS session over the connection's socket, and the authorities it
+/// checks the server against, kept for as long as the session uses them.
+struct Connection::Tls {
+    std::shared_ptr<const TlsTrust> trust;
     gnutls_session_t session = nullptr;
 
     Tls() = default;
@@ -108,9 +169,6 @@ struct Connection::Tls {
     {
         if (session != nullptr) {
             gnutls_deinit(session);
-        }
-        if (credentials != nullptr) {
-            gnutls_certificate_free_credentials(credentials);
         }
     }
 };
@@ -224,6 +282,7 @@ Connection::~Connection()
 Connection::Connection(Connection &&other) noexcept
     : m_fd(std::exchange(other.m_fd, -1))
     , m_tls(std::move(other.m_tls))
+    , m_tlsWaitsToWrite(std::exchange(other.m_tlsWaitsToWrite, false))
 {
 }
 
@@ -233,6 +292,7 @@ Connection &Connection::operator=(Connection &&other) noexcept
         close();
         m_fd = std::exchange(other.m_fd, -1);
         m_tls = std::move(other.m_tls);
+        m_tlsWaitsToWrite = std::exchange(other.m_tlsWaitsToWrite, false);
     }
     return *this;
 }
@@ -322,32 +382,34 @@ std::expected<void, StreamError> Connection::startTls(const std::string &host,
                                                       std::chrono::milliseconds timeout,
                                                       const std::atomic<bool> &cancel)
 {
-    if (m_fd < 0 || m_tls) {
+    std::expected<std::shared_ptr<const TlsTrust>, StreamError> trust = TlsTrust::load(options);
+    if (!trust) {
+        return std::unexpected(trust.error());
+    }
+    return startTls(host, std::move(*trust), timeout, cancel);
+}
+
+std::expected<void, StreamError> Connection::startTls(const std::string &host,
+                                                      std::shared_ptr<const TlsTrust> trust,
+                                                      std::chrono::milliseconds timeout,
+                                                      const std::atomic<bool> &cancel)
+{
+    if (m_fd < 0 || m_tls || !trust) {
         return std::unexpected(StreamError::Closed);
     }
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     std::unique_ptr<Tls, TlsDeleter> tls(new Tls);
-    if (gnutls_certificate_allocate_credentials(&tls->credentials) < 0) {
-        return std::unexpected(StreamError::TlsFailed);
-    }
-    // **The system's authorities, and nothing to switch the check off.** A
-    // server whose certificate is the server's own can be trusted by adding
-    // it to the system's store, as for any other program. A store with
-    // none in it is not an error here: the check finds it out, as a
-    // certificate from an authority nobody trusts.
-    if (options.trustFile.empty()) {
-        (void)gnutls_certificate_set_x509_system_trust(tls->credentials);
-    } else {
-        (void)gnutls_certificate_set_x509_trust_file(tls->credentials, options.trustFile.c_str(), GNUTLS_X509_FMT_PEM);
-    }
-
+    tls->trust = std::move(trust);
     if (gnutls_init(&tls->session, GNUTLS_CLIENT | GNUTLS_NONBLOCK | GNUTLS_NO_SIGNAL) < 0) {
         return std::unexpected(StreamError::TlsFailed);
     }
     // The system's choice of ciphers, which its crypto policy sets, with
-    // nothing older than TLS 1.2 whatever the policy allows.
-    if (gnutls_set_default_priority_append(tls->session, "-VERS-TLS1.0:-VERS-TLS1.1", nullptr, 0) < 0
-        || gnutls_credentials_set(tls->session, GNUTLS_CRD_CERTIFICATE, tls->credentials) < 0) {
+    // nothing older than TLS 1.2 whatever the policy allows, and no server
+    // that cannot renegotiate safely.
+    if (gnutls_set_default_priority_append(
+            tls->session, "-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:%SAFE_RENEGOTIATION", nullptr, 0)
+            < 0
+        || gnutls_credentials_set(tls->session, GNUTLS_CRD_CERTIFICATE, tls->trust->credentials()) < 0) {
         return std::unexpected(StreamError::TlsFailed);
     }
     if (!isAddress(host) && gnutls_server_name_set(tls->session, GNUTLS_NAME_DNS, host.data(), host.size()) < 0) {
@@ -357,6 +419,9 @@ std::expected<void, StreamError> Connection::startTls(const std::string &host,
     // the dates, and the host's name or address.
     gnutls_session_set_verify_cert(tls->session, host.c_str(), 0);
     gnutls_transport_set_int(tls->session, m_fd);
+    // **The deadline is ours**, and so is calling it off; GnuTLS is not to
+    // keep a clock of its own.
+    gnutls_handshake_set_timeout(tls->session, GNUTLS_INDEFINITE_TIMEOUT);
 
     for (;;) {
         const int result = gnutls_handshake(tls->session);
@@ -383,16 +448,10 @@ std::expected<void, StreamError> Connection::startTls(const std::string &host,
         if (result == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR || result == GNUTLS_E_CERTIFICATE_ERROR) {
             return std::unexpected(certificateError(gnutls_session_get_verify_cert_status(tls->session)));
         }
-        // A server that went away in the middle is worth another try; one
-        // that answered with something that is not TLS, or with nothing
-        // both sides can speak, is not.
-        if (result == GNUTLS_E_PREMATURE_TERMINATION || result == GNUTLS_E_PULL_ERROR
-            || result == GNUTLS_E_PUSH_ERROR) {
-            return std::unexpected(StreamError::Closed);
-        }
-        return std::unexpected(StreamError::TlsFailed);
+        return std::unexpected(handshakeError(result, tls->session));
     }
     m_tls = std::move(tls);
+    m_tlsWaitsToWrite = false;
     return {};
 }
 
@@ -466,9 +525,11 @@ std::expected<bool, StreamError> Connection::receiveSome(std::string &received,
     if (m_fd < 0) {
         return false;
     }
-    // What GnuTLS has read and not handed out yet is there without a wait.
+    // What GnuTLS has read and not handed out yet is there without a wait;
+    // otherwise the wait is the way the session last said it waits.
     if (!m_tls || gnutls_record_check_pending(m_tls->session) == 0) {
-        const std::expected<short, StreamError> ready = waitFor(m_fd, POLLIN, deadline, cancel);
+        const short events = m_tls && m_tlsWaitsToWrite ? POLLOUT : POLLIN;
+        const std::expected<short, StreamError> ready = waitFor(m_fd, events, deadline, cancel);
         if (!ready) {
             return std::unexpected(ready.error());
         }
@@ -479,14 +540,23 @@ std::expected<bool, StreamError> Connection::receiveSome(std::string &received,
     std::array<char, 2048> buffer{};
     if (m_tls) {
         const ssize_t got = gnutls_record_recv(m_tls->session, buffer.data(), buffer.size());
-        if (got == GNUTLS_E_AGAIN || got == GNUTLS_E_INTERRUPTED
-            || (got < 0 && gnutls_error_is_fatal(static_cast<int>(got)) == 0)) {
+        m_tlsWaitsToWrite = false;
+        if (got == GNUTLS_E_AGAIN || got == GNUTLS_E_INTERRUPTED) {
+            m_tlsWaitsToWrite = gnutls_record_get_direction(m_tls->session) == 1;
             return true;
         }
-        // A server that hangs up without saying so in TLS has still hung
-        // up: an answer it sent before is read as far as it goes.
-        if (got <= 0) {
+        if (got < 0 && gnutls_error_is_fatal(static_cast<int>(got)) == 0) {
+            return true;
+        }
+        // **Closed, cleanly or not**: a server that hangs up without saying
+        // so in TLS has still hung up, and an answer it sent before is read
+        // as far as it goes. Anything else fatal (a record that does not
+        // decrypt, an alert) is not the end of an answer but an error.
+        if (got == 0 || got == GNUTLS_E_PREMATURE_TERMINATION) {
             return false;
+        }
+        if (got < 0) {
+            return std::unexpected(StreamError::Closed);
         }
         if (received.size() + static_cast<std::size_t>(got) > maxBytes) {
             return std::unexpected(StreamError::BadResponse);

@@ -210,6 +210,10 @@ std::string_view streamErrorName(StreamError error) noexcept
         return "certificateInvalid";
     case StreamError::TlsFailed:
         return "tlsFailed";
+    case StreamError::TlsHandshakeFailed:
+        return "tlsHandshakeFailed";
+    case StreamError::TrustStoreUnavailable:
+        return "trustStoreUnavailable";
     }
     return "rejected";
 }
@@ -230,6 +234,7 @@ bool isWorthRetrying(StreamError error) noexcept
     case StreamError::CertificateWrongHost:
     case StreamError::CertificateInvalid:
     case StreamError::TlsFailed:
+    case StreamError::TrustStoreUnavailable:
         return false;
     case StreamError::ResolveFailed:
     case StreamError::ConnectFailed:
@@ -239,6 +244,7 @@ bool isWorthRetrying(StreamError error) noexcept
     case StreamError::Rejected:
     case StreamError::BadResponse:
     case StreamError::EncoderFailed:
+    case StreamError::TlsHandshakeFailed:
         return true;
     }
     return true;

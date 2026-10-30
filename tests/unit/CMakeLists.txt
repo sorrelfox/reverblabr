@@ -219,6 +219,14 @@ rb_add_gtest(reverblabr-stream-test
     LIBRARIES reverblabr-stream reverblabr-rt PkgConfig::RB_TEST_FFMPEG PkgConfig::RB_TEST_GNUTLS
 )
 set_target_properties(reverblabr-stream-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
+# **The client's own TLS versions, not the system's policy**: Fedora's policy
+# refuses TLS 1.1 by itself, so the test that shows the client does too runs
+# once more under a policy that allows it.
+add_test(NAME stream.TlsTest.NothingOlderThanTls12UnderALegacyPolicy
+    COMMAND reverblabr-stream-test --gtest_filter=TlsTest.NothingOlderThanTls12*)
+set_tests_properties(stream.TlsTest.NothingOlderThanTls12UnderALegacyPolicy PROPERTIES
+    ENVIRONMENT "${RB_TEST_ENVIRONMENT};GNUTLS_SYSTEM_PRIORITY_FILE=${CMAKE_CURRENT_SOURCE_DIR}/stream/tls-legacy-policy.config"
+)
 
 # A live stream (ADR-0027): the picture, the encoders, and the thread that
 # streams, against FFmpeg's own RTMP server run in the test. A real server

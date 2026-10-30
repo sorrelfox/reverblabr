@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+struct gnutls_certificate_credentials_st;
+
 namespace rb::stream
 {
 
@@ -29,6 +31,38 @@ struct TlsOptions {
     std::string trustFile;
 
     [[nodiscard]] bool operator==(const TlsOptions &other) const = default;
+};
+
+/// **The authorities a secure connection trusts**, read once and shared by
+/// every connection a stream makes, its title requests' too: the system's
+/// store holds hundreds of certificates, and reading them for each
+/// connection would cost more than the connection. Read only after it is
+/// made, so any number of threads can use it at once.
+class TlsTrust
+{
+public:
+    /// Reads \a options' authorities. **A store that cannot be read, or
+    /// holds none, is StreamError::TrustStoreUnavailable**, not a server
+    /// whose certificate nobody trusts: what is missing is on this
+    /// computer.
+    [[nodiscard]] static std::expected<std::shared_ptr<const TlsTrust>, StreamError> load(const TlsOptions &options);
+
+    ~TlsTrust();
+    TlsTrust(const TlsTrust &) = delete;
+    TlsTrust &operator=(const TlsTrust &) = delete;
+
+    [[nodiscard]] gnutls_certificate_credentials_st *credentials() const noexcept
+    {
+        return m_credentials;
+    }
+
+private:
+    explicit TlsTrust(gnutls_certificate_credentials_st *credentials) noexcept
+        : m_credentials(credentials)
+    {
+    }
+
+    gnutls_certificate_credentials_st *m_credentials = nullptr;
 };
 
 /// A TCP connection to a server, for the thread that streams.
@@ -77,10 +111,18 @@ public:
     /// **Makes the connection secure**, before anything else is sent on it:
     /// TLS 1.2 or later, \a host sent as the name the server is asked for
     /// (SNI) unless it is an address, and the server's certificate checked
-    /// against \a options' authorities and \a host. A certificate that is
-    /// refused says why (StreamError::CertificateUntrusted and the others);
-    /// a server that does not speak TLS is StreamError::TlsFailed. The
-    /// handshake can be called off as anything else can.
+    /// against \a trust and \a host. A certificate that is refused says
+    /// why (StreamError::CertificateUntrusted and the others); a server
+    /// with no TLS version or cipher in common is StreamError::TlsFailed,
+    /// and one whose handshake broke off otherwise is
+    /// StreamError::TlsHandshakeFailed. The handshake can be called off as
+    /// anything else can.
+    [[nodiscard]] std::expected<void, StreamError> startTls(const std::string &host,
+                                                            std::shared_ptr<const TlsTrust> trust,
+                                                            std::chrono::milliseconds timeout,
+                                                            const std::atomic<bool> &cancel);
+
+    /// The same, reading \a options' authorities for this connection alone.
     [[nodiscard]] std::expected<void, StreamError> startTls(const std::string &host,
                                                             const TlsOptions &options,
                                                             std::chrono::milliseconds timeout,
@@ -162,6 +204,9 @@ private:
 
     int m_fd = -1;
     std::unique_ptr<Tls, TlsDeleter> m_tls;
+    /// Which way the TLS session last said it was waiting: a record can
+    /// need the socket writable before it can be read.
+    bool m_tlsWaitsToWrite = false;
 };
 
 } // namespace rb::stream

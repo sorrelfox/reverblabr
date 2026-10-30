@@ -104,7 +104,8 @@ TestCase {
         for (const error of ["authRejected", "noPassword", "notConfigured", "encoderMissing", "closed",
                              "connectFailed", "mountInUse", "timedOut", "resolveFailed",
                              "certificateUntrusted", "certificateExpired", "certificateWrongHost",
-                             "certificateInvalid", "tlsFailed"]) {
+                             "certificateInvalid", "tlsFailed", "tlsHandshakeFailed",
+                             "trustStoreUnavailable"]) {
             verify(words.errorText(error) !== words.errorText("something new"), error + " has no words");
         }
     }

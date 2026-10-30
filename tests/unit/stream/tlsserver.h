@@ -92,6 +92,12 @@ public:
         return m_file.string();
     }
 
+    /// The authority's certificate, in PEM.
+    [[nodiscard]] const std::string &pem() const
+    {
+        return m_pem;
+    }
+
     [[nodiscard]] Certificate issue(const Server &server) const
     {
         gnutls_x509_privkey_t key = nullptr;
@@ -328,6 +334,42 @@ private:
     std::vector<std::thread> m_clients;
     std::thread m_thread;
 };
+
+/// **Whether a client with nothing but the system's own priorities**
+/// completes a handshake with the TLS server at \a port: what a test needs
+/// to know before it can show that the stream's client asks for more. The
+/// certificate is not checked; only the versions and ciphers matter here.
+inline bool systemPolicyHandshakes(std::uint16_t port)
+{
+    const int fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = htons(port);
+    if (::connect(fd, reinterpret_cast<sockaddr *>(&address), sizeof address) != 0) {
+        ::close(fd);
+        return false;
+    }
+    gnutls_certificate_credentials_t credentials = nullptr;
+    gnutls_certificate_allocate_credentials(&credentials);
+    gnutls_session_t session = nullptr;
+    gnutls_init(&session, GNUTLS_CLIENT | GNUTLS_NO_SIGNAL);
+    gnutls_set_default_priority(session);
+    gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, credentials);
+    gnutls_transport_set_int(session, fd);
+    gnutls_handshake_set_timeout(session, 5000);
+    int result = 0;
+    do {
+        result = gnutls_handshake(session);
+    } while (result < 0 && gnutls_error_is_fatal(result) == 0);
+    if (result == 0) {
+        (void)gnutls_bye(session, GNUTLS_SHUT_WR);
+    }
+    gnutls_deinit(session);
+    gnutls_certificate_free_credentials(credentials);
+    ::close(fd);
+    return result == 0;
+}
 
 /// **A server that takes the connection and then says nothing**, ever: a
 /// TLS handshake to it stalls at its first step.

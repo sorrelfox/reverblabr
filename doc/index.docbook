@@ -540,7 +540,8 @@ authority this computer trusts, be made out to the host you typed, and be in
 date, and the block sends nothing, the password least of all, to a server
 whose certificate is refused. There is no switch to skip the check; a server
 with a certificate of its own making is trusted by adding that certificate to
-the computer's trusted ones. SHOUTcast's protocol has no TLS. The password is kept in your desktop's password store
+the computer's trusted ones and starting the session again, which reads them
+afresh. SHOUTcast's protocol has no TLS. The password is kept in your desktop's password store
 (&kwallet; on &plasma;), never in the session file: a session you copy or
 send to somebody carries none. Then the format, the bit rate, and stereo or
 mono.</para></listitem></varlistentry>

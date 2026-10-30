@@ -145,7 +145,11 @@ QtObject {
         case "certificateInvalid":
             return KI18n.i18nc("@info:status a stream", "The server's certificate was refused");
         case "tlsFailed":
-            return KI18n.i18nc("@info:status a stream", "No secure connection could be made on this port");
+            return KI18n.i18nc("@info:status a stream", "The server offers no secure connection this computer accepts");
+        case "tlsHandshakeFailed":
+            return KI18n.i18nc("@info:status a stream", "The secure connection broke off");
+        case "trustStoreUnavailable":
+            return KI18n.i18nc("@info:status a stream", "This computer's trusted certificate authorities couldn't be read");
         }
         return KI18n.i18nc("@info:status a stream", "The stream stopped");
     }

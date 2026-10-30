@@ -179,7 +179,8 @@ inline constexpr std::array kErrorCodes{
     // cannot help: the reason is a status's error, "authRejected",
     // "noPassword", "notConfigured", "encoderMissing", a refused
     // certificate ("certificateUntrusted", "certificateExpired",
-    // "certificateWrongHost", "certificateInvalid") or "tlsFailed". Once
+    // "certificateWrongHost", "certificateInvalid"), "tlsFailed" or
+    // "trustStoreUnavailable". Once
     // each time it stops; it tries again when its settings or its password
     // change.
     ErrorCodeInfo{ErrorCode::BroadcastFailed, "broadcast.failed", {"station", "reason"}},

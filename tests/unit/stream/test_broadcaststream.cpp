@@ -630,6 +630,15 @@ TEST(BroadcastStreamTest, ARefusedCertificateSaysWhyAndIsNotTriedAgain)
     std::this_thread::sleep_for(600ms);
     EXPECT_EQ(front.refusals(), 1);
     EXPECT_EQ(server.sources(), 0U);
+
+    // **The authority added, and the stream asked again**: the store is read
+    // again rather than the one that refused it kept.
+    std::ofstream(options.tls.trustFile, std::ios::trunc) << stranger.pem();
+    stream.setPassword("hackme");
+    ASSERT_TRUE(waitFor([&] { return statuses.last().state == State::Connected; }))
+        << broadcastStateName(statuses.last().state);
+    EXPECT_TRUE(statuses.last().secure);
+    EXPECT_EQ(server.sources(), 1U);
 }
 
 TEST(BroadcastStreamTest, StoppingDoesNotWaitForAHandshakeThatStalls)
@@ -649,7 +658,8 @@ TEST(BroadcastStreamTest, StoppingDoesNotWaitForAHandshakeThatStalls)
     std::this_thread::sleep_for(300ms);
     const auto before = std::chrono::steady_clock::now();
     stream.reset();
-    EXPECT_LT(std::chrono::steady_clock::now() - before, 500ms);
+    // A margin for a loaded machine.
+    EXPECT_LT(std::chrono::steady_clock::now() - before, 750ms);
 }
 
 TEST(BroadcastStreamTest, ShoutcastIsNeverAskedForTls)

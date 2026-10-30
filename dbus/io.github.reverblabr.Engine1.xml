@@ -755,7 +755,8 @@ SPDX-License-Identifier: MIT
                     | "connectFailed" | "timedOut" | "closed" | "mountInUse"
                     | "rejected" | "badResponse" | "certificateUntrusted"
                     | "certificateExpired" | "certificateWrongHost"
-                    | "certificateInvalid" | "tlsFailed",
+                    | "certificateInvalid" | "tlsFailed" | "tlsHandshakeFailed"
+                    | "trustStoreUnavailable",
              "connectedSince": 1767225600000, "bytesSent": 1048576,
              "kbps": 128.4, "reconnects": 1, "retryIn": 4000,
              "title": "Artist - Title", "sampleRate": 48000,
@@ -769,8 +770,11 @@ SPDX-License-Identifier: MIT
          secure is whether the connection that is up goes through TLS, and
          false while none is. The "certificate…" errors say why the server's
          certificate was refused (an authority the system does not trust,
-         out of date, or made out to another name), and "tlsFailed" that no
-         secure connection could be agreed on.
+         out of date, or made out to another name); "tlsFailed" that the
+         server offers no TLS version or cipher in common (1.2 or later);
+         "tlsHandshakeFailed" that a handshake broke off, which is tried
+         again; "trustStoreUnavailable" that the system's trusted
+         authorities could not be read.
          "passwordStored" is there once the engine knows. A Live Stream
          block's status says the same of its RTMP stream, its key being its
          password and "title" what its picture says is playing, and adds

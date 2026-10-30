@@ -294,7 +294,11 @@ constexpr std::array kReasons{
     Message{"certificateInvalid", kli18nc("@info a reason a stream stopped", "the server's certificate was refused")},
     Message{"tlsFailed",
             kli18nc("@info a reason a stream stopped",
-                    "no secure connection could be made: the server may not take TLS on that port")},
+                    "the server offers no secure connection this computer accepts (TLS 1.2 or later)")},
+    Message{"trustStoreUnavailable",
+            kli18nc("@info a reason a stream stopped",
+                    "this computer's trusted certificate authorities couldn't be read. Check that the "
+                    "ca-certificates package is installed")},
     // A Live Stream block on a system with no H.264 encoder that works.
     Message{"noH264Encoder",
             kli18nc("@info why a live stream cannot start",
