@@ -80,6 +80,7 @@ TestCase {
     // One test's session is not the next test's: the singletons live as long
     // as the QML engine does. Removing every block takes every wire with it.
     function cleanup() {
+        TestEngine.setAnswersLater(false);
         SessionModel.removeBlocks(SessionModel.blockIds);
         compare(SessionModel.blockIds.length, 0);
         compare(SessionModel.wireCount, 0);
@@ -309,6 +310,41 @@ TestCase {
         compare(SessionModel.blockIds.length, 2);
         verify(SessionModel.hasWire(source, 0, output, 0), "the lane was left in two halves");
         verify(SessionModel.hasWire(source, 1, output, 1));
+        compare(SessionModel.wireCount, 2);
+    }
+
+    // **The gap closes with an engine that answers later**, as the one in
+    // reverblabrd does over the bus. Whether the block had gone was asked
+    // straight after the removal was sent, when it had not gone yet, so
+    // the lane was left in two halves in the installed application.
+    function test_theGapClosesWhenTheEngineAnswersLater() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        const source = canvas.addBlockAfterSelection("source.device");
+        const first = canvas.addBlockAfterSelection("effect.volume");
+        const second = canvas.addBlockAfterSelection("effect.volume");
+        const output = canvas.addBlockAfterSelection("output.device");
+        compare(SessionModel.wireCount, 6);
+        TestEngine.setAnswersLater(true);
+
+        canvas.selectOnly(first);
+        canvas.removeSelected();
+        tryVerify(() => SessionModel.blockIds.length === 3, 1000, "the block was not taken out");
+        tryVerify(() => SessionModel.hasWire(source, 0, second, 0) && SessionModel.hasWire(source, 1, second, 1), 1000,
+                  "the lane was left in two halves");
+        compare(SessionModel.wireCount, 4);
+
+        // **One step to take back**, the block and the wire that replaced it.
+        SessionModel.undo();
+        tryVerify(() => SessionModel.blockIds.length === 4, 1000, "one undo did not put the block back");
+        tryVerify(() => SessionModel.wireCount === 6, 1000, "one undo did not put the lane back as it was");
+        verify(!SessionModel.hasWire(source, 0, second, 0), "the wire that closed the gap outlived the undo");
+
+        // **Two at once**, each closing the gap the other left, though
+        // neither removal has been answered when the next is worked out.
+        SessionModel.removeBlocks([first, second]);
+        tryVerify(() => SessionModel.blockIds.length === 2, 1000, "the two blocks were not taken out");
+        tryVerify(() => SessionModel.hasWire(source, 0, output, 0) && SessionModel.hasWire(source, 1, output, 1), 1000,
+                  "taking two blocks out left a hole in the lane");
         compare(SessionModel.wireCount, 2);
     }
 

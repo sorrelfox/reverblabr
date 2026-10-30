@@ -192,6 +192,52 @@ public:
         facade->applyEdit(sessionId, QString::fromUtf8(QJsonDocument(array).toJson(QJsonDocument::Compact)));
     }
 
+    /// Takes \a blockId out of \a trial and sends the same to the engine:
+    /// the block, and in automatic mode the wires that close the gap it
+    /// leaves. **One list, worked out before it is sent.** The engine
+    /// answers when it answers — the one in reverblabrd over the bus — so
+    /// asking this model's own copy afterwards whether the block had gone
+    /// was asking too early, and the lane was left in two halves. Sent
+    /// together, the block and the wires that replace it are also one step
+    /// to take back.
+    void removeFrom(core::Session &trial, const QString &blockId)
+    {
+        // **What fed it and what it fed, read before it goes.** Once the
+        // removal has been applied the wires have gone with it, and there
+        // is nothing left to say which blocks were on either side.
+        const QList<core::Wire> touching = trial.wiresTouching(blockId);
+        std::vector<core::EditCommand> commands{core::RemoveBlock{blockId}};
+        if (!core::applyEdit(trial, commands.front()) || !trial.settings.autoConnect) {
+            applyAll(commands);
+            return;
+        }
+        // **Channel to channel, not everything to everything.** A block
+        // passes what arrives at its input n out of its output n, so the
+        // wire that replaces it joins the same pair — the left of what fed
+        // it to the left of what it fed. Joining every input to every output
+        // would turn the removal of a stereo block into a mono sum of both
+        // channels, which is not what was there a moment before.
+        for (const core::Wire &upstream : touching) {
+            if (upstream.toBlock != blockId) {
+                continue;
+            }
+            for (const core::Wire &downstream : touching) {
+                if (downstream.fromBlock != blockId || downstream.fromPort != upstream.toPort) {
+                    continue;
+                }
+                core::Wire wire = upstream;
+                wire.toBlock = downstream.toBlock;
+                wire.toPort = downstream.toPort;
+                if (core::connectRefusal(trial, wire)) {
+                    continue;
+                }
+                (void)core::applyEdit(trial, core::Connect{wire, -1});
+                commands.push_back(core::Connect{wire, -1});
+            }
+        }
+        applyAll(commands);
+    }
+
     /// Sends again every held value that has not gone for a while, and
     /// lets go of one whose hand has not moved for kHoldLimitMs.
     void keepHeld()
@@ -948,44 +994,21 @@ QString SessionModel::addBlock(const QString &typeId, const QPointF &position)
 
 void SessionModel::removeBlock(const QString &blockId)
 {
-    // **What fed it and what it fed, read before it goes.** Once the
-    // removal has been applied the wires have gone with it, and there is
-    // nothing left to say which blocks were on either side.
-    const QList<core::Wire> touching = d->session.wiresTouching(blockId);
-    d->apply(core::RemoveBlock{blockId});
-    if (!d->session.settings.autoConnect || d->session.hasBlock(blockId)) {
-        return;
-    }
-    // **Channel to channel, not everything to everything.** A block passes
-    // what arrives at its input n out of its output n, so the wire that
-    // replaces it joins the same pair — the left of what fed it to the left
-    // of what it fed. Joining every input to every output would turn the
-    // removal of a stereo block into a mono sum of both channels, which is
-    // not what was there a moment before.
-    for (const core::Wire &upstream : touching) {
-        if (upstream.toBlock != blockId) {
-            continue;
-        }
-        for (const core::Wire &downstream : touching) {
-            if (downstream.fromBlock != blockId || downstream.fromPort != upstream.toPort) {
-                continue;
-            }
-            connectBlocks(upstream.fromBlock,
-                          static_cast<int>(upstream.fromPort),
-                          downstream.toBlock,
-                          static_cast<int>(downstream.toPort));
-        }
-    }
+    core::Session trial = d->session;
+    d->removeFrom(trial, blockId);
 }
 
 void SessionModel::removeBlocks(const QStringList &blockIds)
 {
+    // **Each one the same as one on its own**, closing the gap behind it if
+    // the session is set to. Taking three blocks out of a lane one at a time
+    // leaves the lane joined up, because each removal wires what is left of
+    // either side together. **Worked out on one copy**, which has each
+    // removal in it before the next is worked out: the session this model
+    // follows has none of them until the engine answers.
+    core::Session trial = d->session;
     for (const QString &blockId : blockIds) {
-        // **Each one the same as one on its own**, closing the gap behind
-        // it if the session is set to. Taking three blocks out of a lane
-        // one at a time leaves the lane joined up, because each removal
-        // wires what is left of either side together.
-        removeBlock(blockId);
+        d->removeFrom(trial, blockId);
     }
 }
 
