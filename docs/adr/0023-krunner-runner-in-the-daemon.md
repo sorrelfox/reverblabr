@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # ADR-0023: The sessions in KRunner, as a D-Bus runner served by the daemon; Auto Run once a login
 
-- **Status:** Accepted
+- **Status:** Proposed
 - **Date:** 2026-10-29
 
 ## Context
