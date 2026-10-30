@@ -223,6 +223,13 @@ public:
     Q_INVOKABLE void addFakeIncompletePlugins(const QString &format, const QString &path);
     /// Back to the built-in plugins alone, and nothing blocklisted.
     Q_INVOKABLE void clearFakePlugins();
+    /// **Edits answered on the next turn of the event loop**, as the
+    /// engine in reverblabrd answers them over the bus, rather than before
+    /// applyEdit() returns. An interface that reads the session straight
+    /// after sending an edit works against the mock and the in-process
+    /// engine and not against the daemon; this is how a test finds out.
+    Q_INVOKABLE void setAnswersLater(bool later);
+
     /// How many rescans were asked for, and whether the last one retried
     /// the blocklisted.
     [[nodiscard]] Q_INVOKABLE int fakeRescans() const;

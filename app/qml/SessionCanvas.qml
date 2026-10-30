@@ -334,14 +334,52 @@ Item {
         }
         const added = SessionModel.addBlock(canvas.withStartingEar(typeId), canvas.freeSpot(at, size));
         if (added !== "") {
-            // **Wired before it is selected**, because what it is wired to
-            // is what *was* selected. The engine's history merges the wire
-            // into the block it came with, so both go back in one Ctrl+Z.
-            canvas.autoConnect(added, last);
+            // **What it is wired to is what *was* selected**, kept here
+            // before the new block takes the selection.
             canvas.selectOnly(added);
-            canvas.bringIntoView(added);
+            canvas.awaitingArrival = canvas.awaitingArrival.concat([{ added: added, after: last }]);
+            canvas.settleArrivals();
         }
         return added;
+    }
+
+    /// Blocks added after another, as `{ added, after }`, that the session
+    /// does not have yet. **The engine answers an edit when it answers**:
+    /// the one in reverblabrd does so over the bus, after addBlock() has
+    /// returned, and a wire asked for at once was asked for to a block the
+    /// session had never heard of, and refused. So the wire is drawn, and
+    /// the view moved to the block, when the block arrives. The engine's
+    /// history merges a wire that soon after into the block it came with,
+    /// so both still go back in one Ctrl+Z.
+    property var awaitingArrival: []
+
+    /// Wires and shows each awaited block the session now has.
+    function settleArrivals() {
+        const waiting = [];
+        for (const entry of canvas.awaitingArrival) {
+            if (SessionModel.blockType(entry.added) === "") {
+                waiting.push(entry);
+                continue;
+            }
+            canvas.autoConnect(entry.added, entry.after);
+            canvas.bringIntoView(entry.added);
+        }
+        canvas.awaitingArrival = waiting;
+    }
+
+    Connections {
+        target: SessionModel
+        enabled: canvas.awaitingArrival.length > 0
+
+        function onChanged() {
+            canvas.settleArrivals();
+        }
+
+        // **Not across sessions**: a block that was on its way to the
+        // session that was showing is not one to wire in the next.
+        function onSessionChanged() {
+            canvas.awaitingArrival = [];
+        }
     }
 
     /// Pans just far enough that \a blockId is on screen whole, with a

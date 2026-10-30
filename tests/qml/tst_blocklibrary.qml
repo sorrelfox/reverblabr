@@ -125,6 +125,7 @@ TestCase {
     }
 
     function cleanup() {
+        TestEngine.setAnswersLater(false);
         SessionModel.removeBlocks(SessionModel.blockIds);
         WindowState.setCollapsedCategories([]);
     }
@@ -723,5 +724,57 @@ TestCase {
         library.searchField.text = "";
         compare(testCase.shownCategories(library), BlockPresentation.categories.filter(
                     category => testCase.shownCategories(library).indexOf(category) >= 0));
+    }
+
+    // **A block added from the library follows the selected one and is
+    // wired to it, with an engine that answers later.** The engine in
+    // reverblabrd answers an edit over the bus, after addBlock() has
+    // returned, and the wire was asked for at once: of a block the session
+    // did not have yet, so it was never drawn. Seen as Peak/RMS added
+    // unwired after a Recorder, from the search with Enter; a click on the
+    // row did the same. The selection is kept while the search is used.
+    function test_aBlockAddedFromTheSearchFollowsTheSelectedOne() {
+        for (const how of ["enter", "click"]) {
+            const window = testCase.openWideWindow();
+            const canvas = window.sessionCanvas;
+            const recorder = SessionModel.addBlock("output.recorder", Qt.point(40, 200));
+            waitForRendering(window.contentItem);
+            TestEngine.setAnswersLater(true);
+            const tile = testCase.tileOf(canvas, recorder);
+            verify(tile !== null, "the Recorder has a tile");
+            mouseClick(tile, tile.width / 2, tile.height / 2);
+            compare(canvas.selectedIds, [recorder], how + ": a click on the tile did not select it");
+
+            testCase.typeIntoSearch(window, "RMS");
+            compare(canvas.selectedIds, [recorder], how + ": using the search lost the selection");
+            if (how === "enter") {
+                keyClick(Qt.Key_Return);
+            } else {
+                const library = window.blockLibrary;
+                const index = library.rows.findIndex(row => row.kind === "block" && row.id === "meter.peakrms");
+                verify(index >= 0, "the search did not find Peak/RMS");
+                library.list.positionViewAtIndex(index, ListView.Contain);
+                library.list.forceLayout();
+                const row = library.list.itemAtIndex(index);
+                verify(row !== null, "the Peak/RMS row was not built");
+                mouseClick(row, row.width / 2, row.height / 2);
+            }
+            tryVerify(() => SessionModel.blockIds.length === 2, 1000, how + ": nothing was added");
+            const meter = SessionModel.blockIds.find(id => id !== recorder);
+            compare(SessionModel.block(meter).type, "meter.peakrms", how);
+            tryVerify(() => SessionModel.hasWire(recorder, 0, meter, 0) && SessionModel.hasWire(recorder, 1, meter, 1),
+                      1000, how + ": the meter was not wired after the Recorder");
+            verify(SessionModel.block(meter).position.x > SessionModel.block(recorder).position.x,
+                   how + ": the meter was not put after the Recorder");
+            compare(canvas.selectedIds, [meter], how + ": the new block is not the one selected");
+            // **One step to take back**, the block and its wire together.
+            SessionModel.undo();
+            tryVerify(() => SessionModel.blockIds.length === 1, 1000, how + ": one undo did not take the meter back");
+            verify(!SessionModel.hasWire(recorder, 0, meter, 0), how + ": the wire outlived its block");
+            TestEngine.setAnswersLater(false);
+            window.blockLibrary.searchField.text = "";
+            window.destroy();
+            SessionModel.removeBlocks(SessionModel.blockIds);
+        }
     }
 }

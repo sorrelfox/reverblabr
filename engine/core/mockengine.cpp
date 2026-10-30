@@ -67,6 +67,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QScopedValueRollback>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QUuid>
@@ -250,6 +251,8 @@ public:
     QList<BlockedCandidate> fakeIncomplete;
     int rescans = 0;
     bool lastRescanRetried = false;
+    /// Whether edits are applied on the next turn of the event loop.
+    bool answersLater = false;
 
     void resetFakePlugins()
     {
@@ -1262,6 +1265,13 @@ void MockEngine::deletePreset(const QString &typeId, const QString &presetId)
 
 void MockEngine::applyEdit(const QString &sessionId, const QString &editJson)
 {
+    if (d->answersLater) {
+        QTimer::singleShot(0, this, [this, sessionId, editJson] {
+            const QScopedValueRollback<bool> now(d->answersLater, false);
+            applyEdit(sessionId, editJson);
+        });
+        return;
+    }
     Private::Open *session = d->require(sessionId);
     if (session == nullptr) {
         return;
@@ -2215,6 +2225,11 @@ int MockEngine::fakeRescans() const
 bool MockEngine::fakeLastRescanRetried() const
 {
     return d->lastRescanRetried;
+}
+
+void MockEngine::setAnswersLater(bool later)
+{
+    d->answersLater = later;
 }
 
 void MockEngine::listRecordings(const QString &sessionId)
