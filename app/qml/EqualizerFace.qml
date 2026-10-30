@@ -24,7 +24,7 @@ Item {
     /// The block whose face this is, set once the face exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property bool blockEnabled: SessionModel.revision >= 0 && (SessionModel.block(face.blockId).enabled ?? true)
     /// The effects colour, or grey for a block that is off.
     readonly property color tint: face.blockEnabled

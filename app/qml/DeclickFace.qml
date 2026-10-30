@@ -23,7 +23,7 @@ Item {
     /// The block whose face this is, set once the face exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property real threshold: face.params.threshold ?? face.defaultThreshold
     readonly property bool blockEnabled: SessionModel.revision >= 0 && (SessionModel.block(face.blockId).enabled ?? true)
     /// The Advanced colour, or grey for a block that is off.

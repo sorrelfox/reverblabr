@@ -327,6 +327,115 @@ TEST_F(SessionModelTest, LettingGoTellsTheWindowEvenWhenTheLastValueHadAlreadyGo
     EXPECT_DOUBLE_EQ(model.param(u"b1"_s, u"gain"_s).toDouble(), 2.5);
 }
 
+TEST_F(SessionModelTest, WhatIsDrawnFromTheSessionFollowsADragOnceATick)
+{
+    // A curve or a readout is a binding on paramRevision and params(). Waiting
+    // for the button to come up before it moved made a setting impossible
+    // to aim by its picture; telling it of every mouse event would draw it
+    // far more often than the screen shows it.
+    core::MockEngine engine;
+    ui::SessionModel model;
+    model.attach(&engine);
+    (void)openSessionWithBlock(engine, model);
+
+    QSignalSpy redraw(&model, &ui::SessionModel::paramRevisionChanged);
+    QSignalSpy changed(&model, &ui::SessionModel::changed);
+
+    model.setParam(u"b1"_s, u"gain"_s, 1.5, true);
+    EXPECT_EQ(redraw.count(), 1) << "the first value of a drag was not drawn at once";
+    EXPECT_DOUBLE_EQ(model.params(u"b1"_s).value(u"gain"_s).toDouble(), 1.5);
+
+    // Many mouse events inside one tick are one redraw, of the last of them.
+    for (int step = 0; step < 20; ++step) {
+        model.setParam(u"b1"_s, u"gain"_s, 2.0 + step * 0.05, true);
+    }
+    EXPECT_EQ(redraw.count(), 1) << "a redraw went out before the tick came round";
+    ASSERT_TRUE(redraw.wait(1000)) << "the tick never drew the dragged value";
+    EXPECT_EQ(redraw.count(), 2);
+    EXPECT_DOUBLE_EQ(model.params(u"b1"_s).value(u"gain"_s).toDouble(), 2.95);
+
+    // **Still not news** for what rebuilds the canvas's tiles and wires.
+    EXPECT_EQ(changed.count(), 0) << "a value mid-drag was announced as an edit";
+
+    model.commitParam(u"b1"_s, u"gain"_s);
+    EXPECT_EQ(changed.count(), 1);
+    EXPECT_EQ(redraw.count(), 3) << "letting go was not drawn";
+}
+
+TEST_F(SessionModelTest, AWholeDragIsOneStepToUndo)
+{
+    // What the menu's Undo takes back is the drag, not the last tick of
+    // it: the session goes back to where it was before the button went down.
+    core::MockEngine engine;
+    ui::SessionModel model;
+    model.attach(&engine);
+    (void)openSessionWithBlock(engine, model);
+    model.setParam(u"b1"_s, u"gain"_s, 0.5);
+    // Another kind of edit in between, so the drag cannot join the one
+    // before it however quickly it follows.
+    model.setParam(u"b1"_s, u"muted"_s, false);
+
+    const auto dragFor = [&model](int from, int to) {
+        for (int step = from; step <= to; ++step) {
+            model.setParam(u"b1"_s, u"gain"_s, 0.5 + step * 0.1, true);
+            QSignalSpy redraw(&model, &ui::SessionModel::paramRevisionChanged);
+            (void)redraw.wait(100);
+        }
+    };
+    dragFor(1, 6);
+    // **A hand resting on the slider** to look at the curve, twice as long
+    // as the engine waits before it counts an edit as a new step.
+    QElapsedTimer resting;
+    resting.start();
+    while (resting.elapsed() < 1000) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+    }
+    dragFor(7, 12);
+    model.commitParam(u"b1"_s, u"gain"_s);
+    ASSERT_GT(model.sentParamCount(), 6) << "the drag did not reach the engine as it went";
+
+    model.undo();
+    EXPECT_DOUBLE_EQ(model.param(u"b1"_s, u"gain"_s).toDouble(), 0.5)
+        << "undo took back only part of the drag, the part after the rest";
+    EXPECT_EQ(model.param(u"b1"_s, u"muted"_s), QVariant{false}) << "the edit before the drag went with it";
+    model.undo();
+    EXPECT_FALSE(model.param(u"b1"_s, u"muted"_s).isValid());
+    EXPECT_DOUBLE_EQ(model.param(u"b1"_s, u"gain"_s).toDouble(), 0.5);
+}
+
+TEST_F(SessionModelTest, ADragIsLetGoOfWhenItEnds)
+{
+    // Held open only while it lasts: after the button comes up, or an
+    // undo, nothing is sent again, or it would put back what was undone.
+    core::MockEngine engine;
+    ui::SessionModel model;
+    model.attach(&engine);
+    (void)openSessionWithBlock(engine, model);
+
+    const auto restFor = [](int ms) {
+        QElapsedTimer resting;
+        resting.start();
+        while (resting.elapsed() < ms) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+        }
+    };
+
+    model.setParam(u"b1"_s, u"gain"_s, 1.5, true);
+    restFor(600);
+    EXPECT_GE(model.sentParamCount(), 2) << "a resting drag was not held open";
+
+    model.commitParam(u"b1"_s, u"gain"_s);
+    const int committed = model.sentParamCount();
+    restFor(600);
+    EXPECT_EQ(model.sentParamCount(), committed) << "a drag that ended was still being sent";
+
+    model.setParam(u"b1"_s, u"gain"_s, 2.5, true);
+    model.undo();
+    const int undone = model.sentParamCount();
+    restFor(600);
+    EXPECT_EQ(model.sentParamCount(), undone) << "a drag kept going after an undo";
+}
+
 // --- undo and redo in the window ---
 
 TEST_F(SessionModelTest, UndoAndRedoFollowTheEnginesHistoryAndSayWhatTheyWouldDo)

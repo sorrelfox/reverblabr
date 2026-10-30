@@ -76,6 +76,16 @@ class SessionModel : public QObject
     Q_PROPERTY(int wireCount READ wireCount NOTIFY changed)
     /// The patch number last applied, so a test can see that an edit landed.
     Q_PROPERTY(qulonglong revision READ revision NOTIFY changed)
+    /// The same number, for **what a binding drawing a block's parameters
+    /// reads**: a curve, a tile's face, a readout. It is said to change
+    /// whenever revision is, just before it, and also each time a value
+    /// being dragged has been sent, at most once a kLiveIntervalMs, so what
+    /// is drawn from params() moves with the slider rather than waiting for
+    /// it to be let go. revision and changed() stay quiet until the gesture
+    /// ends: what follows those rebuilds tiles, wires and lists, and doing
+    /// that sixty times a second for a slider cost a fifty-tile canvas half
+    /// as much again as drawing it.
+    Q_PROPERTY(qulonglong paramRevision READ revision NOTIFY paramRevisionChanged)
     /// Whether the session showing has anything to undo or redo, and what
     /// the menu entry says: "Undo Move Block", or plain "Undo" when there
     /// is nothing. **The engine's history, not one kept here**: it
@@ -94,6 +104,14 @@ public:
     /// a slider produces and what a smoothed parameter can take; a mouse
     /// can produce ten times that, and every one of them would be an edit.
     static constexpr int kLiveIntervalMs = 16;
+    /// How often a drag whose hand has stopped is sent again, well inside
+    /// the half second within which the engine counts an edit as part of
+    /// the step before it.
+    static constexpr int kHoldIntervalMs = 250;
+    /// How long a drag is held with no movement at all before it is let go
+    /// of as abandoned: the longest rest the engine allows a gesture a
+    /// plugin window says is under way.
+    static constexpr int kHoldLimitMs = 30000;
 
     explicit SessionModel(QObject *parent = nullptr);
     ~SessionModel() override;
@@ -169,6 +187,12 @@ public:
     /// such values are coalesced and sent at kLiveIntervalMs, and the last
     /// one is always sent. With \a live false the value goes at once, which
     /// is what letting go of a slider does.
+    ///
+    /// **A live value holds the drag open** until commitParam(): a hand
+    /// that stops moving has its value sent again every kHoldIntervalMs,
+    /// so the drag stays one step to undo however long it rests. An undo,
+    /// a value set outright, another session, the window losing focus or
+    /// kHoldLimitMs without a movement each let go of it.
     Q_INVOKABLE void setParam(const QString &blockId, const QString &paramId, const QVariant &value, bool live = false);
     /// Sends whatever a drag has left pending, and says the gesture is over
     /// whether or not anything was. **What makes the last value of a drag
@@ -360,10 +384,16 @@ public:
 Q_SIGNALS:
     void sessionChanged();
     void changed();
+    /// Said just before changed(), and on its own when a dragged value has
+    /// been sent (see paramRevision).
+    void paramRevisionChanged();
     void undoStateChanged();
     void pluginChanged();
 
 private:
+    /// Says changed(), and paramRevisionChanged() before it.
+    void announce();
+
     class Private;
     std::unique_ptr<Private> d;
 };

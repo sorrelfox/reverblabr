@@ -31,7 +31,7 @@ ColumnLayout {
     readonly property string typeId: SessionModel.block(panel.blockId).type ?? ""
     /// Re-read when the session changes, so a value set anywhere — undo, a
     /// second window, the block's own panel — is what the controls show.
-    readonly property var values: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var values: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
 
     spacing: Kirigami.Units.smallSpacing
 

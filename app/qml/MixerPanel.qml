@@ -40,7 +40,7 @@ ColumnLayout {
     readonly property int strips: 5
     readonly property var scenes: ["A", "B", "C", "D", "E"]
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     /// Every wire into the block, for naming what feeds each strip.
     readonly property var arriving: SessionModel.revision >= 0 ? SessionModel.wiresTouching(panel.blockId) : []
 

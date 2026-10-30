@@ -65,7 +65,7 @@ ColumnLayout {
     /// Which block type this is the panel of: 16 bands, or 64 through points.
     property string typeId: "hearing.compensation16"
     readonly property bool throughPoints: bands.throughPoints
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property color tint: AppColors.categoryTint(BlockPresentation.category(panel.typeId))
     readonly property real panelWidth: AppMetrics.followsSystem ? Kirigami.Units.gridUnit * 26 : 460
 

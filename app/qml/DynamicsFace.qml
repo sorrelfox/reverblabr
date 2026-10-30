@@ -36,7 +36,7 @@ Item {
     readonly property string typeId: SessionModel.revision >= 0 ? (SessionModel.block(face.blockId).type ?? "") : ""
     /// Re-read when the session changes, so a value set anywhere — the
     /// panel, undo, a second window — is the curve the tile shows.
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
 
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(face.blockId) : ({})
     readonly property bool active: Meters.live && (face.levels.active ?? false)

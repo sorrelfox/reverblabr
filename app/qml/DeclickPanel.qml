@@ -24,7 +24,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property real threshold: panel.params.threshold ?? panel.defaultThreshold
 
     /// Which of the block's published values is the count (Declick::

@@ -36,7 +36,7 @@ Item {
     /// What a screen reader calls the slider.
     property string sliderName: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property real position: face.params[face.paramId] ?? 0
     readonly property bool blockEnabled: SessionModel.revision >= 0 && (SessionModel.block(face.blockId).enabled ?? true)
     /// The category's colour, or grey for a block that is off.

@@ -33,7 +33,7 @@ ColumnLayout {
     /// Which tab is showing: "setup", "metadata" or "status".
     property string section: "setup"
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property string server: panel.params.server ?? "icecast"
     readonly property bool icecast: panel.server === "icecast"
     readonly property string format: panel.params.format ?? "mp3"

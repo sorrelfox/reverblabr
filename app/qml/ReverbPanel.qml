@@ -26,7 +26,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
 
     /// The rows, so that a test drives what a person drives.
     readonly property alias preDelayRow: preDelaySetting

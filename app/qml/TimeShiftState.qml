@@ -32,7 +32,7 @@ QtObject {
     readonly property int availableValue: 1
     readonly property int pausedValue: 2
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(reading.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(reading.blockId) : ({})
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(reading.blockId) : ({})
     readonly property var values: reading.levels.values ?? []
     /// Whether the running block is publishing: the transport works then.

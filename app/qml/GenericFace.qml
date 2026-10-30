@@ -43,7 +43,7 @@ Item {
     readonly property string typeId: SessionModel.revision >= 0 ? (SessionModel.block(face.blockId).type ?? "") : ""
     /// Re-read when the session changes, so a value set anywhere — the
     /// panel, undo, a second window — is what the face shows.
-    readonly property var values: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var values: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
 
     /// The parameters worth putting on a tile: the ones the block does not
     /// hide, in the order it declares them, which is the order it thinks

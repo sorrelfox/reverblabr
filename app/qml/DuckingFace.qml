@@ -27,7 +27,7 @@ Item {
     /// The block whose face this is, set once the face exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property real thresholdDb: face.params.threshold ?? -30
     readonly property real duckedVolume: face.params.duckedVolume ?? 0.4
     readonly property bool blockEnabled: SessionModel.revision >= 0 && (SessionModel.block(face.blockId).enabled ?? true)

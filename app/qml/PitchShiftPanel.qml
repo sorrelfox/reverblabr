@@ -21,7 +21,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property int semitones: panel.params.semitones ?? 0
     readonly property real cents: panel.params.cents ?? 0
 

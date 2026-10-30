@@ -44,7 +44,7 @@ ColumnLayout {
     readonly property string typeId: SessionModel.revision >= 0 ? (SessionModel.block(panel.blockId).type ?? "") : ""
     /// Re-read when the session changes, so a value set anywhere — undo, a
     /// second window, a preset — is the curve that is drawn.
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
 
     /// The handle a drag has hold of, or empty when nothing is being
     /// dragged. **The plot owns the gesture, not the handle**: the
@@ -58,13 +58,12 @@ ColumnLayout {
     property string dragging: ""
 
     /// What this panel has sent that the session has not told it about yet.
-    /// **A knob being turned is not news** the rest of the window hears
-    /// about until the gesture ends (SessionModel), which is right for a
-    /// tile across the canvas and wrong for the curve being dragged: the
-    /// handle has to be under the pointer and the line has to bend as it
-    /// moves. So the panel draws what it has sent, and drops it the moment
-    /// the session does speak — an undo, a second window, a preset — because
-    /// then the session's word is the newer one.
+    /// **A dragged value reaches params() once a tick** (SessionModel), up
+    /// to a sixtieth of a second after the pointer moved, and the handle
+    /// has to be under the pointer, not that far behind it. So the panel
+    /// draws what it has sent, and drops it the moment the session does
+    /// speak — the tick, an undo, a second window, a preset — because then
+    /// the session's word is the newer one.
     property var edits: ({})
 
     /// The parameters as this panel draws them: the session's, with

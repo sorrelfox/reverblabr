@@ -49,7 +49,7 @@ ColumnLayout {
     /// "SourceHigh", "DestinationLow", "DestinationHigh" — or "".
     property string dragging: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property color tint: AppColors.categoryTint(BlockPresentation.category(moves.typeId))
     /// The ear, as the spectrum's channel: left 0, right 1.
     readonly property string ear: panel.params.ear

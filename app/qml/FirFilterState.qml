@@ -32,7 +32,7 @@ QtObject {
     /// The latency in samples, which is the same at every rate.
     readonly property int latencySamples: 256
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(reading.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(reading.blockId) : ({})
     /// The path as the session holds it, a leading ~ for the home folder.
     readonly property string file: reading.params.file ?? ""
     readonly property string fileName: reading.file.substring(reading.file.lastIndexOf("/") + 1)

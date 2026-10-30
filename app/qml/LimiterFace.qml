@@ -26,7 +26,7 @@ Item {
     /// The block whose face this is, set once the face exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property real ceiling: face.params.ceiling ?? words.defaultCeiling
     readonly property bool truePeak: face.params.truePeak ?? true
     readonly property real release: face.params.release ?? words.defaultRelease

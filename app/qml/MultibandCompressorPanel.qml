@@ -32,7 +32,7 @@ ColumnLayout {
     property string blockId: ""
 
     readonly property string typeId: "effect.multibandcompressor"
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
 
     /// What a drag of a split has sent that the session has not said yet;
     /// dropped the moment it does, as the Dynamics panel does.

@@ -31,7 +31,7 @@ QtObject {
     readonly property int learning: 1
     readonly property int active: 2
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(reading.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(reading.blockId) : ({})
     readonly property string profile: reading.params.profile ?? ""
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(reading.blockId) : ({})
     readonly property var values: reading.levels.values ?? []

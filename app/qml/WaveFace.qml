@@ -27,7 +27,7 @@ Item {
     /// The block whose face this is, set once the face exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property string shape: face.params.waveform ?? "sine"
     readonly property real frequency: face.params.frequency ?? 1000
     readonly property real levelDb: face.params.level ?? -18

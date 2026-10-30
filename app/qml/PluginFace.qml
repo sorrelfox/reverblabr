@@ -22,7 +22,7 @@ Item {
     /// The block whose face this is, set once the face exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     /// Which plugin: nothing set is the default one, which the catalogue
     /// names. An id, not a sentence.
     /// The block's type, and so the plugin's format: `plugin.<format>`.

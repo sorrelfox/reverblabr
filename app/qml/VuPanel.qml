@@ -33,7 +33,7 @@ ColumnLayout {
     /// loader's context, so the settings panel binds it once it exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property string reference: panel.params.reference ?? VuScale.defaultReference
     readonly property bool inTray: panel.params.showInTray === true
 

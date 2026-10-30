@@ -17,6 +17,8 @@
 #include <KLazyLocalizedString>
 #include <KLocalizedString>
 #include <QDateTime>
+#include <QElapsedTimer>
+#include <QGuiApplication>
 #include <QHash>
 #include <QJSValue>
 #include <QJsonArray>
@@ -28,6 +30,7 @@
 #include <QUrlQuery>
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <map>
 #include <optional>
@@ -104,6 +107,23 @@ public:
     std::map<std::pair<QString, QString>, QVariant> pending;
     QTimer live;
 
+    /// A drag still under way, by block and parameter: the button went down
+    /// and has not come up. What it last sent, when, and when the hand last
+    /// moved.
+    struct Held {
+        QVariant value;
+        std::int64_t sentAt = 0;
+        std::int64_t movedAt = 0;
+    };
+    std::map<std::pair<QString, QString>, Held> held;
+    /// **Keeps a still hand one step to undo.** The engine's history knows a
+    /// drag only by its edits arriving close together, and a hand resting
+    /// on a slider to look at the curve sends nothing; past the gesture
+    /// window the rest of the drag became a second step. So while a drag is
+    /// held, its value is sent again before the window closes.
+    QTimer hold;
+    QElapsedTimer clock;
+
     /// What the engine last said undo and redo would do, for this session.
     bool canUndo = false;
     bool canRedo = false;
@@ -126,6 +146,10 @@ public:
         const QVariant value = unwrapped(raw);
         ++sent;
         facade->setParam(sessionId, blockId, paramId, asParamJson(value));
+        if (const auto found = held.find({blockId, paramId}); found != held.end()) {
+            found->second.value = value;
+            found->second.sentAt = clock.elapsed();
+        }
         // **The engine sends no patch for a knob**, on purpose: it would be
         // sixty messages a second telling the client what it just did. So
         // the value is written here as it goes, and an undo — which *does*
@@ -166,6 +190,40 @@ public:
         facade->applyEdit(sessionId, QString::fromUtf8(QJsonDocument(array).toJson(QJsonDocument::Compact)));
     }
 
+    /// Sends again every held value that has not gone for a while, and
+    /// lets go of one whose hand has not moved for kHoldLimitMs.
+    void keepHeld()
+    {
+        const std::int64_t now = clock.elapsed();
+        for (auto it = held.begin(); it != held.end();) {
+            if (now - it->second.movedAt > kHoldLimitMs) {
+                it = held.erase(it);
+                continue;
+            }
+            // Half an interval since the last send, not a whole one: the
+            // timer and the sends are not in step, and waiting for a whole
+            // one could leave nearly two between them.
+            if (!pending.contains(it->first) && now - it->second.sentAt >= kHoldIntervalMs / 2) {
+                const auto key = it->first;
+                const QVariant value = it->second.value;
+                ++it;
+                send(key.first, key.second, value);
+                continue;
+            }
+            ++it;
+        }
+        if (held.empty()) {
+            hold.stop();
+        }
+    }
+
+    /// Ends every held drag: an undo, another session, the window put away.
+    void letGo()
+    {
+        held.clear();
+        hold.stop();
+    }
+
     void flush()
     {
         const std::map<std::pair<QString, QString>, QVariant> due = std::move(pending);
@@ -192,10 +250,43 @@ SessionModel::SessionModel(QObject *parent)
             return;
         }
         d->flush();
+        // What was just sent is in the copy params() reads, so whatever
+        // draws from it can be drawn again: once a tick, however many
+        // mouse events the tick took in.
+        Q_EMIT paramRevisionChanged();
     });
+    d->clock.start();
+    d->hold.setInterval(kHoldIntervalMs);
+    connect(&d->hold, &QTimer::timeout, this, [this] { d->keepHeld(); });
+    // **A drag the window can no longer finish is over.** A slider whose
+    // window went to the background or was closed under the pointer may
+    // never hear its button come up, and a drag kept open for ever would
+    // hold the history with it.
+    if (auto *application = qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
+        connect(application, &QGuiApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
+            if (state != Qt::ApplicationActive) {
+                d->letGo();
+            }
+        });
+        connect(application, &QGuiApplication::focusWindowChanged, this, [this](QWindow *window) {
+            if (window == nullptr) {
+                d->letGo();
+            }
+        });
+    }
 }
 
 SessionModel::~SessionModel() = default;
+
+void SessionModel::announce()
+{
+    // **The bindings first, then whoever listens for the news.** A control
+    // kept by SessionBound is set again on changed(), and what it is set
+    // to is often a binding on paramRevision; told in the other order, it
+    // would be set to what the session said before.
+    Q_EMIT paramRevisionChanged();
+    Q_EMIT changed();
+}
 
 SessionModel *SessionModel::create(QQmlEngine *, QJSEngine *)
 {
@@ -227,7 +318,7 @@ void SessionModel::attach(core::EngineFacade *facade)
                 d->session = *read;
                 d->revision = revision;
                 d->haveSnapshot = true;
-                Q_EMIT changed();
+                announce();
             });
 
     connect(facade,
@@ -261,7 +352,7 @@ void SessionModel::attach(core::EngineFacade *facade)
                     return;
                 }
                 d->revision = revision;
-                Q_EMIT changed();
+                announce();
             });
 
     connect(facade,
@@ -326,6 +417,7 @@ void SessionModel::setSessionId(const QString &sessionId)
     }
     d->live.stop();
     d->pending.clear();
+    d->letGo();
     d->sessionId = sessionId;
     d->session = {};
     d->revision = 0;
@@ -346,7 +438,7 @@ void SessionModel::setSessionId(const QString &sessionId)
         d->facade->getUndoState(sessionId);
     }
     Q_EMIT sessionChanged();
-    Q_EMIT changed();
+    announce();
     Q_EMIT undoStateChanged();
     Q_EMIT pluginChanged();
 }
@@ -445,6 +537,8 @@ void SessionModel::undo()
     // took away.
     d->live.stop();
     d->flush();
+    // Nor may a held drag be sent again after it, for the same reason.
+    d->letGo();
     d->facade->undo(d->sessionId);
 }
 
@@ -455,6 +549,7 @@ void SessionModel::redo()
     }
     d->live.stop();
     d->flush();
+    d->letGo();
     d->facade->redo(d->sessionId);
 }
 
@@ -565,28 +660,37 @@ void SessionModel::setParam(const QString &blockId, const QString &paramId, cons
 {
     if (!live) {
         d->pending.erase({blockId, paramId});
+        d->held.erase({blockId, paramId});
         d->send(blockId, paramId, value);
         // **A settled value is news; a knob being turned is not.** The
         // engine sends no patch for either, so if nothing said so here,
         // a device chosen in a block's own panel would leave that block's
         // face still naming the device before it. Once per gesture is
         // nothing like the sixty a second a drag would cost, which is why
-        // the live path below says nothing until it stops.
-        Q_EMIT changed();
+        // the live path below only says paramRevisionChanged() as it goes.
+        announce();
         return;
     }
     d->pending.insert_or_assign({blockId, paramId}, value);
+    Private::Held &holding = d->held[{blockId, paramId}];
+    holding.value = value;
+    holding.movedAt = d->clock.elapsed();
+    if (!d->hold.isActive()) {
+        d->hold.start();
+    }
     if (!d->live.isActive()) {
         // **The first value of a drag goes at once**, so that a control
         // never feels a sixtieth of a second behind the pointer; the rest
         // are coalesced until the timer comes round.
         d->flush();
         d->live.start();
+        Q_EMIT paramRevisionChanged();
     }
 }
 
 void SessionModel::commitParam(const QString &blockId, const QString &paramId)
 {
+    d->held.erase({blockId, paramId});
     const auto found = d->pending.find({blockId, paramId});
     if (found != d->pending.end()) {
         const QVariant value = found->second;
@@ -599,7 +703,7 @@ void SessionModel::commitParam(const QString &blockId, const QString &paramId)
     // gesture goes at once, so the pending list is empty by the time the
     // button comes up. Staying quiet then left every control reading the
     // value from before the gesture, and the handle jumped back to it.
-    Q_EMIT changed();
+    announce();
 }
 
 void SessionModel::setParams(const QString &blockId, const QVariantList &changes)
@@ -614,6 +718,7 @@ void SessionModel::setParams(const QString &blockId, const QVariantList &changes
         // A drag still pending on one of these would land after the edit
         // and undo it; the edit is the newer word.
         d->pending.erase({blockId, paramId});
+        d->held.erase({blockId, paramId});
         commands.push_back(core::SetParam{blockId, paramId, QJsonValue::fromVariant(unwrapped(pair.at(1)))});
     }
     d->applyAll(commands);
@@ -633,6 +738,7 @@ QVariantList SessionModel::fitFromAudiogram(const QString &blockId)
         if (const auto *set = std::get_if<core::SetParam>(&command)) {
             // A drag still pending on a band would land after the fit.
             d->pending.erase({blockId, set->key});
+            d->held.erase({blockId, set->key});
         }
     }
     d->applyAll(fit->commands);

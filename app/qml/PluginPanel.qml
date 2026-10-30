@@ -81,7 +81,7 @@ ColumnLayout {
         SessionModel.listPluginPresets(panel.blockId);
     }
 
-    readonly property var values: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var values: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     /// The block's type, and so the plugin's format: `plugin.<format>`.
     readonly property string blockType: SessionModel.revision >= 0 ? (SessionModel.block(panel.blockId).type ?? "") : ""
     readonly property string format: panel.blockType.substring(panel.blockType.indexOf(".") + 1)

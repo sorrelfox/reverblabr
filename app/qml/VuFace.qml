@@ -29,7 +29,7 @@ Item {
     /// it is loaded into, so it is set once the face exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property string reference: face.params.reference ?? VuScale.defaultReference
 
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(face.blockId) : ({})

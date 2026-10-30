@@ -32,7 +32,7 @@ ColumnLayout {
     /// Which tab is showing: "setup", "picture" or "status".
     property string section: "setup"
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property string quality: panel.params.quality ?? "higher"
     readonly property string encoder: panel.params.encoder ?? "auto"
     readonly property string visualisation: panel.params.visualisation ?? "waveform"

@@ -24,7 +24,7 @@ Item {
     /// Which of the two blocks it is.
     property string typeId: "hearing.compensation16"
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property bool blockEnabled: SessionModel.revision >= 0 && (SessionModel.block(face.blockId).enabled ?? true)
     readonly property color tint: face.blockEnabled
         ? AppColors.categoryTint(BlockPresentation.category(face.typeId))

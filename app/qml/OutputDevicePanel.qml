@@ -44,7 +44,7 @@ ColumnLayout {
     readonly property bool unavailable: !reading.present
 
     /// The volume as the session holds it: an amplitude, 0…1.
-    readonly property real volume: SessionModel.revision >= 0
+    readonly property real volume: SessionModel.paramRevision >= 0
         ? Number(SessionModel.param(panel.blockId, "volume") ?? 1)
         : 1
 

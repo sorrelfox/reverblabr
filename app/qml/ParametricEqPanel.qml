@@ -49,7 +49,7 @@ ColumnLayout {
     property point pressedAt: Qt.point(0, 0)
     property point grabOffset: Qt.point(0, 0)
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property color tint: AppColors.categoryTint(BlockPresentation.category("advanced.parametriceq"))
     /// A curve wants a wider card than a list of settings.
     readonly property real panelWidth: AppMetrics.followsSystem ? Kirigami.Units.gridUnit * 24 : 420

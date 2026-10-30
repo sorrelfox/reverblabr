@@ -11,8 +11,8 @@ import io.github.reverblabr
 // Sets up the scenes bench_canvas.cpp measures, one after another: the
 // canvas with nothing on it, then the tiles and their wires with the view
 // panning, then the same with every meter moving and every wire's dash
-// running. The view moves a pixel each frame throughout, so that nothing is
-// drawn once and left alone.
+// running, then that with a slider being dragged. The view moves a pixel
+// each frame throughout, so that nothing is drawn once and left alone.
 Window {
     id: bench
 
@@ -38,6 +38,15 @@ Window {
     FrameAnimation {
         running: true
         onTriggered: canvas.originX += (currentFrame % 2 === 0) ? 1 : -1
+    }
+
+    // **A drag under way**, as a slider sends one: a new value every frame,
+    // and the session model drawing what reads it again once a tick.
+    FrameAnimation {
+        id: drag
+
+        running: false
+        onTriggered: SessionModel.setParam(bench.added[1], "gain", 0.5 + 0.4 * Math.sin(currentFrame / 20), true)
     }
 
     Connections {
@@ -117,7 +126,13 @@ Window {
                                                                               : "the dash stopped (the window is not active)");
                 Bench.measure(bench, TileCount + "-tiles-live", FrameCount, detail);
             });
+        } else if (stage === 4) {
+            drag.running = true;
+            Bench.measure(bench, TileCount + "-tiles-dragging", FrameCount,
+                          TileCount + " tiles alive, with one block's volume being dragged");
         } else {
+            drag.running = false;
+            SessionModel.commitParam(bench.added[1], "gain");
             BenchEngine.stop(sessionId);
             Meters.watch("");
             Bench.finish();

@@ -27,7 +27,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property real thresholdDb: panel.params.threshold ?? -30
     readonly property real duckedVolume: panel.params.duckedVolume ?? 0.4
     readonly property real attackMs: panel.params.attack ?? 50

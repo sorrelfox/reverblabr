@@ -39,7 +39,7 @@ Item {
 
     /// Re-read when the session changes, so a value set anywhere — the
     /// panel, undo, a second window — is what the face shows.
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(face.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(face.blockId) : ({})
     readonly property real gain: face.params.gain ?? VolumeScale.defaultGain
     readonly property string overdrive: face.params.overdrive ?? VolumeScale.defaultOverdrive
     readonly property bool muted: face.params.muted === true
@@ -78,11 +78,10 @@ Item {
             QQC2.Label {
                 id: percentText
 
-                // **The slider's own value, not the session's.** A knob
-                // being turned is not news the rest of the window hears
-                // about until the gesture ends, and a number that stood
-                // still through a drag and then jumped would be a number
-                // nobody could aim with.
+                // **The slider's own value, not the session's.** A dragged
+                // value reaches the session once a tick, a little behind
+                // the pointer, and the number being aimed with should be
+                // exactly where the handle is.
                 //
                 // Whole per cent: a tenth of one is below what anybody can
                 // hear and below what the slider can aim at.

@@ -25,7 +25,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property real ceiling: panel.params.ceiling ?? words.defaultCeiling
     readonly property real release: panel.params.release ?? words.defaultRelease
     readonly property bool truePeak: panel.params.truePeak ?? true

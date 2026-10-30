@@ -33,7 +33,7 @@ ColumnLayout {
     /// The setting's name: "Balance".
     property string title: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property real position: panel.params[panel.paramId] ?? 0
 
     /// The controls themselves, so that a test can drive what a person

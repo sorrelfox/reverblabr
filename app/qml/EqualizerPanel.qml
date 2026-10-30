@@ -27,7 +27,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property real preampDb: panel.params.preamp ?? 0
     readonly property bool keepLevel: panel.params.keepLevel === true
     readonly property bool flat: bands.ids.every(id => Math.abs(panel.params[id] ?? 0) < 0.05) && Math.abs(panel.preampDb) < 0.05

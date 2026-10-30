@@ -32,7 +32,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property real delayMs: panel.params.delay ?? 0
 
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(panel.blockId) : ({})

@@ -26,7 +26,7 @@ ColumnLayout {
     /// The block whose settings these are, set once the panel exists.
     property string blockId: ""
 
-    readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
+    readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property real cutoff: panel.params.cutoff ?? panel.defaultHz
     readonly property string slope: panel.params.slope ?? "12dB"
 
