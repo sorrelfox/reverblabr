@@ -59,6 +59,7 @@ BuildRequires:  soundtouch-devel
 BuildRequires:  libavformat-free-devel
 BuildRequires:  libavcodec-free-devel
 BuildRequires:  libavutil-free-devel
+BuildRequires:  gnutls-devel
 BuildRequires:  libswscale-free-devel
 BuildRequires:  freetype-devel
 BuildRequires:  harfbuzz-devel

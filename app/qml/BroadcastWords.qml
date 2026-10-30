@@ -81,6 +81,15 @@ QtObject {
         return choices;
     }
 
+    /// How the connection that is up goes: through TLS or in the clear.
+    function securityText(onAir: bool, secure: bool): string {
+        if (!onAir) {
+            return "—";
+        }
+        return secure ? KI18n.i18nc("@info a stream's connection", "Secure (TLS)")
+                      : KI18n.i18nc("@info a stream's connection", "Not encrypted");
+    }
+
     /// The state line above the tabs.
     function stateText(state: string, error: string, retryIn: int): string {
         switch (state) {
@@ -127,6 +136,16 @@ QtObject {
         case "rejected":
         case "badResponse":
             return KI18n.i18nc("@info:status a stream", "The server refused the stream");
+        case "certificateUntrusted":
+            return KI18n.i18nc("@info:status a stream", "The server's certificate isn't from an authority this computer trusts");
+        case "certificateExpired":
+            return KI18n.i18nc("@info:status a stream", "The server's certificate has expired, or isn't valid yet");
+        case "certificateWrongHost":
+            return KI18n.i18nc("@info:status a stream", "The server's certificate is for another name than the host");
+        case "certificateInvalid":
+            return KI18n.i18nc("@info:status a stream", "The server's certificate was refused");
+        case "tlsFailed":
+            return KI18n.i18nc("@info:status a stream", "No secure connection could be made on this port");
         }
         return KI18n.i18nc("@info:status a stream", "The stream stopped");
     }

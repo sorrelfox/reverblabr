@@ -11,7 +11,7 @@ import org.kde.ki18n
 // The Broadcast block's help page (docs/dev/block-help.md). The facts are
 // the block's parameters (engine/blocks/broadcast.cpp), the stream's rules
 // (engine/stream/broadcaststream.h and .cpp: the retries, the SHOUTcast
-// port; backoff.h: the waits; streamencoder.cpp: the bit rates each format
+// port; connection.cpp: TLS and the certificate check; backoff.h: the waits; streamencoder.cpp: the bit rates each format
 // takes; title.h: the template and the file), the player it follows
 // (engine/mpris/player.h, choosePlayer) and the panel's words
 // (BroadcastPanel, BroadcastWords, NowPlayingRows).
@@ -28,7 +28,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Broadcast block", "The block connects when you start the session, and lets go when you stop it. The sound also goes on through the block as it is, so the lane can carry on to your speakers or a Recorder."),
             KI18n.i18nc("@info help page of the Broadcast block", "The line at the top of its settings says what it is doing: waiting for the session, connecting, on the air with how long for, or what went wrong."),
             KI18n.i18nc("@info help page of the Broadcast block", "If the server or the network goes away, the block tries again after a second, then waits twice as long each time, up to a minute. The sound in between is not kept: when it is back, listeners hear what is playing then."),
-            KI18n.i18nc("@info help page of the Broadcast block", "Some problems need you instead: a wrong or missing password, or a format this computer cannot make. The block stops trying until you change the setting, and the line at the top says why.")
+            KI18n.i18nc("@info help page of the Broadcast block", "Some problems need you instead: a wrong or missing password, a server certificate that is refused, or a format this computer cannot make. The block stops trying until you change the setting, and the line at the top says why.")
         ]
     }
 
@@ -60,6 +60,16 @@ HelpPage {
         title: KI18n.i18nc("@label:spinbox a server's port", "Port")
         paragraphs: [
             KI18n.i18nc("@info help page of the Broadcast block", "The number the server listens on, from 1 to 65535. A new block uses 8000, the usual one. A SHOUTcast server takes its stream on the number after the one you give, as SHOUTcast always does, so give the number its listeners use.")
+        ]
+    }
+
+    HelpSection {
+        setting: true
+        title: KI18n.i18nc("@option:check send a stream to its server over TLS", "Secure connection (TLS)")
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Broadcast block", "For Icecast only: sends the stream, its title and the password encrypted with TLS, as a web browser's https does. Without it they cross the network as they are, which is fine for a server on this computer or your own network, and not for one across the internet. It is off for a new block."),
+            KI18n.i18nc("@info help page of the Broadcast block", "A server takes TLS on a port of its own, often 8443, so change the Port too. Whoever runs the server can tell you whether it offers TLS, and on which port. SHOUTcast servers take no TLS, so the box is not offered for them."),
+            KI18n.i18nc("@info help page of the Broadcast block", "The block checks the server's certificate the way a web browser does: it must be from an authority this computer trusts, made out to the Host you typed, and in date. If it is not, the block does not send the password, stops trying, and the line at the top says which of the three is wrong. There is no way to skip the check. For a server with a certificate of its own making, add that certificate to this computer's trusted ones, as for any other program.")
         ]
     }
 
@@ -204,6 +214,7 @@ HelpPage {
         ]
         points: [
             KI18n.i18nc("@info help page of the Broadcast block, a line of the Status tab", "Connected for: how long it has been on the air this time."),
+            KI18n.i18nc("@info help page of the Broadcast block, a line of the Status tab", "Connection: Secure (TLS) while the stream goes encrypted, Not encrypted while it does not."),
             KI18n.i18nc("@info help page of the Broadcast block, a line of the Status tab", "Sent: how much it has sent to the server."),
             KI18n.i18nc("@info help page of the Broadcast block, a line of the Status tab", "Bit rate: the rate it is sending at, as measured."),
             KI18n.i18nc("@info help page of the Broadcast block, a line of the Status tab", "Reconnects: how many times it had to connect again. A number that keeps growing means a poor connection or a server in trouble."),
@@ -226,6 +237,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Broadcast block", "Put a Peak/RMS meter before the block and keep the level out of the red: listeners hear any crackle too. A Limiter just before it is a good safeguard."),
             KI18n.i18nc("@info help page of the Broadcast block", "Before going live, listen to the stream yourself from the server's address, on another device."),
             KI18n.i18nc("@info help page of the Broadcast block", "If the line at the top says the server refused the user name or password, check the User and the Password. For SHOUTcast, check the port, too."),
+            KI18n.i18nc("@info help page of the Broadcast block", "If it says no secure connection could be made, the port is most likely the server's plain one: ask for its TLS port. If it says the certificate is for another name, type the Host as the server's certificate names it, usually its full name rather than its address."),
             KI18n.i18nc("@info help page of the Broadcast block", "If your connection is slow, choose a lower bit rate, or Mono for speech, before you lower anything else.")
         ]
     }

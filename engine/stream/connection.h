@@ -21,6 +21,16 @@
 namespace rb::stream
 {
 
+/// How a connection is made secure.
+struct TlsOptions {
+    /// The certificate authorities trusted, as a PEM file, **in place of**
+    /// the system's. Empty, as everywhere but in a test, for the system's
+    /// own: the ones the distribution ships, and any the person added.
+    std::string trustFile;
+
+    [[nodiscard]] bool operator==(const TlsOptions &other) const = default;
+};
+
 /// A TCP connection to a server, for the thread that streams.
 ///
 /// **Every wait can be called off.** Connecting, sending and waiting for an
@@ -33,6 +43,10 @@ namespace rb::stream
 ///
 /// Nothing is sent with SIGPIPE: a server that hangs up is an error to
 /// report, not a signal that ends the process.
+///
+/// **It can be made secure** (startTls(), GnuTLS over the same socket),
+/// after which everything sent and received goes through TLS, with the
+/// same waits that can be called off.
 class Connection
 {
 public:
@@ -59,6 +73,24 @@ public:
                                                                                       std::uint16_t port,
                                                                                       std::chrono::milliseconds timeout,
                                                                                       const std::atomic<bool> &cancel);
+
+    /// **Makes the connection secure**, before anything else is sent on it:
+    /// TLS 1.2 or later, \a host sent as the name the server is asked for
+    /// (SNI) unless it is an address, and the server's certificate checked
+    /// against \a options' authorities and \a host. A certificate that is
+    /// refused says why (StreamError::CertificateUntrusted and the others);
+    /// a server that does not speak TLS is StreamError::TlsFailed. The
+    /// handshake can be called off as anything else can.
+    [[nodiscard]] std::expected<void, StreamError> startTls(const std::string &host,
+                                                            const TlsOptions &options,
+                                                            std::chrono::milliseconds timeout,
+                                                            const std::atomic<bool> &cancel);
+
+    /// Whether everything on the connection goes through TLS.
+    [[nodiscard]] bool isSecure() const noexcept
+    {
+        return m_tls != nullptr;
+    }
 
     /// Sends all of \a bytes, or says why it could not.
     [[nodiscard]] std::expected<void, StreamError>
@@ -104,6 +136,10 @@ public:
 
 private:
     struct Lookup;
+    struct Tls;
+    struct TlsDeleter {
+        void operator()(Tls *tls) const noexcept;
+    };
     /// The host's addresses, looked up on a thread that is left to finish
     /// by itself if \a cancel or the deadline comes first.
     [[nodiscard]] static std::expected<std::shared_ptr<const Lookup>, StreamError>
@@ -125,6 +161,7 @@ private:
                                                                std::size_t maxBytes);
 
     int m_fd = -1;
+    std::unique_ptr<Tls, TlsDeleter> m_tls;
 };
 
 } // namespace rb::stream

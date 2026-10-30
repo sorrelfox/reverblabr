@@ -50,6 +50,10 @@ struct ServerSettings {
     ServerKind kind = ServerKind::Icecast;
     std::string host;
     std::uint16_t port = 8000;
+    /// **Over TLS**, the server's certificate checked against the system's
+    /// trusted authorities and the host's name. Icecast only: SHOUTcast's
+    /// source protocol has no TLS.
+    bool secure = false;
     /// Icecast's mount point, with its leading slash. SHOUTcast has none.
     std::string mount = "/stream";
     /// Icecast's source user; SHOUTcast has no user.
@@ -150,6 +154,20 @@ enum class StreamError : std::uint8_t {
     /// there, or the person said no. Not tried again until the stream is
     /// started again or given a password.
     PasswordUnavailable,
+    /// The server's certificate is not from an authority this system
+    /// trusts: a certificate it made itself, say.
+    CertificateUntrusted,
+    /// The server's certificate has expired, or is not valid yet (or this
+    /// computer's clock is wrong).
+    CertificateExpired,
+    /// The server's certificate is made out to another name than the host.
+    CertificateWrongHost,
+    /// The server's certificate was refused for another reason: revoked,
+    /// or signed with an algorithm too weak to trust.
+    CertificateInvalid,
+    /// No secure connection could be agreed on: the server does not speak
+    /// TLS on that port, or only a version older than 1.2.
+    TlsFailed,
 };
 
 /// The name a status carries, "authRejected" and the like.

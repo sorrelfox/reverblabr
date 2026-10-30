@@ -532,7 +532,15 @@ three tabs:</para>
 <listitem><para>The kind of server, its host and port, and for Icecast the
 mount point and the user (usually <literal>source</literal>). A SHOUTcast
 server takes its stream on the port after the one you give, as SHOUTcast
-always has. The password is kept in your desktop's password store
+always has. For Icecast, <guilabel>Secure connection (TLS)</guilabel> sends
+the stream, its titles and the password encrypted; a server takes TLS on a
+port of its own, often 8443, so change the port with it. The server's
+certificate is checked as a web browser checks one: it has to come from an
+authority this computer trusts, be made out to the host you typed, and be in
+date, and the block sends nothing, the password least of all, to a server
+whose certificate is refused. There is no switch to skip the check; a server
+with a certificate of its own making is trusted by adding that certificate to
+the computer's trusted ones. SHOUTcast's protocol has no TLS. The password is kept in your desktop's password store
 (&kwallet; on &plasma;), never in the session file: a session you copy or
 send to somebody carries none. Then the format, the bit rate, and stereo or
 mono.</para></listitem></varlistentry>
@@ -557,14 +565,16 @@ whatever the session captures, and is kept as the choice while it is not
 running. A new title reaches the stream within a couple of seconds; a stopped
 player leaves only what the template says without it.</para></listitem></varlistentry>
 <varlistentry><term><guilabel>Status</guilabel></term>
-<listitem><para>How long it has been connected, how much it has sent, the bit
-rate it is sending at, how many times it has connected again, and what last
+<listitem><para>How long it has been connected, whether the connection is
+encrypted, how much it has sent, the bit rate it is sending at, how many times it has connected again, and what last
 went wrong.</para></listitem></varlistentry>
 </variablelist>
 <para>When the server goes away, or the network does, the block tries again
 after a second, then after twice as long each time, up to once a minute. A
-wrong password, a missing password or a format this system cannot make stops
-it until you change the setting, and says so. Icecast 2.4 shows no title for
+wrong password, a missing password, a refused certificate (from an authority
+the computer does not trust, for another name, or out of date), a server that
+makes no secure connection on that port, or a format this system cannot make
+stops it until you change the setting, and says so. Icecast 2.4 shows no title for
 an Opus stream on its own pages; listeners' players show it.</para>
 <para>The block is there in a build made with QtKeychain, which keeps its
 password.</para>
@@ -1860,8 +1870,10 @@ details you give it, and Live Stream, which sends it to the video service you
 name, with the picture you set up for it; nothing else goes there. A Broadcast
 block's password and a Live Stream block's stream key are kept in your
 desktop's password store (&kwallet; on &plasma;), not in the session file. A
-password travels to a radio server the way the server's protocol sends it,
-which is in the clear unless the server is on a network you trust; a stream key
+password travels to a radio server encrypted when the block's
+<guilabel>Secure connection (TLS)</guilabel> is on, which checks that the
+server is the one named, and in the clear otherwise, so turn it on where the
+server offers it and is not on a network you trust; a stream key
 travels in the clear over <literal>rtmp://</literal> and encrypted over
 <literal>rtmps://</literal>. When a Broadcast or Live Stream block's title
 comes from a media player, &reverblabr; reads what the players

@@ -222,7 +222,7 @@ The all-users devices are written by a privileged helper the window asks through
 | `RecordingFileFinished(s sessionId, s blockId, s path, s detailsJson)` | a Recorder's file is closed and complete: `{frames, sampleRate, seconds}` |
 | `RecordingPaused(s sessionId, s blockId, b paused)` | a Recorder was paused or resumed |
 | `RecordingStopped(s sessionId, s blockId, s reason)` | a Recorder ended by itself: `timeLimit` or `silence` |
-| `BroadcastStatusChanged(s sessionId, s blockId, s statusJson)` | where a Broadcast or Live Stream block's stream stands: `{state, error, connectedSince, bytesSent, kbps, reconnects, retryIn, title, sampleRate, passwordStored}`, and for a Live Stream block `{encoder, width, height, fps, framesSent, framesDropped}` too, described in the interface XML; when it changes, and once a second while it is on the air |
+| `BroadcastStatusChanged(s sessionId, s blockId, s statusJson)` | where a Broadcast or Live Stream block's stream stands: `{state, error, connectedSince, bytesSent, kbps, reconnects, retryIn, title, sampleRate, secure, passwordStored}`, and for a Live Stream block `{encoder, width, height, fps, framesSent, framesDropped}` too, described in the interface XML; when it changes, and once a second while it is on the air |
 | `PluginsChanged(s pluginsJson)` | the installed plugins, whether a scan runs, the blocklisted ones, and the files a scan got only part of the way through (`incomplete`) |
 | `PluginDescribed(s format, s id, s descriptionJson)` | one plugin's settings |
 | `PluginWindowChanged(s sessionId, s blockId, b open, s reason)` | a plugin block's own window was shown, or has gone: `closed`, `unavailable`, `failed`, `crashed` or `notRunning` |
@@ -268,7 +268,7 @@ Each is the `code` of an `Error` signal. Its arguments arrive by name in `argsJs
 | `recording.renameRefused` | file, reason | a recording was not renamed: `invalidName`, `exists`, `notFound` or `failed` |
 | `recording.tagsNotSaved` | file | a recording's tags could not be written; the file is as it was |
 | `broadcast.passwordNotSaved` | reason | a Broadcast block's password or a Live Stream block's key could not be put in the password store or taken out of it: `noSecretStore`, `secretStoreDenied`, `secretStoreFailed`, or `notABroadcast`; nothing was written anywhere else (*block*) |
-| `broadcast.failed` | station, reason | a Broadcast or Live Stream block's stream stopped trying, because trying again cannot help: `authRejected`, `noPassword`, `notConfigured` or `encoderMissing`; station is a Live Stream block's name; it tries again when its settings or its password change (*block*) |
+| `broadcast.failed` | station, reason | a Broadcast or Live Stream block's stream stopped trying, because trying again cannot help: `authRejected`, `noPassword`, `notConfigured`, `encoderMissing`, a refused certificate (`certificateUntrusted`, `certificateExpired`, `certificateWrongHost`, `certificateInvalid`) or `tlsFailed`; station is a Live Stream block's name; it tries again when its settings or its password change (*block*) |
 | `plugin.crashed` | plugin | a plugin's host went; the block is bypassed and can be restarted (*block*) |
 | `plugin.stoppedResponding` | plugin | a plugin's host stopped responding and was ended; as above (*block*) |
 | `plugin.restartRefused` | reason | a plugin could not be restarted (*block*) |

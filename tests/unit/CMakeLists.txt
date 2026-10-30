@@ -200,8 +200,10 @@ rb_add_gtest(reverblabr-record-test
 set_target_properties(reverblabr-record-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
 # Streams to an internet radio server, against a server the test makes
-# (fakeserver.h), and read back through FFmpeg as a player reads them. A
-# real Icecast is tests/broadcast, outside the default run.
+# (fakeserver.h), and read back through FFmpeg as a player reads them; over
+# TLS, through a TLS server with a certificate authority the test makes
+# (tlsserver.h). A real Icecast is tests/broadcast, outside the default run.
+pkg_check_modules(RB_TEST_GNUTLS REQUIRED IMPORTED_TARGET gnutls)
 rb_add_gtest(reverblabr-stream-test
     LAYER stream
     SOURCES
@@ -212,7 +214,9 @@ rb_add_gtest(reverblabr-stream-test
         stream/test_protocol.cpp
         stream/test_streamencoder.cpp
         stream/test_title.cpp
-    LIBRARIES reverblabr-stream reverblabr-rt PkgConfig::RB_TEST_FFMPEG
+        stream/test_tls.cpp
+        stream/tlsserver.h
+    LIBRARIES reverblabr-stream reverblabr-rt PkgConfig::RB_TEST_FFMPEG PkgConfig::RB_TEST_GNUTLS
 )
 set_target_properties(reverblabr-stream-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 

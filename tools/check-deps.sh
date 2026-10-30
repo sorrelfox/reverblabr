@@ -116,6 +116,8 @@ check required "SoundTouch" "$(pkg-config --modversion soundtouch 2>/dev/null)" 
 # M4A recordings. Which encoders it has is the app's to find out.
 check required "FFmpeg (libavformat)" "$(pkg-config --modversion libavformat 2>/dev/null)" "60"
 check required "FFmpeg (libavcodec)" "$(pkg-config --modversion libavcodec 2>/dev/null)" "60"
+# The Broadcast block's secure connection (TLS).
+check required "GnuTLS" "$(pkg-config --modversion gnutls 2>/dev/null)" "3.7"
 # LV2 plugins, found and described in the plugin host.
 # Optional: the Live Stream block draws its picture with these (ADR-0027).
 check optional "FreeType (the Live Stream block)" "$(pkg-config --modversion freetype2 2>/dev/null)"

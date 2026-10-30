@@ -87,6 +87,19 @@ TEST(BroadcastsTest, TheStreamsSettingsAreTheBlocksButThePassword)
     EXPECT_EQ(QString::fromStdString(settings.nowPlayingFile.string()), QDir::homePath() + u"/now.txt"_s);
 }
 
+TEST(BroadcastsTest, TlsIsAskedOfIcecastAndNeverOfShoutcast)
+{
+    blocks::Broadcast block;
+    EXPECT_FALSE(broadcastSettings(block, u"Show"_s).server.secure) << "a new block's local server is plain";
+    ASSERT_TRUE(block.setParam("secure", dsp::ParamValue::ofBool(true)).has_value());
+    EXPECT_TRUE(broadcastSettings(block, u"Show"_s).server.secure);
+    // SHOUTcast's source protocol has no TLS; the setting is kept for a
+    // switch back to Icecast.
+    ASSERT_TRUE(block.setParam("server", dsp::ParamValue::ofEnum("shoutcast")).has_value());
+    EXPECT_FALSE(broadcastSettings(block, u"Show"_s).server.secure);
+    EXPECT_TRUE(*block.param("secure").asBool());
+}
+
 TEST(BroadcastsTest, ATitleFollowsAPlayerOnlyWhenItIsToldTo)
 {
     blocks::Broadcast block;
@@ -134,6 +147,10 @@ TEST(BroadcastsTest, TheStatusIsWhatTheInterfaceXmlDescribes)
     EXPECT_EQ(json.value(u"retryIn"_s).toInt(), 4000);
     EXPECT_EQ(json.value(u"title"_s).toString(), u"Ana - Morning"_s);
     EXPECT_EQ(json.value(u"connectedSince"_s).toDouble(), 0.0);
+    EXPECT_FALSE(json.value(u"secure"_s).toBool());
+    status.state = stream::BroadcastStatus::State::Connected;
+    status.secure = true;
+    EXPECT_TRUE(broadcastStatusJson(status).value(u"secure"_s).toBool());
     EXPECT_FALSE(broadcastStatusJson(stream::BroadcastStatus{}).contains(u"error"_s)) << "nothing went wrong";
 }
 

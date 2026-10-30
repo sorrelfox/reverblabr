@@ -200,6 +200,16 @@ std::string_view streamErrorName(StreamError error) noexcept
         return "unsupportedSettings";
     case StreamError::PasswordUnavailable:
         return "passwordUnavailable";
+    case StreamError::CertificateUntrusted:
+        return "certificateUntrusted";
+    case StreamError::CertificateExpired:
+        return "certificateExpired";
+    case StreamError::CertificateWrongHost:
+        return "certificateWrongHost";
+    case StreamError::CertificateInvalid:
+        return "certificateInvalid";
+    case StreamError::TlsFailed:
+        return "tlsFailed";
     }
     return "rejected";
 }
@@ -213,6 +223,13 @@ bool isWorthRetrying(StreamError error) noexcept
     case StreamError::EncoderMissing:
     case StreamError::UnsupportedSettings:
     case StreamError::PasswordUnavailable:
+    // **A certificate that is refused stays refused**: the server, or the
+    // network in between, has to be put right, and a person told.
+    case StreamError::CertificateUntrusted:
+    case StreamError::CertificateExpired:
+    case StreamError::CertificateWrongHost:
+    case StreamError::CertificateInvalid:
+    case StreamError::TlsFailed:
         return false;
     case StreamError::ResolveFailed:
     case StreamError::ConnectFailed:

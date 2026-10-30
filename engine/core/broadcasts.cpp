@@ -63,6 +63,10 @@ stream::BroadcastSettings broadcastSettings(const dsp::Block &block, const QStri
     settings.server.host = trimmed(block.param("host").text());
     settings.server.port =
         static_cast<std::uint16_t>(std::clamp(block.param("port").asNumber().value_or(8000.0), 0.0, 65535.0));
+    // SHOUTcast's protocol has no TLS: a block switched to it keeps the
+    // setting for when it is switched back, and streams without.
+    settings.server.secure =
+        settings.server.kind == stream::ServerKind::Icecast && block.param("secure").asBool().value_or(false);
     settings.server.mount = trimmed(block.param("mount").text());
     settings.server.user = trimmed(block.param("user").text());
     if (settings.server.user.empty()) {
@@ -191,6 +195,7 @@ QJsonObject broadcastStatusJson(const stream::BroadcastStatus &status)
         {u"retryIn"_s, static_cast<double>(status.retryInMs)},
         {u"title"_s, QString::fromStdString(status.title)},
         {u"sampleRate"_s, static_cast<double>(status.sampleRate)},
+        {u"secure"_s, status.secure},
     };
     if (status.error) {
         json.insert(u"error"_s, text(stream::streamErrorName(*status.error)));

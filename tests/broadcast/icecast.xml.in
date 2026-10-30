@@ -3,8 +3,8 @@ SPDX-FileCopyrightText: 2026 Reverblabr contributors
 SPDX-License-Identifier: MPL-2.0
 
 The broadcast test's Icecast: on the loopback only, a source password the
-test chose, an Icecast port, and a SHOUTcast port pair. The test fills in
-the @…@ values.
+test chose, an Icecast port, the same over TLS with a certificate the test
+made, and a SHOUTcast port pair. The test fills in the @…@ values.
 -->
 <icecast>
     <location>Test</location>
@@ -32,6 +32,11 @@ the @…@ values.
         <bind-address>127.0.0.1</bind-address>
     </listen-socket>
     <listen-socket>
+        <port>@TLS_PORT@</port>
+        <bind-address>127.0.0.1</bind-address>
+        <ssl>1</ssl>
+    </listen-socket>
+    <listen-socket>
         <port>@SHOUTCAST_PORT@</port>
         <bind-address>127.0.0.1</bind-address>
         <shoutcast-mount>/shout</shoutcast-mount>
@@ -42,6 +47,7 @@ the @…@ values.
         <logdir>/tmp</logdir>
         <webroot>/usr/share/icecast/web</webroot>
         <adminroot>/usr/share/icecast/admin</adminroot>
+        <ssl-certificate>/etc/reverblabr-test-icecast.pem</ssl-certificate>
     </paths>
     <logging>
         <accesslog>access.log</accesslog>

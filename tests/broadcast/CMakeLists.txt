@@ -13,6 +13,7 @@
 # container, which is the case inside CI's own container.
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(RB_BROADCAST_TEST_FFMPEG REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil)
+pkg_check_modules(RB_BROADCAST_TEST_GNUTLS REQUIRED IMPORTED_TARGET gnutls)
 
 add_executable(reverblabr-icecast-test test_icecast.cpp)
 target_include_directories(reverblabr-icecast-test PRIVATE ${PROJECT_SOURCE_DIR}/tests/unit/stream)
@@ -26,6 +27,7 @@ target_link_libraries(reverblabr-icecast-test PRIVATE
     Qt6::Core
     GTest::gtest
     PkgConfig::RB_BROADCAST_TEST_FFMPEG
+    PkgConfig::RB_BROADCAST_TEST_GNUTLS
 )
 add_test(NAME broadcast.icecast COMMAND reverblabr-icecast-test)
 set_tests_properties(broadcast.icecast PROPERTIES

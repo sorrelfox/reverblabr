@@ -9,7 +9,6 @@
 
 #include "record/resampler.h"
 #include "rt/audiotap.h"
-#include "stream/connection.h"
 #include "stream/streamencoder.h"
 
 #include <algorithm>
@@ -60,8 +59,9 @@ public:
         bool sent = false;
     };
 
-    explicit TitleSender(const std::atomic<bool> &stopping)
+    TitleSender(const std::atomic<bool> &stopping, TlsOptions tls)
         : m_stopping(stopping)
+        , m_tls(std::move(tls))
         , m_thread([this] { run(); })
     {
     }
@@ -130,6 +130,11 @@ private:
         if (!admin) {
             return false;
         }
+        // **Over TLS when the stream is**: the request carries the
+        // password too.
+        if (server.secure && !admin->startTls(server.host, m_tls, kTitleTimeout, m_stopping)) {
+            return false;
+        }
         if (!admin->send(metadataRequest(server, title), kTitleTimeout, m_stopping)) {
             return false;
         }
@@ -145,6 +150,7 @@ private:
     }
 
     const std::atomic<bool> &m_stopping;
+    const TlsOptions m_tls;
     std::mutex m_mutex;
     std::condition_variable m_wake;
     std::optional<Waiting> m_waiting;
@@ -242,6 +248,9 @@ void BroadcastStream::configure(BroadcastSettings settings)
             m_shared->handedTrack.reset();
             ++m_shared->trackVersion;
         }
+        if (settings.server.kind == ServerKind::Shoutcast) {
+            settings.server.secure = false;
+        }
         m_shared->settings = std::move(settings);
         ++m_shared->settingsVersion;
     }
@@ -328,7 +337,7 @@ void BroadcastStream::run()
     std::optional<Clock::time_point> waitingForRate;
 
     // The title.
-    TitleSender titles(shared.stopping);
+    TitleSender titles(shared.stopping, options.tls);
     NowPlayingFile nowPlayingFile;
     Track fileTrack;
     std::string titleSent;
@@ -361,7 +370,8 @@ void BroadcastStream::run()
             const std::lock_guard lock(shared.mutex);
             const BroadcastStatus &was = shared.said;
             changed = was.state != status.state || was.error != status.error || was.reconnects != status.reconnects
-                || was.title != status.title || was.connectedSinceMs != status.connectedSinceMs;
+                || was.title != status.title || was.connectedSinceMs != status.connectedSinceMs
+                || was.secure != status.secure;
             shared.said = status;
         }
         if (changed || force || now - saidAt >= options.statusInterval) {
@@ -383,6 +393,7 @@ void BroadcastStream::run()
         encoder.reset();
         resampler.reset();
         status.connectedSinceMs = 0;
+        status.secure = false;
     };
 
     const auto fail = [&](StreamError error) {
@@ -542,6 +553,14 @@ void BroadcastStream::run()
             if (!opened) {
                 return opened;
             }
+            // **TLS before a word is said**, the password least of all.
+            if (server.secure) {
+                if (const std::expected<void, StreamError> secured =
+                        opened->startTls(server.host, options.tls, options.connectTimeout, shared.stopping);
+                    !secured) {
+                    return std::unexpected(secured.error());
+                }
+            }
             const bool icecast = server.kind == ServerKind::Icecast;
             const std::string hello =
                 icecast ? icecastRequest(server, settings->station, audio, method) : shoutcastLogin(server);
@@ -600,6 +619,7 @@ void BroadcastStream::run()
         status.state = State::Connected;
         status.error.reset();
         status.sampleRate = rate;
+        status.secure = connection.isSecure();
         status.connectedSinceMs = options.wallClockMs();
         if (everConnected) {
             ++status.reconnects;

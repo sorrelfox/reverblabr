@@ -90,6 +90,9 @@ libsoundtouch-dev
 libavformat-dev
 libavcodec-dev
 libavutil-dev
+# The Broadcast block's secure connection (TLS). FFmpeg links GnuTLS
+# already, so it adds nothing to what is installed.
+libgnutls28-dev
 # Optional: the Live Stream block's picture, and its conversion to video
 libfreetype-dev
 libharfbuzz-dev

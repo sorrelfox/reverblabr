@@ -102,7 +102,9 @@ TestCase {
             verify(rate >= bitrate.minimum && rate <= bitrate.maximum, rate + " kbps is out of the block's range");
         }
         for (const error of ["authRejected", "noPassword", "notConfigured", "encoderMissing", "closed",
-                             "connectFailed", "mountInUse", "timedOut", "resolveFailed"]) {
+                             "connectFailed", "mountInUse", "timedOut", "resolveFailed",
+                             "certificateUntrusted", "certificateExpired", "certificateWrongHost",
+                             "certificateInvalid", "tlsFailed"]) {
             verify(words.errorText(error) !== words.errorText("something new"), error + " has no words");
         }
     }
@@ -140,6 +142,33 @@ TestCase {
         compare(SessionModel.param("air", "channels"), "mono");
         mouseClick(panel.stereoButton);
         compare(SessionModel.param("air", "channels"), "stereo");
+    }
+
+    // **TLS is Icecast's**: a check that writes the block's parameter, a
+    // line saying what goes with it, and nothing for SHOUTcast, whose
+    // protocol has none.
+    function test_aSecureConnectionIsAskedForIcecastOnly() {
+        const panel = testCase.makePanel();
+        SessionModel.setParams("air", [["server", "icecast"], ["secure", false]]);
+        tryVerify(() => panel.secureCheck.visible && !panel.secureCheck.checked, 1000);
+        compare(panel.secureCheck.text, "Secure connection (TLS)");
+        verify(panel.secureLine.visible);
+        verify(panel.secureLine.text.indexOf("unencrypted") >= 0, panel.secureLine.text);
+
+        mouseClick(panel.secureCheck);
+        compare(SessionModel.param("air", "secure"), true);
+        tryVerify(() => panel.secureLine.text.indexOf("8443") >= 0, 1000, panel.secureLine.text);
+
+        panel.serverBox.activated(1);
+        tryVerify(() => !panel.secureCheck.visible && !panel.secureLine.visible, 1000);
+        // Kept for a switch back.
+        compare(SessionModel.param("air", "secure"), true);
+        panel.serverBox.activated(0);
+        tryVerify(() => panel.secureCheck.visible && panel.secureCheck.checked, 1000);
+
+        // An undo moves it like any other setting.
+        SessionModel.setParam("air", "secure", false);
+        tryVerify(() => !panel.secureCheck.checked, 1000);
     }
 
     function test_thePasswordGoesToTheEngineAndNotIntoTheSession() {
@@ -264,10 +293,21 @@ TestCase {
         compare(panel.problemLabel.text, "—");
         verify(panel.rateLabel.text.endsWith("kbps"), panel.rateLabel.text);
         verify(panel.sentLabel.text !== "", "nothing says how much was sent");
+        compare(panel.securityLabel.text, "Not encrypted");
 
         TestEngine.stop(testCase.sessionId);
         tryCompare(panel.stateLabel, "text", "Starts when the session runs");
         compare(panel.rateLabel.text, "—");
+        compare(panel.securityLabel.text, "—");
+
+        // Over TLS, the Status tab says so.
+        SessionModel.setParams("air", [["server", "icecast"], ["secure", true]]);
+        TestEngine.start(testCase.sessionId);
+        tryCompare(panel.stateLabel, "text", "On the air");
+        tryCompare(panel.securityLabel, "text", "Secure (TLS)");
+        TestEngine.stop(testCase.sessionId);
+        tryCompare(panel.stateLabel, "text", "Starts when the session runs");
+        SessionModel.setParam("air", "secure", false);
     }
 
     function test_theWordsForARetryCountTheSeconds() {
@@ -277,6 +317,8 @@ TestCase {
         compare(panel.words.stateText("retrying", "connectFailed", 900),
                 "The server isn't answering. Trying again in 1 second…");
         compare(panel.words.stateText("failed", "authRejected", 0), "The server refused the user name or password");
+        compare(panel.words.stateText("failed", "certificateWrongHost", 0),
+                "The server's certificate is for another name than the host");
         compare(panel.words.stateText("connecting", "", 0), "Connecting…");
     }
 

@@ -792,6 +792,9 @@ public:
                 status.state = stream::BroadcastStatus::State::Connected;
                 status.connectedSinceMs = QDateTime::currentMSecsSinceEpoch();
                 status.sampleRate = 48000;
+                // Over TLS as a real stream would be: Icecast, when asked.
+                status.secure = block->params.value("secure"_L1).toBool()
+                    && block->params.value("server"_L1).toString() != "shoutcast"_L1;
             } else {
                 status.state = stream::BroadcastStatus::State::Failed;
                 status.error = stream::StreamError::NoPassword;

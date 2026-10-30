@@ -15,6 +15,7 @@
 #include "stream/broadcaststream.h"
 #include "stream/streamencoder.h"
 #include "streamdecode.h"
+#include "tlsserver.h"
 
 #include <gtest/gtest.h>
 #include <sys/stat.h>
@@ -559,4 +560,115 @@ TEST(BroadcastStreamTest, SeveralStreamsToldToStopTogetherStopTogether)
     }
     streams.clear();
     EXPECT_LT(std::chrono::steady_clock::now() - before, 500ms);
+}
+
+TEST(BroadcastStreamTest, OverTlsTheStreamAndItsTitlesGoThroughTheSecureConnection)
+{
+    if (!formatAvailable(StreamFormat::Mp3)) {
+        GTEST_SKIP() << "this FFmpeg has no MP3 encoder";
+    }
+    TestAuthority authority;
+    FakeStreamServer server;
+    TestAuthority::Server local;
+    local.names = {"localhost"};
+    TlsFront front(authority.issue(local), server.port());
+    Statuses statuses;
+    auto tap = makeTap();
+    const Feeder feeder(tap);
+    BroadcastOptions options = quick();
+    options.tls.trustFile = authority.trustFile();
+    BroadcastStream stream(tap, statuses.sink(), options);
+    BroadcastSettings settings = settingsFor(front.port());
+    settings.server.host = "localhost";
+    settings.server.secure = true;
+    stream.configure(settings);
+    stream.setPassword("hackme");
+
+    ASSERT_TRUE(waitFor([&] { return server.received().size() > 32000; })) << "a second's worth never arrived";
+    EXPECT_EQ(statuses.last().state, State::Connected);
+    EXPECT_TRUE(statuses.last().secure);
+    ASSERT_EQ(server.requests().size(), 1U);
+    EXPECT_TRUE(server.requests()[0].starts_with("PUT /live HTTP/1.1\r\n"));
+    const std::string received = server.received();
+    const Decoded decoded = decode(std::vector<char>(received.begin(), received.end()));
+    ASSERT_TRUE(decoded.opened);
+    EXPECT_EQ(decoded.codec, "mp3");
+
+    // **The title request carries the password, so it goes over TLS too**:
+    // the server is reached only through the front.
+    stream.setNowPlaying(Track{.artist = "Ana", .title = "Morning"});
+    ASSERT_TRUE(waitFor([&] { return statuses.last().title == "Ana - Morning"; }));
+    ASSERT_EQ(server.titleRequests().size(), 1U);
+    EXPECT_EQ(front.handshakes(), 2);
+}
+
+TEST(BroadcastStreamTest, ARefusedCertificateSaysWhyAndIsNotTriedAgain)
+{
+    TestAuthority trusted;
+    TestAuthority stranger("Somebody Else");
+    FakeStreamServer server;
+    TestAuthority::Server local;
+    local.names = {"localhost"};
+    TlsFront front(stranger.issue(local), server.port());
+    Statuses statuses;
+    auto tap = makeTap();
+    BroadcastOptions options = quick();
+    options.tls.trustFile = trusted.trustFile();
+    options.rateWait = 0ms;
+    BroadcastStream stream(tap, statuses.sink(), options);
+    BroadcastSettings settings = settingsFor(front.port());
+    settings.server.host = "localhost";
+    settings.server.secure = true;
+    stream.configure(settings);
+    stream.setPassword("hackme");
+
+    ASSERT_TRUE(waitFor([&] { return statuses.last().state == State::Failed; }));
+    EXPECT_EQ(statuses.last().error, StreamError::CertificateUntrusted);
+    EXPECT_FALSE(statuses.last().secure);
+    // Several backoffs' worth, and still the one try; the password never
+    // reached anything.
+    std::this_thread::sleep_for(600ms);
+    EXPECT_EQ(front.refusals(), 1);
+    EXPECT_EQ(server.sources(), 0U);
+}
+
+TEST(BroadcastStreamTest, StoppingDoesNotWaitForAHandshakeThatStalls)
+{
+    const SilentServer server;
+    Statuses statuses;
+    auto tap = makeTap();
+    BroadcastOptions options = quick();
+    options.connectTimeout = 30s;
+    options.rateWait = 0ms;
+    std::optional<BroadcastStream> stream(std::in_place, tap, statuses.sink(), options);
+    BroadcastSettings settings = settingsFor(server.port());
+    settings.server.secure = true;
+    stream->configure(settings);
+    stream->setPassword("hackme");
+    ASSERT_TRUE(waitFor([&] { return statuses.last().state == State::Connecting; }));
+    std::this_thread::sleep_for(300ms);
+    const auto before = std::chrono::steady_clock::now();
+    stream.reset();
+    EXPECT_LT(std::chrono::steady_clock::now() - before, 500ms);
+}
+
+TEST(BroadcastStreamTest, ShoutcastIsNeverAskedForTls)
+{
+    if (!formatAvailable(StreamFormat::Mp3)) {
+        GTEST_SKIP() << "this FFmpeg has no MP3 encoder";
+    }
+    FakeStreamServer server;
+    server.setShoutcast("hackme");
+    Statuses statuses;
+    auto tap = makeTap();
+    const Feeder feeder(tap);
+    BroadcastStream stream(tap, statuses.sink(), quick());
+    BroadcastSettings settings = settingsFor(static_cast<std::uint16_t>(server.port() - 1));
+    settings.server.kind = ServerKind::Shoutcast;
+    settings.server.secure = true;
+    stream.configure(settings);
+    stream.setPassword("hackme");
+    ASSERT_TRUE(waitFor([&] { return server.received().size() > 16000; }));
+    EXPECT_EQ(statuses.last().state, State::Connected);
+    EXPECT_FALSE(statuses.last().secure);
 }

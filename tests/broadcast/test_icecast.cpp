@@ -8,8 +8,10 @@
 // The stream against a real Icecast, Fedora's, in a container: each
 // format goes on the air and plays for a listener, the title a listener
 // sees follows what is playing, a restarted server is connected to again
-// with the counts right, a wrong password is refused, and SHOUTcast's
-// protocol works against the server's SHOUTcast port.
+// with the counts right, a wrong password is refused, a stream over TLS
+// reaches the server's own TLS port with its title and a certificate from
+// an authority not trusted is refused there, and SHOUTcast's protocol works
+// against the server's SHOUTcast port.
 //
 // **Not in the default run**: it needs podman, the image (built from
 // Containerfile here the first time, which needs the network), and a
@@ -22,6 +24,7 @@
 #include "stream/connection.h"
 #include "stream/streamencoder.h"
 #include "streamdecode.h"
+#include "tlsserver.h"
 
 #include <QCoreApplication>
 #include <QFile>
@@ -88,7 +91,8 @@ Ran podman(const QStringList &arguments, std::chrono::milliseconds timeout = 60s
 /// takes two.
 [[nodiscard]] std::uint16_t freePortPair()
 {
-    std::mt19937 random(static_cast<unsigned>(::getpid()));
+    // One sequence for the run, so each call gives another pair.
+    static std::mt19937 random(static_cast<unsigned>(::getpid()));
     std::uniform_int_distribution<int> pick(20000, 60000);
     const auto free = [](int port) {
         const int fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
@@ -123,10 +127,31 @@ public:
     {
         port = freePortPair();
         shoutcastPort = freePortPair();
-        if (port == 0 || shoutcastPort == 0 || shoutcastPort == port + 1 || port == shoutcastPort + 1) {
+        tlsPort = freePortPair();
+        const auto overlap = [](std::uint16_t one, std::uint16_t other) {
+            return one == other || one == other + 1 || other == one + 1;
+        };
+        if (port == 0 || shoutcastPort == 0 || tlsPort == 0 || overlap(port, shoutcastPort) || overlap(port, tlsPort)
+            || overlap(shoutcastPort, tlsPort)) {
             why = u"no free ports"_s;
             return false;
         }
+        // **Icecast's own TLS**, with a certificate for this computer from
+        // the test's authority, the key in the same file as Icecast wants.
+        rb::test::TestAuthority::Server local;
+        local.names = {"localhost"};
+        local.addresses = {{127, 0, 0, 1}};
+        const rb::test::Certificate certificate = authority.issue(local);
+        m_certificatePath = m_folder.filePath(u"icecast.pem"_s);
+        QFile pem(m_certificatePath);
+        if (!pem.open(QIODevice::WriteOnly)
+            || pem.write(QByteArray::fromStdString(certificate.certificatePem + certificate.keyPem)) < 0) {
+            why = u"cannot write the certificate"_s;
+            return false;
+        }
+        pem.close();
+        QFile::setPermissions(m_certificatePath,
+                              QFileDevice::ReadOwner | QFileDevice::ReadGroup | QFileDevice::ReadOther);
         QFile in(QStringLiteral(RB_ICECAST_CONFIG));
         if (!in.open(QIODevice::ReadOnly)) {
             why = u"cannot read the configuration"_s;
@@ -136,6 +161,7 @@ public:
         config.replace(u"@PASSWORD@"_s, QString::fromLatin1(kPassword));
         config.replace(u"@PORT@"_s, QString::number(port));
         config.replace(u"@SHOUTCAST_PORT@"_s, QString::number(shoutcastPort));
+        config.replace(u"@TLS_PORT@"_s, QString::number(tlsPort));
         m_configPath = m_folder.filePath(u"icecast.xml"_s);
         QFile out(m_configPath);
         if (!out.open(QIODevice::WriteOnly) || out.write(config.toUtf8()) < 0) {
@@ -207,6 +233,10 @@ public:
 
     std::uint16_t port = 0;
     std::uint16_t shoutcastPort = 0;
+    std::uint16_t tlsPort = 0;
+    /// The authority the server's certificate is from, for a client to
+    /// trust.
+    rb::test::TestAuthority authority;
 
 private:
     Icecast() = default;
@@ -227,6 +257,8 @@ private:
                                 m_name,
                                 u"-v"_s,
                                 m_configPath + u":/etc/reverblabr-test-icecast.xml:ro,Z"_s,
+                                u"-v"_s,
+                                m_certificatePath + u":/etc/reverblabr-test-icecast.pem:ro,Z"_s,
                                 QString::fromLatin1(kImage),
                                 u"icecast"_s,
                                 u"-c"_s,
@@ -271,6 +303,7 @@ private:
 
     QTemporaryDir m_folder;
     QString m_configPath;
+    QString m_certificatePath;
     QString m_name;
 };
 
@@ -492,6 +525,59 @@ TEST(IcecastTest, AWrongPasswordIsRefusedAndNotTriedAgain)
     stream.setPassword("not-the-password");
     ASSERT_TRUE(waitFor([&] { return status.get().state == State::Failed; }));
     EXPECT_EQ(status.get().error, StreamError::AuthRejected);
+}
+
+TEST(IcecastTest, OverTlsTheStreamAndItsTitleReachTheServersTlsPort)
+{
+    if (streamFormatUnavailable(StreamFormat::Mp3)) {
+        GTEST_SKIP() << "this FFmpeg has no MP3 encoder";
+    }
+    Icecast &server = Icecast::instance();
+    auto tap = std::make_shared<rt::AudioTap>(2, 480000);
+    const Feeder feeder(tap);
+    LastStatus status;
+    BroadcastOptions secured = options();
+    secured.tls.trustFile = server.authority.trustFile();
+    BroadcastStream stream(tap, status.sink(), secured);
+    BroadcastSettings settings = settingsFor(StreamFormat::Mp3, "/tls");
+    settings.server.port = server.tlsPort;
+    settings.server.secure = true;
+    stream.configure(settings);
+    stream.setNowPlaying(Track{.artist = "Ana", .title = "Dusk"});
+    stream.setPassword(kPassword);
+
+    ASSERT_TRUE(waitFor([&] { return status.get().state == State::Connected; }))
+        << "state " << broadcastStateName(status.get().state) << ", error "
+        << (status.get().error ? streamErrorName(*status.get().error) : "none");
+    EXPECT_TRUE(status.get().secure);
+    ASSERT_TRUE(waitFor([&] { return !server.source(u"/tls"_s).isEmpty(); })) << "the server does not list the mount";
+    // The title request went over TLS too: the stream knows no other way.
+    EXPECT_TRUE(waitFor([&] { return server.source(u"/tls"_s).value(u"title"_s).toString() == u"Ana - Dusk"_s; }))
+        << "the server shows " << server.source(u"/tls"_s).value(u"title"_s).toString().toStdString();
+    std::this_thread::sleep_for(2s);
+    const Decoded heard = decode(server.listen("/tls", 48000));
+    ASSERT_TRUE(heard.opened) << "a listener could not read the stream";
+    EXPECT_EQ(heard.codec, "mp3");
+    EXPECT_GT(heard.peak, 0.2f);
+}
+
+TEST(IcecastTest, OverTlsACertificateFromAnAuthorityNotTrustedIsRefused)
+{
+    Icecast &server = Icecast::instance();
+    rb::test::TestAuthority stranger("Somebody Else");
+    auto tap = std::make_shared<rt::AudioTap>(2, 480000);
+    LastStatus status;
+    BroadcastOptions secured = options();
+    secured.tls.trustFile = stranger.trustFile();
+    BroadcastStream stream(tap, status.sink(), secured);
+    BroadcastSettings settings = settingsFor(StreamFormat::Mp3, "/untrusted");
+    settings.server.port = server.tlsPort;
+    settings.server.secure = true;
+    stream.configure(settings);
+    stream.setPassword(kPassword);
+    ASSERT_TRUE(waitFor([&] { return status.get().state == State::Failed; }));
+    EXPECT_EQ(status.get().error, StreamError::CertificateUntrusted);
+    EXPECT_TRUE(server.source(u"/untrusted"_s).isEmpty());
 }
 
 TEST(IcecastTest, ShoutcastsProtocolGoesOnTheAirWithItsTitle)

@@ -36,6 +36,8 @@ ColumnLayout {
     readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property string server: panel.params.server ?? "icecast"
     readonly property bool icecast: panel.server === "icecast"
+    /// Over TLS: Icecast's alone, since SHOUTcast's protocol has none.
+    readonly property bool secure: panel.icecast && (panel.params.secure ?? false)
     readonly property string format: panel.params.format ?? "mp3"
     readonly property bool mono: (panel.params.channels ?? "stereo") === "mono"
     /// **Only the rates the format takes for so many channels**, which the
@@ -67,6 +69,8 @@ ColumnLayout {
     readonly property alias serverBox: serverControl
     readonly property alias hostField: hostControl
     readonly property alias portBox: portControl
+    readonly property alias secureCheck: secureControl
+    readonly property alias secureLine: secureHint
     readonly property alias mountField: mountControl
     readonly property alias userField: userControl
     readonly property alias passwordField: passwordControl
@@ -90,6 +94,7 @@ ColumnLayout {
     readonly property alias rateLabel: rateText
     readonly property alias reconnectsLabel: reconnectsText
     readonly property alias connectedLabel: connectedText
+    readonly property alias securityLabel: securityText
     readonly property alias problemLabel: problemText
     readonly property alias words: words
 
@@ -339,6 +344,43 @@ ColumnLayout {
                     value: panel.params.port ?? 8000
                 }
             }
+        }
+
+        QQC2.CheckBox {
+            id: secureControl
+
+            readonly property real indent: AppMetrics.panelLabelWidth + AppMetrics.labelSpacing
+
+            // **Icecast only**: SHOUTcast's source protocol has no TLS. Under
+            // the fields where there is room, as the Metadata tab's check is.
+            visible: panel.icecast
+            Layout.leftMargin: secureControl.indent + secureControl.implicitWidth <= secureControl.parent.width
+                               ? secureControl.indent : 0
+            Layout.fillWidth: true
+            Layout.maximumWidth: implicitWidth
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 3
+            text: KI18n.i18nc("@option:check send a stream to its server over TLS", "Secure connection (TLS)")
+            QQC2.ToolTip.text: text
+            QQC2.ToolTip.visible: hovered && implicitWidth > width
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+            onToggled: panel.set("secure", secureControl.checked)
+
+            SessionBound {
+                control: secureControl
+                property: "checked"
+                value: panel.secure
+            }
+        }
+
+        InfoLine {
+            id: secureHint
+
+            // **What a person needs to know to tick it**: the port goes
+            // with it, and without it the password crosses in the clear.
+            visible: panel.icecast
+            text: panel.secure
+                ? KI18n.i18nc("@info", "A server takes TLS on a port of its own, often 8443. Ask whoever runs it.")
+                : KI18n.i18nc("@info", "Without it, the password and the stream cross the network unencrypted.")
         }
 
         RowLayout {
@@ -661,6 +703,16 @@ ColumnLayout {
             id: connectedText
 
             text: panel.onAir ? RecordingStatus.clock(panel.connectedSeconds) : "—"
+        }
+
+        FieldLabel {
+            text: KI18n.i18nc("@label whether a stream's connection is encrypted", "Connection")
+        }
+
+        StatusValue {
+            id: securityText
+
+            text: words.securityText(panel.onAir, panel.status.secure ?? false)
         }
 
         FieldLabel {

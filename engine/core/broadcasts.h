@@ -85,7 +85,7 @@ void configureOutputStream(stream::OutputStream &stream, const dsp::Block &block
 
 /// A stream's status as the `BroadcastStatusChanged` signal carries it:
 /// `{state, error?, connectedSince, bytesSent, kbps, reconnects, retryIn,
-/// title, sampleRate}`, the times in milliseconds.
+/// title, sampleRate, secure}`, the times in milliseconds.
 [[nodiscard]] QJsonObject broadcastStatusJson(const stream::BroadcastStatus &status);
 
 /// **The Broadcast block's formats this system cannot make**, for the

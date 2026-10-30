@@ -753,17 +753,24 @@ SPDX-License-Identifier: MIT
              "error": "authRejected" | "noPassword" | "notConfigured"
                     | "encoderMissing" | "encoderFailed" | "resolveFailed"
                     | "connectFailed" | "timedOut" | "closed" | "mountInUse"
-                    | "rejected" | "badResponse",
+                    | "rejected" | "badResponse" | "certificateUntrusted"
+                    | "certificateExpired" | "certificateWrongHost"
+                    | "certificateInvalid" | "tlsFailed",
              "connectedSince": 1767225600000, "bytesSent": 1048576,
              "kbps": 128.4, "reconnects": 1, "retryIn": 4000,
              "title": "Artist - Title", "sampleRate": 48000,
-             "passwordStored": true }
+             "secure": true, "passwordStored": true }
          "error" says why it is retrying or has failed, or why it last lost
          the server; it is left out when nothing went wrong. Times are in
          milliseconds, connectedSince since the epoch and 0 while it is not
          connected; bytesSent counts every connection since the session
          started; kbps is measured over the last few seconds; reconnects
-         counts the times it connected again after losing the server.
+         counts the times it connected again after losing the server;
+         secure is whether the connection that is up goes through TLS, and
+         false while none is. The "certificate…" errors say why the server's
+         certificate was refused (an authority the system does not trust,
+         out of date, or made out to another name), and "tlsFailed" that no
+         secure connection could be agreed on.
          "passwordStored" is there once the engine knows. A Live Stream
          block's status says the same of its RTMP stream, its key being its
          password and "title" what its picture says is playing, and adds

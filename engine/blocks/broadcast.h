@@ -75,6 +75,8 @@ public:
         Server = 0,
         Host,
         Port,
+        /// Whether the stream goes over TLS. Icecast only.
+        Secure,
         /// Icecast's mount point; SHOUTcast has none.
         Mount,
         /// Icecast's source user; SHOUTcast has none.

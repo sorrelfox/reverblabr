@@ -177,8 +177,11 @@ inline constexpr std::array kErrorCodes{
     ErrorCodeInfo{ErrorCode::BroadcastPasswordNotSaved, "broadcast.passwordNotSaved", {"reason"}},
     // A Broadcast block's stream has stopped trying, because trying again
     // cannot help: the reason is a status's error, "authRejected",
-    // "noPassword", "notConfigured" or "encoderMissing". Once each time it
-    // stops; it tries again when its settings or its password change.
+    // "noPassword", "notConfigured", "encoderMissing", a refused
+    // certificate ("certificateUntrusted", "certificateExpired",
+    // "certificateWrongHost", "certificateInvalid") or "tlsFailed". Once
+    // each time it stops; it tries again when its settings or its password
+    // change.
     ErrorCodeInfo{ErrorCode::BroadcastFailed, "broadcast.failed", {"station", "reason"}},
 };
 

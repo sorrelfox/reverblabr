@@ -8,6 +8,7 @@
 #pragma once
 
 #include "stream/backoff.h"
+#include "stream/connection.h"
 #include "stream/outputstream.h"
 #include "stream/protocol.h"
 #include "stream/title.h"
@@ -89,6 +90,8 @@ struct BroadcastStatus {
     std::string title;
     /// The rate the stream goes out at, once connected.
     std::uint32_t sampleRate = 0;
+    /// Whether the connection that is up now goes through TLS.
+    bool secure = false;
 
     [[nodiscard]] bool operator==(const BroadcastStatus &other) const = default;
 };
@@ -111,6 +114,9 @@ struct BroadcastOptions {
     /// How often the status is said while nothing but the numbers changes.
     std::chrono::milliseconds statusInterval{1000};
     Backoff::Options backoff;
+    /// How a secure connection checks its server: the system's authorities
+    /// unless a test names its own.
+    TlsOptions tls;
     /// What time it is, for connectedSinceMs. Empty asks the system.
     std::function<std::int64_t()> wallClockMs;
 };
@@ -153,7 +159,9 @@ public:
 
     /// What to stream, and where. **A change that a server has to be told
     /// in its first request** (where it goes, the format, the station)
-    /// connects again; one to the title only gives it the new title.
+    /// connects again; one to the title only gives it the new title. A
+    /// SHOUTcast server is never asked for TLS, which its protocol does not
+    /// have.
     void configure(BroadcastSettings settings);
 
     /// The password, from the secret store: nothing when it has none, and

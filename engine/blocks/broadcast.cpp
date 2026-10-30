@@ -68,6 +68,14 @@ std::vector<ParamDescriptor> Broadcast::makeDescriptors()
     // the session runs with a password set.
     text("host", "localhost");
     number("port", 1, 65535, 8000);
+    ParamDescriptor secure;
+    secure.id = "secure";
+    secure.type = ParamType::Bool;
+    // **Off for a new block**, as the server it points at, Icecast on this
+    // computer at its own port, has it. A server elsewhere that offers TLS
+    // takes it on a port of its own, which goes with this.
+    secure.defaultValue = ParamValue::ofBool(false);
+    descriptors.push_back(std::move(secure));
     text("mount", "/stream");
     text("user", "source");
     choice("format",

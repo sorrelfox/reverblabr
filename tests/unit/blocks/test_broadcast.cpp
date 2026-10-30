@@ -176,6 +176,7 @@ TEST(BroadcastTest, WhatWasChosenIsWhatComesBackAndNoneOfItIsAPassword)
     EXPECT_EQ(block.param("server").text(), "icecast");
     EXPECT_EQ(block.param("host").text(), "localhost");
     EXPECT_EQ(*block.param("port").asNumber(), 8000.0);
+    EXPECT_FALSE(*block.param("secure").asBool());
     EXPECT_EQ(block.param("mount").text(), "/stream");
     EXPECT_EQ(block.param("user").text(), "source");
     EXPECT_EQ(block.param("format").text(), "mp3");
@@ -188,6 +189,7 @@ TEST(BroadcastTest, WhatWasChosenIsWhatComesBackAndNoneOfItIsAPassword)
     ASSERT_TRUE(block.setParam("server", ParamValue::ofEnum("shoutcast")).has_value());
     ASSERT_TRUE(block.setParam("host", ParamValue::ofString("radio.example.org")).has_value());
     ASSERT_TRUE(block.setParam("port", ParamValue::ofInt(8443)).has_value());
+    ASSERT_TRUE(block.setParam("secure", ParamValue::ofBool(true)).has_value());
     ASSERT_TRUE(block.setParam("format", ParamValue::ofEnum("opus")).has_value());
     ASSERT_TRUE(block.setParam("stationName", ParamValue::ofString("Night Shift")).has_value());
     ASSERT_TRUE(block.setParam("nowPlaying", ParamValue::ofEnum("file")).has_value());
@@ -205,6 +207,7 @@ TEST(BroadcastTest, WhatWasChosenIsWhatComesBackAndNoneOfItIsAPassword)
     EXPECT_EQ(opened.param("server").text(), "shoutcast");
     EXPECT_EQ(opened.param("host").text(), "radio.example.org");
     EXPECT_EQ(*opened.param("port").asNumber(), 8443.0);
+    EXPECT_TRUE(*opened.param("secure").asBool());
     EXPECT_EQ(opened.param("format").text(), "opus");
     EXPECT_EQ(opened.param("stationName").text(), "Night Shift");
     EXPECT_EQ(opened.param("nowPlayingFile").text(), "~/now.txt");
