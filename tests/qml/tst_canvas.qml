@@ -333,7 +333,8 @@ TestCase {
 
     // In the Reverblabr appearance a tile is the prototype's 132 by
     // 96 with its 24-pixel band, and its settings open 16 pixels to its
-    // right at the prototype's 322, eight above its top.
+    // right at the prototype's 322 and the room for the help button, eight
+    // above its top.
     function test_aTileAndItsPanelAreWhereThePrototypePutsThem() {
         Appearance.mode = Appearance.ReverblabrDark;
         try {
@@ -356,7 +357,8 @@ TestCase {
             tryCompare(canvas.settings, "visible", true);
             waitForRendering(canvas);
             const topRight = tile.mapToItem(canvas, tile.width, 0);
-            compare(canvas.settings.width, 322, "the panel is not the prototype's width");
+            compare(canvas.settings.width, 322 + AppMetrics.settingsButtonRoom,
+                    "the panel is not the prototype's width and the help button's");
             compare(canvas.settings.x - topRight.x, 16, "the panel is not 16 pixels off its block");
             compare(topRight.y - canvas.settings.y, 8, "the panel's top is not 8 pixels above its block's");
         } finally {

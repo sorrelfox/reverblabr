@@ -67,6 +67,7 @@ Everything can be changed while the session runs, without clicks or gaps:
 - **Volume:** drag the slider on its tile, or open its settings to type a number. 200 % is twice the level, and overdrive takes it further.
 - **Dynamics Processor:** open its settings and drag the handles on the curve. The upper one is where compression starts, the lower one where the expander starts. The dot shows where the sound is on the curve while you draw it, and the meter after the block shows what your change did.
 - **Presets:** the row at the bottom of a block's settings. Some blocks come with presets, and **⋮ → Save as Preset…** keeps your own. **⋮ → Reset to Default Settings…** puts the block back to how a new one starts.
+- **Help:** the **?** button beside **⋮** explains the block and each of its settings, in a window you can keep open beside them.
 - **Undo:** Ctrl+Z takes back any change, including moving a block or a wire. The **Edit** menu tells you which change it would undo.
 - **Moving a block:** drag it by its title. The rest of the tile is for its controls, like the Volume slider.
 - **Keeping settings in view:** the window button at the top of a block's settings pulls them off the block into a window of their own, which stays where you put it while you work on other blocks. The pin button puts it back.

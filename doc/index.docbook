@@ -358,6 +358,12 @@ stream key stays, and so does which ear a hearing block is for. A plugin
 block has no reset: its own presets are the way back to where it
 started.</para>
 
+<para>The question-mark button beside <guimenu>⋮</guimenu> opens the block's
+help in a window of its own, which stays above the others while you work: what
+the block is for, how it works, what each of its settings does, when to use it,
+and a few tips. One help window serves every block; pressing the button on
+another block turns its page.</para>
+
 <para><keycombo action="simul">&Ctrl;<keycap>Z</keycap></keycombo> takes back
 any change, including moving a block or a wire, and the
 <guimenu>Edit</guimenu> menu tells you which change it would undo.</para>

@@ -440,8 +440,9 @@ TestCase {
         card.open("met");
         wait(50);
         compare(card.bodyAsks("panelWidth", 0), Kirigami.Units.gridUnit * 15);
-        compare(card.implicitWidth, Kirigami.Units.gridUnit * 15);
-        verify(card.implicitWidth < Kirigami.Units.gridUnit * 18, "the card is no narrower than the standard one");
+        compare(card.implicitWidth, Kirigami.Units.gridUnit * 15 + AppMetrics.settingsButtonRoom);
+        verify(card.implicitWidth < AppMetrics.settingsWidth + AppMetrics.settingsButtonRoom,
+               "the card is no narrower than the standard one");
         compare(card.presets.showsPresets, false, "a meter's settings still offer presets");
     }
 }

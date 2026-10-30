@@ -28,6 +28,8 @@ ecm_add_qml_module(reverblabr-ui
 # is a type error that only qmllint sees.
 set_source_files_properties(qml/AppColors.qml qml/AppFonts.qml qml/AppMetrics.qml qml/BlockFaces.qml
     qml/BlockPanels.qml qml/ParamFormat.qml qml/PluginWords.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+# The blocks' help pages, and the window they are shown in.
+set_source_files_properties(qml/BlockHelp.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The prototype's own glyphs, by name.
 set_source_files_properties(qml/AppGlyphs.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The one voice the window speaks to a screen reader with, unasked.
@@ -51,6 +53,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/BassTrebleFace.qml
     qml/BassTreblePanel.qml
     qml/BlockFaces.qml
+    qml/BlockHelp.qml
+    qml/BlockHelpWindow.qml
     qml/BlockLibrary.qml
     qml/BlockLibraryRow.qml
     qml/BlockPanels.qml
@@ -114,6 +118,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/GenericFace.qml
     qml/GenericParamPanel.qml
     qml/HearingBands.qml
+    qml/HelpPage.qml
+    qml/HelpSection.qml
     qml/HearingCompensationFace.qml
     qml/HearingCompensationPanel.qml
     qml/InfoLine.qml
@@ -191,6 +197,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/TimerDialog.qml
     qml/ToolBarRow.qml
     qml/VolumeFace.qml
+    qml/VolumeHelp.qml
     qml/VuFace.qml
     qml/VuGauge.qml
     qml/VuPanel.qml
@@ -285,6 +292,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/glyph.blocks.svg
     icons/glyph.check.svg
     icons/glyph.files.svg
+    icons/glyph.help.svg
     icons/glyph.info.svg
     icons/glyph.lock.svg
     icons/glyph.menu.svg

@@ -114,3 +114,5 @@ cp build/debug/guide/first-session.png docs/images/
 
 A scene may give a block its settings under `params`, as the first session names the application it plays.
 
+
+A screenshot in such a scene may name a block type under `help`, such as `{ "name": "help-volume", "theme": "dark", "running": false, "panel": null, "help": "effect.volume" }`: the block's help window is then grabbed, 600 by 820 unless `width` and `height` say otherwise ([docs/dev/block-help.md](../../docs/dev/block-help.md)).

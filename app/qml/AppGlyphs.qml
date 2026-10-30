@@ -54,6 +54,11 @@ QtObject {
     readonly property url files: glyphs.prefix + "files.svg"
     /// The circled "i" in front of a line of explanation.
     readonly property url info: glyphs.prefix + "info.svg"
+    /// The circled "?" of a block's help button, drawn as the "i" is.
+    /// Our own: the prototype has no help button, and the icon theme's help
+    /// is a circled "i" too, which beside an explanation's would say the
+    /// wrong thing.
+    readonly property url help: glyphs.prefix + "help.svg"
     /// The sidebar's Schedule tab: a clock. Our own, drawn as the others.
     readonly property url schedule: glyphs.prefix + "schedule.svg"
     /// A closed padlock beside what asks for an administrator's password:

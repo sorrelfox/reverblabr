@@ -36,3 +36,4 @@ In Reverblabr itself, Help → Handbook (F1) opens the same in KHelpCenter: the 
 - [Translations](i18n.md): how user-visible text is written and extracted
 - [From an audiogram to band settings](fitting-rules.md): the fitting rules behind the hearing blocks
 - [Notes](dev/): measurements and experiments that some of the decisions rest on
+- [Writing a block's help page](dev/block-help.md): the voice, the structure, and how to check the facts

@@ -1,0 +1,75 @@
+// SPDX-FileCopyrightText: 2026 Reverblabr contributors
+// SPDX-License-Identifier: MPL-2.0
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+pragma Singleton
+
+import QtQuick
+import QtQuick.Window
+import org.kde.kirigami as Kirigami
+import org.kde.ki18n
+
+// The blocks' help pages, by type id, and the one window they are shown in
+// (docs/adr/0029-block-help.md).
+//
+// **One window for every block**, made the first time somebody asks for
+// help and then kept: asking about another block turns its page, rather
+// than opening a second window somebody then has to find and close. It is
+// a window of its own, not a dialog over the canvas, so it can sit beside
+// the settings it explains while they are used.
+//
+// **A block with no page yet still gets the window**, with what the
+// library says of it and the way to the handbook; tools.help-pages lists
+// the blocks whose page is still to write.
+QtObject {
+    id: help
+
+    /// The window, once it has been asked for; null until then.
+    property var window: null
+
+    // **The parts every page has, named once**: one message each, so the
+    // same heading is the same words on every page and in every language.
+    readonly property string aboutTitle: KI18n.i18nc("@title a part of a block's help page", "What it does")
+    readonly property string settingsTitle: KI18n.i18nc("@title a part of a block's help page", "Settings")
+    readonly property string whenTitle: KI18n.i18nc("@title a part of a block's help page", "When to use it")
+    readonly property string tipsTitle: KI18n.i18nc("@title a part of a block's help page", "Tips")
+
+    readonly property Component volume: Component {
+        VolumeHelp {}
+    }
+
+    /// Type id to page. A block's help adds its entry here, and comes off
+    /// the list of those still to write (tests/tools/help-pending.txt).
+    readonly property var pages: ({
+        "effect.volume": help.volume
+    })
+
+    function pageFor(typeId: string): Component {
+        return help.pages[typeId] ?? null;
+    }
+
+    readonly property Component windowComponent: Component {
+        BlockHelpWindow {}
+    }
+
+    /// Shows the help for \a typeId, making the window the first time.
+    /// \a near is the window the request came from: the help opens beside
+    /// it on its screen, where the compositor lets an application say.
+    function show(typeId: string, near: var): var {
+        const first = help.window === null;
+        if (first) {
+            help.window = help.windowComponent.createObject(null);
+        }
+        help.window.typeId = typeId;
+        if (first) {
+            help.window.placeBeside(near ?? null);
+        }
+        help.window.show();
+        help.window.raise();
+        help.window.requestActivate();
+        return help.window;
+    }
+}

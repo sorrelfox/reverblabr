@@ -245,6 +245,12 @@ QtObject {
     /// close it may come to the canvas's edge, and the caret pointing at
     /// the block.
     readonly property real settingsWidth: metrics.followsSystem ? Kirigami.Units.gridUnit * 18 : 322
+    /// What a card is given on top of the width its body asks: room for
+    /// the help button beside the footer's menu, one more of the footer's
+    /// 26-pixel buttons and the gap before it, so that the presets box keeps
+    /// its width. The prototype has no help button; this is ours.
+    readonly property real settingsButtonRoom: metrics.followsSystem ? Kirigami.Units.gridUnit * 2
+                                                                     : metrics.mediumControlHeight + metrics.rowSpacing
     readonly property real settingsGap: metrics.followsSystem ? Kirigami.Units.gridUnit : 16
     readonly property real settingsMargin: metrics.followsSystem ? Kirigami.Units.smallSpacing * 2 : 8
     readonly property real caretSize: metrics.followsSystem ? Math.round(Kirigami.Units.gridUnit * 0.6) : 10
@@ -317,4 +323,22 @@ QtObject {
     /// are the width of the compositor's own borderless grip.
     readonly property real resizeGrip: 6
     readonly property real resizeCorner: 16
+
+    // A block's help window: a page of reading, so its measures are a
+    // book's rather than a panel's. Not the prototype's, which has none.
+    /// How many characters a line of the help holds at most: the 60 to 75
+    /// a line can be read at without losing the next one.
+    readonly property int helpMeasure: 66
+    /// The height of a line of the help's text, as a share of its font's:
+    /// more air than a label needs, because it is read for a while.
+    readonly property real helpLineHeight: 1.45
+    /// The room round the page, between two paragraphs, before a heading
+    /// and after it.
+    readonly property real helpPagePadding: metrics.followsSystem ? Kirigami.Units.gridUnit * 2 : 32
+    readonly property real helpParagraphGap: metrics.followsSystem ? Kirigami.Units.largeSpacing : 10
+    readonly property real helpSectionGap: metrics.followsSystem ? Kirigami.Units.gridUnit * 1.5 : 28
+    readonly property real helpSettingGap: metrics.followsSystem ? Kirigami.Units.gridUnit : 18
+    readonly property real helpHeadingGap: metrics.followsSystem ? Kirigami.Units.smallSpacing * 2 : 8
+    /// How far a list's points are set in, past their bullet.
+    readonly property real helpPointIndent: metrics.followsSystem ? Kirigami.Units.gridUnit : 18
 }

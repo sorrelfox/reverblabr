@@ -19,7 +19,7 @@
 // running; the block library, Files and Info; every block's settings panel;
 // the main menu and each of its menus; the session dialogs; the Virtual
 // Devices window; the Sessions window; the tray's popover; the Recording
-// Inspector.
+// Inspector; the blocks' help.
 
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -386,6 +386,20 @@ QtObject {
                  () => inspector !== null && inspector.inspector.loaded, 300);
             screen("inspector", () => inspector, () => [rootOf(inspector)], 0);
             step("inspector closed", () => inspector.close(), null, 50);
+
+            // **Every block's help that is written, and one that is not**:
+            // a page of text, which has to wrap rather than run out of its
+            // column in a language 40 % longer.
+            for (const typeId of Object.keys(BlockHelp.pages).concat(["effect.echo"])) {
+                let help = null;
+                step("help " + typeId, () => {
+                    help = BlockHelp.show(typeId, window);
+                    help.width = 600;
+                    help.height = 900;
+                }, () => help !== null && help.visible && help.typeId === typeId, 300);
+                screen("help-" + typeId, () => help, () => [rootOf(help)], 0);
+            }
+            step("help closed", () => BlockHelp.window.close(), null, 50);
         }, null, 0);
         ticker.start();
     }

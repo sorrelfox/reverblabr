@@ -144,8 +144,12 @@ Primitives.ShadowedRectangle {
     }
 
     /// A block whose settings are one tall meter wants a narrow card, and
-    /// one with a list of settings the standard one.
-    implicitWidth: Math.min(panel.maximumWidth, panel.bodyAsks("panelWidth", AppMetrics.settingsWidth))
+    /// one with a list of settings the standard one. **Every card is a
+    /// button wider than its body asks**, for the help button in the footer:
+    /// the footer is the card's and not the body's, so the room for it is
+    /// added here rather than asked of every panel.
+    implicitWidth: Math.min(panel.maximumWidth,
+                            panel.bodyAsks("panelWidth", AppMetrics.settingsWidth) + AppMetrics.settingsButtonRoom)
     // **As tall as what is in it**, up to what the canvas allows. A block
     // with three settings should not get a panel the height of the window;
     // the body is the only part that can grow without bound, so the cap

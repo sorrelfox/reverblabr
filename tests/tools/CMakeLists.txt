@@ -66,6 +66,13 @@ set_tests_properties(tools.ctl-documented PROPERTIES PASS_REGULAR_EXPRESSION "PA
 add_test(NAME tools.handbook-blocks
          COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_handbook.py blocks)
 set_tests_properties(tools.handbook-blocks PROPERTIES PASS_REGULAR_EXPRESSION "PASS: handbook blocks")
+# **Every block has help, or is listed as still to get it**, and every help
+# page is written one marked message a line, so translators get it in
+# paragraphs (ADR-0029). That a page names every control of its panel is
+# tst_blockhelp.qml's to check.
+add_test(NAME tools.help-pages
+         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_help_pages.py)
+set_tests_properties(tools.help-pages PROPERTIES PASS_REGULAR_EXPRESSION "PASS: help pages")
 # The release the handbook says it describes is VERSION's, as the AppStream
 # data's newest is (tools.desktop-entry).
 add_test(NAME tools.handbook-release

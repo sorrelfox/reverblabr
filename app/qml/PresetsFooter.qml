@@ -14,8 +14,8 @@ import org.kde.kirigami as Kirigami
 import org.kde.ki18n
 
 // The row at the foot of a settings panel: which preset the block is set
-// from, and what can be done about it, and putting its settings back to
-// their defaults.
+// from, and what can be done about it; the block's help; and putting its
+// settings back to their defaults.
 //
 // **One row, used by every panel**, rather than each panel growing its own:
 // a block that can be set from a preset can be set from one the same way,
@@ -28,8 +28,8 @@ import org.kde.ki18n
 // which is what makes "Manual" right after any hand edit.
 //
 // **A panel with no use for presets keeps the row**, without the presets:
-// a meter has settings to put back like any other block, and the bin is
-// how its block is taken off from its own settings too.
+// a meter has settings to put back and a help page like any other block,
+// and the bin is how its block is taken off from its own settings too.
 RowLayout {
     id: footer
 
@@ -137,6 +137,7 @@ RowLayout {
     readonly property alias saveDialog: saveDialog
     readonly property alias renameDialog: renameDialog
     readonly property alias deleteDialog: deleteDialog
+    readonly property alias helpButton: helpButton
     readonly property alias presetMenu: actions
     readonly property alias settingsMenu: settingsActions
     readonly property alias resetAction: resetAction
@@ -188,6 +189,13 @@ RowLayout {
         visible: footer.showsPresets
         text: KI18n.i18nc("@label saved settings for this block", "Presets:")
         color: AppColors.muted
+        // **The first thing to give way in a narrow card**, before the
+        // box: with the help button the row has five things on it, and in
+        // the smallest window they were wider than the card together.
+        elide: Text.ElideRight
+        Layout.minimumWidth: 0
+        Layout.preferredWidth: implicitWidth
+        Layout.fillWidth: false
     }
 
     QQC2.ComboBox {
@@ -201,7 +209,7 @@ RowLayout {
         // out at the footer's width, past the card's right edge.
         Layout.fillWidth: true
         Layout.maximumWidth: AppMetrics.followsSystem ? Kirigami.Units.gridUnit * 10 : AppMetrics.fieldWidth
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 3
         // **"Manual" is an entry, not a blank.** A box that was empty when
         // the values matched nothing would look like a box that had not
         // loaded yet.
@@ -223,6 +231,36 @@ RowLayout {
             control: chooser
             property: "currentIndex"
             value: Math.max(0, chooser.model.findIndex(entry => entry.id === footer.shownId))
+        }
+    }
+
+    // **Help beside the menu**, the two being what can be asked of the
+    // block rather than set on it. It opens the block's help in a window of
+    // its own (BlockHelp), which stays open while the panel is used.
+    QQC2.ToolButton {
+        id: helpButton
+
+        // **A circled "?" of our own in the Reverblabr appearance**: the
+        // icon theme's help is a circled "i", the same as the one in front
+        // of a line of explanation. The theme's own while following the
+        // system, as every other button does.
+        icon.name: Appearance.followsSystem ? "help-contextual" : ""
+        icon.source: Appearance.followsSystem ? "" : AppGlyphs.help
+        display: QQC2.AbstractButton.IconOnly
+        Accessible.name: KI18n.i18nc("@action:button open the help page of this kind of block", "Help for this block")
+        QQC2.ToolTip.text: Accessible.name
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        onClicked: BlockHelp.show(footer.typeId, footer.Window.window)
+
+        // The same 26-pixel square as the menu beside it.
+        Binding on implicitWidth {
+            when: !AppMetrics.followsSystem
+            value: AppMetrics.mediumControlHeight
+        }
+        Binding on implicitHeight {
+            when: !AppMetrics.followsSystem
+            value: AppMetrics.mediumControlHeight
         }
     }
 

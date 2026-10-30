@@ -246,6 +246,23 @@ QtObject {
             }, null, 300);
             return;
         }
+        // **A block's help**, where a shot names a block type: the help
+        // window is what is grabbed.
+        if (shot.help !== undefined) {
+            let help = null;
+            step(shot.name + ": help", () => {
+                help = BlockHelp.show(shot.help, window);
+                help.width = shot.width ?? 600;
+                help.height = shot.height ?? 820;
+            }, () => help !== null && help.visible && help.typeId === shot.help, 300);
+            step(shot.name + ": grab", () => {
+                if (!Grabber.grab(help, shot.name)) {
+                    fail("could not grab " + shot.name);
+                }
+                help.close();
+            }, null, 300);
+            return;
+        }
         step(shot.name + ": grab", () => {
             manifest[shot.name] = measure(shot);
             if (!Grabber.grab(window, shot.name)) {

@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The library's blocks whose help page is still to write, one type id a
+# line (docs/dev/block-help.md). Until a block has a page, its help button
+# opens the window with what the library says of it and the way to the
+# handbook. tools.help-pages fails when a block here has a page, or when a
+# block that is neither here nor has a page is in the library: write the
+# page, add it to app/qml/BlockHelp.qml and take its line out of this file.
+advanced.declick
+advanced.dehum
+advanced.denoise
+advanced.ducking
+advanced.firfilter
+advanced.inputswitch
+advanced.mixer
+advanced.parametriceq
+advanced.speechdenoise
+advanced.sync
+advanced.timeshift
+effect.autolevel
+effect.balance
+effect.basstreble
+effect.channels
+effect.dynamics
+effect.echo
+effect.equalizer10
+effect.highpass
+effect.limiter
+effect.lowpass
+effect.monoenhancer
+effect.multibandcompressor
+effect.pan
+effect.pitchshift
+effect.reverb
+effect.simplecompressor
+hearing.compensation16
+hearing.compensation64
+hearing.frequencylowering
+hearing.frequencyraising
+hearing.joinlr
+meter.peakrms
+meter.vu
+output.broadcast
+output.device
+output.livestream
+output.recorder
+output.wave
+source.application
+source.device
+source.system

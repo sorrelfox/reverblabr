@@ -50,6 +50,15 @@ QtObject {
     readonly property real tinyPixels: 10
     /// A meter's scale, the line under a tile's number.
     readonly property real microPixels: 9.5
+    /// A block's help window: its title, the line under it, a part's
+    /// heading, a setting's name and the text. **Larger than the panels'**,
+    /// as a page that is read rather than glanced at. Ours, not the
+    /// prototype's, which has no help.
+    readonly property real helpTitlePixels: 22
+    readonly property real helpHeadingPixels: 17
+    readonly property real helpLeadPixels: 15
+    readonly property real helpSubheadingPixels: 14.5
+    readonly property real helpBodyPixels: 14
 
     // The weights the prototype uses, and no others.
     readonly property int medium: Font.Medium
@@ -188,6 +197,37 @@ QtObject {
     readonly property font libraryDetail: fonts.followsSystem
                                           ? Kirigami.Theme.smallFont
                                           : fonts.designed(Appearance.sansFamily, fonts.detailPixels, Font.Normal)
+    /// The help window's type: a title, the line that says what the
+    /// block is for, a part's heading, a setting's name, and the text.
+    /// While following the system, the desktop's font at the same steps
+    /// up from its own size.
+    readonly property font helpTitle: fonts.followsSystem
+                                      ? fonts.sized(Qt.font({
+                                                                "family": Kirigami.Theme.defaultFont.family,
+                                                                "weight": Font.DemiBold
+                                                            }), Kirigami.Theme.defaultFont.pointSize * 1.6)
+                                      : fonts.designed(Appearance.sansFamily, fonts.helpTitlePixels, Font.DemiBold)
+    readonly property font helpLead: fonts.followsSystem
+                                     ? fonts.sized(Qt.font({
+                                                               "family": Kirigami.Theme.defaultFont.family
+                                                           }), Kirigami.Theme.defaultFont.pointSize * 1.1)
+                                     : fonts.designed(Appearance.sansFamily, fonts.helpLeadPixels, Font.Normal)
+    readonly property font helpHeading: fonts.followsSystem
+                                        ? fonts.sized(Qt.font({
+                                                                  "family": Kirigami.Theme.defaultFont.family,
+                                                                  "weight": Font.DemiBold
+                                                              }), Kirigami.Theme.defaultFont.pointSize * 1.3)
+                                        : fonts.designed(Appearance.sansFamily, fonts.helpHeadingPixels, Font.DemiBold)
+    readonly property font helpSubheading: fonts.followsSystem
+                                           ? fonts.sized(Qt.font({
+                                                                     "family": Kirigami.Theme.defaultFont.family,
+                                                                     "weight": Font.DemiBold
+                                                                 }), Kirigami.Theme.defaultFont.pointSize * 1.05)
+                                           : fonts.designed(Appearance.sansFamily, fonts.helpSubheadingPixels,
+                                                            Font.DemiBold)
+    readonly property font helpBody: fonts.followsSystem
+                                     ? Kirigami.Theme.defaultFont
+                                     : fonts.designed(Appearance.sansFamily, fonts.helpBodyPixels, Font.Normal)
     /// The numbers down a meter's side.
     readonly property font meterScale: fonts.followsSystem
                                        ? fonts.sized(Qt.font({
