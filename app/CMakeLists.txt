@@ -109,6 +109,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/DynamicsFace.qml
     qml/DynamicsHelp.qml
     qml/DynamicsPanel.qml
+    qml/EarChoice.qml
     qml/EqualizerBands.qml
     qml/EqualizerFace.qml
     qml/EqualizerHelp.qml

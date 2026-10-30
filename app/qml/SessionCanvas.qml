@@ -270,6 +270,31 @@ Item {
 
     // --- adding and removing ---
 
+    /// **The ear a new hearing block starts on**: the side with fewer
+    /// blocks of its type already, the left on a tie. A second Hearing
+    /// Compensation added after one for the left ear is for the right one,
+    /// which is how a pair for two ears is set up. \a typeId with the ear
+    /// to start on, as SessionModel.addBlock() takes a setting with the
+    /// type, so the block and its ear are one edit; \a typeId as it was for
+    /// a block without an Ear.
+    function withStartingEar(typeId: string): string {
+        if (typeId.indexOf("?") >= 0 || BlockCatalogue.describeParam(typeId, "ear").id === undefined) {
+            return typeId;
+        }
+        let left = 0;
+        let right = 0;
+        for (const id of SessionModel.blockIds) {
+            if (SessionModel.blockType(id) === typeId) {
+                if ((SessionModel.param(id, "ear") ?? "left") === "right") {
+                    ++right;
+                } else {
+                    ++left;
+                }
+            }
+        }
+        return right < left ? typeId + "?ear=right" : typeId;
+    }
+
     /// Puts a block where the pointer is, in viewport coordinates, with the
     /// tile centred on it: a block dropped on a spot belongs on that spot
     /// and not below and to the right of it.
@@ -281,7 +306,7 @@ Item {
         // and chose to put it there rather than after something; automatic
         // connections are what addBlockAfterSelection() does, where placing
         // the block and joining it up are one gesture.
-        const added = SessionModel.addBlock(typeId, Qt.point(canvas.snapped(at.x - size.width / 2),
+        const added = SessionModel.addBlock(canvas.withStartingEar(typeId), Qt.point(canvas.snapped(at.x - size.width / 2),
                                                              canvas.snapped(at.y - size.height / 2)));
         if (added !== "") {
             canvas.selectOnly(added);
@@ -307,7 +332,7 @@ Item {
             const bounds = canvas.contentBounds();
             at = bounds.width > 0 ? Qt.point(bounds.x + bounds.width + gap, bounds.y) : canvas.toSession(gap, gap);
         }
-        const added = SessionModel.addBlock(typeId, canvas.freeSpot(at, size));
+        const added = SessionModel.addBlock(canvas.withStartingEar(typeId), canvas.freeSpot(at, size));
         if (added !== "") {
             // **Wired before it is selected**, because what it is wired to
             // is what *was* selected. The engine's history merges the wire

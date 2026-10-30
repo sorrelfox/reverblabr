@@ -1492,13 +1492,20 @@ in place.</para>
 <sect1 id="one-ear">
 <title>One ear at a time</title>
 
-<para>Every block in the Hearing group has an <guilabel>Ear</guilabel>
-setting, Left or Right, and its tile shows an <guilabel>L</guilabel> (blue) or
-an <guilabel>R</guilabel> (red). The block changes that side only and passes
-the other side through, delayed by exactly as much as its own side, so the two
+<para>Every block in the Hearing group except Join L/R has an
+<guilabel>Ear</guilabel> setting, Left or Right, at the top of its settings,
+and its tile shows an <guilabel>L</guilabel> (blue) or an
+<guilabel>R</guilabel> (red). The block changes that side only and passes the
+other side through, delayed by exactly as much as its own side, so the two
 ears stay in step. Changing the Ear while the session runs fades across
-instead of clicking. Loading a preset never changes it, so a preset made for
+instead of clicking, and one undo puts it back. Loading a preset or putting
+the block back to its default settings never changes it, so a preset made for
 one ear can be tried on the other.</para>
+
+<para>A new block starts on the left ear. When the session already has more
+blocks of the same kind for the left ear than for the right, a new one starts
+on the right instead, so adding the same block twice gives you one for each
+ear.</para>
 
 <para>There are two ways to give each ear blocks of its own:</para>
 
@@ -1514,6 +1521,25 @@ side of the other. &reverblabr; lines the two lanes up where they meet, so the
 ears stay in step even when one lane has more blocks than the other, and the
 session is only as late as the slower lane.</para></listitem>
 </itemizedlist>
+
+<para>To set up two lanes with Hearing Compensation 16 (any hearing block works
+the same way):</para>
+
+<procedure>
+<step><para>Select the source and click <guilabel>Hearing Compensation
+16</guilabel> in the library. It is wired after the source and starts on the
+left ear.</para></step>
+<step><para>Select the source again and click <guilabel>Hearing Compensation
+16</guilabel> once more. The new block gets a lane of its own from the same
+source and starts on the right ear.</para></step>
+<step><para>Select the left ear's block and click <guilabel>Join
+L/R</guilabel>. It takes that block on its <guilabel>Left</guilabel>
+input.</para></step>
+<step><para>Hold &Ctrl; and drag from the right ear's block to
+the <guilabel>Right</guilabel> input of Join L/R.</para></step>
+<step><para>Select Join L/R and add the output, such as an Output
+Device.</para></step>
+</procedure>
 </sect1>
 
 <sect1 id="hearing-compensation-16">
@@ -1607,9 +1633,9 @@ important part of speech lives up there: the hiss of <quote>s</quote>,
 ear does hear.</para>
 
 <procedure>
-<step><para>Add it for the ear that needs it and set its
+<step><para>Add it for the ear that needs it and choose that ear under
 <guilabel>Ear</guilabel>. Add a second one for the other ear if that one needs
-it too.</para></step>
+it too: it starts on the right.</para></step>
 <step><para>Its first move is ready to go: sound from 4 to 8 kHz squeezed into
 2.5 to 4 kHz, with the high range emptied. On the
 <guilabel>Arrows</guilabel> view, the shaded range is where the sound comes
@@ -1649,7 +1675,7 @@ moves sound from a low or middle range up into one the ear hears. The panel,
 the moves and the views are the same.</para>
 
 <procedure>
-<step><para>Add it for the ear that needs it and set its
+<step><para>Add it for the ear that needs it and choose that ear under
 <guilabel>Ear</guilabel>.</para></step>
 <step><para>Its first move is ready: sound from 250 to 500 Hz copied two
 octaves up into 1 to 2 kHz, with the original kept.</para></step>

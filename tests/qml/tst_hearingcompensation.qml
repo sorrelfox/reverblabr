@@ -280,6 +280,41 @@ TestCase {
         compare(unit.activeControl.currentText, "dB HL");
     }
 
+    /// The audiogram's lists, one a frequency.
+    function markLists(panel: var): var {
+        const lists = [];
+        const walk = item => {
+            for (let index = 0; index < item.children.length; ++index) {
+                const child = item.children[index];
+                if (child.paramId !== undefined && /^audiogram[0-9]+$/.test(child.paramId)) {
+                    lists.push(child);
+                } else {
+                    walk(child);
+                }
+            }
+        };
+        walk(panel.audiogramSection);
+        return lists;
+    }
+
+    function test_eachAudiogramListIsNamedByItsFrequencyAndEar() {
+        const id = testCase.newBlock("");
+        const window = testCase.openPanel(id);
+        const panel = window.panel;
+        panel.audiogramSection.expanded = true;
+        const lists = testCase.markLists(panel);
+        compare(lists.length, 11);
+        compare(lists[0].model, ["—", "Heard", "No response"]);
+        compare(lists[0].Accessible.name, "Audiogram at 125 Hz, left ear");
+        compare(lists[4].Accessible.name, "Audiogram at 1.0 kHz, left ear");
+        compare(lists[10].Accessible.name, "Audiogram at 8.0 kHz, left ear");
+        const names = lists.map(list => list.Accessible.name);
+        compare(new Set(names).size, 11, "two lists share a name");
+
+        SessionModel.setParam(id, "ear", "right");
+        tryCompare(lists[4].Accessible, "name", "Audiogram at 1.0 kHz, right ear");
+    }
+
     /// Takes out the blocks earlier tests left, so "the other ear" is the
     /// one a test made.
     function clearSession() {

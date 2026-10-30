@@ -16,7 +16,8 @@ import org.kde.ki18n
 
 // The settings of a Frequency Lowering or Frequency Raising
 // block: which one is typeId; FrequencyLoweringPanel and
-// FrequencyRaisingPanel set it.
+// FrequencyRaisingPanel set it. Which ear it works on comes first
+// (EarChoice).
 //
 // **Two ways to see the moves.** Arrows (the first): a frequency axis with
 // each move's source range shaded, as what the ear does not use, its
@@ -91,6 +92,7 @@ ColumnLayout {
     readonly property alias outputSpectrumShape: outputShape
     readonly property alias mapShape: mapView
     readonly property alias delayLabel: delayText
+    readonly property alias earChoice: earControl
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -223,6 +225,14 @@ ColumnLayout {
 
     FrequencyMoveWords {
         id: words
+    }
+
+    EarChoice {
+        id: earControl
+
+        Layout.fillWidth: true
+        blockId: panel.blockId
+        typeId: moves.typeId
     }
 
     // **One row that gives way**: in a narrow window's card the choice

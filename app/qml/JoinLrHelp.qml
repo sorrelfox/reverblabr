@@ -26,6 +26,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Join L/R block", "When the two ears need quite different help, it is clearer to give each ear a lane of its own. Wire the source to two lanes, put the left ear's blocks on one and the right ear's on the other, and bring both lanes into Join L/R. What comes out is one stereo pair again, ready for your headphones or another block."),
             KI18n.i18nc("@info help page of the Join L/R block", "Join L/R takes the left side of the lane on its Left input, and the right side of the lane on its Right input. The other two sides, the ones each lane only passed through, are left out."),
             KI18n.i18nc("@info help page of the Join L/R block", "The blocks on the two lanes may hold the sound back by different amounts. Reverblabr makes the quicker lane wait for the slower one where they meet, so both ears hear the sound at the same moment. The block adds no delay of its own, and the whole is only as late as the slower lane."),
+            KI18n.i18nc("@info help page of the Join L/R block", "A quick way to set it up: select the source and add a hearing block, which starts on the left ear. Select the source again and add a second block of the same kind, which starts on the right ear and gets a lane of its own. Select the left one and add Join L/R, which takes it on its Left input, then wire the right one into its Right input."),
             KI18n.i18nc("@info help page of the Join L/R block", "The block has nothing to set.")
         ]
     }
@@ -41,7 +42,7 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@label an input of the Join L/R block: the lane the left ear comes in on", "Left")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Join L/R block", "Wire the left ear's lane here. Only its left side is used, so the hearing blocks on that lane should be the ones for the left ear, with an L on their tile.")
+            KI18n.i18nc("@info help page of the Join L/R block", "Wire the left ear's lane here. Only its left side is used, so the hearing blocks on that lane should be the ones for the left ear: Ear set to Left in their settings, and an L on their tile.")
         ]
     }
 
@@ -49,7 +50,7 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@label an input of the Join L/R block: the lane the right ear comes in on", "Right")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Join L/R block", "Wire the right ear's lane here. Only its right side is used, so the hearing blocks on that lane should be the ones for the right ear, with an R on their tile.")
+            KI18n.i18nc("@info help page of the Join L/R block", "Wire the right ear's lane here. Only its right side is used, so the hearing blocks on that lane should be the ones for the right ear: Ear set to Right in their settings, and an R on their tile.")
         ]
     }
 

@@ -135,6 +135,55 @@ TestCase {
         verify(!other.earBadge.visible, "a block without an Ear shows a badge");
     }
 
+    /// The wires from \a from into \a to, as "fromPort>toPort".
+    function wiresBetween(from: string, to: string): var {
+        return SessionModel.wires().filter(wire => wire.fromBlock === from && wire.toBlock === to)
+            .map(wire => wire.fromPort + ">" + wire.toPort).sort();
+    }
+
+    // **Two ears, as the handbook sets them up**: a source, a Hearing
+    // Compensation after it (left), a second one after the source again,
+    // which starts on the right, and Join L/R after the left one with the
+    // right one wired into its Right input. The second block and its ear
+    // are one edit, so one undo takes it all back.
+    function test_aSecondHearingBlockOfAKindStartsOnTheOtherEar() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        const source = canvas.addBlockAt("source.device", 100, 100);
+        const left = canvas.addBlockAfterSelection("hearing.compensation16");
+        verify(left !== "");
+        compare(SessionModel.param(left, "ear") ?? "left", "left", "the first block is not for the left ear");
+
+        canvas.selectOnly(source);
+        const right = canvas.addBlockAfterSelection("hearing.compensation16");
+        verify(right !== "");
+        compare(SessionModel.blockType(right), "hearing.compensation16", "the type took the ear with it");
+        compare(SessionModel.param(right, "ear"), "right", "the second block is not for the other ear");
+        compare(testCase.wiresBetween(source, left), ["0>0", "1>1"]);
+        compare(testCase.wiresBetween(source, right), ["0>0", "1>1"], "the source does not feed the second lane");
+        tryCompare(testCase.tileFor(canvas, right), "ear", "right");
+
+        // One undo takes the second block back, ear and wires with it.
+        SessionModel.undo();
+        tryVerify(() => SessionModel.blockType(right) === "", 1000, "one undo left the block on the canvas");
+        compare(testCase.wiresBetween(source, right), []);
+        SessionModel.redo();
+        tryCompare(SessionModel, "blockIds", [source, left, right]);
+        compare(SessionModel.param(right, "ear"), "right");
+
+        // Join L/R after the left ear's block takes it on its Left input;
+        // the right ear's goes into its Right input, ports 2 and 3.
+        canvas.selectOnly(left);
+        const join = canvas.addBlockAfterSelection("hearing.joinlr");
+        compare(testCase.wiresBetween(left, join), ["0>0", "1>1"]);
+        verify(SessionModel.connectLanes(right, join, 2, 2));
+        compare(testCase.wiresBetween(right, join), ["0>2", "1>3"]);
+
+        // **Another kind starts on the left** while it has no block for
+        // that ear yet: a Frequency Lowering added now is the left ear's.
+        const lowering = canvas.addBlockAt("hearing.frequencylowering", 400, 400);
+        compare(SessionModel.param(lowering, "ear") ?? "left", "left");
+    }
+
     function test_addingABlockGoesThroughTheEngineAndLandsOnTheGrid() {
         const canvas = createTemporaryObject(canvasComponent, null);
         const added = canvas.addBlockAt("effect.volume", 203, 149);

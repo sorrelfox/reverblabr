@@ -926,8 +926,10 @@ QString SessionModel::addBlock(const QString &typeId, const QPointF &position)
     // would keep counting past an undo and leave gaps nobody can explain.
     block.id = d->session.nextBlockId();
     block.type = typeId;
-    // **A library entry for one plugin** is a type and the plugin it
-    // is set to, `plugin.lv2?plugin=<id>`: one block, set, in one edit and
+    // **A type with settings after it**: a library entry for one plugin is
+    // a type and the plugin it is set to, `plugin.lv2?plugin=<id>`, and a
+    // hearing block can start on the right ear, `?ear=right`
+    // (SessionCanvas.withStartingEar()). One block, set, in one edit and
     // one step to undo.
     if (const qsizetype query = typeId.indexOf(u'?'); query >= 0) {
         block.type = typeId.left(query);

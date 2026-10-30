@@ -26,7 +26,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Many people with partial hearing loss hear low voices well and high voices poorly, or miss one range in the middle. Turning everything up does not help much: the parts you already hear become too loud before the faint parts are clear."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "This block splits the sound into sixteen bands, from deep sounds at 100 Hz to very high ones at 16 kHz, and gives each band its own amount of help. Hertz (Hz) count how high a sound is: a man's speaking voice is round 100 to 150 Hz, and the hiss of an s is above 4000 Hz, that is 4 kHz."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "In every band the help depends on how loud the sound is at that moment. Soft sound gets the most lift, loud sound the least. Each band also has a ceiling, a level nothing in that band goes above."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "It works on one ear only. The other side of the sound passes through unchanged, held back by exactly as long as the block takes, so both ears stay in step. The L (blue) or R (red) on the block's tile says which ear it is for; a new block is for the left ear."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "It works on one ear only. The other side of the sound passes through unchanged, held back by exactly as long as the block takes, so both ears stay in step. Ear, at the top of the settings, says which ear it is for, and the L (blue) or R (red) on the block's tile shows it."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The block holds the sound back by about six thousandths of a second, far too little to notice."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "When the block starts, its lift comes in gently over one second, so the first sound is never a sudden jump in volume."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "At the very end a safety limiter is always at work. It keeps the sound under the Output ceiling, including the peaks that fall between the digital samples."),
@@ -37,6 +37,16 @@ HelpPage {
 
     HelpSection {
         title: BlockHelp.settingsTitle
+    }
+
+    HelpSection {
+        setting: true
+        title: KI18n.i18nc("@label which ear a hearing block works on", "Ear")
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Left or Right: the ear the block works on. The other side passes through unchanged. The block's tile shows an L (blue) or an R (red) to match."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "A new block starts on the left ear. When the session already has more blocks of this kind for the left ear than for the right, a new one starts on the right, so the second block you add is ready for the other ear."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Changing it while the session runs fades across to the other side, without a click. One undo puts it back. Loading a preset or putting the block back to its default settings leaves it as it is, so a preset made for one ear can be tried on the other.")
+        ]
     }
 
     HelpSection {
@@ -219,7 +229,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Start from your audiogram if you have one, then listen to speech you know well and change one thing at a time."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Without an audiogram, start with the Average curve: lift the bands where voices sound dull or muffled, a few decibels at a time."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "If everything sounds too loud, turn Loudness down rather than lowering every band."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "For the other ear, add a second block and set it up for that ear. Copy from the Other Ear gives it a starting point."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "For the other ear, add a second block of this kind: it starts on the right ear. Copy from the Other Ear gives it a starting point."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Put a Frequency Lowering or Raising block before this one, so the moved sound gets the lift of the range it lands in."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "When sixteen bands are not fine enough for a steep slope or a narrow dip in your hearing, try Hearing Compensation 64.")
         ]

@@ -29,13 +29,23 @@ HelpPage {
             KI18n.i18nc("@info help page of the Frequency Raising block", "Hertz (Hz) count how high a sound is; a thousand hertz is a kilohertz (kHz). A deep voice has its lowest tone round 100 Hz."),
             KI18n.i18nc("@info help page of the Frequency Raising block", "Each way of moving sound is called a move. The block can do up to four moves at once, each from a range of its own. A new block has one move ready: sound from 250 to 500 Hz copied two octaves up into 1 to 2 kHz, with the original kept. An octave up is twice as high."),
             KI18n.i18nc("@info help page of the Frequency Raising block", "Every move works on the sound as it comes in, so moves never move each other's sound, and their order does not matter. Where two moves put sound into the same range, it adds up."),
-            KI18n.i18nc("@info help page of the Frequency Raising block", "It works on one ear only. The other side passes through unchanged, held back by exactly as long as the block takes, so both ears stay in step. The L (blue) or R (red) on the block's tile says which ear it is for; a new block is for the left ear."),
+            KI18n.i18nc("@info help page of the Frequency Raising block", "It works on one ear only. The other side passes through unchanged, held back by exactly as long as the block takes, so both ears stay in step. Ear, at the top of the settings, says which ear it is for, and the L (blue) or R (red) on the block's tile shows it."),
             KI18n.i18nc("@info help page of the Frequency Raising block", "Low sounds take longer to tell apart, so this block holds the sound back longer than Frequency Lowering: about 43 thousandths of a second (ms) at the usual rate of 48 kHz while every move starts at 250 Hz or above, and about 85 ms once a move starts lower. The other ear waits as long. Even 43 ms can be noticed with video, where lips move before you hear the voice, so it is better kept for listening.")
         ]
     }
 
     HelpSection {
         title: BlockHelp.settingsTitle
+    }
+
+    HelpSection {
+        setting: true
+        title: KI18n.i18nc("@label which ear a hearing block works on", "Ear")
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Frequency Raising block", "Left or Right: the ear the block works on. The other side passes through unchanged. The block's tile shows an L (blue) or an R (red) to match."),
+            KI18n.i18nc("@info help page of the Frequency Raising block", "A new block starts on the left ear. When the session already has more blocks of this kind for the left ear than for the right, a new one starts on the right, so the second block you add is ready for the other ear."),
+            KI18n.i18nc("@info help page of the Frequency Raising block", "Changing it while the session runs fades across to the other side, without a click. One undo puts it back. Loading a preset or putting the block back to its default settings leaves it as it is, so a preset made for one ear can be tried on the other.")
+        ]
     }
 
     HelpSection {
@@ -201,7 +211,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Frequency Raising block", "Keep the ranges at 250 Hz or above if you can: the delay stays at about 43 ms."),
             KI18n.i18nc("@info help page of the Frequency Raising block", "For a dip from 1 to 4 kHz, for example: Frequency Lowering squeezes 1 to 2 kHz into 500 Hz to 1 kHz, and this block squeezes 2 to 4 kHz into 4 to 8 kHz, both for the same ear. Split like this, their order does not matter."),
             KI18n.i18nc("@info help page of the Frequency Raising block", "If the ranges of the two blocks overlap, the second block moves what the first has already moved. Put first the move you want the other to work on."),
-            KI18n.i18nc("@info help page of the Frequency Raising block", "For the other ear, add a second block and set it up for that ear.")
+            KI18n.i18nc("@info help page of the Frequency Raising block", "For the other ear, add a second block of this kind: it starts on the right ear. Set it up for that ear.")
         ]
     }
 }

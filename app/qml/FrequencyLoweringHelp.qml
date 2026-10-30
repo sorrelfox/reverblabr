@@ -28,13 +28,23 @@ HelpPage {
             KI18n.i18nc("@info help page of the Frequency Lowering block", "Hertz (Hz) count how high a sound is; a thousand hertz is a kilohertz (kHz). The hiss of an s sits above 4 kHz. Ordinary voices sit much lower."),
             KI18n.i18nc("@info help page of the Frequency Lowering block", "Each way of moving sound is called a move. The block can do up to four moves at once, each from a range of its own. A new block has one move ready: sound from 4 to 8 kHz squeezed into 2.5 to 4 kHz, with the high range emptied."),
             KI18n.i18nc("@info help page of the Frequency Lowering block", "Every move works on the sound as it comes in, so moves never move each other's sound, and their order does not matter. Where two moves put sound into the same range, it adds up."),
-            KI18n.i18nc("@info help page of the Frequency Lowering block", "It works on one ear only. The other side passes through unchanged, held back by exactly as long as the block takes, so both ears stay in step. The L (blue) or R (red) on the block's tile says which ear it is for; a new block is for the left ear."),
+            KI18n.i18nc("@info help page of the Frequency Lowering block", "It works on one ear only. The other side passes through unchanged, held back by exactly as long as the block takes, so both ears stay in step. Ear, at the top of the settings, says which ear it is for, and the L (blue) or R (red) on the block's tile shows it."),
             KI18n.i18nc("@info help page of the Frequency Lowering block", "The block holds the sound back by about 21 thousandths of a second (ms) at the usual rate of 48 kHz, and the other ear waits as long. Delay, at the bottom of the settings, shows the exact figure.")
         ]
     }
 
     HelpSection {
         title: BlockHelp.settingsTitle
+    }
+
+    HelpSection {
+        setting: true
+        title: KI18n.i18nc("@label which ear a hearing block works on", "Ear")
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Frequency Lowering block", "Left or Right: the ear the block works on. The other side passes through unchanged. The block's tile shows an L (blue) or an R (red) to match."),
+            KI18n.i18nc("@info help page of the Frequency Lowering block", "A new block starts on the left ear. When the session already has more blocks of this kind for the left ear than for the right, a new one starts on the right, so the second block you add is ready for the other ear."),
+            KI18n.i18nc("@info help page of the Frequency Lowering block", "Changing it while the session runs fades across to the other side, without a click. One undo puts it back. Loading a preset or putting the block back to its default settings leaves it as it is, so a preset made for one ear can be tried on the other.")
+        ]
     }
 
     HelpSection {
@@ -195,7 +205,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Frequency Lowering block", "Put it before Hearing Compensation, so the moved sound gets the lift of the range it lands in."),
             KI18n.i18nc("@info help page of the Frequency Lowering block", "Start with the first move as it is, listen to speech for a while, then change one thing at a time."),
             KI18n.i18nc("@info help page of the Frequency Lowering block", "If voices sound harsh or lisped, try a lower Level, or choose On s, sh, f."),
-            KI18n.i18nc("@info help page of the Frequency Lowering block", "For the other ear, add a second block and set it up for that ear."),
+            KI18n.i18nc("@info help page of the Frequency Lowering block", "For the other ear, add a second block of this kind: it starts on the right ear. Set it up for that ear."),
             KI18n.i18nc("@info help page of the Frequency Lowering block", "For a dip in the middle of your hearing, use this block for the lower half of the dip and Frequency Raising for the upper half, both for the same ear.")
         ]
     }

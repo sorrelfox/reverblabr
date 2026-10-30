@@ -16,6 +16,7 @@ import org.kde.ki18n
 
 // A Hearing Compensation block's settings.
 //
+// - **The ear**, Left or Right, first (EarChoice).
 // - **The gain view:** gain against frequency. The soft, average and loud
 //   curves and the ceiling, in the block's colour, with a handle on each band
 //   of the curve being edited; the gain being applied now in each band (the
@@ -132,6 +133,7 @@ ColumnLayout {
     readonly property alias bandCurveArea: bandCurveArea
     readonly property alias bandCurveDot: bandCurveDot
     readonly property alias removeButton: removeControl
+    readonly property alias earChoice: earControl
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -276,6 +278,12 @@ ColumnLayout {
     // --- the audiogram, on the levels view ---
 
     readonly property var audiogramHz: [125, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 6000, 8000]
+    /// What may be found at each frequency, in the order the lists offer it.
+    readonly property var audiogramMarks: ["none", "heard", "noResponse"]
+    /// The block's ear, as a screen reader is told it.
+    readonly property string earText: panel.ear === "right"
+        ? KI18n.i18nc("@info the block works on the right ear", "right ear")
+        : KI18n.i18nc("@info the block works on the left ear", "left ear")
     readonly property bool audiogramInDbfs: (panel.params.audiogramUnit ?? "dbHl") === "dbFs"
 
     /// The quietest level heard at each measured point, in dBFS of a band.
@@ -522,6 +530,14 @@ ColumnLayout {
         Layout.fillWidth: true
         text: KI18n.i18nc("@info what a Hearing Compensation block does",
                           "Lifts soft sound for one ear, band by band, and holds loud sound under a ceiling.")
+    }
+
+    EarChoice {
+        id: earControl
+
+        Layout.fillWidth: true
+        blockId: panel.blockId
+        typeId: panel.typeId
     }
 
     // --- which view, which curve, before/after ---
@@ -1141,12 +1157,14 @@ ColumnLayout {
                         Layout.column: 1
                         Layout.fillWidth: true
                         Layout.minimumWidth: Kirigami.Units.gridUnit * 4
-                        model: [KI18n.i18nc("@item:inlistbox nothing measured at this frequency", "—"),
-                                KI18n.i18nc("@item:inlistbox heard at the level given", "Heard"),
-                                KI18n.i18nc("@item:inlistbox nothing heard even at the loudest level tried", "No response")]
-                        currentIndex: ["none", "heard", "noResponse"].indexOf(panel.params[markBox.paramId] ?? "none")
+                        model: panel.audiogramMarks.map(mark => ChoiceWords.audiogramMarkName(mark))
+                        currentIndex: panel.audiogramMarks.indexOf(panel.params[markBox.paramId] ?? "none")
                         onActivated: index => SessionModel.setParam(panel.blockId, markBox.paramId,
-                                                                   ["none", "heard", "noResponse"][index])
+                                                                   panel.audiogramMarks[index])
+                        // **Its frequency and its ear**: eleven lists in a
+                        // row are eleven "—" to a screen reader otherwise.
+                        Accessible.name: KI18n.i18nc("@label:listbox what one ear heard at a frequency of an audiogram, '1 kHz, left ear'",
+                                                     "Audiogram at %1, %2", panel.hzText(modelData), panel.earText)
                     }
                 }
 
@@ -1170,8 +1188,8 @@ ColumnLayout {
                         editable: true
                         value: panel.params[levelBox.paramId] ?? 0
                         onValueModified: SessionModel.setParam(panel.blockId, levelBox.paramId, levelBox.value)
-                        Accessible.name: KI18n.i18nc("@label:spinbox the quietest level heard at a frequency",
-                                                     "Heard at, %1", panel.hzText(modelData))
+                        Accessible.name: KI18n.i18nc("@label:spinbox the quietest level one ear heard at a frequency, '1 kHz, left ear'",
+                                                     "Heard at, %1, %2", panel.hzText(modelData), panel.earText)
                     }
                 }
 
@@ -1189,6 +1207,8 @@ ColumnLayout {
                         Layout.fillWidth: true
                         Layout.minimumWidth: Kirigami.Units.gridUnit * 4
                         text: KI18n.i18nc("@option:check a 'too loud' level was measured at this frequency", "Too loud given")
+                        Accessible.name: KI18n.i18nc("@option:check a 'too loud' level was measured for one ear at a frequency, '1 kHz, left ear'",
+                                                     "Too loud given, %1, %2", panel.hzText(modelData), panel.earText)
                         // Whole on hover when a narrow card cuts it.
                         QQC2.ToolTip.text: tooLoudBox.text
                         QQC2.ToolTip.visible: tooLoudBox.hovered && tooLoudBox.implicitContentWidth > tooLoudBox.availableWidth
@@ -1218,8 +1238,8 @@ ColumnLayout {
                         editable: true
                         value: panel.params[tooLoudLevel.paramId] ?? 0
                         onValueModified: SessionModel.setParam(panel.blockId, tooLoudLevel.paramId, tooLoudLevel.value)
-                        Accessible.name: KI18n.i18nc("@label:spinbox the level at which sound becomes too loud",
-                                                     "Too loud at, %1", panel.hzText(modelData))
+                        Accessible.name: KI18n.i18nc("@label:spinbox the level at which sound becomes too loud for one ear, '1 kHz, left ear'",
+                                                     "Too loud at, %1, %2", panel.hzText(modelData), panel.earText)
                     }
                 }
             }

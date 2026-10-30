@@ -14,12 +14,22 @@ Please keep two things in mind:
 
 ## One ear at a time
 
-Every block in the Hearing group has an **Ear** setting, Left or Right, and its tile shows an **L** (blue) or an **R** (red). The block changes that side only and passes the other side through, delayed by exactly as much as its own side, so the two ears stay in step. Changing the Ear while the session runs fades across instead of clicking. Loading a preset never changes it, so a preset made for one ear can be tried on the other.
+Every block in the Hearing group except Join L/R has an **Ear** setting, Left or Right, at the top of its settings, and its tile shows an **L** (blue) or an **R** (red). The block changes that side only and passes the other side through, delayed by exactly as much as its own side, so the two ears stay in step. Changing the Ear while the session runs fades across instead of clicking, and one undo puts it back. Loading a preset or putting the block back to its default settings never changes it, so a preset made for one ear can be tried on the other.
+
+A new block starts on the left ear. When the session already has more blocks of the same kind for the left ear than for the right, a new one starts on the right instead, so adding the same block twice gives you one for each ear.
 
 There are two ways to give each ear blocks of its own:
 
 - **In series, on one lane:** a block set to Left, then the same kind of block set to Right. It's simple, but the delays of every block on the lane add up.
 - **Side by side, on two lanes:** wire the source to two lanes, one for each ear, and bring them back together with **Join L/R**. Its **Left** input takes the left side of one lane and its **Right** input the right side of the other. Reverblabr lines the two lanes up where they meet, so the ears stay in step even when one lane has more blocks than the other, and the session is only as late as the slower lane.
+
+To set up two lanes with Hearing Compensation 16 (any hearing block works the same way):
+
+1. Select the source and click **Hearing Compensation 16** in the library. It's wired after the source and starts on the left ear.
+2. Select the source again and click **Hearing Compensation 16** once more. The new block gets a lane of its own from the same source and starts on the right ear.
+3. Select the left ear's block and click **Join L/R**. It takes that block on its **Left** input.
+4. Hold Ctrl and drag from the right ear's block to the **Right** input of Join L/R.
+5. Select Join L/R and add the output, such as an Output Device.
 
 ## Hearing Compensation 16
 
@@ -54,7 +64,7 @@ The fit follows published fitting rules, not something I made up. [From an audio
 
 Some ears hear nothing in a high range however loud it is, and an important part of speech lives up there: the hiss of **s**, **sh** and **f**, which is what tells "sit" from "fit" and "cat" from "cats". **Frequency Lowering** moves that sound down into a range the ear does hear.
 
-1. Add it for the ear that needs it and set its **Ear**. Add a second one for the other ear if that one needs it too.
+1. Add it for the ear that needs it and choose that ear under **Ear**. Add a second one for the other ear if that one needs it too: it starts on the right.
 2. Its first move is ready to go: sound from **4 to 8 kHz** squeezed into **2.5 to 4 kHz**, with the high range emptied. On the **Arrows** view, the shaded range is where the sound comes from and the outlined one is where it goes. Drag the ends of either range to change them.
 3. Choose how each move carries the sound:
    - **Squeeze** fits the whole range into a smaller one lower down. Use it where the ear hears nothing at all, and **Empty** the range it came from.
@@ -70,7 +80,7 @@ Put Frequency Lowering **before** any block that sets the level of each range, s
 
 Some ears hear the low range faintly or not at all, while the higher range is fine. **Frequency Raising** is Frequency Lowering the other way round: it moves sound from a low or middle range up into one the ear hears. The panel, the moves and the views are the same.
 
-1. Add it for the ear that needs it and set its **Ear**.
+1. Add it for the ear that needs it and choose that ear under **Ear**.
 2. Its first move is ready: sound from **250 to 500 Hz** copied two octaves up into **1 to 2 kHz**, with the original kept.
 3. Choose how each move carries the sound:
    - **Copy up** adds a copy higher up and keeps the original.
