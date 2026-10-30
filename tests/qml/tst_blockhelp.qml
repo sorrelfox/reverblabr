@@ -232,6 +232,12 @@ TestCase {
 
         const names = namesOf(page);
         const controls = controlsOf(panel, names, false, []);
+        // **A block with nothing to set** (Join L/R) has a panel that says
+        // so, and nothing in it to name.
+        if (BlockCatalogue.params(data.typeId).length === 0) {
+            compare(controls.length, 0, data.typeId + " has no settings and yet its panel has controls");
+            return;
+        }
         verify(controls.length > 0, "found no controls in " + data.typeId + "'s panel");
         const missing = controls.filter(control => !control.covered && names.indexOf(control.name) < 0)
             .map(control => "\"" + control.name + "\"");

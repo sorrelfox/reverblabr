@@ -120,18 +120,22 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/FirFilterPanel.qml
     qml/FirFilterState.qml
     qml/FrequencyLoweringFace.qml
+    qml/FrequencyLoweringHelp.qml
     qml/FrequencyLoweringPanel.qml
     qml/FrequencyMoveFace.qml
     qml/FrequencyMovePanel.qml
     qml/FrequencyMoves.qml
     qml/FrequencyMoveWords.qml
     qml/FrequencyRaisingFace.qml
+    qml/FrequencyRaisingHelp.qml
     qml/FrequencyRaisingPanel.qml
     qml/GenericFace.qml
     qml/GenericParamPanel.qml
     qml/HearingBands.qml
     qml/HelpPage.qml
     qml/HelpSection.qml
+    qml/HearingCompensation16Help.qml
+    qml/HearingCompensation64Help.qml
     qml/HearingCompensationFace.qml
     qml/HearingCompensationPanel.qml
     qml/HighPassHelp.qml
@@ -141,6 +145,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/InputSwitchFace.qml
     qml/InputSwitchHelp.qml
     qml/InputSwitchPanel.qml
+    qml/JoinLrHelp.qml
     qml/LevelBar.qml
     qml/LevelMeter.qml
     qml/LimiterFace.qml
@@ -229,6 +234,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/VolumeHelp.qml
     qml/VuFace.qml
     qml/VuGauge.qml
+    qml/VuHelp.qml
     qml/VuPanel.qml
     qml/WaveFace.qml
     qml/VolumePanel.qml
