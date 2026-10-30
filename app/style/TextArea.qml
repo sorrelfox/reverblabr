@@ -35,7 +35,7 @@ T.TextArea {
     selectedTextColor: AppColors.textOnAccent
     placeholderTextColor: AppColors.muted
 
-    ContextMenu.menu: textMenu.menu
+    ContextMenu.onRequested: position => textMenu.popup(position)
 
     TextMenu {
         id: textMenu

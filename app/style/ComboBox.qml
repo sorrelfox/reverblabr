@@ -98,7 +98,7 @@ T.ComboBox {
         selectedTextColor: AppColors.textOnAccent
         verticalAlignment: Text.AlignVCenter
 
-        ContextMenu.menu: textMenu.menu
+        ContextMenu.onRequested: position => textMenu.popup(position)
 
         TextMenu {
             id: textMenu

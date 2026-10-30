@@ -39,7 +39,7 @@ T.TextField {
     placeholderTextColor: AppColors.muted
     verticalAlignment: TextInput.AlignVCenter
 
-    ContextMenu.menu: textMenu.menu
+    ContextMenu.onRequested: position => textMenu.popup(position)
 
     TextMenu {
         id: textMenu

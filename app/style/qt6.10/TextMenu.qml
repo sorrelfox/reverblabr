@@ -19,4 +19,7 @@ QtObject {
     property Item editor
 
     readonly property T.Menu menu: null
+
+    function popup(position: point) {
+    }
 }

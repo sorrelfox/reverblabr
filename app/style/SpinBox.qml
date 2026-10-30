@@ -62,7 +62,7 @@ T.SpinBox {
         validator: control.validator
         inputMethodHints: control.inputMethodHints
 
-        ContextMenu.menu: textMenu.menu
+        ContextMenu.onRequested: position => textMenu.popup(position)
 
         TextMenu {
             id: textMenu

@@ -80,6 +80,17 @@ TestCase {
         Main {}
     }
 
+    // **Wide enough for the canvas to have room**: the library beside it,
+    // the tiles and an empty spot to click on.
+    Component {
+        id: wideWindow
+
+        Main {
+            width: 1400
+            height: 900
+        }
+    }
+
     Component {
         id: dragSpy
 
@@ -558,5 +569,103 @@ TestCase {
         library.searchField.text = "";
         verify(sawOne && sawMany, "no heading with one block and one with several: both forms were not checked");
     }
-}
 
+    /// The main window, drawn and in front, with an empty session.
+    function openWideWindow() {
+        const window = createTemporaryObject(wideWindow, testCase);
+        tryVerify(() => AppShell.hasSession && BlockCatalogue.ready, 3000, "no session to build in");
+        SessionModel.removeBlocks(SessionModel.blockIds);
+        SessionModel.setAutoConnect(true);
+        window.requestActivate();
+        tryVerify(() => window.active, 2000, "the window never came to the front");
+        waitForRendering(window.contentItem);
+        return window;
+    }
+
+    function tileOf(canvas, blockId) {
+        for (let i = 0; i < canvas.tiles.count; ++i) {
+            const tile = canvas.tiles.itemAt(i);
+            if (tile !== null && tile.blockId === blockId) {
+                return tile;
+            }
+        }
+        return null;
+    }
+
+    /// The style's text menu on \a field, or null in a style without one.
+    function textMenuOf(field) {
+        for (const child of field.data) {
+            if (child.editor === field && typeof child.popup === "function") {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    /// Types \a text into the library's search the way a person does: a
+    /// click into the field, then the keys.
+    function typeIntoSearch(window, text) {
+        const search = window.blockLibrary.searchField;
+        mouseClick(search, search.width / 2, search.height / 2);
+        verify(search.activeFocus, "a click into the search did not give it the keyboard");
+        search.selectAll();
+        for (const letter of text) {
+            keyClick(letter);
+        }
+        compare(search.text, text);
+    }
+
+    // **Ctrl+Z on the canvas undoes the session after the search was
+    // typed in.** In the application's style it did nothing: every text
+    // field kept a menu whose Undo held Ctrl+Z for the whole window while
+    // the field had typing to undo, and with the window's own Undo holding
+    // it too the key belonged to neither.
+    function test_ctrlZAfterTheSearchUndoesTheSessionOnceTheCanvasIsClicked() {
+        const window = testCase.openWideWindow();
+        const canvas = window.sessionCanvas;
+        const added = SessionModel.addBlock("effect.volume", Qt.point(40, 200));
+        verify(added !== "", "nothing was added");
+        tryVerify(() => window.undoAction.enabled, 1000, "adding a block left nothing to undo");
+
+        testCase.typeIntoSearch(window, "vol");
+        // A spot on the canvas well away from the tile and the overlays.
+        mouseClick(canvas, canvas.width * 0.6, canvas.height * 0.6);
+        verify(!window.blockLibrary.searchField.activeFocus, "the search kept the keyboard after a click on the canvas");
+        keyClick(Qt.Key_Z, Qt.ControlModifier);
+        tryVerify(() => SessionModel.blockIds.indexOf(added) < 0, 1000,
+                  "Ctrl+Z after a click on the canvas did not undo the session's last edit");
+        compare(window.blockLibrary.searchField.text, "vol", "Ctrl+Z undid the typing as well");
+
+        // **The field's own menu still opens**, with its Undo in it, and
+        // is gone again, keys and all, once it closes. In the application's
+        // style, which is the one that has it (the menu a right click
+        // asks for is opened here as the request would open it).
+        const textMenu = testCase.textMenuOf(window.blockLibrary.searchField);
+        if (textMenu !== null) {
+            textMenu.popup(Qt.point(4, 4));
+            verify(textMenu.menu !== null, "the search's menu was not made");
+            tryVerify(() => textMenu.menu.opened, 1000, "the search's menu did not open");
+            compare(textMenu.menu.actionAt(0).text, "Undo", "the menu's first entry is not Undo");
+            verify(textMenu.menu.actionAt(0).enabled, "the menu's Undo had nothing to undo after typing");
+            textMenu.menu.close();
+            tryVerify(() => textMenu.menu === null, 1000, "the search's menu was kept after it closed");
+            // Offscreen the menu is a window of its own, which leaves the
+            // main one not active when it goes.
+            window.requestActivate();
+            tryVerify(() => window.active, 2000, "the window did not come back to the front");
+        }
+
+        // **The same after a click on a tile.**
+        window.redoAction.trigger();
+        tryVerify(() => SessionModel.blockIds.indexOf(added) >= 0, 1000, "Redo did not put the block back");
+        testCase.typeIntoSearch(window, "vu");
+        waitForRendering(window.contentItem);
+        const tile = testCase.tileOf(canvas, added);
+        verify(tile !== null, "the block has a tile");
+        mouseClick(tile, tile.width / 2, tile.height / 2);
+        keyClick(Qt.Key_Z, Qt.ControlModifier);
+        tryVerify(() => SessionModel.blockIds.indexOf(added) < 0, 1000,
+                  "Ctrl+Z after a click on a tile did not undo the session's last edit");
+        window.blockLibrary.searchField.text = "";
+    }
+}
