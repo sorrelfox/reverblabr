@@ -148,6 +148,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ParametricEqFace.qml
     qml/ParametricEqPanel.qml
     qml/PeakRmsFace.qml
+    qml/PeakRmsHelp.qml
     qml/PeakRmsPanel.qml
     qml/PitchShiftFace.qml
     qml/PitchShiftPanel.qml
@@ -160,6 +161,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/RecordingInspectorWindow.qml
     qml/RecorderFace.qml
     qml/RecorderFileName.qml
+    qml/RecorderHelp.qml
     qml/RecorderPanel.qml
     qml/RecorderWords.qml
     qml/RecordingCard.qml

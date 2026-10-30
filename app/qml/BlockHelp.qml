@@ -8,8 +8,6 @@
 pragma Singleton
 
 import QtQuick
-import QtQuick.Window
-import org.kde.kirigami as Kirigami
 import org.kde.ki18n
 
 // The blocks' help pages, by type id, and the one window they are shown in
@@ -41,10 +39,20 @@ QtObject {
         VolumeHelp {}
     }
 
+    readonly property Component peakRms: Component {
+        PeakRmsHelp {}
+    }
+
+    readonly property Component recorder: Component {
+        RecorderHelp {}
+    }
+
     /// Type id to page. A block's help adds its entry here, and comes off
     /// the list of those still to write (tests/tools/help-pending.txt).
     readonly property var pages: ({
-        "effect.volume": help.volume
+        "effect.volume": help.volume,
+        "meter.peakrms": help.peakRms,
+        "output.recorder": help.recorder
     })
 
     function pageFor(typeId: string): Component {

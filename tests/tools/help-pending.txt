@@ -39,12 +39,10 @@ hearing.compensation64
 hearing.frequencylowering
 hearing.frequencyraising
 hearing.joinlr
-meter.peakrms
 meter.vu
 output.broadcast
 output.device
 output.livestream
-output.recorder
 output.wave
 source.application
 source.device
