@@ -69,6 +69,7 @@ public:
         QDir(m_root.path()).mkpath(u"lv2"_s);
         QDir(m_root.path()).mkpath(u"ladspa"_s);
         QDir(m_root.path()).mkpath(u"clap"_s);
+        QDir(m_root.path()).mkpath(u"vst3"_s);
         qputenv("REVERBLABR_TEST_PLUGIN_PATH", testFolder().toUtf8());
         qputenv("LV2_PATH", (lv2.isEmpty() ? m_root.filePath(u"lv2"_s) : lv2).toUtf8());
         qputenv("LADSPA_PATH", (ladspa.isEmpty() ? m_root.filePath(u"ladspa"_s) : ladspa).toUtf8());
@@ -76,6 +77,10 @@ public:
         // are what is replaced.
         qputenv("CLAP_PATH", "");
         qputenv(plugin::kClapDefaultPathVariable, (clap.isEmpty() ? m_root.filePath(u"clap"_s) : clap).toUtf8());
+        // VST3 the same way, or the machine's own bundles (a VST3 build
+        // of a plugin set, say) are counted with the test's.
+        qputenv("VST3_PATH", "");
+        qputenv(plugin::kVst3DefaultPathVariable, m_root.filePath(u"vst3"_s).toUtf8());
     }
 
     ~Folders()
@@ -85,6 +90,8 @@ public:
         qunsetenv("LADSPA_PATH");
         qunsetenv("CLAP_PATH");
         qunsetenv(plugin::kClapDefaultPathVariable);
+        qunsetenv("VST3_PATH");
+        qunsetenv(plugin::kVst3DefaultPathVariable);
     }
 
     Folders(const Folders &) = delete;
