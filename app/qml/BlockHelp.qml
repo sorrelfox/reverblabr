@@ -47,12 +47,52 @@ QtObject {
         RecorderHelp {}
     }
 
+    readonly property Component autoLevel: Component {
+        AutoLevelHelp {}
+    }
+
+    readonly property Component balance: Component {
+        BalanceHelp {}
+    }
+
+    readonly property Component bassTreble: Component {
+        BassTrebleHelp {}
+    }
+
+    readonly property Component channels: Component {
+        ChannelsHelp {}
+    }
+
+    readonly property Component dynamics: Component {
+        DynamicsHelp {}
+    }
+
+    readonly property Component echo: Component {
+        EchoHelp {}
+    }
+
+    readonly property Component equalizer10: Component {
+        EqualizerHelp {}
+    }
+
+    readonly property Component highPass: Component {
+        HighPassHelp {}
+    }
+
     /// Type id to page. A block's help adds its entry here, and comes off
     /// the list of those still to write (tests/tools/help-pending.txt).
     readonly property var pages: ({
         "effect.volume": help.volume,
         "meter.peakrms": help.peakRms,
-        "output.recorder": help.recorder
+        "output.recorder": help.recorder,
+        "effect.autolevel": help.autoLevel,
+        "effect.balance": help.balance,
+        "effect.basstreble": help.bassTreble,
+        "effect.channels": help.channels,
+        "effect.dynamics": help.dynamics,
+        "effect.echo": help.echo,
+        "effect.equalizer10": help.equalizer10,
+        "effect.highpass": help.highPass
     })
 
     function pageFor(typeId: string): Component {

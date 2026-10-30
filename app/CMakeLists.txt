@@ -48,9 +48,12 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ApplicationSourceFace.qml
     qml/ApplicationSourcePanel.qml
     qml/AutoLevelFace.qml
+    qml/AutoLevelHelp.qml
     qml/AutoLevelPanel.qml
     qml/AutoLevelWords.qml
+    qml/BalanceHelp.qml
     qml/BassTrebleFace.qml
+    qml/BassTrebleHelp.qml
     qml/BassTreblePanel.qml
     qml/BlockFaces.qml
     qml/BlockHelp.qml
@@ -68,6 +71,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/CanvasPlaceholder.qml
     qml/CanvasWire.qml
     qml/ChannelsFace.qml
+    qml/ChannelsHelp.qml
     qml/ChannelsPanel.qml
     qml/ChannelsWords.qml
     qml/CollapsibleSection.qml
@@ -93,11 +97,14 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/DuckingPanel.qml
     qml/DuckingWords.qml
     qml/DynamicsFace.qml
+    qml/DynamicsHelp.qml
     qml/DynamicsPanel.qml
     qml/EqualizerBands.qml
     qml/EqualizerFace.qml
+    qml/EqualizerHelp.qml
     qml/EqualizerPanel.qml
     qml/EchoFace.qml
+    qml/EchoHelp.qml
     qml/EchoPanel.qml
     qml/EchoWords.qml
     qml/ElidedLabel.qml
@@ -122,6 +129,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/HelpSection.qml
     qml/HearingCompensationFace.qml
     qml/HearingCompensationPanel.qml
+    qml/HighPassHelp.qml
     qml/InfoLine.qml
     qml/InputDevicePanel.qml
     qml/InputSwitchControl.qml

@@ -18,14 +18,6 @@ advanced.parametriceq
 advanced.speechdenoise
 advanced.sync
 advanced.timeshift
-effect.autolevel
-effect.balance
-effect.basstreble
-effect.channels
-effect.dynamics
-effect.echo
-effect.equalizer10
-effect.highpass
 effect.limiter
 effect.lowpass
 effect.monoenhancer

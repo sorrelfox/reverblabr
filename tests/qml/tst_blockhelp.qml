@@ -115,10 +115,12 @@ TestCase {
     }
 
     function test_aBlockWithNoPageYetStillGetsTheWindow() {
-        // tests/tools/help-pending.txt lists the blocks whose page is still
-        // to write; one of them is enough here.
-        const typeId = "effect.echo";
-        compare(BlockHelp.pageFor(typeId), null, "Echo has a page now: pick another block for this test");
+        // **Any block of the catalogue without a page**, rather than one
+        // named here that a page written later would take away: a plugin
+        // block never has one (tests/tools/help-pending.txt leaves them out),
+        // so there is always one to ask about.
+        const typeId = BlockCatalogue.types.find(type => BlockHelp.pageFor(type) === null) ?? "";
+        verify(typeId !== "", "every block of the catalogue has a page, and none is left to show the placeholder");
         const help = BlockHelp.show(typeId, null);
         tryVerify(() => help.visible, 2000);
         compare(help.page, null);

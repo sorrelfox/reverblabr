@@ -117,6 +117,11 @@ ColumnLayout {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // **The ten sliders as one group**, so a screen reader says what
+            // they are before it names each band, and the help names them
+            // under one heading rather than ten.
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@label:group an equaliser's ten band sliders", "Bands")
 
             Repeater {
                 id: bandRepeater
