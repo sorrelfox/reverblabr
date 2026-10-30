@@ -159,13 +159,24 @@ ColumnLayout {
 
     // --- the strips ---
 
-    Repeater {
-        id: stripRepeater
+    // In a column of their own only to be named as one: a strip's controls
+    // are each named by their input's number, and the column says what the
+    // numbers are.
+    ColumnLayout {
+        Layout.fillWidth: true
+        spacing: panel.spacing
 
-        model: panel.strips
+        Accessible.role: Accessible.Grouping
+        Accessible.name: KI18n.i18nc("@title:group the Mixer's five strips, one an input", "Inputs")
 
-        delegate: MixerStrip {
-            mixer: panel
+        Repeater {
+            id: stripRepeater
+
+            model: panel.strips
+
+            delegate: MixerStrip {
+                mixer: panel
+            }
         }
     }
 
@@ -260,12 +271,16 @@ ColumnLayout {
     }
 
     // --- the scenes ---
-    // Wraps as the row above does.
+    // Wraps as the row above does. Named, so that a screen reader says
+    // what "Recall scene A" belongs to.
     Flow {
         Layout.fillWidth: true
         Layout.minimumWidth: 0
         Layout.preferredWidth: 0
         spacing: Kirigami.Units.smallSpacing
+
+        Accessible.role: Accessible.Grouping
+        Accessible.name: KI18n.i18nc("@title:group saved sets of the Mixer's volumes", "Scenes")
 
         QQC2.Label {
             text: KI18n.i18nc("@title:group saved sets of the Mixer's volumes", "Scenes")

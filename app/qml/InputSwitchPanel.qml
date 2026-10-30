@@ -27,7 +27,7 @@ ColumnLayout {
     readonly property bool wantsPresets: false
 
     readonly property alias control: control
-    readonly property alias toggle: switchArea
+    readonly property alias toggle: pill
     readonly property alias explanation: explanationText
 
     spacing: AppMetrics.panelRowGap
@@ -41,6 +41,12 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         spacing: AppMetrics.labelSpacing
+
+        // The switch's name says only where it goes next; the row's says
+        // what it is for.
+        Accessible.role: Accessible.Grouping
+        Accessible.name: KI18n.i18nc("@title:group the Input Switch's two inputs and the switch between them",
+                                     "Which input passes")
 
         ColumnLayout {
             spacing: Kirigami.Units.largeSpacing
@@ -60,46 +66,50 @@ ColumnLayout {
 
         // A switch standing up: the knob beside the input that passes. It
         // moves with the crossfade while the block runs.
-        Rectangle {
+        //
+        // **A button of the controls' own kind**, not a rectangle that takes
+        // clicks: the keyboard, a screen reader and the help's check all see
+        // it as the control it is. Shift held as it is pressed is the slow
+        // crossfade, from the mouse and the keyboard alike.
+        QQC2.AbstractButton {
             id: pill
 
             implicitWidth: Kirigami.Units.gridUnit * 1.3
             implicitHeight: Kirigami.Units.gridUnit * 2.8
-            radius: width / 2
-            color: AppColors.accent
+            focusPolicy: Qt.StrongFocus
 
-            Rectangle {
-                readonly property real inset: (pill.width - width) / 2
+            HoverHandler {
+                cursorShape: Qt.PointingHandCursor
+            }
 
-                width: pill.width - Kirigami.Units.smallSpacing * 1.5
-                height: width
+            background: Rectangle {
                 radius: width / 2
-                x: inset
-                y: inset + control.position * (pill.height - height - inset * 2)
-                color: AppColors.surface
+                color: AppColors.accent
+            }
 
-                Behavior on y {
-                    enabled: !control.crossfading
-                    NumberAnimation {
-                        duration: Kirigami.Units.shortDuration
+            contentItem: Item {
+                Rectangle {
+                    readonly property real inset: (pill.width - width) / 2
+
+                    width: pill.width - Kirigami.Units.smallSpacing * 1.5
+                    height: width
+                    radius: width / 2
+                    x: inset
+                    y: inset + control.position * (pill.height - height - inset * 2)
+                    color: AppColors.surface
+
+                    Behavior on y {
+                        enabled: !control.crossfading
+                        NumberAnimation {
+                            duration: Kirigami.Units.shortDuration
+                        }
                     }
                 }
             }
 
-            MouseArea {
-                id: switchArea
-
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: mouse => control.toggle((mouse.modifiers & Qt.ShiftModifier) !== 0)
-            }
-
-            Accessible.role: Accessible.Button
             Accessible.name: KI18n.i18nc("@action:button switch the Input Switch to its other input",
                                          "Switch to %1", control.onB ? control.nameA : control.nameB)
-            Accessible.onPressAction: control.toggle(false)
-            activeFocusOnTab: true
-            Keys.onSpacePressed: event => control.toggle((event.modifiers & Qt.ShiftModifier) !== 0)
+            onClicked: control.toggle(control.slowHeld())
         }
 
         QQC2.Label {

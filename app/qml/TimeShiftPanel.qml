@@ -161,6 +161,11 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing / 2
 
+            // Named, so that a screen reader says what the jumps and Live
+            // belong to.
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@title:group the Time Shift's play, pause, jump and live buttons", "Playback")
+
             JumpButton {
                 id: back30
 

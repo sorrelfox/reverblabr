@@ -66,6 +66,10 @@ ColumnLayout {
             id: mainsFrame
 
             Kirigami.FormData.label: KI18n.i18nc("@label which mains frequency a Dehum block takes out", "Mains:")
+            // The choices are only "50 Hz" and "60 Hz": a screen reader
+            // says what they choose by the row's name.
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@label which mains frequency a Dehum block takes out", "Mains")
 
             QQC2.ButtonGroup {
                 id: mainsGroup

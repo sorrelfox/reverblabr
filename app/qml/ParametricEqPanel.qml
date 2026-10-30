@@ -431,6 +431,11 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
+            // Named, so that a screen reader says what "Bell at 100 Hz" is
+            // a choice of.
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@title:group the Parametric EQ's bands, one to pick", "Bands")
+
             Repeater {
                 id: chipRepeater
 
@@ -500,6 +505,8 @@ ColumnLayout {
                 Layout.fillWidth: true
                 model: words.bandTypes
                 displayText: words.bandTypeName(panel.selectedType)
+                // The form's label is beside it, not its name.
+                Accessible.name: KI18n.i18nc("@label:listbox the type of a Parametric EQ band", "Type")
 
                 delegate: QQC2.ItemDelegate {
                     required property string modelData
