@@ -67,7 +67,7 @@ The original goes straight through, so a Reverb doesn't delay the lane.
 
 | Block | What it does |
 |---|---|
-| **Peak/RMS** | A level meter for any point in a lane, with peak hold and clip lights. |
+| **Peak/RMS** | A level meter for any point in a lane, with peak hold and clip lights. Its RMS bar has a paler bar above it that jumps up to each peak; untick **Show peak bar** in its settings to hide that one, on the tile and in the system tray. |
 | **VU** | A pair of needles that follow the average level, the way a tape machine's meters did, against a reference level you choose. |
 
 Either meter can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).

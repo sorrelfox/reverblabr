@@ -61,6 +61,11 @@ public:
     enum Param : std::uint32_t {
         PeakHold = 0,
         ShowInTray, ///< Kept now, used when there is a tray (M4).
+        /// Whether the tip up to the peak is drawn above the RMS bar. **The
+        /// interface's alone**, like the hold: the block measures the same
+        /// either way, and some people find a bar that jumps with every
+        /// transient more distracting than helpful.
+        ShowPeak,
     };
 
     PeakRmsMeter();

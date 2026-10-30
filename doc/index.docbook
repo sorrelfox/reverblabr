@@ -751,6 +751,12 @@ system tray</guilabel> in its settings (see <xref linkend="tray"/>).</para>
 <title>Peak/RMS</title>
 <para>A level meter for any point in a lane, with peak hold and clip
 lights.</para>
+<para>Each side's bar shows the average level (RMS), with a paler bar above
+it that jumps up to each peak. If that bar is more of a distraction than a
+help, untick <guilabel>Show peak bar</guilabel> in the meter's settings: the
+tile, the settings and the system tray then show the RMS bar alone. The line
+that holds the last peak stays, and <guilabel>Hold peaks</guilabel> still
+sets how long it waits.</para>
 </sect2>
 
 <sect2 id="block-meter-vu">

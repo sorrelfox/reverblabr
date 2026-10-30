@@ -44,6 +44,11 @@ Item {
     /// more falls back to bars side by side, and one channel shows on both.
     property bool scaleBetween: false
     property real barWidth: Math.round(Kirigami.Units.gridUnit * 0.4)
+    /// Whether the tip above the RMS bar up to the peak is drawn. **Off
+    /// leaves the RMS bar and the hold line**: some people find a tip that
+    /// jumps with every transient more of a distraction than a reading, and
+    /// the numbers are still in the tooltip.
+    property bool showPeak: true
     /// The colour of the RMS bar, and of the tip above it up to the peak.
     property color rmsColor: AppColors.accentMark
     property color peakColor: Kirigami.ColorUtils.linearInterpolation(meter.rmsColor, AppColors.text, 0.45)
@@ -152,7 +157,7 @@ Item {
         horizontal: meter.horizontal
         channelCount: meter.channelCount
         rmsDb: meter.levels.rmsDb ?? []
-        peakDb: meter.levels.peakDb ?? []
+        peakDb: meter.showPeak ? (meter.levels.peakDb ?? []) : []
         holdDb: meter.levels.holdDb ?? []
         active: meter.active
         clipped: meter.clipped
@@ -220,7 +225,7 @@ Item {
                 horizontal: false
                 channelCount: 1
                 rmsDb: meter.channelOf(meter.levels.rmsDb, side.channel)
-                peakDb: meter.channelOf(meter.levels.peakDb, side.channel)
+                peakDb: meter.showPeak ? meter.channelOf(meter.levels.peakDb, side.channel) : []
                 holdDb: meter.channelOf(meter.levels.holdDb, side.channel)
                 active: meter.active
                 // The box above says it; the strip would say it twice.

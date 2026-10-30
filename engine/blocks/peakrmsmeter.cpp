@@ -45,6 +45,13 @@ std::vector<ParamDescriptor> PeakRmsMeter::makeDescriptors()
     tray.type = ParamType::Bool;
     tray.defaultValue = ParamValue::ofBool(false);
     descriptors.push_back(std::move(tray));
+
+    // On out of the box, which is how the meter has always looked.
+    ParamDescriptor peak;
+    peak.id = "showPeak";
+    peak.type = ParamType::Bool;
+    peak.defaultValue = ParamValue::ofBool(true);
+    descriptors.push_back(std::move(peak));
     return descriptors;
 }
 

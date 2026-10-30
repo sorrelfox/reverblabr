@@ -256,6 +256,44 @@ TEST_F(TrayStateTest, AMeterReadsItsOwnBlocksLevelWhileItsSessionRuns)
     EXPECT_LE(tray.meterLevel(id, u"meter"_s).value(u"peakDb"_s).toDouble(), -100.0);
 }
 
+TEST_F(TrayStateTest, AMeterWithItsPeakBarOffReadsItsRmsInTheTray)
+{
+    // The tray's bar is the block's meter too: with the peak bar turned off
+    // in its settings it follows the RMS, as the tile does, and turning it
+    // back on brings the peak back.
+    core::MockEngine engine;
+    const QString id = openSession(engine, u"Calm"_s);
+    engine.applyEdit(
+        id, addBlock(u"meter"_s, u"meter.peakrms"_s, QJsonObject{{u"showInTray"_s, true}, {u"showPeak"_s, false}}));
+    core::TelemetrySlot slot;
+    ui::AppShell::setEngine(&engine, [&](const QString &sessionId) { return sessionId == id ? &slot : nullptr; });
+    core::TelemetrySnapshot snapshot;
+    snapshot.frame = 1;
+    snapshot.running = true;
+    snapshot.blockCount = 1;
+    std::strncpy(snapshot.blocks[0].id, "meter", core::kMaxTelemetryIdBytes - 1);
+    snapshot.blocks[0].channelCount = 2;
+    snapshot.blocks[0].peak[0] = 1.0f; // full scale
+    snapshot.blocks[0].rms[0] = 0.125f; // -18 dBFS
+    snapshot.blocks[0].active = true;
+    slot.store(snapshot);
+
+    ui::TrayState tray(&engine);
+    ASSERT_TRUE(spinUntil([&] { return tray.meters().size() == 1; }));
+    engine.start(id);
+    ASSERT_TRUE(spinUntil([&] { return tray.runningCount() == 1; }));
+    tray.readLevels();
+    EXPECT_NEAR(tray.meterLevel(id, u"meter"_s).value(u"peakDb"_s).toDouble(), -18.06, 0.05)
+        << "the tray drew the peak of a meter whose peak bar is off";
+
+    engine.applyEdit(id, edit(core::SetParam{u"meter"_s, u"showPeak"_s, true}));
+    ASSERT_TRUE(spinUntil([&] {
+        tray.readLevels();
+        return tray.meterLevel(id, u"meter"_s).value(u"peakDb"_s).toDouble() > -0.1;
+    })) << "turning the peak bar back on did not bring the peak back to the tray";
+    engine.stop(id);
+}
+
 TEST_F(TrayStateTest, WhatWentWrongAsksForAttentionUntilItIsSeen)
 {
     core::MockEngine engine;

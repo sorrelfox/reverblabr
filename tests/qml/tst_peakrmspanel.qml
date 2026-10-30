@@ -84,6 +84,7 @@ TestCase {
     function init() {
         SessionModel.setParam("met", "peakHold", PeakHold.defaultChoice);
         SessionModel.setParam("met", "showInTray", false);
+        SessionModel.setParam("met", "showPeak", true);
         SessionModel.setParam("met2", "peakHold", PeakHold.defaultChoice);
     }
 
@@ -211,6 +212,76 @@ TestCase {
         panel.traySwitch.toggled();
         wait(50);
         compare(SessionModel.param("met", "showInTray"), true);
+    }
+
+    function test_thePeakBarIsABlockSettingKeptWithTheSession() {
+        // On out of the box, which is how the meter has always looked, and
+        // a choice written to the session like every other control, so the
+        // block keeps it when the session is saved and opened again.
+        const descriptor = BlockCatalogue.describeParam("meter.peakrms", "showPeak");
+        compare(descriptor.id, "showPeak");
+        compare(descriptor.default, true);
+
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.blockId = "met";
+        wait(50);
+        compare(panel.peakSwitch.text, "Show peak bar");
+        compare(panel.peakSwitch.checked, true);
+        compare(panel.meter.showPeak, true);
+
+        panel.peakSwitch.toggle();
+        panel.peakSwitch.toggled();
+        wait(50);
+        compare(SessionModel.param("met", "showPeak"), false);
+        compare(panel.meter.showPeak, false);
+
+        // **Set anywhere, shown here**: undo, a second window, a session
+        // opened from disk all arrive as the session's value.
+        SessionModel.setParam("met", "showPeak", true);
+        wait(50);
+        compare(panel.peakSwitch.checked, true);
+        compare(panel.meter.showPeak, true);
+
+        // It sits at the bottom with the other two, directly above the tray.
+        const peakY = panel.peakSwitch.mapToItem(panel, 0, 0).y;
+        const trayY = panel.traySwitch.mapToItem(panel, 0, 0).y;
+        verify(peakY > panel.meter.mapToItem(panel, 0, 0).y + panel.meter.height, "it is not below the meter");
+        verify(peakY < trayY, "it is not above the tray's checkbox");
+    }
+
+    function test_withThePeakBarOffTheMetersDrawTheRmsAlone() {
+        // A running session and a level, so there is a peak to draw. The
+        // tile and the panel are both the block's meter; with the setting
+        // off neither draws the tip, and both still draw the RMS under it.
+        Meters.watch(testCase.sessionId);
+        TestEngine.start(testCase.sessionId);
+        tryVerify(() => Meters.live, 2000, "the session published nothing to be live from");
+        TestEngine.setFakeLevel(testCase.sessionId, "met", 0.5);
+
+        const face = createTemporaryObject(faceComponent, null);
+        face.blockId = "met";
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.blockId = "met";
+        const bars = () => [face.meter.sideBars[0].bar, face.meter.sideBars[1].bar,
+                            panel.meter.sideBars[0].bar, panel.meter.sideBars[1].bar];
+        tryVerify(() => bars().every(bar => bar.peakDb.length === 1 && bar.peakDb[0] > -7), 2000,
+                  "the peak bar was not drawn with the setting on");
+
+        SessionModel.setParam("met", "showPeak", false);
+        tryVerify(() => bars().every(bar => bar.peakDb.length === 0), 2000,
+                  "a meter still drew the peak bar with the setting off");
+        for (const bar of bars()) {
+            compare(bar.rmsDb.length, 1, "the RMS bar went with the peak");
+            verify(bar.rmsDb[0] > -12, "the RMS bar is not drawn at the level");
+        }
+
+        SessionModel.setParam("met", "showPeak", true);
+        tryVerify(() => bars().every(bar => bar.peakDb.length === 1), 2000,
+                  "turning the setting back on did not bring the peak bar back");
+
+        TestEngine.clearFakeLevels(testCase.sessionId);
+        TestEngine.stop(testCase.sessionId);
+        Meters.watch("");
     }
 
     function test_theNumbersAreWrittenToATenthOfADecibelInTheReadersLocale() {

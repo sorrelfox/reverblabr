@@ -184,11 +184,16 @@ TEST(PeakRmsMeterTest, WhatWasChosenIsWhatComesBack)
     PeakRmsMeter block;
     ASSERT_TRUE(block.setParam("peakHold", ParamValue::ofEnum("5s")).has_value());
     ASSERT_TRUE(block.setParam("showInTray", ParamValue::ofBool(true)).has_value());
+    ASSERT_TRUE(block.setParam("showPeak", ParamValue::ofBool(false)).has_value());
 
     PeakRmsMeter opened;
     ASSERT_TRUE(opened.loadState(block.saveState()).has_value());
     EXPECT_EQ(opened.param("peakHold").text(), "5s");
     EXPECT_TRUE(*opened.param("showInTray").asBool());
+    EXPECT_FALSE(*opened.param("showPeak").asBool());
+    // The peak bar is drawn out of the box, as it always was: a session
+    // saved before the setting existed opens looking the same.
+    EXPECT_TRUE(*PeakRmsMeter{}.param("showPeak").asBool());
     // Two seconds out of the box, which is what a person expects a peak to
     // hang for.
     EXPECT_EQ(PeakRmsMeter{}.param("peakHold").text(), "2s");

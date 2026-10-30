@@ -36,6 +36,7 @@ namespace
 constexpr auto kPeakRmsType = "meter.peakrms"_L1;
 constexpr auto kVuType = "meter.vu"_L1;
 constexpr auto kShowInTray = "showInTray"_L1;
+constexpr auto kShowPeak = "showPeak"_L1;
 
 [[nodiscard]] QJsonObject objectOf(const QString &json)
 {
@@ -46,6 +47,15 @@ constexpr auto kShowInTray = "showInTray"_L1;
 [[nodiscard]] bool isTrayMeter(const QString &type, const QJsonObject &params)
 {
     return (type == kPeakRmsType || type == kVuType) && params.value(kShowInTray).toBool(false);
+}
+
+/// Whether a tray meter's bar follows the root mean square rather than the
+/// peak: a Peak/RMS meter whose peak bar was turned off. **The tray's bar is
+/// the block's meter too**, so it hides the peak where the tile does, and
+/// what is left is the RMS bar the tile still draws.
+[[nodiscard]] bool showsRmsOnly(const QString &type, const QJsonObject &params)
+{
+    return type == kPeakRmsType && !params.value(kShowPeak).toBool(true);
 }
 
 /// Whether the tray should ask for attention over \a event: something went
@@ -557,6 +567,11 @@ void TrayState::readLevels()
         bool active = false;
         const auto session = d->sessions.constFind(sessionId);
         const bool running = session != d->sessions.cend() && session->state == core::sessionState::running;
+        bool rmsOnly = false;
+        if (session != d->sessions.cend()) {
+            const auto block = std::ranges::find(session->blocks, blockId, &Private::Block::id);
+            rmsOnly = block != session->blocks.cend() && showsRmsOnly(block->type, block->params);
+        }
         if (const core::TelemetrySlot *slot = running ? AppShell::telemetryOf(sessionId) : nullptr; slot != nullptr) {
             const core::TelemetrySnapshot snapshot = slot->load();
             const QByteArray id = blockId.toUtf8().left(core::kMaxTelemetryIdBytes - 1);
@@ -568,7 +583,7 @@ void TrayState::readLevels()
                 }
                 const std::uint32_t channels = std::min<std::uint32_t>(levels.channelCount, rt::kMaxMeterChannels);
                 for (std::uint32_t channel = 0; channel < channels; ++channel) {
-                    loudest = std::max(loudest, dsp::gainToDb(levels.peak[channel]));
+                    loudest = std::max(loudest, dsp::gainToDb(rmsOnly ? levels.rms[channel] : levels.peak[channel]));
                 }
                 active = levels.active;
                 break;

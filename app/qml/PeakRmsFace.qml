@@ -42,6 +42,9 @@ Item {
     /// Component its properties, so it is set once the face exists.
     property string blockId: ""
 
+    /// Whether the tip up to the peak is drawn: the block's own setting.
+    readonly property bool showPeak: SessionModel.revision >= 0
+                                     && SessionModel.params(face.blockId).showPeak !== false
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(face.blockId) : ({})
     readonly property bool active: Meters.live && (face.levels.active ?? false)
     /// The loudest side, which is what a face has room to say.
@@ -76,6 +79,7 @@ Item {
         // numbers are written, not how many of them there are.
         ticks: MeterScale.compactTicks
         channelClips: true
+        showPeak: face.showPeak
         rmsColor: AppColors.live
         // **A paler live for the tip up to the peak**, the band the design
         // draws above the bar: the same hue, so it reads as more of the same

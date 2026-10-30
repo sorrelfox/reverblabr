@@ -19,8 +19,8 @@ import org.kde.ki18n
 // **Almost all meter, as the design draws it**. Bar, scale, bar, with
 // a clip box above each side and its name under it. The RMS is in the live
 // colour, the tip up to the peak paler, anything above −6 dBFS red, and the
-// line that holds and falls white. Then the tray and the hold, and nothing
-// else. The numbers that used to be written out in a table are each side's
+// line that holds and falls white. Then whether the tip is drawn at all,
+// the tray and the hold, and nothing else. The numbers that used to be written out in a table are each side's
 // tooltip and what a screen reader says of it. A lit clip box goes out when
 // clicked. The card is narrow and has no presets row, because a meter's
 // only settings are how it behaves on the screen.
@@ -56,6 +56,9 @@ ColumnLayout {
     readonly property var params: SessionModel.revision >= 0 ? SessionModel.params(panel.blockId) : ({})
     readonly property string holdChoice: panel.params.peakHold ?? PeakHold.defaultChoice
     readonly property bool inTray: panel.params.showInTray === true
+    /// On unless it was turned off, so a session from before the setting
+    /// draws the peak as it always did.
+    readonly property bool showPeak: panel.params.showPeak !== false
 
     readonly property var levels: Meters.frame >= 0 ? Meters.levels(panel.blockId) : ({})
     readonly property bool active: Meters.live && (panel.levels.active ?? false)
@@ -79,6 +82,7 @@ ColumnLayout {
     readonly property alias holdBox: holdControl
     readonly property alias holdMenu: holdMenu
     readonly property alias traySwitch: trayControl
+    readonly property alias peakSwitch: peakControl
     readonly property alias meter: meterColumn
 
     /// What this panel asks of the card it is in: a narrow one, and no
@@ -168,6 +172,7 @@ ColumnLayout {
         clipBoxes: true
         channelLabels: true
         channelClips: true
+        showPeak: panel.showPeak
         barWidth: Math.round(Kirigami.Units.gridUnit * 0.9)
         splitSpacing: Kirigami.Units.gridUnit * 1.6
         rmsColor: AppColors.live
@@ -216,11 +221,29 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
-    // --- the tray, and how long a peak stays up ---
+    // --- the peak bar, the tray, and how long a peak stays up ---
     ColumnLayout {
         Layout.fillWidth: true
         Layout.margins: Kirigami.Units.smallSpacing * 2
         spacing: Kirigami.Units.smallSpacing
+
+        QQC2.CheckBox {
+            id: peakControl
+
+            text: KI18n.i18nc("@option:check", "Show peak bar")
+            Layout.fillWidth: true
+            QQC2.ToolTip.text: KI18n.i18nc("@info:tooltip",
+                                           "Draws the paler bar that jumps up to each peak above the RMS bar")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+            onToggled: SessionModel.setParam(panel.blockId, "showPeak", peakControl.checked)
+
+            SessionBound {
+                control: peakControl
+                property: "checked"
+                value: panel.showPeak
+            }
+        }
 
         QQC2.CheckBox {
             id: trayControl
