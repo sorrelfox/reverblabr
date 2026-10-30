@@ -12,6 +12,7 @@
 
 #include <QJsonValue>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <string>
@@ -216,6 +217,13 @@ std::optional<AudiogramFit> fitHearingBlock(const BlockInstance &block)
         options.averageLevelDb = dsp::kAverageInputDbfs;
         ceilingOffsetDb = dsp::kListeningOffsetDb;
     }
+    // **No band above the block's own Most gain**, and none above the
+    // rule's safety limit either when Most gain is set higher than that.
+    // The block would hold a band to Most gain anyway; a fit that wrote
+    // more would show curves the sound never follows, and mark no band as
+    // asking for more than it can have.
+    const double mostGainDb = block.params.value(u"maximumGainDb"_s).toDouble(dsp::HearingSettings{}.maximumGainDb);
+    options.maximumGainDb = std::min(options.maximumGainDb, static_cast<float>(mostGainDb));
     if (hearingBlockHasPoints(block.type)) {
         return fitPointsFromAudiogram(block, options, ceilingOffsetDb);
     }

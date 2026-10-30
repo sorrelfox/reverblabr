@@ -147,7 +147,7 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@label the most gain any band is given", "Most gain")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The most lift any band is ever given, whatever the other settings ask for: from 0 dB to 60 dB, and 50 dB for a new block. It is a safety limit. Lower it if a band ever gets far too loud.")
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The most lift any band is ever given, whatever the other settings ask for: from 0 dB to 60 dB, and 50 dB for a new block. It is a safety limit. Lower it if a band ever gets far too loud. Fit from Audiogram keeps every band under it too.")
         ]
     }
 
@@ -206,8 +206,8 @@ HelpPage {
         title: KI18n.i18nc("@action:button", "Fit from Audiogram")
         paragraphs: [
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Sets every band's Soft, Average and Loud gains and its Ceiling from the audiogram, in one step, following a published fitting rule. One undo takes it all back."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The lift for ordinary speech is never more than the ear has lost at that pitch, and no band gets more than 50 dB."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "A band may be marked with a warning sign: where the audiogram says no response, or where the ear would need more than 50 dB. More lift is unlikely to help there. Frequency Lowering can move that sound to a range the ear does hear."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The lift for ordinary speech is never more than the ear has lost at that pitch, and no band gets more than Most gain, nor more than 50 dB however high Most gain is."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "A band may be marked with a warning sign: where the audiogram says no response, or where the ear would need more than that. More lift is unlikely to help there. Frequency Lowering can move that sound to a range the ear does hear."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Treat the result as a starting point, and adjust by ear.")
         ]
     }

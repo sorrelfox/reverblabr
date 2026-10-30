@@ -46,7 +46,7 @@ With a block for each ear, each panel draws the other ear's curve faintly, and *
 
 ## From an audiogram
 
-If you have an audiogram (the chart from a hearing test), you don't have to set the bands by hand. Open **Audiogram**, enter the quietest level heard at each frequency, and, if you know them, the levels where sound becomes too loud. Then press **Fit from Audiogram**. All bands are set in one step, and one undo takes it back.
+If you have an audiogram (the chart from a hearing test), you don't have to set the bands by hand. Open **Audiogram**, enter the quietest level heard at each frequency, and, if you know them, the levels where sound becomes too loud. Then press **Fit from Audiogram**. All bands are set in one step, and one undo takes it back. No band gets more than **Most gain**, nor more than 50 dB however high Most gain is.
 
 A band where more gain is unlikely to help is marked. Often a better idea there is to move that sound somewhere the ear hears it, with [Frequency Lowering](#frequency-lowering).
 

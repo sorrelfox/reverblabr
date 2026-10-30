@@ -8,7 +8,9 @@
 // Hearing Compensation 16's face and panel: the curves drawn from the
 // block's settings, the "now" line following the gain the block applies in
 // each band, a band's handle dragged up its curve, Fit from audiogram and its
-// undo, the other ear's curve and Copy from the Other Ear, and before/after.
+// undo, the other ear's curve and Copy from the Other Ear, and before/after;
+// Speed and Measured in in words, each audiogram list named by its
+// frequency and ear, and a fit that keeps under Most gain.
 
 import QtQuick
 import QtTest
@@ -313,6 +315,37 @@ TestCase {
 
         SessionModel.setParam(id, "ear", "right");
         tryCompare(lists[4].Accessible, "name", "Audiogram at 1.0 kHz, right ear");
+    }
+
+    function test_theFitGivesNoBandMoreThanMostGain() {
+        const id = testCase.newBlock("");
+        const window = testCase.openPanel(id);
+        const panel = window.panel;
+        // A deep loss everywhere asks for more than 30 dB in every band.
+        const changes = [["maximumGainDb", 30]];
+        for (const hz of panel.audiogramHz) {
+            changes.push(["audiogram" + hz, "heard"], ["audiogram" + hz + "Db", 90]);
+        }
+        SessionModel.setParams(id, changes);
+        tryVerify(() => SessionModel.param(id, "audiogram8000Db") === 90, 1000);
+
+        panel.audiogramSection.expanded = true;
+        tryVerify(() => panel.fitButton.visible && panel.fitButton.width > 0, 1000, "the audiogram did not open");
+        mouseClick(panel.fitButton);
+        tryVerify(() => SessionModel.param(id, "band8SoftGainDb") !== undefined, 1000, "the fit set nothing");
+        let most = 0;
+        for (let band = 0; band < 16; ++band) {
+            for (const which of ["Soft", "Average", "Loud"]) {
+                most = Math.max(most, SessionModel.param(id, panel.bands.paramId(band, which)));
+            }
+        }
+        compare(most, 30, "the fit went past Most gain");
+        // The handles are drawn where the settings are: none above 30 dB.
+        panel.editing = "Soft";
+        for (let band = 0; band < 16; ++band) {
+            verify(panel.handlePoint(band).y >= panel.yOfGain(30) - 0.5, "band " + band + " is drawn above Most gain");
+        }
+        compare(panel.unhelped.length, 16, "the bands that asked for more are not marked");
     }
 
     /// Takes out the blocks earlier tests left, so "the other ear" is the

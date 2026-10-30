@@ -48,7 +48,7 @@ For each band of the block's layout (the layout is decided in ADR-0019), the fit
 
 Average sound is placed at 45 dB HL in every band, roughly where ordinary speech falls on an audiogram; the block's Loudness offset then sets the overall level by ear. So in every band soft ≥ average ≥ loud: quiet sound is lifted a lot and loud sound little. In this first version the compression comes from lifting soft sound, and loud sound is held back only where the ceiling is near.
 
-**The most gain a band may have** is 50 dB by default. Where the audiogram asks for more, the band is given that much and marked; where the nearest measured point was "no response", the band is marked too. The panel suggests Frequency Lowering for those bands, since more gain there is unlikely to help.
+**The most gain a band may have** is 50 dB, or the block's **Most gain** where that is lower. Where the audiogram asks for more, the band is given that much and marked; where the nearest measured point was "no response", the band is marked too. The panel suggests Frequency Lowering for those bands, since more gain there is unlikely to help.
 
 For a dBFS audiogram the same arithmetic runs on dBFS numbers. Its reference levels are placeholders until the listening check measures them.
 

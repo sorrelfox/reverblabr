@@ -107,7 +107,10 @@ fitPointsFromAudiogram(const BlockInstance &block, const dsp::FittingOptions &op
 /// set through points a point at each measured frequency; the
 /// fitting options for the unit its audiogram is in; and the ceilings
 /// written on the block's listening scale (dsp::kListeningOffsetDb above
-/// dBFS) whichever unit that is. Nothing for a block with no bands.
+/// dBFS) whichever unit that is. No band is given more than the block's
+/// Most gain, nor more than the rule's own limit
+/// (dsp::FittingOptions::maximumGainDb) where Most gain is above it; a band
+/// that asks for more is marked. Nothing for a block with no bands.
 [[nodiscard]] std::optional<AudiogramFit> fitHearingBlock(const BlockInstance &block);
 
 [[nodiscard]] QJsonArray editListJson(std::span<const EditCommand> commands);

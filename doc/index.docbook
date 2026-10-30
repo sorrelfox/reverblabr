@@ -1591,7 +1591,8 @@ have to set the bands by hand. Open <guilabel>Audiogram</guilabel>, enter the
 quietest level heard at each frequency, and, if you know them, the levels
 where sound becomes too loud. Then press <guibutton>Fit from
 Audiogram</guibutton>. All bands are set in one step, and one undo takes it
-back.</para>
+back. No band gets more than <guilabel>Most gain</guilabel>, nor more than
+50 dB however high Most gain is.</para>
 
 <para>A band where more gain is unlikely to help is marked. Often a better
 idea there is to move that sound somewhere the ear hears it, with <link

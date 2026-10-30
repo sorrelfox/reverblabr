@@ -25,6 +25,7 @@
 #include <QTemporaryDir>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <vector>
@@ -262,6 +263,47 @@ TEST(AudiogramFit, AHearingBlockIsFittedOnItsOwnBandsAndScale)
     BlockInstance other = block;
     other.type = u"effect.volume"_s;
     EXPECT_FALSE(fitHearingBlock(other).has_value());
+}
+
+TEST(AudiogramFit, NoBandIsFittedAboveTheBlocksMostGainNorAboveTheRulesLimit)
+{
+    // A loss of 90 dB HL everywhere asks the rule for more than 50 dB of
+    // soft gain in every band.
+    dsp::Audiogram deep;
+    for (dsp::AudiogramPoint &point : deep.points) {
+        point = {dsp::AudiogramMark::Heard, 90.0f, std::nullopt};
+    }
+    const auto highest = [](const AudiogramFit &fit) {
+        float most = 0.0f;
+        for (const dsp::BandFit &band : fit.bands) {
+            most = std::max({most, band.softGainDb, band.averageGainDb, band.loudGainDb});
+        }
+        return most;
+    };
+
+    for (const QString &type : {u"hearing.compensation16"_s, u"hearing.compensation64"_s}) {
+        BlockInstance block = blockWith(deep);
+        block.type = type;
+        block.params.insert(u"maximumGainDb"_s, 30.0);
+        const std::optional<AudiogramFit> held = fitHearingBlock(block);
+        ASSERT_TRUE(held.has_value());
+        EXPECT_FLOAT_EQ(highest(*held), 30.0f) << type.toStdString() << ": the fit went past Most gain";
+        for (const dsp::BandFit &band : held->bands) {
+            EXPECT_TRUE(band.beyondMaximum) << "a band that asked for more than Most gain is not marked";
+        }
+
+        // Most gain above the rule's own limit: the limit still holds.
+        block.params.insert(u"maximumGainDb"_s, 60.0);
+        const std::optional<AudiogramFit> limited = fitHearingBlock(block);
+        ASSERT_TRUE(limited.has_value());
+        EXPECT_FLOAT_EQ(highest(*limited), dsp::FittingOptions{}.maximumGainDb) << type.toStdString();
+
+        // And a new block, whose Most gain the session does not name.
+        block.params.remove(u"maximumGainDb"_s);
+        const std::optional<AudiogramFit> fresh = fitHearingBlock(block);
+        ASSERT_TRUE(fresh.has_value());
+        EXPECT_FLOAT_EQ(highest(*fresh), 50.0f) << type.toStdString();
+    }
 }
 
 TEST_F(FitInTheEngine, FittingAHearingBlockAndUndoingItRestoresEveryBand)
