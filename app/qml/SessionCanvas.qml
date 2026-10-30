@@ -325,19 +325,23 @@ Item {
         const last = canvas.selectedIds.length > 0
             ? canvas.selectedIds[canvas.selectedIds.length - 1]
             : "";
-        if (last !== "") {
-            const from = SessionModel.block(last).position;
+        // **Where it was put, if the engine has not said yet**: two quick
+        // clicks in the library add the second after a block that is still
+        // on its way.
+        const from = last === "" ? undefined : canvas.placeOf(last);
+        if (from !== undefined) {
             at = Qt.point(from.x + size.width + gap, from.y);
         } else {
             const bounds = canvas.contentBounds();
             at = bounds.width > 0 ? Qt.point(bounds.x + bounds.width + gap, bounds.y) : canvas.toSession(gap, gap);
         }
-        const added = SessionModel.addBlock(canvas.withStartingEar(typeId), canvas.freeSpot(at, size));
+        const spot = canvas.freeSpot(at, size);
+        const added = SessionModel.addBlock(canvas.withStartingEar(typeId), spot);
         if (added !== "") {
             // **What it is wired to is what *was* selected**, kept here
             // before the new block takes the selection.
             canvas.selectOnly(added);
-            canvas.awaitingArrival = canvas.awaitingArrival.concat([{ added: added, after: last }]);
+            canvas.awaitingArrival = canvas.awaitingArrival.concat([{ added: added, after: last, at: spot }]);
             canvas.settleArrivals();
         }
         return added;
@@ -352,6 +356,16 @@ Item {
     /// history merges a wire that soon after into the block it came with,
     /// so both still go back in one Ctrl+Z.
     property var awaitingArrival: []
+
+    /// Where \a blockId sits: in the session, or where it was put if it
+    /// is still awaited. Undefined for neither.
+    function placeOf(blockId: string): var {
+        const position = SessionModel.block(blockId).position;
+        if (position !== undefined) {
+            return position;
+        }
+        return canvas.awaitingArrival.find(entry => entry.added === blockId)?.at;
+    }
 
     /// Wires and shows each awaited block the session now has.
     function settleArrivals() {
@@ -1510,13 +1524,14 @@ Item {
     }
 
     function isOccupied(at: point, size: size): bool {
+        const covers = other => Math.abs(other.x - at.x) < size.width && Math.abs(other.y - at.y) < size.height;
         for (let row = 0; row < blocks.count; ++row) {
-            const other = blocks.at(row).position;
-            if (Math.abs(other.x - at.x) < size.width && Math.abs(other.y - at.y) < size.height) {
+            if (covers(blocks.at(row).position)) {
                 return true;
             }
         }
-        return false;
+        // A block still on its way takes its spot as well.
+        return canvas.awaitingArrival.some(entry => covers(entry.at));
     }
 
     // --- the flow along a live wire ---

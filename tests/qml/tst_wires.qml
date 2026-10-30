@@ -348,6 +348,33 @@ TestCase {
         compare(SessionModel.wireCount, 2);
     }
 
+    // **Two blocks added before the engine has answered the first** are
+    // two blocks. Each was given the session's next free id, which is the
+    // same id until the engine answers, so the second was refused; added
+    // from the library, it was also wired to a block that never came.
+    function test_twoBlocksAddedBeforeTheEngineAnswersAreTwoBlocks() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        TestEngine.setAnswersLater(true);
+        const first = SessionModel.addBlock("effect.volume", Qt.point(0, 0));
+        const second = SessionModel.addBlock("effect.volume", Qt.point(300, 0));
+        verify(first !== second, "both blocks were given " + first);
+        tryVerify(() => SessionModel.blockIds.length === 2, 1000, "the second block was not added");
+
+        canvas.selectOnly(second);
+        const third = canvas.addBlockAfterSelection("effect.volume");
+        const fourth = canvas.addBlockAfterSelection("output.device");
+        verify(third !== fourth, "both blocks from the library were given " + third);
+        tryVerify(() => SessionModel.blockIds.length === 4, 1000, "the blocks from the library were not both added");
+        tryVerify(() => SessionModel.hasWire(second, 0, third, 0) && SessionModel.hasWire(third, 0, fourth, 0), 1000,
+                  "the blocks from the library were not wired one after the other");
+
+        // **A removed block's id is free again** once the engine has said so.
+        SessionModel.removeBlock(first);
+        tryVerify(() => SessionModel.blockIds.indexOf(first) < 0, 1000, "the block was not taken out");
+        compare(SessionModel.addBlock("effect.volume", Qt.point(0, 300)), first);
+        tryVerify(() => SessionModel.blockIds.length === 4, 1000, "the block was not added again");
+    }
+
     function test_aLaneSeveralLinksArriveAtIsMarkedAsSumming() {
         const canvas = createTemporaryObject(canvasComponent, null);
         SessionModel.setAutoConnect(false);

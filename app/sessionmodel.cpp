@@ -102,6 +102,24 @@ public:
     quint64 revision = 0;
     bool haveSnapshot = false;
     int sent = 0;
+    /// The ids of blocks sent to the engine that the session has not got
+    /// yet. **Kept out of the next block's way**: the session's next free id
+    /// is the same id until the engine answers, and the engine in
+    /// reverblabrd answers over the bus, so two blocks added before it had
+    /// were both given the same one and the second was refused.
+    QSet<QString> awaitedIds;
+
+    /// The lowest "b<n>" that neither the session nor a block on its way
+    /// to it has, as Session::nextBlockId() picks one.
+    QString nextFreeBlockId() const
+    {
+        for (qsizetype number = 1;; ++number) {
+            QString candidate = QStringLiteral("b%1").arg(number);
+            if (!session.hasBlock(candidate) && !awaitedIds.contains(candidate)) {
+                return candidate;
+            }
+        }
+    }
 
     /// A value a control is still dragging, by block and parameter. **The
     /// latest one, not a queue**: nobody wants the values a slider passed
@@ -366,6 +384,7 @@ void SessionModel::attach(core::EngineFacade *facade)
                 d->session = *read;
                 d->revision = revision;
                 d->haveSnapshot = true;
+                d->awaitedIds.removeIf([this](const QString &blockId) { return d->session.hasBlock(blockId); });
                 announce();
             });
 
@@ -400,6 +419,9 @@ void SessionModel::attach(core::EngineFacade *facade)
                     return;
                 }
                 d->revision = revision;
+                if (const auto *added = std::get_if<core::AddBlock>(&*command)) {
+                    d->awaitedIds.remove(added->block.id);
+                }
                 announce();
             });
 
@@ -468,6 +490,7 @@ void SessionModel::setSessionId(const QString &sessionId)
     d->letGo();
     d->sessionId = sessionId;
     d->session = {};
+    d->awaitedIds.clear();
     d->revision = 0;
     d->haveSnapshot = false;
     // **Nothing to undo until the engine says otherwise**: the last
@@ -970,7 +993,9 @@ QString SessionModel::addBlock(const QString &typeId, const QPointF &position)
     // **The session's own next id**, worked out from the copy this model
     // already follows rather than from a counter of its own: a counter
     // would keep counting past an undo and leave gaps nobody can explain.
-    block.id = d->session.nextBlockId();
+    // Less the ids of blocks still on their way, which that copy has not
+    // got yet.
+    block.id = d->nextFreeBlockId();
     block.type = typeId;
     // **A type with settings after it**: a library entry for one plugin is
     // a type and the plugin it is set to, `plugin.lv2?plugin=<id>`, and a
@@ -988,6 +1013,7 @@ QString SessionModel::addBlock(const QString &typeId, const QPointF &position)
     // The end of the list, which is the order the file holds and the order
     // the canvas tabs through. Where the tile *sits* is the position; where
     // it comes in the list is when it was added.
+    d->awaitedIds.insert(block.id);
     d->apply(core::AddBlock{block, -1});
     return block.id;
 }
