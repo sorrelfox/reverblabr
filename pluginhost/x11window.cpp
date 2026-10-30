@@ -183,7 +183,9 @@ std::unique_ptr<X11Window> X11Window::open(MainLoop &loop,
                                      0,
                                      CopyFromParent,
                                      InputOutput,
-                                     CopyFromParent,
+                                     // The parent's visual: CopyFromParent is a
+                                     // plain 0 in older libX11, not a pointer.
+                                     static_cast<Visual *>(nullptr),
                                      CWEventMask | CWBackPixel,
                                      &attributes);
     XStoreName(display, window->m_window, title.c_str());
