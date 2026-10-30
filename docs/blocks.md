@@ -81,7 +81,7 @@ Either meter can also be shown in the system tray, see [On the desktop](desktop.
 | **Mixer** | Five inputs on five strips with volume up to 200 %, mute, solo, balance and timed fades, under one master, plus five scenes to save and recall a set of levels. |
 | **Input Switch** | Passes one of two inputs, A or B, and crossfades to the other at a click: half a second, or two seconds with Shift. |
 | **Sync** | Holds a lane back by an exact number of milliseconds, up to two seconds, to line its sound up with a picture or with another lane. |
-| **Time Shift** | Pauses and rewinds sound that is still arriving, such as a radio stream or a call. Jump back 3, 10 or 30 seconds, forward again, or straight back to live. It keeps up to an hour: ten minutes in memory, the rest on disk. |
+| **Time Shift** | Pauses and rewinds sound that is still arriving, such as a radio stream or a call. Jump back 3, 10 or 30 seconds, forward again, or straight back to live. It keeps up to an hour: up to ten minutes in memory, a longer history on disk. |
 | **Declick** | Takes out clicks, pops and crackle (from a record, a bad cable or a digital dropout) and fills in what was underneath from the sound on either side. |
 | **Denoise** | Listens to a few seconds of a steady noise on its own (a fan, hiss, an air conditioner), then removes that noise from everything that follows. The noise it learned is saved with the session. |
 | **Speech Denoise** | Clears the background from a voice without learning anything first, using RNNoise, a model trained on speech. It works at 48 kHz and adds 30 ms of delay. It is only built where the distribution packages RNNoise, which Fedora does. |

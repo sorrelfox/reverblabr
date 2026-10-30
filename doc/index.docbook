@@ -859,8 +859,8 @@ to line its sound up with a picture or with another lane.</para>
 <title>Time Shift</title>
 <para>Pauses and rewinds sound that is still arriving, such as a radio stream
 or a call. Jump back 3, 10 or 30 seconds, forward again, or straight back to
-live. It keeps up to an hour: ten minutes in memory, the rest on
-disk.</para>
+live. It keeps up to an hour: up to ten minutes in memory, a longer
+history on disk.</para>
 </sect2>
 </sect1>
 
