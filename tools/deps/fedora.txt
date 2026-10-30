@@ -76,8 +76,10 @@ libavformat-free-devel
 libavcodec-free-devel
 libavutil-free-devel
 # The Broadcast block's secure connection (TLS). FFmpeg links GnuTLS
-# already, so it adds nothing to what is installed.
+# already, so it adds nothing to what is installed. The authorities a
+# server's certificate is checked against are the system's.
 gnutls-devel
+ca-certificates
 # Optional: the Live Stream block's picture, drawn with the desktop's own
 # text stack and converted to video. Its H.264 comes at run time from
 # Cisco's openh264 (Fedora Workstation installs it from Cisco's

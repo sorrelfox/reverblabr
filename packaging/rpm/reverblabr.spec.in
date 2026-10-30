@@ -92,6 +92,8 @@ Requires:       qt6-qtsvg%{?_isa}
 Requires:       hicolor-icon-theme
 # The engine runs in reverblabrd, which the session bus starts
 Requires:       dbus-common
+# The authorities a Broadcast server's certificate is checked against
+Requires:       ca-certificates
 # The password prompt for virtual devices for all users
 Recommends:     polkit
 # H.264 for the Live Stream block, through the system's FFmpeg (ADR-0027).
