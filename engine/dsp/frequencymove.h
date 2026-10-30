@@ -28,8 +28,9 @@ enum class MoveMethod : std::uint8_t {
     /// at all, which is usually emptied as well (MoveSource::Remove).
     Compress = 0,
     /// Copies the source by one ratio, the destination's bottom over the
-    /// source's (an octave down with Frequency Lowering's default ranges,
-    /// two octaves up with Frequency Raising's), so the sound's harmonics
+    /// source's (about two thirds of an octave down with Frequency
+    /// Lowering's default ranges, 4 kHz to 2.5 kHz; two octaves up with
+    /// Frequency Raising's, 250 Hz to 1 kHz), so the sound's harmonics
     /// keep their spacing; whatever lands above the destination's top is
     /// left out. For a range the ear still hears a little of, which is
     /// usually kept (MoveSource::Keep).

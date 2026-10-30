@@ -68,7 +68,7 @@ Some ears hear nothing in a high range however loud it is, and an important part
 2. Its first move is ready to go: sound from **4 to 8 kHz** squeezed into **2.5 to 4 kHz**, with the high range emptied. On the **Arrows** view, the shaded range is where the sound comes from and the outlined one is where it goes. Drag the ends of either range to change them.
 3. Choose how each move carries the sound:
    - **Squeeze** fits the whole range into a smaller one lower down. Use it where the ear hears nothing at all, and **Empty** the range it came from.
-   - **Copy down** adds a copy an octave or so lower and keeps the original, either **As it was** or **Quieter**. Use it where the ear still hears some of the high range.
+   - **Copy down** adds a copy lower down and keeps the original, either **As it was** or **Quieter**. Every sound moves by the same step, from the bottom of one range to the bottom of the other: about two thirds of an octave with the ranges a new block starts with. Use it where the ear still hears some of the high range.
 4. **Acts: On s, sh, f** moves sound only while the high range carries most of it, so vowels and music pass unchanged. **Always** moves everything in the range.
 5. Turn on **Moved sound only** to hear just what the moves add while you set their **Level**, then turn it off again.
 

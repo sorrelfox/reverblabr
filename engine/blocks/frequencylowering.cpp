@@ -14,7 +14,7 @@ namespace
 {
 
 /// The first move the high consonants' range squeezed into the one below and
-/// emptied, the rest an octave lower each, all unused.
+/// emptied, the rest on ranges either side of it, all unused.
 constexpr FrequencyMoveKind kLowering{
     .typeId = FrequencyLowering::kTypeId,
     .methodIds = FrequencyLowering::kMethodIds,

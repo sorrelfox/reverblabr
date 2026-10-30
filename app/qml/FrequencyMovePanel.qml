@@ -199,8 +199,10 @@ ColumnLayout {
         SessionModel.setParam(panel.blockId, moves.paramId(slot, which), panel.limited(slot, which, hz), true);
     }
 
-    /// Takes the first free slot into use, a copy of the picked move an
-    /// octave lower where there is room, and picks it.
+    /// Takes the first free slot into use and picks it. The move comes
+    /// with the ranges that slot starts with (each slot has its own, so a
+    /// second move does not lie on top of the first); it is not a copy of
+    /// the picked one.
     function addMove() {
         const slot = moves.free;
         if (slot < 0) {
@@ -987,6 +989,6 @@ ColumnLayout {
             ? KI18n.i18nc("@info what the Frequency Raising block does",
                           "Moves sound from a low or middle range the ear makes no use of into a higher range it hears. Copy up adds a copy two octaves or so higher; Squeeze fits the whole range into another; Add harmonics (experimental) gives each low sound its harmonics higher up, so a voice keeps its pitch. It holds the sound back by about 43 ms, or 85 ms while a move starts below 250 Hz, which takes longer to tell apart. Put it before any block that sets the level of each range.")
             : KI18n.i18nc("@info what the Frequency Lowering block does",
-                          "Moves sound from a range the ear makes no use of into a lower range it hears: the hiss of s, sh and f, which tells \"sit\" from \"fit\". Squeeze fits the whole range into a smaller one; Copy down adds a copy an octave or so lower. Put it before any block that sets the level of each range, so the moved sound gets the level of where it lands.")
+                          "Moves sound from a range the ear makes no use of into a lower range it hears: the hiss of s, sh and f, which tells \"sit\" from \"fit\". Squeeze fits the whole range into a smaller one; Copy down adds a copy lower down. Put it before any block that sets the level of each range, so the moved sound gets the level of where it lands.")
     }
 }

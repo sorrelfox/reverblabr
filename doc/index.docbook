@@ -1646,9 +1646,11 @@ change them.</para></step>
 <guilabel>Squeeze</guilabel> fits the whole range into a smaller one lower
 down: use it where the ear hears nothing at all, and
 <guilabel>Empty</guilabel> the range it came from. <guilabel>Copy
-down</guilabel> adds a copy an octave or so lower and keeps the original,
-either <guilabel>As it was</guilabel> or <guilabel>Quieter</guilabel>: use it
-where the ear still hears some of the high range.</para></step>
+down</guilabel> adds a copy lower down and keeps the original, either
+<guilabel>As it was</guilabel> or <guilabel>Quieter</guilabel>: use it where
+the ear still hears some of the high range. Every sound moves by the same
+step, from the bottom of one range to the bottom of the other: about two
+thirds of an octave with the ranges a new block starts with.</para></step>
 <step><para><guilabel>Acts: On s, sh, f</guilabel> moves sound only while the
 high range carries most of it, so vowels and music pass unchanged.
 <guilabel>Always</guilabel> moves everything in the range.</para></step>
