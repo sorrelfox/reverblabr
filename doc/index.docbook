@@ -350,7 +350,13 @@ work on other blocks; the pin button puts it back.</para>
 
 <para>The row at the bottom of a block's settings holds its presets. Some
 blocks come with presets, and <menuchoice><guimenu>⋮</guimenu><guimenuitem>Save
-as Preset…</guimenuitem></menuchoice> keeps your own.</para>
+as Preset…</guimenuitem></menuchoice> keeps your own.
+<menuchoice><guimenu>⋮</guimenu><guimenuitem>Reset to Default
+Settings…</guimenuitem></menuchoice> puts every setting of the block back to
+how a new block starts, after asking; one undo takes it back. A password or a
+stream key stays, and so does which ear a hearing block is for. A plugin
+block has no reset: its own presets are the way back to where it
+started.</para>
 
 <para><keycombo action="simul">&Ctrl;<keycap>Z</keycap></keycombo> takes back
 any change, including moving a block or a wire, and the

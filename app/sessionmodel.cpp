@@ -63,6 +63,8 @@ namespace
         {u"edit.setEnabled"_s, kli18nc("@action:inmenu an undo step", "Switch Block On or Off")},
         {u"edit.setSessionSetting"_s, kli18nc("@action:inmenu an undo step", "Change Session Setting")},
         {u"edit.applyPreset"_s, kli18nc("@action:inmenu an undo step", "Apply Preset")},
+        {u"edit.resetParams"_s,
+         kli18nc("@action:inmenu an undo step: a block's settings put back to their defaults", "Reset Settings")},
         {u"edit.setTimer"_s, kli18nc("@action:inmenu an undo step", "Change Timer")},
         {u"edit.removeTimer"_s, kli18nc("@action:inmenu an undo step", "Delete Timer")},
     };
@@ -722,6 +724,30 @@ void SessionModel::setParams(const QString &blockId, const QVariantList &changes
         commands.push_back(core::SetParam{blockId, paramId, QJsonValue::fromVariant(unwrapped(pair.at(1)))});
     }
     d->applyAll(commands);
+}
+
+void SessionModel::resetParams(const QString &blockId, const QStringList &paramIds)
+{
+    const core::BlockInstance *instance = d->session.findBlock(blockId);
+    if (instance == nullptr) {
+        return;
+    }
+    // **Only what is set is taken off.** A parameter the session does not
+    // hold is at its default already, and a reset of nothing would still be
+    // a step for undo to walk through.
+    core::ApplyPreset reset;
+    reset.blockId = blockId;
+    for (const QString &paramId : paramIds) {
+        if (instance->params.contains(paramId)) {
+            reset.clear.append(paramId);
+        }
+        // A drag still pending would land after the reset and undo it.
+        d->pending.erase({blockId, paramId});
+    }
+    if (reset.clear.isEmpty()) {
+        return;
+    }
+    d->apply(reset);
 }
 
 QVariantList SessionModel::fitFromAudiogram(const QString &blockId)

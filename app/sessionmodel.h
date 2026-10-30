@@ -204,6 +204,13 @@ public:
     /// and the block hears them in the order given — which is how a Mixer
     /// fade is sent, as the ramp, the volume and the ramp put back.
     Q_INVOKABLE void setParams(const QString &blockId, const QVariantList &changes);
+    /// Puts \a paramIds of \a blockId back to their defaults, **as one edit**
+    /// and so one step to undo, by taking them off the block: a parameter
+    /// the session does not hold is at its default. The block shows no
+    /// preset after it. Which parameters a reset covers is the caller's to
+    /// say (PresetsFooter: what a preset would set); one that is not set is
+    /// left out, and a reset of nothing sends nothing.
+    Q_INVOKABLE void resetParams(const QString &blockId, const QStringList &paramIds);
     /// **Fit from audiogram**: \a blockId's band settings worked
     /// out from its own audiogram, for its own bands, and sent as one edit
     /// that one undo takes back. What the fit said about each band, low to

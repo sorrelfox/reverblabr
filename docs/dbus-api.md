@@ -208,7 +208,7 @@ The all-users devices are written by a privileged helper the window asks through
 | `SessionClosed(s sessionId)` | a session was closed |
 | `SessionSnapshot(s sessionId, t revision, s sessionJson)` | the whole session, and the revision its patches continue from |
 | `SessionPatch(s sessionId, t revision, s patchJson)` | what one edit changed |
-| `UndoStateChanged(s sessionId, b canUndo, s undoCode, b canRedo, s redoCode)` | whether there is anything to undo or redo, and what each would do (`edit.addBlock`, …; empty for nothing) |
+| `UndoStateChanged(s sessionId, b canUndo, s undoCode, b canRedo, s redoCode)` | whether there is anything to undo or redo, and what each would do (`edit.` and the command's name, `edit.addBlock` and so on, or `edit.resetParams` for an `applyPreset` that only takes values off and names no preset, which is a block put back to its defaults; empty for nothing) |
 | `StateChanged(s sessionId, s state)` | `idle`, `starting`, `running`, `stopping` or `error` |
 | `InventoryChanged(s inventoryJson)` | the applications, inputs, outputs and defaults |
 | `BlockCatalogueChanged(s catalogueJson)` | the block types and their parameters |

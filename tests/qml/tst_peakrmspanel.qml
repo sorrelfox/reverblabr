@@ -442,6 +442,6 @@ TestCase {
         compare(card.bodyAsks("panelWidth", 0), Kirigami.Units.gridUnit * 15);
         compare(card.implicitWidth, Kirigami.Units.gridUnit * 15);
         verify(card.implicitWidth < Kirigami.Units.gridUnit * 18, "the card is no narrower than the standard one");
-        compare(card.presets.visible, false, "a meter's settings still have a presets row");
+        compare(card.presets.showsPresets, false, "a meter's settings still offer presets");
     }
 }

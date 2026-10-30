@@ -491,10 +491,12 @@ Primitives.ShadowedRectangle {
             id: presetsSlot
 
             blockId: panel.blockId
-            // Nothing to show a preset for until there is a block, and
-            // nothing for a block whose settings say they have no use for
-            // presets — a meter, whose only settings are how it looks.
-            visible: panel.blockId !== "" && panel.bodyAsks("wantsPresets", true)
+            // Nothing to show until there is a block. **A block whose
+            // settings say they have no use for presets** (a meter, whose
+            // only settings are how it looks) keeps the row without them:
+            // its settings can still be put back to their defaults.
+            visible: panel.blockId !== ""
+            showsPresets: panel.bodyAsks("wantsPresets", true)
             Layout.fillWidth: true
             Layout.topMargin: AppMetrics.panelFooterPadding
             Layout.bottomMargin: AppMetrics.panelFooterPadding

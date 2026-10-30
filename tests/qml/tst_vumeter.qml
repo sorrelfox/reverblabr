@@ -221,6 +221,6 @@ TestCase {
         verify(body !== null, "the card loaded no body");
         compare(body.blockId, "vu");
         compare(card.bodyAsks("panelWidth", 0), Kirigami.Units.gridUnit * 20);
-        compare(card.presets.visible, false, "a meter's settings have a presets row");
+        compare(card.presets.showsPresets, false, "a meter's settings offer presets");
     }
 }

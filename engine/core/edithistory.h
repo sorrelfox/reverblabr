@@ -161,7 +161,9 @@ struct UndoState {
 };
 
 /// The code the facade sends for a step of this command, for example
-/// `edit.setParam`.
+/// `edit.setParam`: `edit.` and the command's name, except for an
+/// ApplyPreset that only takes values off and shows no preset, which is a
+/// block put back to its defaults and is `edit.resetParams`.
 [[nodiscard]] QString editStepCode(const EditCommand &command);
 
 } // namespace rb::core

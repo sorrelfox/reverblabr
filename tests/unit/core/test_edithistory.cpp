@@ -11,6 +11,7 @@
 #include "core/edithistory.h"
 #include "sessionfixtures.h"
 
+#include <QJsonObject>
 #include <QPointF>
 #include <gtest/gtest.h>
 
@@ -127,6 +128,33 @@ TEST(EditHistoryTest, EachEditIsAStepWithAName)
     ASSERT_TRUE(doIt(session, history, SetEnabled{u"b4"_s, false}));
     EXPECT_EQ(history.undoCode(), u"edit.setEnabled"_s);
     EXPECT_EQ(history.undoSize(), 2U);
+}
+
+TEST(EditHistoryTest, ABlockPutBackToItsDefaultsIsAStepOfItsOwn)
+{
+    // **A reset travels as the preset command**, one that sets nothing and
+    // shows no preset, and is named for what it is: "Undo Apply Preset"
+    // after it would name something nobody did.
+    Session session = rb::test::fullSession();
+    EditHistory history;
+    ASSERT_TRUE(doIt(session, history, SetParam{u"b2"_s, u"gain"_s, QJsonValue{0.5}}));
+    ApplyPreset reset;
+    reset.blockId = u"b2"_s;
+    reset.clear = {u"gain"_s};
+    ASSERT_TRUE(doIt(session, history, reset));
+    EXPECT_EQ(history.undoCode(), u"edit.resetParams"_s);
+
+    // A preset is still a preset, and so is one that only clears while
+    // saying which preset it leaves showing.
+    ApplyPreset preset;
+    preset.blockId = u"b2"_s;
+    preset.presetId = u"half"_s;
+    preset.params = QJsonObject{{u"gain"_s, 0.5}};
+    ASSERT_TRUE(doIt(session, history, preset));
+    EXPECT_EQ(history.undoCode(), u"edit.applyPreset"_s);
+    preset.params = {};
+    preset.clear = {u"gain"_s};
+    EXPECT_EQ(editStepCode(preset), u"edit.applyPreset"_s);
 }
 
 TEST(EditHistoryTest, UndoPutsTheSessionBackAndRedoDoesItAgain)

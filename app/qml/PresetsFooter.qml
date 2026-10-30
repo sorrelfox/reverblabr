@@ -14,7 +14,8 @@ import org.kde.kirigami as Kirigami
 import org.kde.ki18n
 
 // The row at the foot of a settings panel: which preset the block is set
-// from, and what can be done about it.
+// from, and what can be done about it, and putting its settings back to
+// their defaults.
 //
 // **One row, used by every panel**, rather than each panel growing its own:
 // a block that can be set from a preset can be set from one the same way,
@@ -25,6 +26,10 @@ import org.kde.ki18n
 // that when somebody turns a knob — nor should it, because undo has to put
 // it back. So the answer comes from whether the values are still a preset's,
 // which is what makes "Manual" right after any hand edit.
+//
+// **A panel with no use for presets keeps the row**, without the presets:
+// a meter has settings to put back like any other block, and the bin is
+// how its block is taken off from its own settings too.
 RowLayout {
     id: footer
 
@@ -32,6 +37,43 @@ RowLayout {
     required property string blockId
 
     readonly property string typeId: SessionModel.blockType(footer.blockId)
+    /// Whether the presets are offered: the label, the box and their
+    /// entries in the menu. The panel says, from what its body asks.
+    property bool showsPresets: true
+    readonly property bool isPlugin: footer.typeId.startsWith("plugin.")
+
+    /// The parameters a reset puts back: **what a preset would set**, so
+    /// that "the defaults" mean what a preset of the defaults would. A
+    /// block's readings are not settings, and which ear a hearing block is
+    /// for says which of a pair it is (`inPresets: false`). A password or a
+    /// stream key is in the desktop's secret store and is no parameter, so
+    /// it stays where it is.
+    ///
+    /// **Not for a plugin block.** A plugin's settings are more than the
+    /// parameters it lists: its saved state holds the rest (a file it has
+    /// loaded, a mode it is in), and only the plugin can make that new
+    /// again. Clearing the parameters alone would leave a mixture of its
+    /// defaults and its old state that the plugin never offered; its own
+    /// presets are the way back to a starting point.
+    readonly property var resettable: {
+        if (footer.isPlugin || !BlockCatalogue.ready) {
+            return [];
+        }
+        return BlockCatalogue.params(footer.typeId)
+            .filter(descriptor => descriptor.readOnly !== true && descriptor.inPresets !== false)
+            .map(descriptor => descriptor.id);
+    }
+    /// Which of those the block has away from their defaults: what a reset
+    /// would change. **Read through the revision**, so that the menu entry
+    /// is offered after a change and not after a reset.
+    readonly property var changedFromDefaults: {
+        const revision = SessionModel.revision;
+        if (footer.blockId === "" || revision < 0) {
+            return [];
+        }
+        const held = SessionModel.params(footer.blockId);
+        return footer.resettable.filter(id => id in held);
+    }
     /// Every preset for this kind of block, shipped ones first.
     readonly property var presets: {
         const all = Presets.revision >= 0 ? Presets.forType(footer.typeId) : [];
@@ -95,6 +137,10 @@ RowLayout {
     readonly property alias saveDialog: saveDialog
     readonly property alias renameDialog: renameDialog
     readonly property alias deleteDialog: deleteDialog
+    readonly property alias presetMenu: actions
+    readonly property alias settingsMenu: settingsActions
+    readonly property alias resetAction: resetAction
+    readonly property alias resetDialog: resetDialog
 
     /// What the box says when the block's values are nobody's preset.
     readonly property string manualText: KI18n.i18nc("@item:inlistbox the block's settings match no preset", "Manual")
@@ -139,6 +185,7 @@ RowLayout {
     }
 
     QQC2.Label {
+        visible: footer.showsPresets
         text: KI18n.i18nc("@label saved settings for this block", "Presets:")
         color: AppColors.muted
     }
@@ -146,6 +193,7 @@ RowLayout {
     QQC2.ComboBox {
         id: chooser
 
+        visible: footer.showsPresets
         // Wide enough for a shipped preset's name, which is two words and a
         // level: "Unchanged (100 %)" — **as wide as that at most, and
         // narrower when the card is**. A fixed width here made the footer
@@ -181,13 +229,18 @@ RowLayout {
     QQC2.ToolButton {
         id: menuButton
 
+        // A block with nothing to set and no presets has nothing to put in
+        // the menu.
+        visible: footer.showsPresets || footer.resettable.length > 0
         icon.name: "overflow-menu"
         display: QQC2.AbstractButton.IconOnly
-        Accessible.name: KI18n.i18nc("@action:button", "Preset actions")
+        Accessible.name: footer.showsPresets
+            ? KI18n.i18nc("@action:button", "Preset actions")
+            : KI18n.i18nc("@action:button the menu of a block's settings, for a block with no presets", "Settings actions")
         QQC2.ToolTip.text: Accessible.name
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-        onClicked: actions.popup()
+        onClicked: (footer.showsPresets ? actions : settingsActions).popup()
 
         // The prototype's 26-pixel square; the desktop style's own size
         // while following the system.
@@ -239,7 +292,50 @@ RowLayout {
                 // them where it is.
                 onTriggered: Qt.openUrlExternally(Presets.fileOf(footer.typeId, footer.shownId))
             }
+
+            // **Only for a block that has settings to put back**, which a
+            // plugin block is not (see resettable). A Menu lays out every
+            // entry it holds, seen or not, so the rule and the entry come
+            // and go with an Instantiator rather than a `visible`.
+            Instantiator {
+                model: footer.resettable.length > 0 ? 1 : 0
+                delegate: QQC2.MenuSeparator {}
+                onObjectAdded: (index, object) => actions.insertItem(actions.count, object)
+                onObjectRemoved: (index, object) => actions.removeItem(object)
+            }
+
+            Instantiator {
+                model: footer.resettable.length > 0 ? 1 : 0
+                delegate: QQC2.MenuItem {
+                    action: resetAction
+                }
+                onObjectAdded: (index, object) => actions.insertItem(actions.count, object)
+                onObjectRemoved: (index, object) => actions.removeItem(object)
+            }
         }
+
+        // **The menu of a block with no presets**: the reset alone.
+        QQC2.Menu {
+            id: settingsActions
+
+            QQC2.MenuItem {
+                action: resetAction
+            }
+        }
+    }
+
+    /// Putting the block's settings back to their defaults, from either
+    /// menu. It asks first.
+    QQC2.Action {
+        id: resetAction
+
+        text: KI18n.i18nc("@action:inmenu put every setting of this block back to how a new block starts",
+                          "Reset to Default Settings…")
+        icon.name: "edit-reset"
+        // Offered whenever the block has settings; there is only something
+        // to do once one of them has been changed.
+        enabled: footer.changedFromDefaults.length > 0
+        onTriggered: resetDialog.open()
     }
 
     AppDialog {
@@ -337,6 +433,32 @@ RowLayout {
                 onTriggered: {
                     Presets.remove(footer.typeId, footer.shownId);
                     deleteDialog.close();
+                }
+            }
+        ]
+    }
+
+    // **A reset asks first**, as deleting a preset does, though one undo
+    // takes it back: it changes every setting at once, and somebody who
+    // picked the entry by mistake should not have to work out what moved.
+    AppPromptDialog {
+        id: resetDialog
+
+        // **Centred on the window, not on this row.**
+        parent: QQC2.Overlay.overlay
+        title: KI18n.i18nc("@title:window", "Reset to Default Settings")
+        subtitle: KI18n.i18nc("@info %1 is the block's name",
+                              "Put every setting of “%1” back to how a new block starts? Undo takes it back.",
+                              (SessionModel.revision >= 0 ? SessionModel.block(footer.blockId).nickname ?? "" : "")
+                              || BlockPresentation.name(footer.typeId))
+        standardButtons: Kirigami.Dialog.Cancel
+        customFooterActions: [
+            Kirigami.Action {
+                text: KI18n.i18nc("@action:button put the block's settings back to their defaults", "Reset")
+                icon.name: "edit-reset"
+                onTriggered: {
+                    SessionModel.resetParams(footer.blockId, footer.resettable);
+                    resetDialog.close();
                 }
             }
         ]

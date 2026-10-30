@@ -61,6 +61,14 @@ UndoState UndoState::of(const EditHistory &history)
 
 QString editStepCode(const EditCommand &command)
 {
+    // **Putting a block back to its defaults is a step of its own**, though
+    // it travels as the preset command: one that sets nothing, shows no
+    // preset and only takes values off. The Edit menu's "Undo Apply
+    // Preset" after a reset would name something nobody did.
+    if (const auto *preset = std::get_if<ApplyPreset>(&command);
+        preset != nullptr && preset->presetId.isEmpty() && preset->params.isEmpty() && !preset->clear.isEmpty()) {
+        return u"edit.resetParams"_s;
+    }
     const std::string_view name = editCommandName(command);
     return "edit."_L1 + QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
 }

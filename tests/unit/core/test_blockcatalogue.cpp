@@ -213,6 +213,19 @@ TEST(BlockCatalogueTest, AParameterTheSessionPlanReadsSaysSoInTheCatalogue)
     EXPECT_TRUE(automatable(blocks::Dynamics::kTypeId, u"threshold"_s));
 }
 
+TEST(BlockCatalogueTest, AParameterAPresetLeavesAloneSaysSo)
+{
+    // **Which ear a hearing block is for** is kept out of presets, and so
+    // out of a reset to the defaults, which the interface works out from
+    // the catalogue. Absent means it is a preset's to set.
+    const QJsonObject catalogue = blockCatalogueJson(builtins());
+    const QJsonObject hearing = blockOf(catalogue, u"hearing.compensation16"_s);
+    ASSERT_FALSE(hearing.isEmpty());
+    EXPECT_FALSE(paramOf(hearing, u"ear"_s).value("inPresets"_L1).toBool(true));
+    EXPECT_FALSE(paramOf(hearing, u"band1SoftGainDb"_s).contains("inPresets"_L1));
+    EXPECT_FALSE(paramOf(blockOf(catalogue, typeIdOf(blocks::Volume::kTypeId)), u"gain"_s).contains("inPresets"_L1));
+}
+
 TEST(BlockCatalogueTest, NothingStructuralIsSomethingAControlCouldDrag)
 {
     // **The one case the engine could not coalesce.** A value that streams

@@ -36,6 +36,27 @@ TestCase {
         }
     }
 
+    // **A panel in a window that is shown**, for what only a window has:
+    // whether the footer is seen, and the overlay a question opens in.
+    Component {
+        id: shownPanel
+
+        Window {
+            property alias panel: inner
+
+            width: 480
+            height: 640
+            visible: true
+
+            SettingsPanel {
+                id: inner
+
+                width: 360
+                height: 600
+            }
+        }
+    }
+
     // The generic panel on its own. **What most of these tests are about**:
     // a block that declares its parameters and gets a panel for nothing.
     // The Volume block now has a panel of its own as well, and the
@@ -430,6 +451,113 @@ TestCase {
         // It has no file either, so there is nothing to show in a file
         // manager.
         compare(String(Presets.fileOf(footer.typeId, half.id)), "");
+    }
+
+    function test_resetPutsTheDefaultsBackAfterAskingAndUndoesInOneStep() {
+        // The criterion: **"Reset to Default Settings" asks first**, puts
+        // every setting back to what a new block of the kind has, and one
+        // undo takes the whole of it back.
+        TestEngine.applyEdit(testCase.sessionId,
+                             JSON.stringify({ op: "addBlock", block: { id: "reset", type: "effect.volume" }, index: -1 }));
+        const window = createTemporaryObject(shownPanel, null);
+        const panel = window.panel;
+        waitForRendering(panel);
+        panel.open("reset");
+        wait(50);
+        const footer = panel.presets;
+        verify(!footer.resetAction.enabled, "a block at its defaults offers to reset them");
+
+        SessionModel.setParams("reset", [["gain", 1.5], ["overdrive", 2], ["muted", true]]);
+        tryVerify(() => SessionModel.param("reset", "muted") === true, testCase.noticeMs, "the settings did not change");
+        tryVerify(() => footer.resetAction.enabled, testCase.noticeMs, "a changed block offers no reset");
+        compare(footer.resettable.slice().sort(), ["gain", "muted", "overdrive"]);
+
+        // **It asks**, and asking changes nothing.
+        footer.resetAction.trigger();
+        tryVerify(() => footer.resetDialog.opened, 1000, "the reset did not ask first");
+        compare(SessionModel.param("reset", "gain"), 1.5, "the reset happened before it was confirmed");
+        // Cancelling leaves everything as it was.
+        footer.resetDialog.reject();
+        tryVerify(() => !footer.resetDialog.visible, 1000, "the question did not go away");
+        compare(SessionModel.param("reset", "gain"), 1.5, "cancelling the reset reset the block");
+
+        footer.resetAction.trigger();
+        tryVerify(() => footer.resetDialog.opened, 1000, "the reset did not ask the second time");
+        footer.resetDialog.customFooterActions[0].trigger();
+        tryVerify(() => SessionModel.param("reset", "gain") === undefined, testCase.noticeMs,
+                  "the volume was not put back to its default");
+        compare(SessionModel.param("reset", "overdrive"), undefined);
+        compare(SessionModel.param("reset", "muted"), undefined);
+        tryVerify(() => !footer.resetAction.enabled, testCase.noticeMs, "a reset block still offers a reset");
+        // What the panel shows is the descriptor's default.
+        for (const descriptor of BlockCatalogue.params("effect.volume")) {
+            compare(footer.effectiveParams[descriptor.id], descriptor.default, descriptor.id + " is not at its default");
+        }
+        // The Edit menu names it for what it was.
+        tryCompare(SessionModel, "undoText", "Undo Reset Settings");
+
+        // **One step back**, all three at once.
+        SessionModel.undo();
+        tryVerify(() => SessionModel.param("reset", "gain") === 1.5, testCase.noticeMs, "one undo did not put the volume back");
+        compare(SessionModel.param("reset", "overdrive"), 2);
+        compare(SessionModel.param("reset", "muted"), true);
+    }
+
+    function test_aResetLeavesWhatAPresetLeaves() {
+        // **Which ear a hearing block is for is not a setting to reset**:
+        // it says which of a pair the block is, and a preset leaves it alone
+        // for the same reason.
+        verify(BlockCatalogue.describeParam("hearing.compensation16", "ear").inPresets === false,
+               "the catalogue does not say the ear is kept out of presets");
+        TestEngine.applyEdit(testCase.sessionId,
+                             JSON.stringify({ op: "addBlock",
+                                              block: { id: "ear", type: "hearing.compensation16",
+                                                       params: { ear: "right", band1SoftGainDb: 6 } },
+                                              index: -1 }));
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.open("ear");
+        wait(50);
+        const footer = panel.presets;
+        verify(footer.resettable.indexOf("ear") < 0, "a reset would change which ear the block is for");
+        SessionModel.resetParams("ear", footer.resettable);
+        tryVerify(() => SessionModel.param("ear", "band1SoftGainDb") === undefined, testCase.noticeMs, "the band was not reset");
+        compare(SessionModel.param("ear", "ear"), "right");
+    }
+
+    function test_aMeterKeepsTheRowAndItsResetButNotThePresets() {
+        // A meter has no use for presets, and still has settings to put
+        // back: the row stays, without the box, with the reset alone in its
+        // menu.
+        TestEngine.applyEdit(testCase.sessionId,
+                             JSON.stringify({ op: "addBlock", block: { id: "vuReset", type: "meter.vu" }, index: -1 }));
+        const window = createTemporaryObject(shownPanel, null);
+        const panel = window.panel;
+        waitForRendering(panel);
+        panel.open("vuReset");
+        wait(50);
+        const footer = panel.presets;
+        verify(footer.visible, "a meter's settings have no footer");
+        compare(footer.showsPresets, false);
+        compare(footer.chooser.visible, false, "a meter's footer offers presets");
+        verify(footer.menuButton.visible, "a meter's footer has no menu");
+        verify(footer.resettable.length > 0, "a meter has nothing to reset");
+        compare(footer.settingsMenu.count, 1);
+        compare(footer.settingsMenu.itemAt(0).action, footer.resetAction);
+    }
+
+    function test_aPluginBlockOffersNoReset() {
+        // A plugin's settings are more than its parameters (its state), and
+        // only the plugin can make that new again.
+        TestEngine.applyEdit(testCase.sessionId,
+                             JSON.stringify({ op: "addBlock", block: { id: "plug", type: "plugin.lv2" }, index: -1 }));
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.open("plug");
+        wait(50);
+        const footer = panel.presets;
+        compare(footer.resettable.length, 0, "a plugin block offers a reset");
+        for (let index = 0; index < footer.presetMenu.count; ++index) {
+            verify(footer.presetMenu.itemAt(index).action !== footer.resetAction, "the plugin's menu has the reset in it");
+        }
     }
 
     function test_aBlockWithNoPanelOfItsOwnGetsTheGenericOne() {

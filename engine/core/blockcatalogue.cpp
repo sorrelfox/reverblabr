@@ -110,6 +110,12 @@ namespace
     if (!descriptor.flags.automatable) {
         entry.insert("automatable"_L1, false);
     }
+    // **What a preset leaves alone**, which is also what putting a block
+    // back to its defaults leaves alone: which ear a hearing block is for
+    // says which of a pair it is, not how it sounds.
+    if (!descriptor.flags.inPresets) {
+        entry.insert("inPresets"_L1, false);
+    }
     return entry;
 }
 
