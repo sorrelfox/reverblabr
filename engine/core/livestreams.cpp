@@ -11,6 +11,8 @@
 #include "core/broadcasts.h"
 #include "dsp/block.h"
 
+#include <QCoreApplication>
+#include <QPointer>
 #include <QThread>
 
 using namespace Qt::StringLiterals;
@@ -106,18 +108,48 @@ UnavailableChoices liveStreamUnavailableChoices()
         stream::finishedVideoEncoderProbe().value_or(stream::probeSoftwareVideoEncoders()));
 }
 
+namespace
+{
+
+/// The probe's thread while it runs; only ever touched on the thread that
+/// started it.
+QPointer<QThread> s_probing;
+
+/// **The probe is waited for when the application goes**: a process that
+/// quits while the graphics cards are still being asked would otherwise
+/// run its exit, and destroy what FFmpeg and its drivers hold, under a
+/// thread still inside them. A moment at exit, not a crash.
+void waitForTheProbe()
+{
+    if (s_probing != nullptr) {
+        s_probing->wait();
+    }
+}
+
+} // namespace
+
 bool probeVideoEncodersFor(QObject *receiver, std::function<void()> whenDone)
 {
     if (stream::finishedVideoEncoderProbe()) {
         return false;
     }
     // A thread of Qt's, so that the answer comes back through a connection
-    // that is let go with the receiver; two engines asking at once both
-    // wait for the one probe the process makes.
-    QThread *probing = QThread::create([] { (void)stream::probeVideoEncoders(); });
-    QObject::connect(probing, &QThread::finished, receiver, std::move(whenDone));
-    QObject::connect(probing, &QThread::finished, probing, &QObject::deleteLater);
-    probing->start();
+    // that is let go with the receiver. **One thread a process**: a second
+    // engine asking while it runs is answered when it finishes too.
+    const bool starting = s_probing == nullptr;
+    if (starting) {
+        static const bool waited = [] {
+            qAddPostRoutine(waitForTheProbe);
+            return true;
+        }();
+        (void)waited;
+        s_probing = QThread::create([] { (void)stream::probeVideoEncoders(); });
+        QObject::connect(s_probing, &QThread::finished, s_probing, &QObject::deleteLater);
+    }
+    QObject::connect(s_probing, &QThread::finished, receiver, std::move(whenDone));
+    if (starting) {
+        s_probing->start();
+    }
     return true;
 }
 
