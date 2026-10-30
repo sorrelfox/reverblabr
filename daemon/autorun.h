@@ -26,8 +26,9 @@ namespace rb::daemon
 {
 
 /// Auto Run (ADR-0021): the sessions whose `autoRun` setting is
-/// "login" run whenever the background engine does, and the engine's user
-/// unit is started at login exactly while there is such a session.
+/// "login" start with the background engine (with the first engine of a
+/// login, by default: AutoRunMarker), and the engine's user unit is started
+/// at login exactly while there is such a session.
 ///
 /// - **Starts them.** start() lists the sessions and opens and starts every
 ///   one set to run at login; the daemon calls it once, as it starts, unless
@@ -122,5 +123,17 @@ private:
 
     QString m_path;
 };
+
+/// **The person's choice of when Auto Run runs** (core::autoRunStart), read
+/// from the settings file the window writes: whether every engine that
+/// starts runs the Auto Run sessions, rather than only the first of a login
+/// and one after a crash. False when nothing was chosen, or for a word it
+/// does not know: once a login is the default. Read once, as the engine
+/// starts, so a change takes effect at the next start, which is the only
+/// time it says anything about.
+[[nodiscard]] bool autoRunEveryEngineStart(const QString &settingsPath);
+
+/// `$XDG_CONFIG_HOME/reverblabrrc`, the window's settings file.
+[[nodiscard]] QString defaultSettingsPath();
 
 } // namespace rb::daemon

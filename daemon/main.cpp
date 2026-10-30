@@ -172,8 +172,9 @@ int main(int argc, char **argv)
     // it keeps enabled while any session wants it, a window, a script or a
     // KRunner query. **Once a login** (ADR-0023): an engine started again
     // after it exited when idle leaves alone what the person stopped, and
-    // only one after a crash starts them again. Safe mode starts nothing, but
-    // the unit is still kept in step with the settings.
+    // only one after a crash starts them again, unless the person chose that
+    // every engine start runs them. Safe mode starts nothing, but the unit is
+    // still kept in step with the settings.
     rb::daemon::AutostartUnit autostartUnit(bus);
     rb::daemon::AutoRun autoRun(engine.get(), &autostartUnit, sessionListing);
     const rb::daemon::AutoRunMarker autoRunMarker(rb::daemon::AutoRunMarker::defaultPath());
@@ -195,7 +196,14 @@ int main(int argc, char **argv)
         qCInfo(lcDaemon) << "safe mode: opening no sessions";
     } else {
         openSessions.restore();
-        if (autoRunMarker.due()) {
+        // **Unless the person chose every start** (Settings, Auto Run):
+        // then this engine runs them whatever the note says, as every engine
+        // did before ADR-0023. The note is still kept, so that choosing
+        // once a login again holds from the next start on.
+        if (rb::daemon::autoRunEveryEngineStart(rb::daemon::defaultSettingsPath())) {
+            qCInfo(lcDaemon) << "Auto Run is set to run at every engine start";
+            autoRun.start();
+        } else if (autoRunMarker.due()) {
             autoRun.start();
         } else {
             qCInfo(lcDaemon) << "Auto Run has run in this login already: starting no session";

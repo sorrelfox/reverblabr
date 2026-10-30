@@ -387,6 +387,8 @@ target_sources(reverblabr-ui PRIVATE
     appinfo.h
     appshell.cpp
     appshell.h
+    autorunsetting.cpp
+    autorunsetting.h
     desktopnotifier.cpp
     desktopnotifier.h
     diagnostics.cpp

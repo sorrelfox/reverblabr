@@ -30,7 +30,8 @@ struct SessionSettings {
     QString latency = QStringLiteral("default");
     /// "off", or "login": the background engine starts the session the
     /// first time it starts in a login, and again after a crash (ADR-0023),
-    /// which with Auto Run on is at login itself. A string,
+    /// which with Auto Run on is at login itself; or every time it starts,
+    /// if the person chose that (autoRunStart). A string,
     /// so that a later choice is a new value rather than a new field.
     QString autoRun = QStringLiteral("off");
 
@@ -43,6 +44,21 @@ namespace autoRun
 inline constexpr auto off = "off";
 inline constexpr auto login = "login";
 } // namespace autoRun
+
+/// **When the background engine runs the Auto Run sessions** (ADR-0023):
+/// one choice for every session, in the application's settings file
+/// (`reverblabrrc`, a KConfig file), where the window writes it and the
+/// daemon reads it as it starts. Words in the file, not numbers.
+namespace autoRunStart
+{
+inline constexpr auto group = "AutoRun";
+inline constexpr auto key = "Start";
+/// The first engine of a login, and one after a crash: a session the person
+/// stopped stays stopped until the next login. The default.
+inline constexpr auto onceALogin = "once-a-login";
+/// Every engine that starts, whatever started it.
+inline constexpr auto everyEngineStart = "every-engine-start";
+} // namespace autoRunStart
 
 /// One block on the canvas.
 ///

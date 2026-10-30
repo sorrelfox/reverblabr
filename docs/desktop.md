@@ -23,6 +23,7 @@ Some sessions you want running all the time, such as a microphone chain for call
 
 - From then on, the background engine starts that session when you log in, without opening the window, and again if the engine crashes and has to restart. Closing the window leaves it running.
 - Stopping the session stops it until the next login, even when the engine is started again later by the window, by `reverblabr-ctl` or by KRunner. Undo takes the setting back like any other change.
+- If you would rather have these sessions start again whenever the background engine starts, after you stopped them too, choose **Settings → Auto Run → Every Time the Background Engine Starts**. The engine stops by itself a minute after nothing is using it, so a session you stopped then starts again the next time anything wakes the engine, such as opening the window or typing "rb" in KRunner. The choice is the same for every session, and holds from the next time the engine starts. **Once per Login: Stopped Sessions Stay Stopped** is the default.
 - When no session is set to run at login, nothing of Reverblabr starts when you log in.
 - It needs an installed Reverblabr. In a build run from the source tree, the Info tab says Auto Run can't work there, and the session keeps the setting for later.
 

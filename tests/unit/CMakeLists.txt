@@ -403,6 +403,7 @@ rb_add_gtest(reverblabr-app-test
         app/test_applicationicon.cpp
         app/test_applicationsource.cpp
         app/test_appshell.cpp
+        app/test_autorunsetting.cpp
         app/test_sessions.cpp
         app/test_audiosystem.cpp
         app/test_blockmodel.cpp

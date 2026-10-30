@@ -48,6 +48,7 @@ TestCase {
         TestEngine.reconnectAudioSystem();
         AppShell.engineInBackground = true;
         AppShell.sessionId = "";
+        AutoRunSetting.everyEngineStart = false;
     }
 
     function openSession(): string {
@@ -140,6 +141,38 @@ TestCase {
         AppShell.engineInBackground = false;
         tryVerify(() => pane.autoRunNeedsBackground.visible, 1000,
                   "a window running its own engine said nothing about Auto Run");
+    }
+
+    // **When Auto Run runs is one choice for every session**, in the
+    // Settings menu: once a login by default, and the line under the switch
+    // says which is in force and where to change it.
+    function test_theSettingsMenuSaysWhenAutoRunRunsAndTheInfoTabSaysSo() {
+        const window = createTemporaryObject(mainWindow, testCase);
+        openSession();
+        window.sidebarIndex = window.sidebar.infoTab;
+        const pane = window.infoPane;
+        tryVerify(() => pane.autoRunSwitch.visible, 1000, "the Info tab is not showing");
+        compare(AutoRunSetting.everyEngineStart, false, "the default is not once a login");
+        compare(window.autoRunOnceALoginAction.checked, true);
+        compare(window.autoRunEveryStartAction.checked, false);
+        verify(!pane.autoRunWhen.visible, "said when Auto Run runs for a session that does not");
+
+        SessionModel.setAutoRun("login");
+        tryVerify(() => pane.autoRunWhen.visible, 1000, "nothing said when the session runs");
+        verify(pane.autoRunWhen.text.indexOf("stays stopped") >= 0, pane.autoRunWhen.text);
+
+        window.autoRunEveryStartAction.trigger();
+        compare(AutoRunSetting.everyEngineStart, true);
+        compare(window.autoRunOnceALoginAction.checked, false);
+        verify(pane.autoRunWhen.text.indexOf("every time") >= 0, pane.autoRunWhen.text);
+
+        window.autoRunOnceALoginAction.trigger();
+        compare(AutoRunSetting.everyEngineStart, false);
+        compare(window.autoRunEveryStartAction.checked, false);
+
+        // A window running its own engine says only that nothing starts it.
+        AppShell.engineInBackground = false;
+        tryVerify(() => !pane.autoRunWhen.visible, 1000, "said when the background engine runs it, with none");
     }
 
     function test_theNotesBoxKeepsWhatIsBeingTypedAndSendsItWhenTheCursorLeaves() {

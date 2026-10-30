@@ -17,6 +17,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLoggingCategory>
+#include <QSettings>
+#include <QStandardPaths>
 
 using namespace Qt::StringLiterals;
 
@@ -233,6 +235,25 @@ void AutoRunMarker::write(QByteArrayView state) const
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) || file.write(state.data(), state.size()) < 0) {
         qCWarning(lcAutoRun) << "cannot write" << m_path << file.errorString();
     }
+}
+
+bool autoRunEveryEngineStart(const QString &settingsPath)
+{
+    if (settingsPath.isEmpty() || !QFileInfo::exists(settingsPath)) {
+        return false;
+    }
+    // **QSettings, not KConfig**: the daemon has no KDE Frameworks
+    // (ADR-0017), and a group with a plain key and a plain word in it reads
+    // the same either way.
+    const QSettings settings(settingsPath, QSettings::IniFormat);
+    const QString key =
+        QLatin1StringView(core::autoRunStart::group) + u'/' + QLatin1StringView(core::autoRunStart::key);
+    return settings.value(key).toString() == QLatin1StringView(core::autoRunStart::everyEngineStart);
+}
+
+QString defaultSettingsPath()
+{
+    return QDir(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)).filePath(u"reverblabrrc"_s);
 }
 
 } // namespace rb::daemon

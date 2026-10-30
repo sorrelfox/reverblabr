@@ -8,6 +8,7 @@
 #include "../unit/dsp/earblock.h"
 #include "appearance.h"
 #include "appshell.h"
+#include "autorunsetting.h"
 #include "core/mockengine.h"
 #include "diagnostics.h"
 #include "fileactions.h"
@@ -560,6 +561,8 @@ public Q_SLOTS:
         ui::Sessions::setConfig(m_state);
         // And the appearance.
         ui::Appearance::setConfig(m_state);
+        // And when Auto Run runs, which the person's own engine would read.
+        ui::AutoRunSetting::setConfig(m_state);
         // **Each run in the appearance its style goes with**, as the
         // application starts: its own style for a Reverblabr appearance —
         // the default, dark — and the desktop's, for which Basic stands in

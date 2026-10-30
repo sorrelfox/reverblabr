@@ -445,7 +445,8 @@ system's, with the rate in use now beside it, and
 system for: <guilabel>Default</guilabel>, <guilabel>Low</guilabel> or
 <guilabel>Very low</guilabel>.</para></listitem>
 <listitem><para><guilabel>Auto Run</guilabel>, which starts the session when
-you log in; see <xref linkend="auto-run"/>.</para></listitem>
+you log in, with a line under it saying when it starts again after you stop
+it; see <xref linkend="auto-run"/>.</para></listitem>
 <listitem><para><guilabel>Audio system</guilabel>: the audio server, its
 session manager, the rate and cycle the graph runs at, and whether
 &reverblabr; can reach it, with <guilabel>Diagnostics</guilabel> underneath;
@@ -1112,6 +1113,16 @@ has to restart. Closing the window leaves it running.</para></listitem>
 <listitem><para>Stopping the session stops it until the next login, even when
 the engine is started again later by the window, by &ctl; or by &krunner;.
 Undo takes the setting back like any other change.</para></listitem>
+<listitem><para>If you would rather have these sessions start again whenever
+the background engine starts, after you stopped them too, choose
+<menuchoice><guimenu>Settings</guimenu><guisubmenu>Auto Run</guisubmenu><guimenuitem>Every
+Time the Background Engine Starts</guimenuitem></menuchoice>. The engine stops
+by itself a minute after nothing is using it, so a session you stopped then
+starts again the next time anything wakes the engine, such as opening the
+window or typing <userinput>rb</userinput> in &krunner;. The choice is the
+same for every session, and holds from the next time the engine starts.
+<guimenuitem>Once per Login: Stopped Sessions Stay Stopped</guimenuitem> is
+the default.</para></listitem>
 <listitem><para>When no session is set to run at login, nothing of
 &reverblabr; starts when you log in.</para></listitem>
 <listitem><para>It needs an installed &reverblabr;. In a build run from the
@@ -2093,6 +2104,13 @@ System</guimenuitem>; see <xref linkend="window"/>.</para></listitem>
 <varlistentry>
 <term><menuchoice><shortcut><keycombo action="simul">&Ctrl;<keycap>M</keycap></keycombo></shortcut><guimenu>Settings</guimenu><guimenuitem>Show Menubar</guimenuitem></menuchoice></term>
 <listitem><para>Shows the menus as a menu bar, or hides it again.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><guimenu>Settings</guimenu><guisubmenu>Auto Run</guisubmenu></menuchoice></term>
+<listitem><para><guimenuitem>Once per Login: Stopped Sessions Stay
+Stopped</guimenuitem> or <guimenuitem>Every Time the Background Engine
+Starts</guimenuitem>: when the sessions set to Auto Run are started; see
+<xref linkend="auto-run"/>.</para></listitem>
 </varlistentry>
 <varlistentry>
 <term><menuchoice><guimenu>Settings</guimenu><guimenuitem>Virtual Devices…</guimenuitem></menuchoice></term>

@@ -175,6 +175,10 @@ QQC2.ApplicationWindow {
     readonly property alias darkAppearanceAction: darkAppearanceAction
     readonly property alias lightAppearanceAction: lightAppearanceAction
     readonly property alias systemAppearanceAction: systemAppearanceAction
+    /// The two answers to when Auto Run runs, as the Settings menu offers
+    /// them.
+    readonly property alias autoRunOnceALoginAction: autoRunOnceALoginAction
+    readonly property alias autoRunEveryStartAction: autoRunEveryStartAction
     /// The Virtual Devices window: its action, and the window itself
     /// once it has been opened — null until then.
     readonly property alias virtualDevicesAction: virtualDevicesAction
@@ -711,6 +715,37 @@ QQC2.ApplicationWindow {
         onTriggered: Appearance.mode = Appearance.FollowSystem
     }
 
+    // **When Auto Run runs** (ADR-0023): the first time the background
+    // engine starts in a login, so that a session somebody stopped stays
+    // stopped until they log in again, or every time it starts, whatever
+    // started it. One choice for every session, as the Info tab's Auto Run
+    // switch is each session's; the engine reads it as it starts.
+    QQC2.ActionGroup {
+        id: autoRunGroup
+    }
+
+    QQC2.Action {
+        id: autoRunOnceALoginAction
+
+        text: KI18n.i18nc("@action:inmenu when Auto Run sessions start; the default",
+                          "Once per &Login: Stopped Sessions Stay Stopped")
+        checkable: true
+        checked: !AutoRunSetting.everyEngineStart
+        QQC2.ActionGroup.group: autoRunGroup
+        onTriggered: AutoRunSetting.everyEngineStart = false
+    }
+
+    QQC2.Action {
+        id: autoRunEveryStartAction
+
+        text: KI18n.i18nc("@action:inmenu when Auto Run sessions start",
+                          "&Every Time the Background Engine Starts")
+        checkable: true
+        checked: AutoRunSetting.everyEngineStart
+        QQC2.ActionGroup.group: autoRunGroup
+        onTriggered: AutoRunSetting.everyEngineStart = true
+    }
+
     // **The virtual devices' window**, from the Settings menu and the title
     // bar's button alike. One window: asked for again, it comes to the front
     // rather than opening a second list of the same devices.
@@ -902,6 +937,18 @@ QQC2.ApplicationWindow {
 
             QQC2.MenuSeparator {}
 
+            QQC2.Menu {
+                title: KI18n.i18nc("@title:menu when the sessions set to Auto Run start", "Auto &Run")
+
+                QQC2.MenuItem {
+                    action: autoRunOnceALoginAction
+                }
+
+                QQC2.MenuItem {
+                    action: autoRunEveryStartAction
+                }
+            }
+
             QQC2.MenuItem {
                 action: virtualDevicesAction
             }
@@ -1065,6 +1112,18 @@ QQC2.ApplicationWindow {
             }
 
             QQC2.MenuSeparator {}
+
+            QQC2.Menu {
+                title: KI18n.i18nc("@title:menu when the sessions set to Auto Run start", "Auto &Run")
+
+                QQC2.MenuItem {
+                    action: autoRunOnceALoginAction
+                }
+
+                QQC2.MenuItem {
+                    action: autoRunEveryStartAction
+                }
+            }
 
             QQC2.MenuItem {
                 action: virtualDevicesAction

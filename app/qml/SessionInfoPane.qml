@@ -58,6 +58,7 @@ QQC2.ScrollView {
     readonly property alias notesField: notesField
     readonly property alias autoRunSwitch: autoRunSwitch
     readonly property alias autoRunNeedsBackground: autoRunNeedsBackground
+    readonly property alias autoRunWhen: autoRunWhen
     /// The diagnostics section, for a test that opens it.
     readonly property alias diagnosticsSection: diagnosticsSection
     readonly property alias listSwitch: listSwitch
@@ -210,9 +211,11 @@ QQC2.ScrollView {
 
             // **Auto Run**: the background engine starts the session the
             // first time it starts in a login (ADR-0023), which with this
-            // on is at login itself. The
-            // setting is the session's and is kept either way; a window
-            // running an engine of its own says that nothing will start it.
+            // on is at login itself, or every time it starts, as the
+            // Settings menu says for every session; the line under the
+            // switch says which, and where it is changed. The setting is
+            // the session's and is kept either way; a window running an
+            // engine of its own says that nothing will start it.
             ColumnLayout {
                 Kirigami.FormData.label: KI18n.i18nc("@label start the session without opening the window",
                                                      "Auto Run:")
@@ -232,6 +235,22 @@ QQC2.ScrollView {
                         property: "checked"
                         value: SessionModel.autoRun === "login"
                     }
+                }
+
+                QQC2.Label {
+                    id: autoRunWhen
+
+                    objectName: "autoRunWhen"
+                    // Only with the switch on: it is what the switch does.
+                    visible: AppShell.engineInBackground && autoRunSwitch.checked
+                    text: AutoRunSetting.everyEngineStart
+                        ? KI18n.i18nc("@info under the Auto Run switch; Settings and Auto Run are the menu's words",
+                                      "Runs every time the background engine starts, even after you stopped it. Settings › Auto Run changes this for every session.")
+                        : KI18n.i18nc("@info under the Auto Run switch; Settings and Auto Run are the menu's words",
+                                      "Runs the first time the background engine starts after you log in. Once you stop it, it stays stopped until you log in again. Settings › Auto Run changes this for every session.")
+                    color: AppColors.muted
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
                 }
 
                 QQC2.Label {

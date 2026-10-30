@@ -188,6 +188,35 @@ protected:
         return bus.call(call, QDBus::Block, 20000);
     }
 
+    /// Saves a session set to Auto Run, "Call microphone", for a query to
+    /// start the engine on.
+    void saveAutoRunSession()
+    {
+        core::Session saved;
+        saved.name = u"Call microphone"_s;
+        saved.settings.autoRun = QString::fromLatin1(core::autoRun::login);
+        const core::SessionStore store(home.filePath(u"data/reverblabr/sessions"_s));
+        ASSERT_TRUE(store.save(saved).has_value());
+    }
+
+    /// What the runner says "Call microphone" is doing, which starts the
+    /// engine if it is not running. With no PipeWire here a session cannot
+    /// run, so one Auto Run tried to start says "Could not run", and one
+    /// only opened again says "Stopped".
+    [[nodiscard]] QString callSaid()
+    {
+        return match(u"rb call"_s).value(0).properties.value(u"subtext"_s).toString();
+    }
+
+    /// Stops the running daemon with \a signal: SIGTERM for a clean exit,
+    /// SIGKILL for a crash.
+    void stopDaemon(int signal)
+    {
+        const qint64 pid = daemonPid();
+        ASSERT_TRUE(signalProcess(pid, signal));
+        ASSERT_TRUE(waitFor([this] { return !daemonRunning(); }, 5000));
+    }
+
     [[nodiscard]] daemon::RunnerMatches match(const QString &query)
     {
         const QDBusMessage reply = callRunner(u"Match"_s, {query});
@@ -417,32 +446,50 @@ TEST_F(KRunner, ARenameOrANewSessionShowsAtTheNextKeystroke)
     EXPECT_EQ(match(u"rb"_s).size(), 2) << "the new session did not show";
 }
 
+// **The default, once a login** (ADR-0023): with nothing chosen in the
+// settings, a session the person stopped stays stopped until the next login.
 TEST_F(KRunner, AutoRunRunsOnceALoginAndAgainOnlyAfterACrash)
 {
-    core::Session saved;
-    saved.name = u"Call microphone"_s;
-    saved.settings.autoRun = u"login"_s;
-    const core::SessionStore store(home.filePath(u"data/reverblabr/sessions"_s));
-    ASSERT_TRUE(store.save(saved).has_value());
-    // With no PipeWire here a session cannot run, so one Auto Run tried to
-    // start says "Could not run", and one only opened again says "Stopped".
-    const auto stateSaid = [this] { return match(u"rb call"_s).value(0).properties.value(u"subtext"_s).toString(); };
-    const auto stopDaemon = [this](int signal) {
-        const qint64 pid = daemonPid();
-        ASSERT_TRUE(signalProcess(pid, signal));
-        ASSERT_TRUE(waitFor([this] { return !daemonRunning(); }, 5000));
-    };
+    ASSERT_NO_FATAL_FAILURE(saveAutoRunSession());
 
     // **The first engine of the login** starts it, whatever started the
     // engine: here, a KRunner query.
-    EXPECT_EQ(stateSaid(), u"Could not run"_s) << "the first engine of the login did not run it";
+    EXPECT_EQ(callSaid(), u"Could not run"_s) << "the first engine of the login did not run it";
     // **Started again after a clean exit**, as after an idle minute: the
     // session is opened again, and left stopped.
     ASSERT_NO_FATAL_FAILURE(stopDaemon(SIGTERM));
-    EXPECT_EQ(stateSaid(), u"Stopped"_s) << "a KRunner query ran an Auto Run session again";
+    EXPECT_EQ(callSaid(), u"Stopped"_s) << "a KRunner query ran an Auto Run session again";
     // **After a crash** it runs again, as Restart=on-failure promises.
     ASSERT_NO_FATAL_FAILURE(stopDaemon(SIGKILL));
-    EXPECT_EQ(stateSaid(), u"Could not run"_s) << "a crash restart did not run it";
+    EXPECT_EQ(callSaid(), u"Could not run"_s) << "a crash restart did not run it";
+}
+
+// **Every engine start**, when the person chose it in the Settings menu:
+// a clean exit and a query that starts the engine again run the session
+// again, as before ADR-0023, and a crash still does.
+TEST_F(KRunner, AutoRunRunsAtEveryEngineStartWhenThatIsChosen)
+{
+    ASSERT_NO_FATAL_FAILURE(saveAutoRunSession());
+    // As the window writes it (KConfig), in the test's own config home.
+    QFile settings(home.filePath(u"config/reverblabrrc"_s));
+    ASSERT_TRUE(settings.open(QIODevice::WriteOnly));
+    ASSERT_GT(settings.write("[AutoRun]\nStart=every-engine-start\n"), 0);
+    settings.close();
+
+    EXPECT_EQ(callSaid(), u"Could not run"_s) << "the first engine of the login did not run it";
+    ASSERT_NO_FATAL_FAILURE(stopDaemon(SIGTERM));
+    EXPECT_EQ(callSaid(), u"Could not run"_s) << "an engine started after a clean exit did not run it";
+    ASSERT_NO_FATAL_FAILURE(stopDaemon(SIGKILL));
+    EXPECT_EQ(callSaid(), u"Could not run"_s) << "a crash restart did not run it";
+
+    // **Read as the engine starts**: back to once a login, the next start
+    // after a clean exit leaves it stopped, from the note the engines kept
+    // all along.
+    ASSERT_TRUE(settings.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    ASSERT_GT(settings.write("[AutoRun]\nStart=once-a-login\n"), 0);
+    settings.close();
+    ASSERT_NO_FATAL_FAILURE(stopDaemon(SIGTERM));
+    EXPECT_EQ(callSaid(), u"Stopped"_s) << "the choice of once a login did not hold from the next start";
 }
 
 int main(int argc, char **argv)

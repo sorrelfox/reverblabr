@@ -29,6 +29,7 @@
 #include <QDBusConnectionInterface>
 #include <QDBusMessage>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSignalSpy>
@@ -379,6 +380,33 @@ TEST_F(AutoRunEngineTest, ASessionDeletedWhileClosedIsNoticedFromTheNextList)
     engine->listSessions();
     EXPECT_TRUE(waitFor([&] { return unit.state() == State::Disabled; })) << "left enabled for a deleted session";
     EXPECT_EQ(manager.disables, 1);
+}
+
+// **When Auto Run runs is read from the window's settings file**, as
+// KConfig writes it (test_autorunsetting.cpp holds the window to that text),
+// among the window's other groups. Nothing written, no file, or a word this
+// version does not know is the default, once a login.
+TEST(AutoRunSettingFile, EveryEngineStartIsReadFromTheWindowsSettings)
+{
+    QTemporaryDir directory;
+    ASSERT_TRUE(directory.isValid());
+    const QString path = directory.filePath(u"reverblabrrc"_s);
+    EXPECT_FALSE(daemon::autoRunEveryEngineStart(path)) << "no file";
+    EXPECT_FALSE(daemon::autoRunEveryEngineStart(QString()));
+
+    const auto write = [&path](const QByteArray &text) {
+        QFile file(path);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        ASSERT_EQ(file.write(text), text.size());
+    };
+    ASSERT_NO_FATAL_FAILURE(write("[Appearance]\nMode=system\n\n[AutoRun]\nStart=every-engine-start\n"));
+    EXPECT_TRUE(daemon::autoRunEveryEngineStart(path));
+    ASSERT_NO_FATAL_FAILURE(write("[AutoRun]\nStart=once-a-login\n"));
+    EXPECT_FALSE(daemon::autoRunEveryEngineStart(path));
+    ASSERT_NO_FATAL_FAILURE(write("[AutoRun]\nStart=something-later\n"));
+    EXPECT_FALSE(daemon::autoRunEveryEngineStart(path));
+    ASSERT_NO_FATAL_FAILURE(write("[Appearance]\nMode=system\n"));
+    EXPECT_FALSE(daemon::autoRunEveryEngineStart(path));
 }
 
 int main(int argc, char **argv)
