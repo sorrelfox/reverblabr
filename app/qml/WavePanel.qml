@@ -84,6 +84,11 @@ ColumnLayout {
             Layout.fillWidth: true
             model: words.shapes
             displayText: words.shapeName(panel.shape)
+            // Named as the sliders below it are: the form only links its
+            // label to the list, and the list's own name is what the help
+            // page's check, and a screen reader that does not follow the
+            // link, read.
+            Accessible.name: KI18n.i18nc("@label:listbox", "Waveform")
 
             delegate: QQC2.ItemDelegate {
                 required property string modelData

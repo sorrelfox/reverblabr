@@ -324,6 +324,11 @@ ColumnLayout {
             Layout.leftMargin: Kirigami.Units.gridUnit
             visible: panel.outputMode === panel.modeChosenOutputs
             spacing: Kirigami.Units.smallSpacing
+            // **One group with a name**: each box is named after its
+            // device, and nothing else would tell a screen reader what
+            // ticking one does.
+            Accessible.role: Accessible.Grouping
+            Accessible.name: KI18n.i18nc("@label the output devices whose sound the block takes", "Devices to capture from")
 
             Repeater {
                 id: outputRows
