@@ -89,7 +89,7 @@ public:
         SplitChannels,
         OpenUrlOnStart, ///< Open Url when the session starts.
         Url,
-        /// Kept for the Recorder (M2): whether a gap in what the
+        /// For a Recorder downstream: whether a gap in what the
         /// application plays is written out as silence. The live engine
         /// goes on processing either way.
         FillGapsWithSilence,

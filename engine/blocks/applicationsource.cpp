@@ -116,8 +116,9 @@ std::vector<ParamDescriptor> ApplicationSource::makeDescriptors()
     descriptors.push_back(textParam("url"));
 
     // **On by default**, because a recording that leaves a pause out is a
-    // recording that no longer lines up with anything beside it. Nothing
-    // reads this yet; the Recorder does (M2).
+    // recording that no longer lines up with anything beside it. The block
+    // itself never reads it: a Recorder downstream does, through
+    // core::recordingGapLanes().
     descriptors.push_back(boolParam("fillGapsWithSilence", true));
     return descriptors;
 }
