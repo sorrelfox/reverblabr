@@ -138,18 +138,23 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/LevelBar.qml
     qml/LevelMeter.qml
     qml/LimiterFace.qml
+    qml/LimiterHelp.qml
     qml/LimiterPanel.qml
     qml/LimiterWords.qml
+    qml/LowPassHelp.qml
     qml/MixerFace.qml
     qml/MixerPanel.qml
     qml/MixerStrip.qml
     qml/Main.qml
     qml/MonoEnhancerFace.qml
+    qml/MonoEnhancerHelp.qml
     qml/MonoEnhancerPanel.qml
     qml/MultibandCompressorFace.qml
+    qml/MultibandCompressorHelp.qml
     qml/MultibandCompressorPanel.qml
     qml/MultibandWords.qml
     qml/OutputDevicePanel.qml
+    qml/PanHelp.qml
     qml/ParamFormat.qml
     qml/ParamRow.qml
     qml/ParametricEqBands.qml
@@ -159,6 +164,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/PeakRmsHelp.qml
     qml/PeakRmsPanel.qml
     qml/PitchShiftFace.qml
+    qml/PitchShiftHelp.qml
     qml/PitchShiftPanel.qml
     qml/PitchShiftWords.qml
     qml/PlaceholderMessage.qml
@@ -174,6 +180,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/RecorderWords.qml
     qml/RecordingCard.qml
     qml/ReverbFace.qml
+    qml/ReverbHelp.qml
     qml/ReverbPanel.qml
     qml/ReverbWords.qml
     qml/SegmentedChoice.qml
@@ -187,6 +194,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SettingsPanel.qml
     qml/SidebarPane.qml
     qml/SimpleCompressorFace.qml
+    qml/SimpleCompressorHelp.qml
     qml/SimpleCompressorPanel.qml
     qml/SpeechDenoiseFace.qml
     qml/SpeechDenoisePanel.qml
