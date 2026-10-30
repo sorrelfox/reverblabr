@@ -26,6 +26,13 @@ import org.kde.ki18n
 // moves through the library the way it is drawn. A folded category simply
 // leaves its blocks out of the list.
 //
+// **The plugins a format at a time.** A machine with a few hundred plugins
+// installed made Plugins one list longer than every other category put
+// together; under a heading of its own for each format the scan found,
+// each folding like a category, a person goes to the format they want and
+// folds away the ones they never use. The search still looks through all
+// of them, and a format with nothing that matches is left out.
+//
 // **An empty category is not shown at all.** A heading with nothing under
 // it is a heading that says this build is missing something, which is a
 // thing to say in release notes and not in a sidebar.
@@ -113,13 +120,54 @@ Item {
             for (const typeId of found) {
                 built.push({ kind: "block", id: typeId, count: 0 });
             }
-            for (const plugin of plugins) {
-                built.push({ kind: "plugin", id: plugin.key, count: 0, name: plugin.name, vendor: plugin.vendor,
-                             format: plugin.format, type: plugin.type, category: plugin.category,
-                             audioInputs: plugin.audioInputs, audioOutputs: plugin.audioOutputs });
+            for (const group of library.byFormat(plugins)) {
+                const section = library.sectionOf(group.format);
+                built.push({ kind: "section", id: section, format: group.format, count: group.plugins.length });
+                if (library.isCollapsed(section)) {
+                    continue;
+                }
+                for (const plugin of group.plugins) {
+                    built.push({ kind: "plugin", id: plugin.key, count: 0, name: plugin.name, vendor: plugin.vendor,
+                                 format: plugin.format, type: plugin.type, category: plugin.category,
+                                 audioInputs: plugin.audioInputs, audioOutputs: plugin.audioOutputs });
+                }
             }
         }
         return built;
+    }
+
+    /// What a format's heading under Plugins is folded away as. **Beside
+    /// the categories' ids**, so the folding is remembered the same way;
+    /// the slash keeps it from ever being taken for one.
+    function sectionOf(format: string): string {
+        return "plugins/" + format;
+    }
+
+    /// \a plugins a format at a time: `[{ format, plugins }]`, the formats
+    /// and the plugins under each in the reader's alphabet. **By the name
+    /// a person reads**, as the blocks are: the scan's order is the order
+    /// it found the files in.
+    function byFormat(plugins: var): var {
+        const groups = [];
+        for (const plugin of plugins) {
+            let group = groups.find(entry => entry.format === plugin.format);
+            if (group === undefined) {
+                group = { format: plugin.format, plugins: [] };
+                groups.push(group);
+            }
+            group.plugins.push(plugin);
+        }
+        for (const group of groups) {
+            group.plugins.sort((first, second) => first.name.localeCompare(second.name));
+        }
+        groups.sort((first, second) =>
+            PluginWords.formatName(first.format).localeCompare(PluginWords.formatName(second.format)));
+        return groups;
+    }
+
+    /// Whether \a entry is a heading: a category, or a format under Plugins.
+    function isHeading(entry: var): bool {
+        return entry.kind === "category" || entry.kind === "section";
     }
 
     /// Whether \a typeId is one of the blocks \a needle is looking for.
@@ -164,8 +212,16 @@ Item {
         if (entry === undefined) {
             return;
         }
-        if (entry.kind === "category") {
+        if (library.isHeading(entry)) {
             library.toggleCategory(entry.id);
+            // **The keyboard stays on the heading it folded.** The list is
+            // built again, which put the current row back at the top: a
+            // format's heading far down Plugins, folded with Enter, sent
+            // somebody back to Sources to find their way down again.
+            if (list.activeFocus) {
+                list.currentIndex = library.rows.findIndex(row => row.kind === entry.kind && row.id === entry.id);
+                list.positionViewAtIndex(list.currentIndex, ListView.Contain);
+            }
             return;
         }
         library.blockChosen(entry.id);
@@ -209,9 +265,10 @@ Item {
             // letters and pressing Down is the whole gesture.
             KeyNavigation.down: list
             // **The first block it found**, not the first row: that is the
-            // heading the block is under, and Enter folded it.
-            Keys.onReturnPressed: library.activate(library.rows.find(entry => entry.kind !== "category"))
-            Keys.onEnterPressed: library.activate(library.rows.find(entry => entry.kind !== "category"))
+            // heading the block is under, and Enter folded it. Nor a
+            // format's heading under Plugins, for the same reason.
+            Keys.onReturnPressed: library.activate(library.rows.find(entry => !library.isHeading(entry)))
+            Keys.onEnterPressed: library.activate(library.rows.find(entry => !library.isHeading(entry)))
         }
 
         // **The plugins' own row**: which format to show, a rescan,
@@ -343,7 +400,7 @@ Item {
                     width: ListView.view.width
                     entry: modelData
                     mimeType: library.mimeType
-                    collapsed: modelData.kind === "category" && library.isCollapsed(modelData.id)
+                    collapsed: library.isHeading(modelData) && library.isCollapsed(modelData.id)
                     onChosen: library.activate(modelData)
                 }
 

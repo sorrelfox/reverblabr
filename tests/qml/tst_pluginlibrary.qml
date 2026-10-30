@@ -8,8 +8,9 @@
 // The installed plugins in the block library, against the mock
 // engine: every plugin an entry of its own under Plugins with its name, who
 // made it and its format; only formats this build can host; a filter by
-// format; choosing one making a plugin block set to it; and a rescan, with
-// a retry for what could not be read.
+// format; a heading for each format, folding and in the reader's alphabet;
+// choosing one making a plugin block set to it; and a rescan, with a retry
+// for what could not be read.
 
 import QtQuick
 import QtTest
@@ -62,8 +63,37 @@ TestCase {
         tryVerify(() => InstalledPlugins.ready, 2000, "the engine answered with its plugins");
     }
 
+    function init() {
+        WindowState.setCollapsedCategories([]);
+    }
+
     function cleanup() {
         TestEngine.clearFakePlugins();
+        WindowState.setCollapsedCategories([]);
+    }
+
+    /// Two LADSPA plugins, added out of alphabetical order, beside the
+    /// mock's two built-in ones: two formats, each with more than one.
+    function addTwoLadspaPlugins() {
+        TestEngine.addFakePlugin("ladspa", "zeta.so:zeta", "Zeta Delay", "Somebody");
+        TestEngine.addFakePlugin("ladspa", "amp.so:amp_stereo", "amplifier", "Somebody Else");
+    }
+
+    /// The rows from the Plugins heading on, as `kind:id` for headings and
+    /// the name for a plugin: what a person reads down the list.
+    function pluginsPart(library: var): var {
+        const start = library.rows.findIndex(row => row.kind === "category" && row.id === "plugins");
+        return library.rows.slice(start + 1)
+            .filter(row => row.kind === "section" || row.kind === "plugin")
+            .map(row => row.kind === "section" ? "section:" + row.format + ":" + row.count : row.name);
+    }
+
+    /// The delegate at \a index, scrolled into view.
+    function rowAt(library: var, index: int): var {
+        library.list.positionViewAtIndex(index, ListView.Beginning);
+        library.list.forceLayout();
+        tryVerify(() => library.list.itemAtIndex(index) !== null, 2000, "row " + index + " was built");
+        return library.list.itemAtIndex(index);
     }
 
     function pluginRows(library: var): var {
@@ -109,7 +139,8 @@ TestCase {
         verify(pluginBlocks.indexOf("plugin.lv2") >= 0, "no LV2 block");
         compare(heading.count, pluginBlocks.length + 2);
 
-        // The row says so: the name, who made it, and a badge.
+        // The row says so: the name, who made it, and the format in its
+        // tooltip.
         const index = window.library.rows.findIndex(row => row.kind === "plugin");
         window.library.list.positionViewAtIndex(index, 0);
         wait(50);
@@ -160,6 +191,130 @@ TestCase {
         window.library.pluginFormat = "builtin";
         compare(pluginRows(window.library).length, 2);
         window.library.pluginFormat = "";
+    }
+
+    function test_thePluginsAreUnderAHeadingForEachFormatInTheReadersAlphabet() {
+        // **A heading for each format the scan found**, in the alphabet of
+        // the words a person reads, and the plugins under each by name,
+        // whatever order the scan found them in and whatever their case.
+        testCase.addTwoLadspaPlugins();
+        const window = createTemporaryObject(libraryWindow, testCase);
+        const library = window.library;
+        compare(testCase.pluginsPart(library),
+                ["section:builtin:2", "Test gain", "Test gain, slow to load",
+                 "section:ladspa:2", "amplifier", "Zeta Delay"]);
+        // Each heading straight after the blocks that pick a plugin, which
+        // stay where they were, under Plugins itself.
+        const first = library.rows.findIndex(row => row.kind === "section");
+        compare(library.rows[first - 1].kind, "block");
+        compare(library.rows[first - 1].id.startsWith("plugin."), true);
+        // The category still counts every plugin, the headings their own.
+        const heading = library.rows.find(row => row.kind === "category" && row.id === "plugins");
+        const pluginBlocks = BlockCatalogue.types.filter(type => type.startsWith("plugin."));
+        compare(heading.count, pluginBlocks.length + 4);
+
+        // **What a person reads and what a screen reader says**: the
+        // format's own name and how many, as a plural; a heading, folded
+        // or open.
+        const ladspaIndex = library.rows.findIndex(row => row.kind === "section" && row.format === "ladspa");
+        const row = testCase.rowAt(library, ladspaIndex);
+        compare(row.label, "LADSPA");
+        compare(row.isHeading, true);
+        compare(row.Accessible.role, Accessible.Grouping);
+        compare(row.Accessible.name, "LADSPA, 2 plugins");
+        compare(row.Accessible.description, "Open");
+        // Set in from its category's heading, so the two levels read as two.
+        const category = testCase.rowAt(library, library.rows.findIndex(entry => entry.kind === "category"
+                                                                                 && entry.id === "plugins"));
+        const sectionRow = testCase.rowAt(library, ladspaIndex);
+        verify(sectionRow.contentItem.children[0].mapToItem(library, 0, 0).x
+               > category.contentItem.children[0].mapToItem(library, 0, 0).x,
+               "a format's heading is not set in from its category's");
+
+        library.searchField.text = "zeta";
+        const only = library.rows.find(entry => entry.kind === "section");
+        compare(only.count, 1);
+        const one = testCase.rowAt(library, library.rows.indexOf(only));
+        compare(one.Accessible.name, "LADSPA, 1 plugin");
+        library.searchField.text = "";
+    }
+
+    function test_aFormatsHeadingFoldsItsPluginsAndStaysFolded() {
+        testCase.addTwoLadspaPlugins();
+        const window = createTemporaryObject(libraryWindow, testCase);
+        const library = window.library;
+        const ladspa = library.sectionOf("ladspa");
+
+        // Enter on the heading, as on a category's: the list's one key.
+        library.activate(library.rows.find(row => row.kind === "section" && row.format === "ladspa"));
+        verify(library.isCollapsed(ladspa), "Enter on a format's heading did not fold it");
+        compare(testCase.pluginsPart(library),
+                ["section:builtin:2", "Test gain", "Test gain, slow to load", "section:ladspa:2"]);
+        const index = library.rows.findIndex(row => row.kind === "section" && row.format === "ladspa");
+        const row = testCase.rowAt(library, index);
+        compare(row.collapsed, true);
+        compare(row.Accessible.description, "Folded away");
+
+        // Remembered as the categories are, and the category's own folding
+        // is a thing apart.
+        const again = createTemporaryObject(libraryWindow, testCase).library;
+        verify(again.isCollapsed(ladspa), "the format's heading was open again next time");
+        verify(!again.isCollapsed("plugins"), "folding a format folded the category");
+        again.toggleCategory("plugins");
+        compare(testCase.pluginsPart(again), []);
+        again.toggleCategory("plugins");
+        again.activate(again.rows.find(entry => entry.kind === "section" && entry.format === "ladspa"));
+        compare(testCase.pluginsPart(again).length, 6);
+    }
+
+    function test_theSearchLooksUnderEveryFormat() {
+        // **Across every heading**: what matches under each, and a format
+        // with nothing that matches is not shown.
+        testCase.addTwoLadspaPlugins();
+        // A window of its own, drawn, for the keys to reach.
+        const window = createTemporaryObject(libraryWindow, null);
+        const library = window.library;
+        waitForRendering(library);
+        library.searchField.text = "e";
+        compare(testCase.pluginsPart(library),
+                ["section:builtin:2", "Test gain", "Test gain, slow to load",
+                 "section:ladspa:2", "amplifier", "Zeta Delay"]);
+        library.searchField.text = "somebody else";
+        compare(testCase.pluginsPart(library), ["section:ladspa:1", "amplifier"]);
+        library.searchField.text = "slow";
+        compare(testCase.pluginsPart(library), ["section:builtin:1", "Test gain, slow to load"]);
+
+        // Enter in the search adds the first plugin it found, not the
+        // heading it is under.
+        let chosen = "";
+        library.blockChosen.connect(typeId => chosen = typeId);
+        library.searchField.forceActiveFocus();
+        library.searchField.text = "zeta";
+        keyClick(Qt.Key_Return);
+        compare(chosen, InstalledPlugins.entryKey("ladspa", "zeta.so:zeta"));
+        verify(!library.isCollapsed(library.sectionOf("ladspa")), "Enter in the search folded the heading");
+        library.searchField.text = "";
+    }
+
+    function test_theKeyboardGoesThroughAFormatsHeadingIntoItsPlugins() {
+        testCase.addTwoLadspaPlugins();
+        // A window of its own, drawn, for the keys to reach.
+        const window = createTemporaryObject(libraryWindow, null);
+        const library = window.library;
+        waitForRendering(library);
+        const index = library.rows.findIndex(row => row.kind === "section" && row.format === "ladspa");
+        library.list.forceActiveFocus();
+        library.list.currentIndex = index - 1;
+        keyClick(Qt.Key_Down);
+        compare(library.list.currentIndex, index, "Down did not reach the format's heading");
+        keyClick(Qt.Key_Down);
+        compare(library.rows[library.list.currentIndex].name, "amplifier");
+        keyClick(Qt.Key_Up);
+        keyClick(Qt.Key_Return);
+        verify(library.isCollapsed(library.sectionOf("ladspa")), "Enter on the heading did not fold it");
+        compare(library.rows[library.list.currentIndex].kind, "section", "the current row moved off the heading");
+        keyClick(Qt.Key_Return);
+        verify(!library.isCollapsed(library.sectionOf("ladspa")), "and Enter again did not open it");
     }
 
     function test_choosingAPluginMakesABlockSetToIt() {

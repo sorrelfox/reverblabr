@@ -27,9 +27,10 @@ import org.kde.ki18n
 QQC2.ItemDelegate {
     id: row
 
-    /// What this line is: `{ kind: "category" | "block" | "plugin", id,
-    /// count }`, and for a plugin its name, vendor, format and the
-    /// block type it becomes, with the id its library key.
+    /// What this line is: `{ kind: "category" | "section" | "block" |
+    /// "plugin", id, count }`; for a format's heading under Plugins its
+    /// format, and for a plugin its name, vendor, format and the block type
+    /// it becomes, with the id its library key.
     required property var entry
     /// What a block type travels under when it is dragged to the canvas.
     required property string mimeType
@@ -37,17 +38,23 @@ QQC2.ItemDelegate {
     required property bool collapsed
 
     readonly property bool isCategory: row.entry.kind === "category"
+    /// A format's heading under Plugins: folded and read out as a category
+    /// is, and set in from it, so the two levels read as two.
+    readonly property bool isSection: row.entry.kind === "section"
+    /// Either kind of heading: a line that folds what is under it.
+    readonly property bool isHeading: row.isCategory || row.isSection
     readonly property bool isPlugin: row.entry.kind === "plugin"
     /// What travels to the canvas: a block's type id, or a plugin's key.
-    readonly property string typeId: row.isCategory ? "" : row.entry.id
+    readonly property string typeId: row.isHeading ? "" : row.entry.id
     /// The block type this line makes, which is what its icon and words are.
     readonly property string blockType: row.isPlugin ? row.entry.type : row.typeId
 
     readonly property string label: row.isCategory
         ? BlockPresentation.categoryName(row.entry.id)
+        : row.isSection ? PluginWords.formatName(row.entry.format)
         : row.isPlugin ? row.entry.name : BlockPresentation.name(row.typeId)
     /// The second line: what a block does, or who made a plugin.
-    readonly property string detail: row.isCategory
+    readonly property string detail: row.isHeading
         ? ""
         : row.isPlugin ? row.entry.vendor : BlockPresentation.description(row.typeId)
 
@@ -61,28 +68,33 @@ QQC2.ItemDelegate {
     // four over its first block, and a block is its 28-pixel icon and
     // five either side.
     implicitHeight: AppMetrics.followsSystem
-        ? (row.isCategory ? Math.round(Kirigami.Units.gridUnit * 1.8) : Math.round(Kirigami.Units.gridUnit * 2.6))
+        ? (row.isHeading ? Math.round(Kirigami.Units.gridUnit * 1.8) : Math.round(Kirigami.Units.gridUnit * 2.6))
         : implicitContentHeight + topPadding + bottomPadding
 
+    // A format's heading sits closer to what is above it, being a part
+    // of the category over it rather than one of its own.
     Binding on topPadding {
-        when: !AppMetrics.followsSystem && row.isCategory
-        value: AppMetrics.rowSpacing
+        when: !AppMetrics.followsSystem && row.isHeading
+        value: row.isSection ? AppMetrics.smallSpacing : AppMetrics.rowSpacing
     }
     Binding on bottomPadding {
-        when: !AppMetrics.followsSystem && row.isCategory
+        when: !AppMetrics.followsSystem && row.isHeading
         value: AppMetrics.smallSpacing
     }
 
     highlighted: row.ListView.isCurrentItem
 
-    Accessible.role: row.isCategory ? Accessible.Grouping : Accessible.ListItem
+    Accessible.role: row.isHeading ? Accessible.Grouping : Accessible.ListItem
     Accessible.name: row.isCategory
         // **A count is a plural**: "Outputs, 1 blocks" is what the
         // one-form sentence read out for a heading with one block in it.
         ? KI18n.i18ncp("@info:whatsthis a library heading and how many blocks are under it, 'Outputs, 1 block'",
                        "%2, %1 block", "%2, %1 blocks", row.entry.count, row.label)
-        : row.label
-    Accessible.description: row.isCategory
+        : row.isSection
+            ? KI18n.i18ncp("@info:whatsthis a plugin format's library heading and how many plugins are under it, 'LV2, 1 plugin'",
+                           "%2, %1 plugin", "%2, %1 plugins", row.entry.count, row.label)
+            : row.label
+    Accessible.description: row.isHeading
         ? (row.collapsed
             ? KI18n.i18nc("@info:whatsthis", "Folded away")
             : KI18n.i18nc("@info:whatsthis", "Open"))
@@ -126,7 +138,7 @@ QQC2.ItemDelegate {
     /// The longer form, where there is room for it. Named here rather than
     /// only on the attached tooltip so that a test can read what a person
     /// would read.
-    readonly property string toolTipText: row.isCategory
+    readonly property string toolTipText: row.isHeading
         // A heading has no longer form; its own words, when they don't fit.
         ? (titleLabel.truncated ? row.label : "")
         : row.isPlugin ? PluginWords.pluginTooltip(row.entry) : BlockPresentation.tooltip(row.typeId)
@@ -137,15 +149,18 @@ QQC2.ItemDelegate {
 
     contentItem: RowLayout {
         spacing: AppMetrics.followsSystem ? Kirigami.Units.smallSpacing
-                                          : row.isCategory ? AppMetrics.mediumSpacing : AppMetrics.rowSpacing
+                                          : row.isHeading ? AppMetrics.mediumSpacing : AppMetrics.rowSpacing
 
         // --- a heading ---
 
         Kirigami.Icon {
             id: chevron
 
-            visible: row.isCategory
+            visible: row.isHeading
             source: row.collapsed ? "arrow-right" : "arrow-down"
+            // **A format's heading is set in** under its category's words,
+            // so the two levels read as two.
+            Layout.leftMargin: row.isSection ? AppMetrics.sectionChevronSize + (chevron.parent as RowLayout).spacing : 0
             implicitWidth: AppMetrics.sectionChevronSize
             implicitHeight: AppMetrics.sectionChevronSize
             Accessible.ignored: true
@@ -164,7 +179,7 @@ QQC2.ItemDelegate {
         // a hairline and the tile's corner. While following the
         // system the box is nothing, and the icon is as it was.
         Rectangle {
-            visible: !row.isCategory
+            visible: !row.isHeading
             implicitWidth: AppMetrics.followsSystem ? Kirigami.Units.iconSizes.smallMedium : AppMetrics.controlHeight
             implicitHeight: implicitWidth
             radius: AppMetrics.tileRadius
@@ -194,19 +209,21 @@ QQC2.ItemDelegate {
 
                 Layout.fillWidth: true
                 text: row.label
-                color: row.isCategory && !AppMetrics.followsSystem ? AppColors.muted : AppColors.text
+                color: row.isHeading && !AppMetrics.followsSystem ? AppColors.muted : AppColors.text
+                // A format's heading is a level under its category's, so
+                // in the weight of a block's name rather than the heading's.
                 font: row.isCategory ? AppFonts.libraryHeading : AppFonts.libraryTitle
                 // The prototype sets a block's two lines close, at 1.2 and
                 // 1.25 of their size, so the pair is as tall as the icon
                 // beside it.
-                lineHeightMode: AppMetrics.followsSystem || row.isCategory ? Text.ProportionalHeight : Text.FixedHeight
-                lineHeight: AppMetrics.followsSystem || row.isCategory ? 1.0 : AppMetrics.libraryTitleLine
+                lineHeightMode: AppMetrics.followsSystem || row.isHeading ? Text.ProportionalHeight : Text.FixedHeight
+                lineHeight: AppMetrics.followsSystem || row.isHeading ? 1.0 : AppMetrics.libraryTitleLine
                 elide: Text.ElideRight
                 Accessible.ignored: true
             }
 
             QQC2.Label {
-                visible: !row.isCategory
+                visible: !row.isHeading
                 Layout.fillWidth: true
                 text: row.detail
                 color: AppColors.muted
@@ -218,31 +235,10 @@ QQC2.ItemDelegate {
             }
         }
 
-        // **A plugin's format, as a badge**: the same plugin can be
-        // installed as LV2 and as CLAP, and they are not the same thing.
-        QQC2.Label {
-            id: formatBadge
-
-            visible: row.isPlugin
-            text: row.isPlugin ? PluginWords.formatName(row.entry.format) : ""
-            color: AppColors.muted
-            font: AppFonts.small
-            leftPadding: Kirigami.Units.smallSpacing
-            rightPadding: Kirigami.Units.smallSpacing
-            Accessible.ignored: true
-
-            background: Rectangle {
-                radius: height / 2
-                color: "transparent"
-                border.width: 1
-                border.color: AppColors.border
-            }
-        }
-
         // How many blocks are under a heading, so that a folded category
         // still says whether there is anything in it.
         QQC2.Label {
-            visible: row.isCategory
+            visible: row.isHeading
             text: KI18n.i18ncp("@info how many blocks a library category holds", "%1", "%1", row.entry.count)
             color: AppColors.muted
             font: AppFonts.small
@@ -254,7 +250,7 @@ QQC2.ItemDelegate {
     // rather than internal, because the canvas asks the drop what it is
     // carrying rather than reaching back into whatever started it — which
     // is what lets either half be written and tested without the other.
-    Drag.active: !row.isCategory && dragHandler.active
+    Drag.active: !row.isHeading && dragHandler.active
     Drag.dragType: Drag.Automatic
     Drag.supportedActions: Qt.CopyAction
     Drag.mimeData: row.dragData()
@@ -272,7 +268,7 @@ QQC2.ItemDelegate {
     DragHandler {
         id: dragHandler
 
-        enabled: !row.isCategory
+        enabled: !row.isHeading
         target: null
 
         onActiveChanged: if (dragHandler.active) {

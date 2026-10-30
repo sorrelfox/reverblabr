@@ -899,9 +899,11 @@ its own blocks. See <xref linkend="one-ear"/>.</para>
 computer: <emphasis role="strong">LV2</emphasis>, <emphasis
 role="strong">CLAP</emphasis> (where the build has the CLAP SDK), <emphasis
 role="strong">VST3</emphasis> (where the build has the VST3 SDK 3.8 or later)
-and <emphasis role="strong">LADSPA</emphasis>. The plugin row of the library lists
-what it found, and <guibutton>Look for plugins again</guibutton> looks again
-after you install something new. LSP's plugins are a good first set to
+and <emphasis role="strong">LADSPA</emphasis>. The library lists what it found
+under <guilabel>Plugins</guilabel>, a heading for each format with the plugins
+under it in alphabetical order; click a heading to fold it away. The search
+looks through all of them. <guibutton>Look for plugins again</guibutton> looks
+again after you install something new. LSP's plugins are a good first set to
 try.</para>
 
 <para>Every plugin runs in a separate process, so a plugin that crashes or

@@ -102,7 +102,7 @@ These blocks work on one ear at a time. They are described on their own page, [H
 
 ## Plugins
 
-Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK), **VST3®** (where the build has the VST3 SDK 3.8 or later) and **LADSPA**. The plugin row of the library lists what it found, and **Look for plugins again** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for. LSP's plugins are a good first set to try.
+Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK), **VST3®** (where the build has the VST3 SDK 3.8 or later) and **LADSPA**. The library lists what it found under **Plugins**, a heading for each format with the plugins under it in alphabetical order; click a heading to fold it away. The search looks through all of them. **Look for plugins again** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for. LSP's plugins are a good first set to try.
 
 Every plugin runs in a separate process, so a plugin that crashes or hangs takes nothing else down with it. Its block is bypassed, the sound goes on without it, and the block shows a button to restart it. A plugin's settings appear in a panel built from the parameters it offers.
 
