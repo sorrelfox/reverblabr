@@ -212,6 +212,12 @@ TestCase {
     }
 
     function test_everyPageNamesEveryControlOfItsPanel(data) {
+        // **A block this build leaves out** (Broadcast without QtKeychain,
+        // Speech Denoise without RNNoise) has a page but no panel to hold
+        // it against.
+        if (Object.keys(BlockCatalogue.describe(data.typeId)).length === 0) {
+            skip(data.typeId + " is not in this build");
+        }
         const component = BlockHelp.pageFor(data.typeId);
         verify(component !== null);
         const page = createTemporaryObject(component, null);

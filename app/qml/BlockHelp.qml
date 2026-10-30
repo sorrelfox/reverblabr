@@ -35,6 +35,42 @@ QtObject {
     readonly property string whenTitle: KI18n.i18nc("@title a part of a block's help page", "When to use it")
     readonly property string tipsTitle: KI18n.i18nc("@title a part of a block's help page", "Tips")
 
+    readonly property Component volume: Component {
+        VolumeHelp {}
+    }
+
+    readonly property Component peakRms: Component {
+        PeakRmsHelp {}
+    }
+
+    readonly property Component recorder: Component {
+        RecorderHelp {}
+    }
+
+    readonly property Component applicationSource: Component {
+        ApplicationSourceHelp {}
+    }
+
+    readonly property Component autoLevel: Component {
+        AutoLevelHelp {}
+    }
+
+    readonly property Component balance: Component {
+        BalanceHelp {}
+    }
+
+    readonly property Component bassTreble: Component {
+        BassTrebleHelp {}
+    }
+
+    readonly property Component broadcast: Component {
+        BroadcastHelp {}
+    }
+
+    readonly property Component channels: Component {
+        ChannelsHelp {}
+    }
+
     readonly property Component declick: Component {
         DeclickHelp {}
     }
@@ -51,62 +87,6 @@ QtObject {
         DuckingHelp {}
     }
 
-    readonly property Component firFilter: Component {
-        FirFilterHelp {}
-    }
-
-    readonly property Component inputSwitch: Component {
-        InputSwitchHelp {}
-    }
-
-    readonly property Component mixer: Component {
-        MixerHelp {}
-    }
-
-    readonly property Component parametricEq: Component {
-        ParametricEqHelp {}
-    }
-
-    readonly property Component speechDenoise: Component {
-        SpeechDenoiseHelp {}
-    }
-
-    readonly property Component sync: Component {
-        SyncHelp {}
-    }
-
-    readonly property Component timeShift: Component {
-        TimeShiftHelp {}
-    }
-
-    readonly property Component volume: Component {
-        VolumeHelp {}
-    }
-
-    readonly property Component peakRms: Component {
-        PeakRmsHelp {}
-    }
-
-    readonly property Component recorder: Component {
-        RecorderHelp {}
-    }
-
-    readonly property Component autoLevel: Component {
-        AutoLevelHelp {}
-    }
-
-    readonly property Component balance: Component {
-        BalanceHelp {}
-    }
-
-    readonly property Component bassTreble: Component {
-        BassTrebleHelp {}
-    }
-
-    readonly property Component channels: Component {
-        ChannelsHelp {}
-    }
-
     readonly property Component dynamics: Component {
         DynamicsHelp {}
     }
@@ -119,8 +99,112 @@ QtObject {
         EqualizerHelp {}
     }
 
+    readonly property Component firFilter: Component {
+        FirFilterHelp {}
+    }
+
+    readonly property Component frequencyLowering: Component {
+        FrequencyLoweringHelp {}
+    }
+
+    readonly property Component frequencyRaising: Component {
+        FrequencyRaisingHelp {}
+    }
+
+    readonly property Component hearingCompensation16: Component {
+        HearingCompensation16Help {}
+    }
+
+    readonly property Component hearingCompensation64: Component {
+        HearingCompensation64Help {}
+    }
+
     readonly property Component highPass: Component {
         HighPassHelp {}
+    }
+
+    readonly property Component inputDevice: Component {
+        InputDeviceHelp {}
+    }
+
+    readonly property Component inputSwitch: Component {
+        InputSwitchHelp {}
+    }
+
+    readonly property Component joinLr: Component {
+        JoinLrHelp {}
+    }
+
+    readonly property Component limiter: Component {
+        LimiterHelp {}
+    }
+
+    readonly property Component liveStream: Component {
+        LiveStreamHelp {}
+    }
+
+    readonly property Component lowPass: Component {
+        LowPassHelp {}
+    }
+
+    readonly property Component mixer: Component {
+        MixerHelp {}
+    }
+
+    readonly property Component monoEnhancer: Component {
+        MonoEnhancerHelp {}
+    }
+
+    readonly property Component multibandCompressor: Component {
+        MultibandCompressorHelp {}
+    }
+
+    readonly property Component outputDevice: Component {
+        OutputDeviceHelp {}
+    }
+
+    readonly property Component pan: Component {
+        PanHelp {}
+    }
+
+    readonly property Component parametricEq: Component {
+        ParametricEqHelp {}
+    }
+
+    readonly property Component pitchShift: Component {
+        PitchShiftHelp {}
+    }
+
+    readonly property Component reverb: Component {
+        ReverbHelp {}
+    }
+
+    readonly property Component simpleCompressor: Component {
+        SimpleCompressorHelp {}
+    }
+
+    readonly property Component speechDenoise: Component {
+        SpeechDenoiseHelp {}
+    }
+
+    readonly property Component sync: Component {
+        SyncHelp {}
+    }
+
+    readonly property Component systemAudio: Component {
+        SystemAudioHelp {}
+    }
+
+    readonly property Component timeShift: Component {
+        TimeShiftHelp {}
+    }
+
+    readonly property Component vu: Component {
+        VuHelp {}
+    }
+
+    readonly property Component wave: Component {
+        WaveHelp {}
     }
 
     /// Type id to page. A block's help adds its entry here, and comes off
@@ -137,9 +221,6 @@ QtObject {
         "advanced.speechdenoise": help.speechDenoise,
         "advanced.sync": help.sync,
         "advanced.timeshift": help.timeShift,
-        "effect.volume": help.volume,
-        "meter.peakrms": help.peakRms,
-        "output.recorder": help.recorder,
         "effect.autolevel": help.autoLevel,
         "effect.balance": help.balance,
         "effect.basstreble": help.bassTreble,
@@ -147,7 +228,31 @@ QtObject {
         "effect.dynamics": help.dynamics,
         "effect.echo": help.echo,
         "effect.equalizer10": help.equalizer10,
-        "effect.highpass": help.highPass
+        "effect.highpass": help.highPass,
+        "effect.limiter": help.limiter,
+        "effect.lowpass": help.lowPass,
+        "effect.monoenhancer": help.monoEnhancer,
+        "effect.multibandcompressor": help.multibandCompressor,
+        "effect.pan": help.pan,
+        "effect.pitchshift": help.pitchShift,
+        "effect.reverb": help.reverb,
+        "effect.simplecompressor": help.simpleCompressor,
+        "effect.volume": help.volume,
+        "hearing.compensation16": help.hearingCompensation16,
+        "hearing.compensation64": help.hearingCompensation64,
+        "hearing.frequencylowering": help.frequencyLowering,
+        "hearing.frequencyraising": help.frequencyRaising,
+        "hearing.joinlr": help.joinLr,
+        "meter.peakrms": help.peakRms,
+        "meter.vu": help.vu,
+        "output.broadcast": help.broadcast,
+        "output.device": help.outputDevice,
+        "output.livestream": help.liveStream,
+        "output.recorder": help.recorder,
+        "output.wave": help.wave,
+        "source.application": help.applicationSource,
+        "source.device": help.inputDevice,
+        "source.system": help.systemAudio
     })
 
     function pageFor(typeId: string): Component {

@@ -7,29 +7,3 @@
 # handbook. tools.help-pages fails when a block here has a page, or when a
 # block that is neither here nor has a page is in the library: write the
 # page, add it to app/qml/BlockHelp.qml and take its line out of this file.
-advanced.declick
-advanced.dehum
-advanced.denoise
-advanced.ducking
-advanced.firfilter
-advanced.inputswitch
-advanced.mixer
-advanced.parametriceq
-advanced.speechdenoise
-advanced.sync
-advanced.timeshift
-effect.limiter
-effect.lowpass
-effect.monoenhancer
-effect.multibandcompressor
-effect.pan
-effect.pitchshift
-effect.reverb
-effect.simplecompressor
-output.broadcast
-output.device
-output.livestream
-output.wave
-source.application
-source.device
-source.system
