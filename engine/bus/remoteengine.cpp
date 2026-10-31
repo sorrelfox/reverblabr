@@ -521,6 +521,11 @@ void RemoteEngine::analyse(const QString &sessionId, const QString &blockId, int
     d->call(u"Analyse"_s, {sessionId, blockId, channel});
 }
 
+void RemoteEngine::holdBlockOff(const QString &sessionId, const QString &blockId, bool held)
+{
+    d->call(u"HoldBlockOff"_s, {sessionId, blockId, held});
+}
+
 void RemoteEngine::start(const QString &sessionId)
 {
     d->call(u"Start"_s, {sessionId});

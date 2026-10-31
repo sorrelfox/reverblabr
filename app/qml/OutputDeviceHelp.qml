@@ -59,6 +59,19 @@ HelpPage {
     }
 
     HelpSection {
+        setting: true
+        title: KI18n.i18nc("@label the highest level this block sends to the output", "Last limit")
+        covers: [KI18n.i18nc("@title:group the digital limits of a block", "Limits"),
+                 KI18n.i18nc("@action:button raise a limit, which asks first", "Raise...")]
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Output Device block", "Last limit: the highest level this block sends to the output, in dBFS. It appears only when a session needs it."),
+            KI18n.i18nc("@info help page of the Output Device block", "On a chain with a Hearing block, the last thing the sound meets is a limit. If a block that can add gain comes after the last limit, this block adds a limit of its own and says which block caused it. It adds about 2 ms of delay. The limit keeps to the lowest Output ceiling on the way here."),
+            KI18n.i18nc("@info help page of the Output Device block", "It is a digital limit: it works on numbers inside the computer. How loud that is at your ear depends on your volume, your sound card and your headphones, which Reverblabr can't know."),
+            KI18n.i18nc("@info help page of the Output Device block", "Lowering it works at once. Raising it takes one more step, with Raise..., and the sound rises slowly to the new limit.")
+        ]
+    }
+
+    HelpSection {
         title: KI18n.i18nc("@title:group the less usual settings", "Advanced")
         paragraphs: [
             KI18n.i18nc("@info help page of the Output Device block", "Click the heading to choose which of the device's channels the left and the right side play on. Most devices never need it.")

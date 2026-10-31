@@ -35,6 +35,7 @@
 #include "core/editcommand.h"
 #include "core/edithistory.h"
 #include "core/errorcodes.h"
+#include "core/lastlimit.h"
 #include "core/logring.h"
 #include "core/pluginscanner.h"
 #include "core/preset.h"
@@ -183,6 +184,8 @@ public:
         QHash<QString, QVariantList> bandValues;
         QString analysed;
         int analysedChannel = kBothChannels;
+        /// The blocks held out of the sound.
+        QSet<QString> heldOff;
         /// What each FIR Filter's file holds, read again only when the
         /// path changes.
         QHash<QString, FirReading> responses;
@@ -212,6 +215,8 @@ public:
     /// made-up list of parameters is the one thing an interface cannot be
     /// built against: the settings panel is generated from exactly these.
     dsp::BlockRegistry registry;
+    /// What the last limit reads, from `registry`.
+    LimitFacts limitFacts = limitFactsOf(registry);
     /// Where presets live: the ones that ship and the person's own.
     PresetStore presets;
     /// The virtual devices, both scopes, the user's first. **Answered from
@@ -422,7 +427,7 @@ public:
             BlockTelemetry &into = snapshot.blocks[snapshot.blockCount];
             const QByteArray id = block.id.toUtf8().left(kMaxTelemetryIdBytes - 1);
             std::copy(id.cbegin(), id.cend(), static_cast<char *>(into.id));
-            into.enabled = block.enabled;
+            into.enabled = block.enabled && !(running && session.heldOff.contains(block.id));
             into.channelCount = kFakeChannels;
             const float peak = running ? session.levels.value(block.id, 0.0f) : 0.0f;
             // A sine's RMS, which is what a made-up level should read as:
@@ -438,6 +443,13 @@ public:
             // engine's does: a tile reads "Unavailable" from a zero.
             if (running && isDeviceBlock(block)) {
                 into.values[blocks::OutputDevice::kDevicePresentValue] = devicePresent(block) ? 1.0f : 0.0f;
+            }
+            // And whether it holds the last limit, worked out as the real
+            // session does.
+            if (running && block.type == asText(blocks::OutputDevice::kTypeId)
+                && lastLimitNeeded(session.session, block, limitFacts)) {
+                into.values[blocks::OutputDevice::kAppliedLimitValue] =
+                    appliedLimitDb(session.session, block, limitFacts);
             }
             // A VU needle settled on a steady sine reads the sine's peak,
             // which is what the real block publishes for one.
@@ -1601,6 +1613,7 @@ void MockEngine::stop(const QString &sessionId)
     Private::Open *session = d->require(sessionId);
     if (session != nullptr) {
         const bool wasRunning = session->state == sessionState::running;
+        session->heldOff.clear();
         d->setState(*session, sessionState::stopping);
         // Every file finished before the session is idle, as the engine does.
         if (wasRunning) {
@@ -1715,6 +1728,25 @@ int MockEngine::analysedChannel(const QString &sessionId) const
 {
     const auto found = d->open.find(sessionId);
     return found == d->open.end() ? kBothChannels : found->second.analysedChannel;
+}
+
+bool MockEngine::heldOff(const QString &sessionId, const QString &blockId) const
+{
+    const auto found = d->open.find(sessionId);
+    return found != d->open.end() && found->second.heldOff.contains(blockId);
+}
+
+void MockEngine::holdBlockOff(const QString &sessionId, const QString &blockId, bool held)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr || session->state != sessionState::running) {
+        return;
+    }
+    if (held) {
+        session->heldOff.insert(blockId);
+    } else {
+        session->heldOff.remove(blockId);
+    }
 }
 
 void MockEngine::analyse(const QString &sessionId, const QString &blockId, int channel)

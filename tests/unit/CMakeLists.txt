@@ -134,6 +134,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_equalizer10.cpp
         blocks/test_firfilter.cpp
         blocks/test_frequencylowering.cpp
+        blocks/test_gainreach.cpp
         blocks/test_frequencyraising.cpp
         blocks/test_highpassfilter.cpp
         blocks/test_inputdevice.cpp
@@ -363,6 +364,7 @@ rb_add_gtest(reverblabr-engine-test
         core/test_engineautosave.cpp
         core/test_engineinfo.cpp
         core/test_errorcodes.cpp
+        core/test_lastlimit.cpp
         core/test_logring.cpp
         core/test_mockengine.cpp
         core/test_pluginscanner.cpp

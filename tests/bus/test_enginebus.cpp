@@ -336,6 +336,25 @@ TEST_F(EngineBus, EveryMethodReachesTheEngineWithItsArgumentsInOrder)
     }
 }
 
+TEST_F(EngineBus, AClientThatLeavesTheBusLetsGoOfWhatItHeld)
+{
+    test::RecordingFacade engine;
+    bus::EngineService service(&engine, open(u"service"_s));
+    ASSERT_TRUE(service.publish());
+
+    QDBusMessage hold = QDBusMessage::createMethodCall(
+        QString(bus::kServiceName), QString(bus::kObjectPath), QString(bus::kInterfaceName), u"HoldBlockOff"_s);
+    hold.setArguments({u"s"_s, u"a"_s, true});
+    // No copy of the connection is kept: while one lives, closing leaves it up.
+    ASSERT_TRUE(open(u"holder"_s).send(hold));
+    ASSERT_TRUE(waitFor([&] { return engine.calls.size() == 1; }));
+
+    close(u"holder"_s);
+    ASSERT_TRUE(waitFor([&] { return engine.calls.size() == 2; }));
+    EXPECT_EQ(engine.calls[1].first, u"holdBlockOff"_s);
+    EXPECT_EQ(engine.calls[1].second, (QVariantList{u"s"_s, u"a"_s, false}));
+}
+
 TEST_F(EngineBus, EverySignalComesBackAsTheFacadeSignalOfTheSameName)
 {
     test::RecordingFacade engine;

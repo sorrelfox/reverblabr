@@ -28,6 +28,8 @@ add_library(reverblabr-engine STATIC
     audiosystem.h
     compressormodes.cpp
     compressormodes.h
+    lastlimit.cpp
+    lastlimit.h
     diagnostics.cpp
     diagnostics.h
     dynamicscurve.cpp

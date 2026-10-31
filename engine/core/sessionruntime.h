@@ -132,6 +132,18 @@ public:
     [[nodiscard]] std::expected<ParamEffect, dsp::BlockError>
     setParam(const QString &blockId, const QString &paramId, const QJsonValue &value);
 
+    /// **Takes a block out of the sound, or puts it back, without the session
+    /// hearing of it**: what a "before" button does, which is a comparison and
+    /// not an edit. The next update() builds the graph with the block bypassed
+    /// and fades the change over the same 10 ms a switch does. Says whether
+    /// there is anything to update: nothing runs, the block is not there, or
+    /// it is already so, and that is no. stop() lets go of every hold.
+    ///
+    /// A block held off is off for the sound, a meter and a plugin's host.
+    /// What the session says is untouched, so a Recorder keeps its file open
+    /// and nothing that reads the session can tell.
+    [[nodiscard]] bool holdBlockOff(const QString &blockId, bool held);
+
     /// **Pause, resume or split a Recorder's recording**: \a action is
     /// "pause", "resume" or "split", applied at the frame its tap has got to
     /// now. The error is the reason it was refused, in the words the

@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import QtQuick
+import org.kde.ki18n
 
 // A Hearing Compensation block's bands, read from its parameters: the
 // face and the panel draw from the same numbers, so they cannot disagree.
@@ -220,6 +221,26 @@ QtObject {
     /// A ceiling on the listening scale, as dBFS of a band's own level.
     function ceilingDbfs(ceiling: real): real {
         return ceiling - bands.listeningOffsetDb;
+    }
+
+    /// **What a ceiling reads as.** The number on the listening scale means
+    /// nothing to anybody. In dBFS of a band's own level it does, and above
+    /// full scale it decides nothing the final limiter does not.
+    function ceilingText(ceiling: real): string {
+        const dbfs = bands.ceilingDbfs(ceiling);
+        return dbfs > 0 ? KI18n.i18nc("@item a band's ceiling that holds nothing back", "no limit")
+                        : KI18n.i18nc("@item a level, 0 is full scale", "%1 dBFS", Math.round(dbfs));
+    }
+
+    /// **How far the band that has come up the most has come up**, from
+    /// Loudness and the tilt of Tone around 1 kHz, over the bands from 125 Hz
+    /// to 8 kHz: what the second step reads, so a tilt cannot walk past it.
+    function liftOffsetDb(loudness: real, tone: real): real {
+        let most = -Infinity;
+        for (const hz of [125, 250, 500, 1000, 2000, 4000, 8000]) {
+            most = Math.max(most, loudness + tone * Math.max(-3, Math.min(3, Math.log2(hz / 1000))));
+        }
+        return most;
     }
 
     /// The gain for a steady sound at \a levelDbfs in a band set as \a band

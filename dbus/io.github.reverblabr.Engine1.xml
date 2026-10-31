@@ -273,6 +273,17 @@ SPDX-License-Identifier: MIT
       <arg name="channel" type="i" direction="in"/>
     </method>
 
+    <!-- Takes a block out of the sound while something is compared, or puts
+         it back. Not an edit: no undo step, no patch, nothing to save, and the
+         session goes on saying the block is on. It means something only while
+         the session runs and ends when it stops. A client that leaves the bus
+         lets go of what it held. Not answered. -->
+    <method name="HoldBlockOff">
+      <arg name="sessionId" type="s" direction="in"/>
+      <arg name="blockId" type="s" direction="in"/>
+      <arg name="held" type="b" direction="in"/>
+    </method>
+
     <method name="Start">
       <arg name="sessionId" type="s" direction="in"/>
     </method>

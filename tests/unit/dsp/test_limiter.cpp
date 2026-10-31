@@ -216,3 +216,55 @@ TEST(LookaheadLimiterTest, NoiseNeverGetsPastItEither)
             << "channel " << channel << " reached " << peakDb(out[channel]) << " dBFS";
     }
 }
+
+namespace
+{
+
+/// The level of a held loud tone at the end of \a seconds more of it.
+[[nodiscard]] float levelAfter(LookaheadLimiter &limiter, double seconds, std::uint32_t cycle)
+{
+    const auto frames = static_cast<std::size_t>(seconds * kRate);
+    const MultiSignal out = through(limiter, stereo(constant(frames, 0.9f), constant(frames, 0.9f)), cycle);
+    return gainToDb(std::fabs(out[0].back()));
+}
+
+} // namespace
+
+TEST(LookaheadLimiterTest, WithARiseSetTheCeilingOpensAtThatRateWhateverTheCycle)
+{
+    for (const std::uint32_t cycle : {16U, 256U, 2048U}) {
+        LookaheadLimiter limiter;
+        limiter.prepare(kRate, 2, -24.0f);
+        limiter.setRiseDbPerSecond(12.0f);
+        (void)levelAfter(limiter, 0.1, cycle);
+        limiter.setCeilingGain(dbToGain(-1.0f));
+        // The gain trails the ceiling by the release; the rate is what counts.
+        const float first = levelAfter(limiter, 0.5, cycle);
+        const float second = levelAfter(limiter, 0.5, cycle);
+        EXPECT_NEAR(first, -18.0f, 1.2f) << cycle;
+        EXPECT_NEAR(second - first, 6.0f, 0.1f) << cycle;
+    }
+}
+
+TEST(LookaheadLimiterTest, WithARiseSetTheCeilingStillFallsAtOnce)
+{
+    LookaheadLimiter limiter;
+    limiter.prepare(kRate, 2, -1.0f);
+    limiter.setRiseDbPerSecond(12.0f);
+    (void)levelAfter(limiter, 0.1, 256);
+    limiter.setCeilingGain(dbToGain(-24.0f));
+    EXPECT_NEAR(levelAfter(limiter, 0.05, 256), -24.0f, 0.1f);
+}
+
+TEST(LookaheadLimiterTest, ACeilingThatRisesThenFallsThenRisesEndsWhereItWasSent)
+{
+    LookaheadLimiter limiter;
+    limiter.prepare(kRate, 2, -12.0f);
+    limiter.setRiseDbPerSecond(12.0f);
+    limiter.setCeilingGain(dbToGain(-1.0f));
+    (void)levelAfter(limiter, 0.1, 256);
+    limiter.setCeilingGain(dbToGain(-20.0f));
+    (void)levelAfter(limiter, 0.005, 64);
+    limiter.setCeilingGain(dbToGain(-6.0f));
+    EXPECT_NEAR(levelAfter(limiter, 2.0, 256), -6.0f, 0.1f);
+}

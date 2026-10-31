@@ -32,6 +32,8 @@ import org.kde.ki18n
 // - **The audiogram**, and **Fit from audiogram**: one edit, one
 //   undo. A band where the fit could not help is marked, with a pointer to
 //   Frequency Lowering.
+// - **The limits**, in a section of their own (LimitRow): raising one takes a
+//   second step.
 // - **Copy from the other ear**, and a **before/after** button that holds
 //   the block off while it is pressed.
 //
@@ -95,6 +97,25 @@ ColumnLayout {
     readonly property var otherParams: panel.otherBlock !== "" && SessionModel.revision >= 0
         ? SessionModel.params(panel.otherBlock) : ({})
 
+    // --- the limits ---
+
+    /// What a copy from the other ear brings beside the bands.
+    readonly property var limitParams: ["maximumGainDb", "limiterCeilingDb"]
+    readonly property string decibelWord: KI18n.i18nc("@label unit of a change of level", "dB")
+    readonly property string dbfsWord: KI18n.i18nc("@label unit of a level, 0 is full scale", "dBFS")
+    /// Tone's tilt, where a block has it. It adds to the same gains as
+    /// Loudness, so the line counts it.
+    property real toneDb: Number(panel.params.toneDb ?? 0)
+    /// How far the band that comes up the most may come up before it takes a
+    /// second step. No source gives this figure; a listening round should.
+    readonly property real liftLineDb: 10
+    /// Where Loudness stops: the line, less what Tone adds to that band.
+    readonly property real loudnessStop: panel.liftLineDb - (bands.liftOffsetDb(0, panel.toneDb))
+
+    function liftText(db: real): string {
+        return KI18n.i18nc("@item a gain in decibels", "%1 dB", (db > 0 ? "+" : "") + Math.round(db));
+    }
+
     // --- live ---
 
     /// The band values the block publishes while analysed: each band's
@@ -133,6 +154,12 @@ ColumnLayout {
     readonly property alias bandCurveArea: bandCurveArea
     readonly property alias bandCurveDot: bandCurveDot
     readonly property alias removeButton: removeControl
+    readonly property alias limits: limitsSection
+    readonly property alias loudnessLimit: loudnessRow
+    readonly property alias mostGainLimit: mostGainRow
+    readonly property alias outputCeilingLimit: outputCeilingRow
+    readonly property alias limitActingLine: limitActing
+    readonly property alias copyDialog: copyAsk
     readonly property alias earChoice: earControl
 
     spacing: Kirigami.Units.largeSpacing
@@ -452,24 +479,43 @@ ColumnLayout {
                 }
             }
         }
+        for (const paramId of panel.limitParams) {
+            const descriptor = BlockCatalogue.describeParam(panel.typeId, paramId);
+            changes.push([paramId, panel.otherParams[paramId] ?? descriptor.default]);
+        }
         SessionModel.setParams(panel.blockId, changes);
     }
 
-    /// Whether the block was on when a comparison began, so letting go puts
-    /// back what was there.
-    property bool wasEnabled: true
+    /// Whether a copy would raise a limit of this ear.
+    function copyRaisesALimit(): bool {
+        return panel.limitParams.some(paramId => {
+            const descriptor = BlockCatalogue.describeParam(panel.typeId, paramId);
+            return (panel.otherParams[paramId] ?? descriptor.default) > (panel.params[paramId] ?? descriptor.default);
+        });
+    }
+
+    /// The copy, once a person has said yes to what it raises.
+    function askBeforeCopying() {
+        if (panel.copyRaisesALimit()) {
+            copyAsk.open();
+        } else {
+            panel.copyFromOtherEar();
+        }
+    }
+
+    /// **A comparison is not an edit**: it goes round the session, so undo
+    /// and the unsaved mark see nothing.
     property bool comparing: false
 
     function beginComparing() {
-        panel.wasEnabled = SessionModel.block(panel.blockId).enabled ?? true;
         panel.comparing = true;
-        SessionModel.setBlockEnabled(panel.blockId, false);
+        SessionModel.holdBlockOff(panel.blockId, true);
     }
 
     function endComparing() {
         if (panel.comparing) {
             panel.comparing = false;
-            SessionModel.setBlockEnabled(panel.blockId, panel.wasEnabled);
+            SessionModel.holdBlockOff(panel.blockId, false);
         }
     }
 
@@ -507,23 +553,6 @@ ColumnLayout {
             return KI18n.i18nc("@label where a control point is", "Frequency");
         }
         return panel.settingName(which);
-    }
-
-    function paramLabel(paramId: string): string {
-        switch (paramId) {
-        case "speed":
-            return KI18n.i18nc("@label how quickly the gain follows the sound", "Speed");
-        case "loudnessDb":
-            return KI18n.i18nc("@label a gain over every band", "Loudness");
-        case "noiseFloorDb":
-            return KI18n.i18nc("@label below this level soft sound is not lifted", "Noise floor");
-        case "maximumGainDb":
-            return KI18n.i18nc("@label the most gain any band is given", "Most gain");
-        case "limiterCeilingDb":
-            return KI18n.i18nc("@label the level nothing goes above", "Output ceiling");
-        default:
-            return paramId;
-        }
     }
 
     InfoLine {
@@ -844,9 +873,13 @@ ColumnLayout {
                                              panel.settingName(panel.editing),
                                              panel.hzText(panel.throughPoints ? bands.pointValue(handle.index, "Hz")
                                                                               : bands.centresHz[handle.index]),
-                                             panel.gainText(panel.throughPoints
-                                                            ? panel.drawnPointGain(handle.index, panel.editing)
-                                                            : panel.drawnGain(handle.index, panel.editing)))
+                                             panel.editing === "Ceiling"
+                                             ? bands.ceilingText(panel.throughPoints
+                                                                 ? bands.pointValue(handle.index, "Ceiling")
+                                                                 : bands.value(handle.index, "Ceiling"))
+                                             : panel.gainText(panel.throughPoints
+                                                              ? panel.drawnPointGain(handle.index, panel.editing)
+                                                              : panel.drawnGain(handle.index, panel.editing)))
             }
         }
 
@@ -1061,6 +1094,7 @@ ColumnLayout {
                 descriptor: BlockCatalogue.describeParam(panel.typeId, settingId)
                 label: panel.fieldName(modelData)
                 currentValue: panel.params[settingId]
+                valueText: modelData === "Ceiling" ? value => bands.ceilingText(value) : null
                 Layout.fillWidth: true
             }
         }
@@ -1079,17 +1113,86 @@ ColumnLayout {
 
     // --- the settings over every band ---
 
-    Repeater {
-        model: ["speed", "loudnessDb", "noiseFloorDb", "maximumGainDb", "limiterCeilingDb"]
+    ParamRow {
+        blockId: panel.blockId
+        descriptor: BlockCatalogue.describeParam(panel.typeId, "speed")
+        label: KI18n.i18nc("@label how quickly the gain follows the sound", "Speed")
+        currentValue: panel.params.speed
+        Layout.fillWidth: true
+    }
 
-        delegate: ParamRow {
-            required property var modelData
+    LimitRow {
+        id: loudnessRow
+
+        Layout.fillWidth: true
+        blockId: panel.blockId
+        paramId: "loudnessDb"
+        typeId: panel.typeId
+        label: KI18n.i18nc("@label a gain over every band", "Loudness")
+        unit: panel.decibelWord
+        valueText: value => panel.liftText(value)
+        fixedStop: panel.loudnessStop
+        buttonAlways: false
+        buttonText: KI18n.i18nc("@action:button take Loudness past the line, which asks first", "Go Further...")
+        stopWords: KI18n.i18nc("@info said at the end of a slider", "Loudness stops here. To go on, use Go Further.")
+        question: KI18n.i18nc("@info the question over a number, 'Loudness is +10 dB'", "Loudness is %1. Take it to:",
+                              panel.liftText(loudnessRow.value))
+    }
+
+    ParamRow {
+        blockId: panel.blockId
+        descriptor: BlockCatalogue.describeParam(panel.typeId, "noiseFloorDb")
+        label: KI18n.i18nc("@label below this level soft sound is not lifted", "Noise floor")
+        currentValue: panel.params.noiseFloorDb
+        Layout.fillWidth: true
+    }
+
+    // --- the limits, apart from what shapes the sound ---
+
+    CollapsibleSection {
+        id: limitsSection
+
+        Layout.fillWidth: true
+        title: KI18n.i18nc("@title:group the digital limits of a block", "Limits")
+        note: KI18n.i18nc("@info what the limits are not", "Digital, not at your ear")
+        expanded: true
+
+        LimitRow {
+            id: mostGainRow
+
+            Layout.fillWidth: true
+            blockId: panel.blockId
+            paramId: "maximumGainDb"
+            typeId: panel.typeId
+            label: KI18n.i18nc("@label the most gain any band is given", "Most gain")
+            unit: panel.decibelWord
+            valueText: value => KI18n.i18nc("@item a gain in decibels", "%1 dB", Math.round(value))
+            stopWords: KI18n.i18nc("@info said at the end of a slider", "Most gain stops here. To raise it, use Raise.")
+            question: KI18n.i18nc("@info the question over a number", "Most gain is %1 dB. Raise it to:",
+                                  Math.round(mostGainRow.value))
+        }
+
+        LimitRow {
+            id: outputCeilingRow
+
+            Layout.fillWidth: true
+            blockId: panel.blockId
+            paramId: "limiterCeilingDb"
+            typeId: panel.typeId
+            label: KI18n.i18nc("@label the level nothing goes above", "Output ceiling")
+            unit: panel.dbfsWord
+            valueText: value => KI18n.i18nc("@item a level, 0 is full scale", "%1 dBFS", Math.round(value))
+            stopWords: KI18n.i18nc("@info said at the end of a slider", "Output ceiling stops here. To raise it, use Raise.")
+            question: KI18n.i18nc("@info the question over a number", "Output ceiling is %1 dBFS. Raise it to:",
+                                  Math.round(outputCeilingRow.value))
+        }
+
+        LimitActing {
+            id: limitActing
 
             blockId: panel.blockId
-            descriptor: BlockCatalogue.describeParam(panel.typeId, modelData)
-            label: panel.paramLabel(modelData)
-            currentValue: panel.params[modelData]
-            Layout.fillWidth: true
+            // The first of what the block publishes: the final limiter.
+            slot: 0
         }
     }
 
@@ -1260,6 +1363,24 @@ ColumnLayout {
         enabled: panel.otherBlock !== ""
         text: KI18n.i18nc("@action:button take the other ear's block's band settings", "Copy from the Other Ear")
         icon.name: "edit-copy"
-        onClicked: panel.copyFromOtherEar()
+        onClicked: panel.askBeforeCopying()
+    }
+
+    AppPromptDialog {
+        id: copyAsk
+
+        parent: QQC2.Overlay.overlay
+        title: KI18n.i18nc("@title:window", "Copy from the Other Ear")
+        subtitle: KI18n.i18nc("@info", "The other ear's limits are higher than this ear's. The copy raises them.")
+        standardButtons: Kirigami.Dialog.Cancel
+        customFooterActions: [
+            Kirigami.Action {
+                text: KI18n.i18nc("@action:button copy, which raises a limit", "Raise and Copy")
+                onTriggered: {
+                    copyAsk.close();
+                    panel.copyFromOtherEar();
+                }
+            }
+        ]
     }
 }

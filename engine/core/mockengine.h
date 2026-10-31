@@ -195,6 +195,8 @@ public:
     [[nodiscard]] Q_INVOKABLE QString analysed(const QString &sessionId) const;
     /// And of which channel: kBothChannels, 0 or 1.
     [[nodiscard]] Q_INVOKABLE int analysedChannel(const QString &sessionId) const;
+    /// Whether a block is held out of the sound (holdBlockOff()).
+    [[nodiscard]] Q_INVOKABLE bool heldOff(const QString &sessionId, const QString &blockId) const;
 
     /// Takes the signal off every block of \a sessionId. What the lane
     /// going quiet looks like, which is the other half of a test that the
@@ -302,6 +304,7 @@ public Q_SLOTS:
     void loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId) override;
     void savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name) override;
     void analyse(const QString &sessionId, const QString &blockId, int channel) override;
+    void holdBlockOff(const QString &sessionId, const QString &blockId, bool held) override;
     void start(const QString &sessionId) override;
     void stop(const QString &sessionId) override;
     void getSessionState(const QString &sessionId) override;

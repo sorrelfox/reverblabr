@@ -24,6 +24,8 @@ ColumnLayout {
 
     /// What the part is called.
     required property string title
+    /// Words at the far end of the heading, for what holds for the whole part.
+    property string note: ""
     /// Whether what is under the heading is showing. Starts folded, because
     /// what goes in a section is what most people never need.
     property bool expanded: false
@@ -70,6 +72,7 @@ ColumnLayout {
         // is folded is its checked state, with no words of its own to say it.
         Accessible.role: Accessible.Button
         Accessible.name: section.title
+        Accessible.description: section.note
         Accessible.checkable: true
         Accessible.checked: section.expanded
 
@@ -97,6 +100,15 @@ ColumnLayout {
                 font.weight: Appearance.followsSystem ? Font.Bold : AppFonts.demiBold
                 color: heading.ink
                 Layout.fillWidth: true
+            }
+
+            QQC2.Label {
+                visible: section.note !== ""
+                text: section.note
+                font: AppFonts.small
+                color: AppColors.muted
+                elide: Text.ElideRight
+                Layout.maximumWidth: section.width * 0.6
             }
         }
     }

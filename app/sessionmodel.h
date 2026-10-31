@@ -257,6 +257,14 @@ public:
     Q_INVOKABLE void renameBlock(const QString &blockId, const QString &nickname);
     /// On or off — bypass, which the graph cross-fades.
     Q_INVOKABLE void setBlockEnabled(const QString &blockId, bool enabled);
+    /// Takes the block out of the sound while something is compared, or puts
+    /// it back. **Not an edit**: the session, the undo list and the unsaved
+    /// mark never hear of it.
+    Q_INVOKABLE void holdBlockOff(const QString &blockId, bool held);
+    /// **Whether an Output Device needs the last limit of a chain**, as the
+    /// engine works it out: `needed`, `cause` ("block", "twoWires",
+    /// "oneChannel"), `blockName` for the first, and `appliedDb`.
+    [[nodiscard]] Q_INVOKABLE QVariantMap lastLimit(const QString &blockId) const;
 
     /// Puts a block of \a typeId on the canvas at \a position and answers
     /// with the id it was given, or an empty string if there was nowhere to

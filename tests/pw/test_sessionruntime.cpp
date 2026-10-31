@@ -352,6 +352,72 @@ TEST_F(Runtime, ASourceSwitchedOffGoesSilentButIsStillCapturing)
     EXPECT_TRUE(runtime.isRunning());
 }
 
+// **Comparing is not an edit.** A hold reaches the sound through the same 10 ms
+// fade a switch has, and the session it is given back is the one it had.
+TEST_F(Runtime, TheBypassFollowsAHoldAndTheSessionNeverHearsOfIt)
+{
+    Pump engine;
+    ASSERT_TRUE(engine.waitUntilReady());
+    const dsp::BlockRegistry registry = testRegistry();
+    SessionRuntime runtime(engine.connection(), engine.mirror(), registry);
+    const Session session = chainSession();
+    ASSERT_TRUE(runtime.start(session).has_value());
+
+    const std::optional<Graph::Node> ours = engine.awaitNode(runtime.node()->nodeName());
+    ASSERT_TRUE(ours.has_value());
+    ASSERT_TRUE(engine.awaitPorts(ours->id, "output", 2));
+    FakeApp app(appOptions("HeldApp", "heldapp"));
+    const std::optional<Graph::Node> stream = engine.awaitMatch(playbackStreamOf("HeldApp"));
+    ASSERT_TRUE(stream.has_value());
+    ASSERT_TRUE(engine.awaitPorts(stream->id, "output", 2));
+    ASSERT_EQ(linkByChannel(stream->id, ours->id), 2U);
+    CaptureNode capture(captureOptions("rbtest.capture.held", 1000.0));
+    const std::optional<Graph::Node> captureNode = capture.waitUntilReady();
+    ASSERT_TRUE(captureNode.has_value());
+    ASSERT_EQ(linkByChannel(ours->id, captureNode->id), 2U);
+    engine.pump(std::chrono::milliseconds{400});
+    EXPECT_NEAR(capture.measureSettled().at("FL"), kTonePeakDb - 6.02, 0.3);
+
+    const auto reportedOn = [&runtime] {
+        for (const SessionRuntime::MeteredBlock &metered : runtime.meters()) {
+            if (metered.id == u"fx"_s) {
+                return metered.enabled;
+            }
+        }
+        return false;
+    };
+
+    ASSERT_TRUE(runtime.holdBlockOff(u"fx"_s, true));
+    EXPECT_FALSE(runtime.holdBlockOff(u"fx"_s, true)) << "held twice is held once";
+    EXPECT_FALSE(runtime.holdBlockOff(u"nobody"_s, true));
+    ASSERT_TRUE(runtime.update(session).has_value());
+    EXPECT_FALSE(reportedOn()) << "the window would go on showing a held block as on";
+    engine.pump(std::chrono::milliseconds{400});
+    const std::map<std::string, SineCheck> held = capture.measureSine(300ms);
+    ASSERT_TRUE(held.contains("FL"));
+    EXPECT_NEAR(held.at("FL").peakDb, kTonePeakDb, 0.3) << "the block was still in the sound";
+
+    // An edit while it is held does not let go of it.
+    ASSERT_TRUE(runtime.update(session).has_value());
+    EXPECT_FALSE(reportedOn());
+
+    ASSERT_TRUE(runtime.holdBlockOff(u"fx"_s, false));
+    ASSERT_TRUE(runtime.update(session).has_value());
+    EXPECT_TRUE(reportedOn());
+    engine.pump(std::chrono::milliseconds{400});
+    const std::map<std::string, SineCheck> back = capture.measureSine(300ms);
+    ASSERT_TRUE(back.contains("FL"));
+    EXPECT_NEAR(back.at("FL").peakDb, kTonePeakDb - 6.02, 0.3) << "letting go did not put it back";
+    EXPECT_LT(back.at("FL").residualDb, -55.0);
+
+    // Stopping lets go of everything.
+    ASSERT_TRUE(runtime.holdBlockOff(u"fx"_s, true));
+    runtime.stop();
+    EXPECT_FALSE(runtime.holdBlockOff(u"fx"_s, false)) << "nothing runs, so there is nothing to do";
+    ASSERT_TRUE(runtime.start(session).has_value());
+    EXPECT_TRUE(reportedOn());
+}
+
 // **An edit leaves alone every block it changed nothing for**.
 //
 // Preparing a block may allocate and it throws away what the block was in

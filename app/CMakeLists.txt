@@ -156,6 +156,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/JoinLrHelp.qml
     qml/LevelBar.qml
     qml/LevelMeter.qml
+    qml/LimitActing.qml
+    qml/LimitRow.qml
     qml/LimiterFace.qml
     qml/LimiterHelp.qml
     qml/LimiterPanel.qml

@@ -31,7 +31,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "It works on one ear only. The other side of the sound passes through unchanged, held back by exactly as long as the block takes, so both ears stay in step. Ear, at the top of the settings, says which ear it is for, and the L (blue) or R (red) on the block's tile shows it."),
             KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "The block holds the sound back by about six thousandths of a second, far too little to notice."),
             KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "When the block starts, its lift comes in gently over one second, so the first sound is never a sudden jump in volume."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "At the very end a safety limiter is always at work. It keeps the sound under the Output ceiling, including the peaks that fall between the digital samples."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "At the very end a limiter is always at work. It keeps the sound under the Output ceiling, including the peaks that fall between the digital samples."),
             KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "A new block has six points, at 250 Hz, 500 Hz, 1 kHz, 2 kHz, 4 kHz and 8 kHz, where an audiogram has its main lines. All their gains are at 0 dB, so it changes nothing until you set it. Set it by hand, or let it start from your audiogram, the chart from a hearing test."),
             KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "Reverblabr is not a medical device. It shapes sound for listening and does not replace an audiologist or a hearing aid. If your hearing has changed, have it checked.")
         ]
@@ -104,7 +104,7 @@ HelpPage {
         title: KI18n.i18nc("@option:radio the highest level a band may put out", "Ceiling")
         paragraphs: [
             KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "The loudest the bands near a point may become, however much they are lifted. Set it just below the level where sound in that range starts to feel too loud for you."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "As a number it goes from 40 to 140, on the same scale as an audiogram, where ordinary speech is about 45. A new block starts at 100, which holds nothing back. On the Gain view the ceiling is drawn as the most lift a loud sound may have under it.")
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "It reads in dBFS, the level of the band's own sound, where 0 is full scale; above that it reads no limit, which is where a new block starts. On the Gain view the ceiling is drawn as the most lift a loud sound may have under it.")
         ]
     }
 
@@ -166,7 +166,8 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@label the most gain any band is given", "Most gain")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "The most lift any band is ever given, whatever the other settings ask for: from 0 dB to 60 dB, and 50 dB for a new block. It is a safety limit. Lower it if a band ever gets far too loud. Fit from Audiogram keeps every band under it too.")
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "The most lift any band is ever given, whatever the other settings ask for: from 0 dB to 60 dB, and 50 dB for a new block. Lower it if a band ever gets far too loud. Fit from Audiogram keeps every band under it too."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "It sits under Limits, which are digital limits: they work on numbers inside the computer. How loud that is at your ear depends on your volume, your sound card and your headphones, which Reverblabr can't know.")
         ]
     }
 
@@ -174,8 +175,25 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@label the level nothing goes above", "Output ceiling")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "The safety limiter at the very end: nothing leaves the block louder than this. It goes from −24 dB to −1 dB below full scale, and starts at −1 dB."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "It cannot be switched off. Lower it to keep sudden sounds further from your ears, especially with headphones.")
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "The limiter at the very end: nothing leaves the block louder than this. It goes from −24 dBFS to −1 dBFS, where 0 dBFS is full scale, and starts at −1 dBFS."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "It cannot be switched off. Lower it to take sudden sounds down, especially with headphones.")
+        ]
+    }
+
+    HelpSection {
+        setting: true
+        title: KI18n.i18nc("@action:button raise a limit, which asks first", "Raise...")
+        covers: [KI18n.i18nc("@title:group the digital limits of a block", "Limits")]
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "Lowering a limit works at once, by dragging, with the keys or by typing. Raising one takes one more step: press Raise..., or type a higher number, and confirm it. The sound then rises slowly to the new limit, about 12 dB each second.")
+        ]
+    }
+
+    HelpSection {
+        setting: true
+        title: KI18n.i18nc("@action:button take Loudness past the line, which asks first", "Go Further...")
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "Loudness stops where the band that has come up the most reaches +10 dB. Past that it takes one more step, which this button opens. It shows at the stop.")
         ]
     }
 
@@ -183,7 +201,7 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@action:button take the other ear's block's band settings", "Copy from the Other Ear")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "Takes every point from the session's other Hearing Compensation 64 block, the one for the other ear, as a starting point. The button can only be pressed when there is such a block. One undo takes the copy back.")
+            KI18n.i18nc("@info help page of the Hearing Compensation 64 block", "Takes every point from the session's other Hearing Compensation 64 block, the one for the other ear, as a starting point. The button can only be pressed when there is such a block. Its limits come too, and a copy that would raise one asks first. One undo takes the copy back.")
         ]
     }
 

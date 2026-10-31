@@ -7,6 +7,9 @@
 
 #include "blocks/outputdevice.h"
 
+#include "dsp/decibel.h"
+#include "rt/meter.h"
+
 #include <algorithm>
 #include <span>
 #include <string>
@@ -62,6 +65,17 @@ std::vector<ParamDescriptor> OutputDevice::makeDescriptors()
 
     descriptors.push_back(channelParam("leftChannel"));
     descriptors.push_back(channelParam("rightChannel"));
+
+    ParamDescriptor limit;
+    limit.id = "limitDb";
+    limit.type = ParamType::Float;
+    limit.minimum = ParamValue::ofFloat(kLimitLowestDb);
+    limit.maximum = ParamValue::ofFloat(kLimitHighestDb);
+    limit.defaultValue = ParamValue::ofFloat(kLimitHighestDb);
+    limit.unit = ParamUnit::Decibels;
+    // Shown by the panel, and only while the limit is there.
+    limit.flags.hidden = true;
+    descriptors.push_back(std::move(limit));
     return descriptors;
 }
 
@@ -165,8 +179,40 @@ std::expected<void, BlockError> OutputDevice::prepare(const PrepareSpec &spec)
     buildMatrix();
     m_volume.prepare(spec.sampleRate, kVolumeSmoothingMs);
     m_volume.reset(m_store.number(Volume));
+
+    // **Linked across the device's channels**, true peak, and as fast as
+    // Soft Lift's own, which is what a chain ending in Soft Lift has.
+    m_limiting = m_limitWanted;
+    if (m_limiting) {
+        m_limit.prepare(spec.sampleRate,
+                        static_cast<std::uint32_t>(m_layout.size()),
+                        m_limitDb.load(std::memory_order_relaxed),
+                        LookaheadLimiter::kDefaultLookaheadMs,
+                        LookaheadLimiter::kDefaultReleaseMs,
+                        true);
+        m_limit.setTruePeak(true);
+        m_limit.setRiseDbPerSecond(LookaheadLimiter::kLimitRiseDbPerSecond);
+    }
+    m_info.latencySamples = m_limiting ? m_limit.latencySamples() : 0;
+    m_meter = spec.meter;
     m_prepared = true;
     return {};
+}
+
+std::uint32_t OutputDevice::preparedShape() const
+{
+    return m_limitWanted ? 1 : 0;
+}
+
+void OutputDevice::setLastLimit(bool wanted, float ceilingDb) noexcept
+{
+    m_limitWanted = wanted;
+    m_limitDb.store(std::clamp(ceilingDb, kLimitLowestDb, kLimitHighestDb), std::memory_order_relaxed);
+}
+
+float OutputDevice::limitReductionDb() const noexcept RB_NONBLOCKING
+{
+    return m_limiting ? std::max(0.0f, -gainToDb(m_limit.lowestGain())) : 0.0f;
 }
 
 void OutputDevice::process(ProcessContext &context) noexcept RB_NONBLOCKING
@@ -192,11 +238,29 @@ void OutputDevice::process(ProcessContext &context) noexcept RB_NONBLOCKING
             out[frame] = l * m_matrix[0][channel] + r * m_matrix[1][channel];
         }
     }
+
+    if (m_limiting) {
+        const float ceilingDb = m_limitDb.load(std::memory_order_relaxed);
+        m_limit.setCeilingGain(dbToGain(ceilingDb));
+        m_limit.process(context.output, context.frames);
+        if (m_meter != nullptr) {
+            m_meter->publish(kLimitReductionValue, limitReductionDb());
+            m_meter->publish(kAppliedLimitValue, ceilingDb);
+        }
+    } else if (m_meter != nullptr) {
+        // **Every cycle, and not once at prepare()**: the block this one
+        // replaces goes on publishing until the graph has been swapped.
+        m_meter->publish(kLimitReductionValue, 0.0f);
+        m_meter->publish(kAppliedLimitValue, 0.0f);
+    }
 }
 
 void OutputDevice::reset() noexcept RB_NONBLOCKING
 {
     m_volume.reset(m_store.number(Volume));
+    if (m_limiting) {
+        m_limit.reset();
+    }
 }
 
 void OutputDevice::applyParam(std::uint32_t index, float value) noexcept RB_NONBLOCKING

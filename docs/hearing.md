@@ -39,10 +39,19 @@ To set up two lanes with Hearing Compensation 16 (any hearing block works the sa
 - **The Levels view** shows where the sound sits for this ear: the quietest levels it hears (from the audiogram), the ceilings, and the sound going in and coming out.
 - **Click a handle** to see that band's settings as numbers.
 - **Speed** decides how quickly the gain follows the sound. **Syllabic** follows speech syllable by syllable, **Slow** keeps the shape of music, and **Adaptive** does both and catches a sudden loud sound at once.
-- **Loudness** turns all bands up or down together. **Noise floor** keeps the lift from bringing up the hiss of a recording. **Most gain** is the most any band ever gets. **Output ceiling** is a limiter at the very end.
+- **Loudness** turns all bands up or down together. **Noise floor** keeps the lift from bringing up the hiss of a recording.
+- **Most gain** is the most any band ever gets, and **Output ceiling** is a limiter at the very end. Both sit under **Limits**.
 - **Hold for before** plays the sound without the block for as long as you hold the button, so you can compare.
 
-With a block for each ear, each panel draws the other ear's curve faintly, and **Copy from the Other Ear** takes over its settings as a starting point.
+With a block for each ear, each panel draws the other ear's curve faintly, and **Copy from the Other Ear** takes over its settings as a starting point. Its limits come too, and a copy that would raise one asks first.
+
+**Limits.** Most gain and Output ceiling are digital limits. They work on numbers inside the computer. How loud that is at your ear depends on your volume, your sound card and your headphones, which Reverblabr can't know.
+
+Raising a limit takes one more step, and the sound rises slowly to it. Lowering a limit takes effect at once. Taking Loudness past +10 dB in the band that has come up the most takes one more step too, with **Go Further...**.
+
+If a block that can add gain comes after the last limit, the Output Device adds a limit of its own, so that nothing passes the lowest Output ceiling. It says which block caused it, and it adds about 2 ms of delay.
+
+Commands and D-Bus meet the same ranges and no dialog: a script is a deliberate act.
 
 ## From an audiogram
 

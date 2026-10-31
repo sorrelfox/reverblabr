@@ -381,14 +381,25 @@ TestCase {
         tryVerify(() => SessionModel.param(right, "band4AverageGainDb") === undefined, 1000);
     }
 
-    function test_holdingBeforeTurnsTheBlockOffUntilLetGo() {
+    function test_holdingBeforeHoldsTheBlockOffAndIsNoEdit() {
         const id = testCase.newBlock("");
         const window = testCase.openPanel(id);
         const panel = window.panel;
-        verify(SessionModel.block(id).enabled ?? true);
+        SessionModel.setParam(id, "loudnessDb", 3);
+        const undoText = SessionModel.undoText;
+        const redoText = SessionModel.redoText;
+        TestEngine.start(testCase.sessionId);
+        tryVerify(() => Meters.live, 1000, "the session did not start");
+
         mousePress(panel.beforeButton);
-        tryVerify(() => SessionModel.block(id).enabled === false, 1000, "holding did not take the block out");
+        tryVerify(() => TestEngine.heldOff(testCase.sessionId, id), 1000, "holding did not take the block out");
+        verify(SessionModel.block(id).enabled ?? true, "the session heard of the hold");
+        compare(SessionModel.undoText, undoText);
+        compare(SessionModel.redoText, redoText);
         mouseRelease(panel.beforeButton);
-        tryVerify(() => SessionModel.block(id).enabled === true, 1000, "letting go did not put it back");
+        tryVerify(() => !TestEngine.heldOff(testCase.sessionId, id), 1000, "letting go did not put it back");
+        compare(SessionModel.undoText, undoText);
+        compare(SessionModel.redoText, redoText);
+        TestEngine.stop(testCase.sessionId);
     }
 }

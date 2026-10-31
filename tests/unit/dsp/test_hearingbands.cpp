@@ -511,3 +511,75 @@ TEST(HearingPointCurve, ThePanelsCurveIsTheBlocksToTheLastDecimal)
     EXPECT_NEAR(curve.at(std::log(2000.0)), 14.375f, 1e-4f);
     EXPECT_NEAR(curve.at(std::log(3000.0)), 8.6247f, 1e-4f);
 }
+
+namespace
+{
+
+/// A band at +30 dB gain and a quiet steady level, settled, then \a seconds
+/// more of it at \a settings: the gain the band ends on.
+[[nodiscard]] float settledGain(BandGainControl &control,
+                                const HearingBand &band,
+                                const HearingSettings &settings,
+                                double seconds,
+                                double period)
+{
+    const std::array<float, 1> power{dbToGain(-60.0f) * dbToGain(-60.0f)};
+    std::array<float, 1> gain{};
+    const std::array<HearingBand, 1> bands{band};
+    for (int stretch = 0; stretch < static_cast<int>(seconds / period); ++stretch) {
+        control.update(power, bands, settings, gain);
+    }
+    return gain[0];
+}
+
+} // namespace
+
+TEST(HearingLimits, MostGainOpensAtTheRateAndClosesAtOnce)
+{
+    constexpr double period = 32.0 / 48000.0;
+    BandGainControl control;
+    control.prepare(1, period);
+    HearingSettings settings;
+    settings.maximumGainDb = 10.0f;
+    const HearingBand band{.softGainDb = 40.0f, .averageGainDb = 40.0f, .loudGainDb = 40.0f, .ceilingDbfs = 15.0f};
+    EXPECT_NEAR(settledGain(control, band, settings, 2.0, period), 10.0f, 0.01f);
+
+    settings.maximumGainDb = 40.0f;
+    EXPECT_NEAR(settledGain(control, band, settings, 1.0, period), 22.0f, 0.05f);
+    EXPECT_NEAR(settledGain(control, band, settings, 2.0, period), 40.0f, 0.05f);
+
+    settings.maximumGainDb = 5.0f;
+    EXPECT_FLOAT_EQ(settledGain(control, band, settings, period, period), 5.0f);
+}
+
+TEST(HearingLimits, ABandCeilingOpensAtTheRateAndClosesAtOnce)
+{
+    constexpr double period = 32.0 / 48000.0;
+    BandGainControl control;
+    control.prepare(1, period);
+    HearingSettings settings;
+    HearingBand band{.softGainDb = 40.0f, .averageGainDb = 40.0f, .loudGainDb = 40.0f, .ceilingDbfs = -50.0f};
+    EXPECT_NEAR(settledGain(control, band, settings, 2.0, period), 10.0f, 0.1f);
+
+    band.ceilingDbfs = -20.0f;
+    EXPECT_NEAR(settledGain(control, band, settings, 1.0, period), 22.0f, 0.1f);
+
+    band.ceilingDbfs = -55.0f;
+    EXPECT_NEAR(settledGain(control, band, settings, period, period), 5.0f, 0.1f);
+}
+
+TEST(HearingLimits, ABlockThatStartsHasNothingToRiseFrom)
+{
+    constexpr double period = 32.0 / 48000.0;
+    BandGainControl control;
+    control.prepare(1, period);
+    HearingSettings settings;
+    settings.maximumGainDb = 10.0f;
+    const HearingBand band{.softGainDb = 40.0f, .averageGainDb = 40.0f, .loudGainDb = 40.0f, .ceilingDbfs = 15.0f};
+    (void)settledGain(control, band, settings, 2.0, period);
+
+    settings.maximumGainDb = 40.0f;
+    control.reset(settings);
+    // Only the fade-in stands between it and the new limit.
+    EXPECT_NEAR(settledGain(control, band, settings, 1.1, period), 40.0f, 0.05f);
+}

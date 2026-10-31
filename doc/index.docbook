@@ -515,7 +515,9 @@ Wire it to an Output Device to check a speaker or a cable.</para>
 <title>Output Device</title>
 <para>Where a lane is heard: the default output (followed when it changes), a
 device you choose, or a virtual microphone that other programs record from.
-It has a volume of its own. When the session records from a virtual device,
+It has a volume of its own. On a chain with a Hearing block where a block that
+can add gain follows the last limit, it adds a limit of its own and says why:
+about 2 ms more delay. When the session records from a virtual device,
 choose your real speakers by name here: left on <guilabel>Default
 output</guilabel>, it could follow the default to the very device the session
 records from, and &reverblabr; refuses that connection.</para>
@@ -1597,9 +1599,14 @@ the sound. <guilabel>Syllabic</guilabel> follows speech syllable by syllable,
 once.</para></listitem>
 <listitem><para><guilabel>Loudness</guilabel> turns all bands up or down
 together. <guilabel>Noise floor</guilabel> keeps the lift from bringing up the
-hiss of a recording. <guilabel>Most gain</guilabel> is the most any band ever
-gets. <guilabel>Output ceiling</guilabel> is a limiter at the very
-end.</para></listitem>
+hiss of a recording.</para></listitem>
+<listitem><para><guilabel>Most gain</guilabel> is the most any band ever gets,
+and <guilabel>Output ceiling</guilabel> is a limiter at the very end. Both sit
+under <guilabel>Limits</guilabel>. They are digital limits: they work on
+numbers inside the computer. How loud that is at your ear depends on your
+volume, your sound card and your headphones, which Reverblabr can't know.
+Raising a limit takes one more step, and the sound rises slowly to it. Lowering
+one takes effect at once.</para></listitem>
 <listitem><para><guibutton>Hold for before</guibutton> plays the sound without
 the block for as long as you hold the button, so you can
 compare.</para></listitem>

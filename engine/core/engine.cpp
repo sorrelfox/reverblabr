@@ -1457,6 +1457,14 @@ void Engine::analyse(const QString &sessionId, const QString &blockId, int chann
     }
 }
 
+void Engine::holdBlockOff(const QString &sessionId, const QString &blockId, bool held)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session != nullptr && session->runtime && session->runtime->holdBlockOff(blockId, held)) {
+        d->refresh(*session);
+    }
+}
+
 void Engine::start(const QString &sessionId)
 {
     Private::Open *session = d->require(sessionId);

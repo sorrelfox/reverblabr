@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "dsp/limiter.h"
 #include "dsp/monotonecurve.h"
 #include "rt/realtime.h"
 
@@ -246,6 +247,12 @@ public:
     /// band has any lift left, so a pause is not an age of silence to climb
     /// back out of.
     static constexpr float kDetectorRangeDb = 80.0f;
+    /// **How fast a limit opens**: Most gain and a band's ceiling walk up at
+    /// this rate, in dB a second, and fall at once. Whatever route a raised
+    /// limit came by, a slider, a preset, undo or a command, the sound comes
+    /// up to it slowly. The limits are walked and not the gain, so the
+    /// detectors and a compressor's release stay as they are.
+    static constexpr float kLimitRiseDbPerSecond = LookaheadLimiter::kLimitRiseDbPerSecond;
 
     /// Sizes everything for \a count channels, updated every \a
     /// periodSeconds. Allocates.
@@ -269,6 +276,8 @@ public:
 
 private:
     void setSpeed(HearingSpeed speed) noexcept RB_NONBLOCKING;
+    /// \a held one stretch nearer \a wanted: a cut at once, a rise at the rate.
+    [[nodiscard]] float walked(float held, float wanted) const noexcept RB_NONBLOCKING;
 
     double m_period = 0.0;
     HearingSpeed m_speed = HearingSpeed::Adaptive;
@@ -279,6 +288,14 @@ private:
     int m_holdUpdates = 0;
     float m_fade = 0.0f;
     float m_fadeStep = 1.0f;
+    /// How far a limit may rise in one stretch.
+    float m_riseStep = 0.0f;
+    /// Most gain and each channel's ceiling as they stand on their way to
+    /// the settings. Taken as they are at the first stretch after a reset:
+    /// a block starting has nothing to rise from.
+    bool m_limitsHeld = false;
+    float m_heldMostDb = 0.0f;
+    std::vector<float> m_heldCeilingDb;
     std::vector<float> m_fast;
     std::vector<float> m_slow;
     std::vector<int> m_inBurst;

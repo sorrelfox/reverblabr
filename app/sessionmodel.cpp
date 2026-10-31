@@ -8,11 +8,15 @@
 #include "sessionmodel.h"
 
 #include "appshell.h"
+#include "blockpresentation.h"
+#include "blocks/builtinblocks.h"
 #include "core/audiogramfit.h"
 #include "core/editcommand.h"
+#include "core/lastlimit.h"
 #include "core/session.h"
 #include "core/sessionstore.h"
 #include "core/timers.h"
+#include "dsp/blockregistry.h"
 
 #include <KLazyLocalizedString>
 #include <KLocalizedString>
@@ -982,6 +986,52 @@ void SessionModel::setBlockEnabled(const QString &blockId, bool enabled)
     command.blockId = blockId;
     command.enabled = enabled;
     d->apply(command);
+}
+
+void SessionModel::holdBlockOff(const QString &blockId, bool held)
+{
+    if (d->facade != nullptr && !d->sessionId.isEmpty()) {
+        d->facade->holdBlockOff(d->sessionId, blockId, held);
+    }
+}
+
+QVariantMap SessionModel::lastLimit(const QString &blockId) const
+{
+    const core::BlockInstance *output = d->session.findBlock(blockId);
+    if (output == nullptr) {
+        return {};
+    }
+    // **The block types themselves**: the same answers the engine reads,
+    // whichever process that is in.
+    static const dsp::BlockRegistry registry = [] {
+        dsp::BlockRegistry made;
+        (void)blocks::registerBuiltinBlocks(made);
+        return made;
+    }();
+    static const core::LimitFacts facts = core::limitFactsOf(registry);
+    const core::LimitReason reason = core::lastLimitReason(d->session, *output, facts);
+    QVariantMap answer{
+        {u"needed"_s, reason.cause != core::LimitCause::None},
+        {u"appliedDb"_s, core::appliedLimitDb(d->session, *output, facts)},
+    };
+    switch (reason.cause) {
+    case core::LimitCause::None:
+        break;
+    case core::LimitCause::OneChannel:
+        answer.insert(u"cause"_s, u"oneChannel"_s);
+        break;
+    case core::LimitCause::TwoWires:
+        answer.insert(u"cause"_s, u"twoWires"_s);
+        break;
+    case core::LimitCause::Block:
+        answer.insert(u"cause"_s, u"block"_s);
+        if (const core::BlockInstance *block = d->session.findBlock(reason.blockId); block != nullptr) {
+            answer.insert(u"blockName"_s,
+                          block->nickname.isEmpty() ? blockPresentation::name(block->type) : block->nickname);
+        }
+        break;
+    }
+    return answer;
 }
 
 QString SessionModel::addBlock(const QString &typeId, const QPointF &position)

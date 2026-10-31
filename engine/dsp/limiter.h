@@ -63,6 +63,10 @@ public:
     /// How long a new ceiling takes to arrive: a ceiling put in place at
     /// once would take the gain down in one step, which is a click.
     static constexpr float kCeilingGlideMs = 20.0f;
+    /// **How fast a raised limit opens**, in dB a second. It has to be slow
+    /// enough to be followed, and it is the same number wherever a limit is
+    /// raised. No study gives a figure; this is a design choice.
+    static constexpr float kLimitRiseDbPerSecond = 12.0f;
     /// How far under the ceiling a true peak is aimed. **What the estimate
     /// and a finer meter disagree by**: four points a sample against a
     /// 128-tap reference differ by a few hundredths of a decibel on
@@ -116,7 +120,19 @@ public:
     void setCeilingGain(float ceiling) noexcept RB_NONBLOCKING
     {
         m_ceiling = ceiling;
-        m_ceilingGlide.setTarget(ceiling);
+        if (m_riseFactor == 1.0 || ceiling < m_ceilingGlide.current()) {
+            m_ceilingGlide.setTarget(ceiling);
+        }
+    }
+
+    /// **Makes the ceiling rise no faster than this**, sample by sample, so the
+    /// length of a cycle does not matter; a ceiling that falls still falls
+    /// over kCeilingGlideMs. A rate of nought, the default, is the plain
+    /// glide both ways. Not for the audio thread: set it after prepare().
+    void setRiseDbPerSecond(float dbPerSecond) noexcept
+    {
+        m_riseFactor =
+            dbPerSecond > 0.0f ? std::pow(10.0, static_cast<double>(dbPerSecond) / (20.0 * m_sampleRate)) : 1.0;
     }
 
     /// How long the gain takes to come back from silence to unity. Real-time.
@@ -183,7 +199,7 @@ public:
         const std::uint32_t channels = std::min(m_channels, block.channelCount());
         m_lowestGain = m_gain;
         for (std::uint32_t frame = 0; frame < frames; ++frame) {
-            const float ceiling = m_ceilingGlide.next();
+            const float ceiling = nextCeiling();
             float loudest = 0.0f;
             if (m_truePeakCapable) {
                 // The estimate is about the sample kDelay ago, which is why
@@ -282,6 +298,17 @@ private:
     /// kTruePeakMarginDb as the factor a true-peak estimate is scaled up by.
     static constexpr float kTruePeakMargin = 1.005773f;
 
+    /// The ceiling for this sample, gliding down or rising at the set rate.
+    [[nodiscard]] float nextCeiling() noexcept RB_NONBLOCKING
+    {
+        if (m_riseFactor != 1.0 && m_ceilingGlide.current() < m_ceiling) {
+            const double risen = static_cast<double>(m_ceilingGlide.current()) * m_riseFactor;
+            m_ceilingGlide.reset(std::min(static_cast<float>(risen), m_ceiling));
+            return m_ceilingGlide.current();
+        }
+        return m_ceilingGlide.next();
+    }
+
     /// Keeps the positions of the window in increasing order of what they
     /// require, so that the front is always the smallest. Amortised O(1) a
     /// sample, and nothing allocated: the ring is as long as the window.
@@ -340,6 +367,8 @@ private:
     std::uint32_t m_wedgeCount = 0;
     std::uint64_t m_position = 0;
     float m_ceiling = 1.0f;
+    /// What the ceiling is multiplied by a sample on its way up, or 1.
+    double m_riseFactor = 1.0;
     double m_releaseCoefficient = 0.0;
     /// The gain before the averaging: the window's smallest, released.
     double m_held = 1.0;

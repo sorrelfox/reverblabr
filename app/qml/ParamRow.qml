@@ -66,6 +66,8 @@ RowLayout {
     property string label: row.paramId
 
     property var locale: Qt.locale()
+    /// What a number reads as, where a panel knows better than the unit.
+    property var valueText: null
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -77,6 +79,9 @@ RowLayout {
     }
 
     function formatted(value: real): string {
+        if (row.valueText !== null) {
+            return row.valueText(value);
+        }
         return ParamFormat.formatted(value, row.paramType, row.unit, row.locale);
     }
 

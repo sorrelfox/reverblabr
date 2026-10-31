@@ -179,6 +179,7 @@ Recorder::Recorder()
 {
     m_info.typeId = std::string{kTypeId};
     m_info.category = BlockCategory::Outputs;
+    m_info.gainReach = GainReach::Unity;
     m_info.inputs = PortSpec::fixed(kChannels, {"in_FL", "in_FR"});
     m_info.outputs = PortSpec::fixed(kChannels, {"out_FL", "out_FR"});
     m_info.face = FaceKind::Icon;

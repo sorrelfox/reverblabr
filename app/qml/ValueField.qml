@@ -37,6 +37,9 @@ QQC2.TextField {
     /// What an arrow key moves it by, and what Page Up and Page Down do.
     property real stepSize: 1
     property real pageStepSize: 10
+    /// How far the arrows go. **Apart from `to`**, for an owner that lets a
+    /// value be typed higher than it can be stepped to and asks about it.
+    property real stepTop: field.to
     /// What a screen reader calls it. The owner's words.
     required property string label
 
@@ -45,6 +48,8 @@ QQC2.TextField {
 
     /// Somebody typed or stepped to \a value, already inside the range.
     signal valueEdited(real value)
+    /// An arrow was pressed at `stepTop`, and nothing moved.
+    signal stepRefused
 
     function shown(number) {
         return Number(number).toLocaleString(Qt.locale(), 'f', field.decimals);
@@ -96,7 +101,11 @@ QQC2.TextField {
     /// itself and not its rounding.
     function step(by) {
         const number = field.hasUnsentEdit() ? field.typed() : field.value;
-        field.offer((Number.isFinite(number) ? number : field.value) + by);
+        const wanted = (Number.isFinite(number) ? number : field.value) + by;
+        if (by > 0 && wanted > field.stepTop && number >= field.stepTop) {
+            field.stepRefused();
+        }
+        field.offer(Math.min(wanted, Math.max(field.stepTop, number)));
     }
 
     horizontalAlignment: TextInput.AlignRight
@@ -127,7 +136,9 @@ QQC2.TextField {
         } else if (event.key === Qt.Key_PageDown) {
             field.step(-field.pageStepSize);
             event.accepted = true;
-        } else if (event.key === Qt.Key_Escape) {
+        } else if (event.key === Qt.Key_Escape && field.hasUnsentEdit()) {
+            // Left for a dialog round the field when there is nothing to
+            // take back.
             field.showValue();
             event.accepted = true;
         }

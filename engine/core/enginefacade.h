@@ -167,6 +167,13 @@ public Q_SLOTS:
     /// a block that works on one ear. Not answered: they arrive with the
     /// meters, and a block that is not running has none.
     virtual void analyse(const QString &sessionId, const QString &blockId, int channel) = 0;
+    /// **Takes a block out of the sound while something is compared, or puts
+    /// it back.** Not an edit: no undo step, no patch, nothing to save, and
+    /// the session goes on saying the block is on. The change fades over the
+    /// 10 ms a switch does. It means something only while the session runs,
+    /// ends when it stops, and is not answered. A client that leaves the bus
+    /// lets go of what it held.
+    virtual void holdBlockOff(const QString &sessionId, const QString &blockId, bool held) = 0;
 
     virtual void start(const QString &sessionId) = 0;
     virtual void stop(const QString &sessionId) = 0;

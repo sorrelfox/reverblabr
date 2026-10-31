@@ -398,7 +398,10 @@ TEST_F(Structural, FrequencyRaisingsLatencyFollowsItsLowestMoveAndThePathBesideI
         ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
         EXPECT_EQ(runtime->replanCount(), replans + (step.replans ? 1 : 0)) << step.sourceLowHz << " Hz";
         EXPECT_EQ(blockLatency(), step.latency) << step.sourceLowHz << " Hz";
-        EXPECT_TRUE(pump.pumpUntil([&] { return runtime->latencySamples() == step.latency; }))
+        // The session adds the Output Device's limit to it: Frequency Raising
+        // can add gain, and nothing limits after it.
+        constexpr std::uint32_t kLastLimit = 84;
+        EXPECT_TRUE(pump.pumpUntil([&] { return runtime->latencySamples() == step.latency + kLastLimit; }))
             << "the session says it is " << runtime->latencySamples() << " samples late at " << step.sourceLowHz
             << " Hz";
         pump.pump(std::chrono::milliseconds{400});

@@ -73,13 +73,24 @@ Item {
         ? face.subtitle
         : (reading.followsDefault && reading.deviceName !== "" ? reading.deviceName : face.title)
 
+    /// Whether the block is holding the last limit of a chain: it publishes
+    /// the ceiling, which is below nought, and nought when it has none.
+    readonly property bool limiting: face.output && ((reading.levels.values ?? [])[3] ?? 0) < 0
+    readonly property string limitWord: KI18n.i18nc("@label on a tile: this output holds a limit", "Limit")
+
     /// Everything there is to say, for the tooltip and a screen reader.
-    readonly property string detail: face.subtitle === ""
-        ? face.title
-        : KI18n.i18nc("@info:whatsthis a device and what there is to say about it", "%1 — %2",
-                      face.title, face.subtitle)
+    readonly property string detail: {
+        const about = face.subtitle === ""
+            ? face.title
+            : KI18n.i18nc("@info:whatsthis a device and what there is to say about it", "%1 — %2",
+                          face.title, face.subtitle);
+        return face.limiting ? KI18n.i18nc("@info:whatsthis a device and what there is to say about it", "%1 — %2",
+                                           about, face.limitWord)
+                             : about;
+    }
 
     readonly property alias lineLabel: lineText
+    readonly property alias limitLabel: limitText
 
     implicitWidth: Kirigami.Units.gridUnit * 10
     implicitHeight: Kirigami.Units.gridUnit * 3
@@ -122,6 +133,17 @@ Item {
             color: face.unavailable ? AppColors.warningText : AppColors.muted
             font: AppFonts.faceLine
             elide: Text.ElideRight
+            horizontalAlignment: Text.AlignHCenter
+            Layout.fillWidth: true
+        }
+
+        ElidedLabel {
+            id: limitText
+
+            visible: face.limiting
+            text: face.limitWord
+            color: AppColors.muted
+            font: AppFonts.faceLine
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
         }

@@ -228,6 +228,8 @@ void BandGainControl::prepare(std::size_t count, double periodSeconds)
     m_levels.assign(count, -120.0f);
     m_holdUpdates = static_cast<int>(kBurstHoldSeconds / periodSeconds);
     m_fadeStep = static_cast<float>(periodSeconds / kFadeInSeconds);
+    m_riseStep = static_cast<float>(periodSeconds * static_cast<double>(kLimitRiseDbPerSecond));
+    m_heldCeilingDb.assign(count, 0.0f);
     setSpeed(HearingSpeed::Adaptive);
     reset(HearingSettings{});
 }
@@ -257,6 +259,12 @@ void BandGainControl::reset(const HearingSettings &settings) noexcept RB_NONBLOC
     std::fill(m_inBurst.begin(), m_inBurst.end(), 0);
     std::fill(m_levels.begin(), m_levels.end(), floor);
     m_fade = 0.0f;
+    m_limitsHeld = false;
+}
+
+float BandGainControl::walked(float held, float wanted) const noexcept RB_NONBLOCKING
+{
+    return wanted < held ? wanted : std::min(wanted, held + m_riseStep);
 }
 
 void BandGainControl::update(std::span<const float> levelPower,
@@ -270,6 +278,9 @@ void BandGainControl::update(std::span<const float> levelPower,
     m_fade = std::min(1.0f, m_fade + m_fadeStep);
     const float floor = settings.noiseFloorDbfs - kDetectorRangeDb;
     const std::size_t count = std::min({levelPower.size(), bands.size(), gainDb.size(), m_fast.size()});
+    HearingSettings applied = settings;
+    applied.maximumGainDb = m_limitsHeld ? walked(m_heldMostDb, settings.maximumGainDb) : settings.maximumGainDb;
+    m_heldMostDb = applied.maximumGainDb;
     for (std::size_t band = 0; band < count; ++band) {
         const float now = std::max(10.0f * std::log10(levelPower[band] + 1.0e-12f), floor);
         const auto follow = [now](float &envelope, float attack, float release) noexcept RB_NONBLOCKING {
@@ -287,15 +298,19 @@ void BandGainControl::update(std::span<const float> levelPower,
             level = m_slow[band];
         }
         m_levels[band] = level;
-        float gain = steadyGainDb(bands[band], settings, level);
+        HearingBand held = bands[band];
+        held.ceilingDbfs = m_limitsHeld ? walked(m_heldCeilingDb[band], held.ceilingDbfs) : held.ceilingDbfs;
+        m_heldCeilingDb[band] = held.ceilingDbfs;
+        float gain = steadyGainDb(held, applied, level);
         // **The ceiling has no attack time.** A sound louder than the
         // detector has caught up with is held under it from the stretch it
         // arrives in, which is before it leaves the filterbank's delay.
-        gain = std::min(gain, bands[band].ceilingDbfs - now);
+        gain = std::min(gain, held.ceilingDbfs - now);
         // The fade brings the lift in; a cut, which only ever makes the
         // sound safer, is there from the start.
         gainDb[band] = gain > 0.0f ? gain * m_fade : gain;
     }
+    m_limitsHeld = true;
 }
 
 } // namespace rb::dsp

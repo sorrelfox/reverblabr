@@ -14,8 +14,10 @@
 #include <QDBusMessage>
 #include <QDBusServiceWatcher>
 #include <QDBusUnixFileDescriptor>
+#include <QHash>
 #include <QLoggingCategory>
 #include <QMetaMethod>
+#include <QSet>
 #include <unistd.h>
 
 #include <utility>
@@ -99,6 +101,10 @@ public:
     QDBusServiceWatcher watcher;
     QSet<QString> clients;
     QSet<QString> running;
+    /// Who holds which block out of the sound, as session and block. A hold
+    /// is a finger on a button, so it must not outlive the client: the daemon
+    /// goes on running after a window has gone.
+    QHash<QString, QSet<std::pair<QString, QString>>> holds;
     bool idle = true;
     std::function<int(const QString &)> share;
 
@@ -175,6 +181,9 @@ EngineService::EngineService(core::EngineFacade *engine, const QDBusConnection &
     connect(&d->watcher, &QDBusServiceWatcher::serviceUnregistered, this, [this, update](const QString &name) {
         d->watcher.removeWatchedService(name);
         d->clients.remove(name);
+        for (const auto &[sessionId, blockId] : d->holds.take(name)) {
+            d->engine->holdBlockOff(sessionId, blockId, false);
+        }
         update();
     });
     // What is running is read off the facade's own answers, so it is what
@@ -192,6 +201,9 @@ EngineService::EngineService(core::EngineFacade *engine, const QDBusConnection &
             });
     connect(engine, &core::EngineFacade::sessionClosed, this, [this, update](const QString &sessionId) {
         d->running.remove(sessionId);
+        for (QSet<std::pair<QString, QString>> &held : d->holds) {
+            held.removeIf([&sessionId](const std::pair<QString, QString> &hold) { return hold.first == sessionId; });
+        }
         update();
     });
 }
@@ -282,6 +294,14 @@ bool EngineService::handleMessage(const QDBusMessage &message, const QDBusConnec
     // and the answer to a call is a signal (ADR-0003).
     if (message.isReplyRequired()) {
         connection.send(message.createReply());
+    }
+    if (message.member() == u"HoldBlockOff"_s) {
+        const std::pair hold{arguments.at(0).toString(), arguments.at(1).toString()};
+        if (arguments.at(2).toBool()) {
+            d->holds[sender].insert(hold);
+        } else {
+            d->holds[sender].remove(hold);
+        }
     }
     invoke(d->engine, method, arguments);
     return true;

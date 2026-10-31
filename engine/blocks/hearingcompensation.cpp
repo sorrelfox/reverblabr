@@ -64,6 +64,8 @@ HearingCompensation::HearingCompensation(std::size_t bands, std::string_view typ
 {
     m_info.typeId = std::string{typeId};
     m_info.category = BlockCategory::Hearing;
+    // The final limiter cannot be switched off.
+    m_info.gainReach = GainReach::EndsInLimit;
     m_info.inputs = PortSpec::fixed(kChannels, {"in_FL", "in_FR"});
     m_info.outputs = PortSpec::fixed(kChannels, {"out_FL", "out_FR"});
     m_info.face = FaceKind::Curve;
@@ -199,6 +201,7 @@ std::expected<void, BlockError> HearingCompensation::prepare(const PrepareSpec &
                       LookaheadLimiter::kDefaultReleaseMs,
                       true);
     m_limiter.setTruePeak(true);
+    m_limiter.setRiseDbPerSecond(LookaheadLimiter::kLimitRiseDbPerSecond);
     m_info.latencySamples = m_bank.latencySamples() + m_limiter.latencySamples();
     m_router.prepare(spec.sampleRate, spec.maxBlockFrames, m_info.latencySamples, earFromNumber(m_store.number(Ear)));
     m_meter = spec.meter;

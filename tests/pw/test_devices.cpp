@@ -19,6 +19,7 @@
 #include "blocks/inputdevice.h"
 #include "blocks/outputdevice.h"
 #include "blocks/peakrmsmeter.h"
+#include "blocks/volume.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/sessionplan.h"
@@ -174,6 +175,114 @@ private:
 } // namespace
 
 using Devices = SessionTest;
+
+namespace
+{
+
+/// Both sides, from one block to the next.
+void wireUp(Session &session, const QString &from, const QString &to)
+{
+    session.wires.removeIf([&from](const Wire &wire) { return wire.fromBlock == from; });
+    for (std::uint32_t channel = 0; channel < 2; ++channel) {
+        session.wires.append(Wire{from, channel, to, channel});
+    }
+}
+
+/// `deviceSession()` with a Hearing Compensation between the two.
+[[nodiscard]] Session liftedSession(const QString &binary, const QString &device)
+{
+    Session session = deviceSession(binary, device);
+    session.blocks.append(block(u"lift"_s, "hearing.compensation16"));
+    wireUp(session, u"src"_s, u"lift"_s);
+    wireUp(session, u"lift"_s, u"out"_s);
+    return session;
+}
+
+} // namespace
+
+// **The limit is where the session's shape says, by every route, and the sound
+// goes on when it arrives.** A fresh Output Device in a running session.
+TEST_F(Devices, TheLastLimitFollowsTheWiresAndTheSoundGoesOn)
+{
+    Pump engine;
+    ASSERT_TRUE(engine.waitUntilReady());
+    const dsp::BlockRegistry registry = deviceRegistry();
+    SessionRuntime runtime(engine.connection(), engine.mirror(), registry);
+    CaptureNode device(sinkOptions("rbtest.device.limit", {"FL", "FR"}));
+    ASSERT_TRUE(device.waitUntilReady().has_value());
+
+    Session session = liftedSession(u"limitapp"_s, u"rbtest.device.limit"_s);
+    ASSERT_TRUE(runtime.start(session).has_value());
+    const std::optional<Graph::Node> ours = engine.awaitNode(runtime.node()->nodeName());
+    ASSERT_TRUE(ours.has_value());
+    FakeApp app(appOptions("LimitApp", "limitapp"));
+    ASSERT_TRUE(engine.awaitMatch(playbackStreamOf("LimitApp")).has_value());
+    ASSERT_TRUE(engine.pumpUntil([&] {
+        const std::optional<pw::PwNode> sink = engine.mirror().nodeNamed(u"rbtest.device.limit"_s);
+        return sink && engine.mirror().isLinked(ours->id, sink->object.id);
+    }));
+    constexpr std::size_t kApplied = blocks::OutputDevice::kAppliedLimitValue;
+    EXPECT_FLOAT_EQ(published(runtime, u"out"_s, kApplied), 0.0f) << "a chain ending in Soft Lift pays nothing";
+    const std::uint32_t without = runtime.latencySamples();
+
+    // A block that can add gain, after the last ceiling.
+    session.blocks.append(block(u"after"_s, blocks::Volume::kTypeId));
+    wireUp(session, u"lift"_s, u"after"_s);
+    wireUp(session, u"after"_s, u"out"_s);
+    ASSERT_TRUE(runtime.update(session).has_value());
+    ASSERT_TRUE(engine.pumpUntil([&] { return published(runtime, u"out"_s, kApplied) == -1.0f; }));
+    const std::uint32_t limited = runtime.latencySamples();
+    EXPECT_EQ(limited - without, 72U + 84U) << "the Volume block's delay and the limit's";
+    engine.pump(std::chrono::milliseconds{800});
+    const std::map<std::string, SineCheck> heard = device.measureSine(300ms);
+    ASSERT_TRUE(heard.contains("FL"));
+    EXPECT_NEAR(heard.at("FL").peakDb, kTonePeakDb, 0.5) << "the fresh device did not come back";
+
+    // A knob reaches it at once, with no plan, and from the blocks: this
+    // session is not told.
+    const std::uint64_t replans = runtime.replanCount();
+    const std::expected<ParamEffect, dsp::BlockError> lowered =
+        runtime.setParam(u"lift"_s, u"limiterCeilingDb"_s, QJsonValue{-12.0});
+    ASSERT_TRUE(lowered.has_value());
+    EXPECT_EQ(*lowered, ParamEffect::Applied);
+    EXPECT_EQ(runtime.replanCount(), replans);
+    ASSERT_TRUE(engine.pumpUntil([&] { return published(runtime, u"out"_s, kApplied) == -12.0f; }));
+
+    // A hold is not in the session, so it cannot flip the limit.
+    ASSERT_TRUE(runtime.holdBlockOff(u"lift"_s, true));
+    ASSERT_TRUE(runtime.update(session).has_value());
+    EXPECT_EQ(runtime.latencySamples(), limited);
+    EXPECT_NE(published(runtime, u"out"_s, kApplied), 0.0f);
+    ASSERT_TRUE(runtime.holdBlockOff(u"lift"_s, false));
+    ASSERT_TRUE(runtime.update(session).has_value());
+
+    // Taking the block away takes the limit with it.
+    session.blocks.removeLast();
+    wireUp(session, u"lift"_s, u"out"_s);
+    session.wires.removeIf([](const Wire &wire) { return wire.fromBlock == u"after"_s; });
+    ASSERT_TRUE(runtime.update(session).has_value());
+    ASSERT_TRUE(engine.pumpUntil([&] { return published(runtime, u"out"_s, kApplied) == 0.0f; }));
+    EXPECT_EQ(runtime.latencySamples(), without);
+}
+
+TEST_F(Devices, AChannelPickerThatPutsBothSidesOnOneChannelAsksForAPlan)
+{
+    Pump engine;
+    ASSERT_TRUE(engine.waitUntilReady());
+    const dsp::BlockRegistry registry = deviceRegistry();
+    SessionRuntime runtime(engine.connection(), engine.mirror(), registry);
+    CaptureNode device(sinkOptions("rbtest.device.picker", {"FL", "FR"}));
+    ASSERT_TRUE(device.waitUntilReady().has_value());
+    const Session session = liftedSession(u"pickerapp"_s, u"rbtest.device.picker"_s);
+    ASSERT_TRUE(runtime.start(session).has_value());
+
+    const auto left = runtime.setParam(u"out"_s, u"leftChannel"_s, QJsonValue{u"FL"_s});
+    ASSERT_TRUE(left.has_value());
+    EXPECT_EQ(*left, ParamEffect::Applied);
+    const auto right = runtime.setParam(u"out"_s, u"rightChannel"_s, QJsonValue{u"FL"_s});
+    ASSERT_TRUE(right.has_value());
+    EXPECT_EQ(*right, ParamEffect::NeedsReplan);
+}
 
 TEST_F(Devices, TheSessionIsHeardOnTheDeviceItWasPointedAt)
 {

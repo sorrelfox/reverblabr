@@ -11,6 +11,7 @@
 #include "blocks/outputdevice.h"
 #include "blocks/pluginblock.h"
 #include "core/broadcasts.h"
+#include "core/lastlimit.h"
 #include "core/paramjson.h"
 #include "core/recordings.h"
 #include "core/sessionplan.h"
@@ -337,6 +338,19 @@ public:
     /// exactly the same reason as `retiring`: the live graph still points at
     /// them until it has been swapped.
     std::vector<std::unique_ptr<dsp::Block>> retiringBlocks;
+    /// The blocks held out of the sound without the session knowing
+    /// (holdBlockOff()), and those a hold has changed since the last update:
+    /// a comparison of sessions cannot find a change no session holds, and
+    /// the lane would dip on top of the block's own fade.
+    QSet<QString> heldOff;
+    QSet<QString> pendingToggles;
+
+    /// Whether \a instance is in the sound: on in the session, and not held.
+    [[nodiscard]] bool playing(const Instance &instance) const
+    {
+        return instance.enabled && !heldOff.contains(instance.id);
+    }
+
     /// The blocks the last prepareBlocks() replaced with fresh ones, by id:
     /// what the update after it has to let fill before their lanes come
     /// back (pw::SessionUpdate::refilled).
@@ -687,7 +701,7 @@ public:
     {
         std::map<QString, Host> next;
         for (const Instance &instance : instances) {
-            if (!runsInAHost(instance.type, instance.enabled, *instance.block)) {
+            if (!runsInAHost(instance.type, playing(instance), *instance.block)) {
                 continue;
             }
             const auto *plugin = static_cast<const blocks::PluginBlock *>(instance.block.get());
@@ -1522,6 +1536,62 @@ public:
         return {};
     }
 
+    /// What the running blocks say about themselves. **The blocks and not
+    /// the session**: `session` holds what it was last given, and a knob
+    /// turned since is only in the block. What a block is not asked about is
+    /// the block's own default, for the same reason.
+    [[nodiscard]] LimitFacts liveLimitFacts() const
+    {
+        LimitFacts facts;
+        facts.reach = [this](const BlockInstance &block) {
+            const Instance *instance = findConst(block.id);
+            return instance == nullptr ? dsp::GainReach::Adds : instance->block->info().gainReach;
+        };
+        facts.inGroup = [this](const BlockInstance &block) {
+            const Instance *instance = findConst(block.id);
+            return instance != nullptr && instance->block->info().category == dsp::BlockCategory::Hearing;
+        };
+        const auto paramOf = [this](const BlockInstance &block, const QString &paramId) {
+            const Instance *instance = findConst(block.id);
+            const std::string wanted = paramId.toStdString();
+            std::optional<dsp::ParamValue> value;
+            if (instance != nullptr
+                && std::ranges::any_of(instance->block->params(), [&wanted](const dsp::ParamDescriptor &descriptor) {
+                       return descriptor.id == wanted;
+                   })) {
+                value = instance->block->param(wanted);
+            }
+            return value;
+        };
+        facts.text = [paramOf](const BlockInstance &block, const QString &paramId) {
+            const std::optional<dsp::ParamValue> value = paramOf(block, paramId);
+            return value ? QString::fromStdString(value->text()) : QString{};
+        };
+        facts.number = [paramOf](const BlockInstance &block, const QString &paramId, float fallback) {
+            const std::optional<dsp::ParamValue> value = paramOf(block, paramId);
+            return value ? value->asFloat().value_or(fallback) : fallback;
+        };
+        return facts;
+    }
+
+    /// Tells every Output Device whether it holds the last limit and at what
+    /// ceiling. Whether it holds one is what preparedShape() answers, so a
+    /// change goes the way of any shape: a fresh block, and the lanes silent
+    /// for the new latency and faded back.
+    void applyLastLimits(const Session &wanted)
+    {
+        const LimitFacts facts = liveLimitFacts();
+        for (Instance &instance : instances) {
+            if (instance.type.toStdString() != blocks::OutputDevice::kTypeId) {
+                continue;
+            }
+            if (const BlockInstance *output = wanted.findBlock(instance.id); output != nullptr) {
+                static_cast<blocks::OutputDevice &>(*instance.block)
+                    .setLastLimit(lastLimitNeeded(wanted, *output, facts), appliedLimitDb(wanted, *output, facts));
+            }
+        }
+    }
+
     /// Gets ready every block that is not ready already.
     ///
     /// **Only the ones something really changed for**. Preparing may
@@ -1561,6 +1631,11 @@ public:
                     // What the host said is not a setting, and is still true.
                     static_cast<blocks::PluginBlock &>(**fresh).setReportedLatency(
                         instance.block->info().latencySamples);
+                }
+                if (instance.type.toStdString() == blocks::OutputDevice::kTypeId) {
+                    // Nor is what the session's shape says about its limit.
+                    const auto &old = static_cast<const blocks::OutputDevice &>(*instance.block);
+                    static_cast<blocks::OutputDevice &>(**fresh).setLastLimit(old.lastLimitWanted(), old.lastLimitDb());
                 }
                 retiringBlocks.push_back(std::move(instance.block));
                 instance.block = std::move(*fresh);
@@ -1623,7 +1698,7 @@ public:
             graph::NodeSpec node;
             node.id = block.id.toStdString();
             node.block = found->block.get();
-            node.enabled = block.enabled;
+            node.enabled = block.enabled && !heldOff.contains(block.id);
             node.crossfadeSamples = fadingBypass.contains(block.id) ? bypassFadeSamples(sampleRate) : 0;
             node.meter = found->meter.get();
             indexOf.insert(block.id, spec.nodes.size());
@@ -1954,6 +2029,7 @@ std::expected<void, RuntimeError> SessionRuntime::start(const Session &session)
     // before anything is compiled.
     d->plan = d->planFor(session);
     (void)d->applyPlan(d->plan);
+    d->applyLastLimits(session);
     if (const std::expected<void, RuntimeError> ready = d->prepareBlocks(); !ready) {
         return std::unexpected(ready.error());
     }
@@ -2017,6 +2093,8 @@ void SessionRuntime::stop()
     d->split = {};
     d->splitIds.clear();
     d->plan = {};
+    d->heldOff.clear();
+    d->pendingToggles.clear();
     d->running = false;
 }
 
@@ -2038,9 +2116,13 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
     if (const std::expected<void, RuntimeError> made = d->reconcileBlocks(session); !made) {
         return std::unexpected(made.error());
     }
+    // A block that has left the session takes its hold with it, or an id used
+    // again later would start out held.
+    d->heldOff.removeIf([&session](const QString &id) { return !session.hasBlock(id); });
     d->ensureTaps();
     d->plan = d->planFor(session);
     (void)d->applyPlan(d->plan);
+    d->applyLastLimits(session);
     if (const std::expected<void, RuntimeError> ready = d->prepareBlocks(); !ready) {
         return std::unexpected(ready.error());
     }
@@ -2054,7 +2136,10 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
         const auto was = std::ranges::find_if(d->session.blocks.cbegin(),
                                               d->session.blocks.cend(),
                                               [&block](const BlockInstance &old) { return old.id == block.id; });
-        if (was != d->session.blocks.cend() && was->enabled != block.enabled) {
+        // A hold changed nothing a session can show, so it says so itself; an
+        // edit under a hold changes nothing that can be heard.
+        const bool switched = was != d->session.blocks.cend() && was->enabled != block.enabled;
+        if (d->pendingToggles.contains(block.id) || (switched && !d->heldOff.contains(block.id))) {
             toggled.append(block.id);
         }
     }
@@ -2111,6 +2196,7 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
     d->retiring.clear();
     d->retiringBlocks.clear();
     d->keep(*built);
+    d->pendingToggles.clear();
 
     d->session = session;
     // The ports the links end on may have just changed, so what is wanted is
@@ -2178,6 +2264,14 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     if (d->running) {
         d->applyGapLanes(d->session);
     }
+    // **A limit follows its settings at once.** A ceiling is heard in the next
+    // cycle; a channel picker that changes whether a limit is needed shows up
+    // in preparedShape() below, and is planned again.
+    if (d->running
+        && (wanted == "limiterCeilingDb" || wanted == "limitDb" || wanted == "leftChannel"
+            || wanted == "rightChannel")) {
+        d->applyLastLimits(d->session);
+    }
     // **A Recorder's settings reach the recording that is going on**: a
     // limit turned on applies to it now, and a format or a name from the
     // next file on.
@@ -2234,7 +2328,7 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     }
     // **A plugin's parameter goes to its host**, through the ring the host's
     // audio thread reads (ADR-0014); the graph never runs the plugin.
-    if (runsInAHost(instance->type, instance->enabled, *instance->block)) {
+    if (runsInAHost(instance->type, d->playing(*instance), *instance->block)) {
         const std::optional<std::uint32_t> hostIndex = blocks::PluginBlock::pluginParamIndex(index);
         // Only to a host of the plugin the block has: one being replaced
         // would take a value meant for another plugin's setting.
@@ -2254,6 +2348,20 @@ SessionRuntime::setParam(const QString &blockId, const QString &paramId, const Q
     change.value = static_cast<float>(*number);
     (void)node->queueParam(change);
     return effect;
+}
+
+bool SessionRuntime::holdBlockOff(const QString &blockId, bool held)
+{
+    if (!d->running || d->findConst(blockId) == nullptr || d->heldOff.contains(blockId) == held) {
+        return false;
+    }
+    if (held) {
+        d->heldOff.insert(blockId);
+    } else {
+        d->heldOff.remove(blockId);
+    }
+    d->pendingToggles.insert(blockId);
+    return true;
 }
 
 void SessionRuntime::setBroadcastPasswordUnavailable(const QString &blockId)
@@ -2407,8 +2515,8 @@ std::vector<SessionRuntime::MeteredBlock> SessionRuntime::meters() const
     std::vector<MeteredBlock> metered;
     metered.reserve(d->instances.size());
     for (const Private::Instance &instance : d->instances) {
-        metered.push_back(
-            MeteredBlock{instance.id, instance.meter.get(), instance.enabled, instance.block->info().latencySamples});
+        metered.push_back(MeteredBlock{
+            instance.id, instance.meter.get(), d->playing(instance), instance.block->info().latencySamples});
     }
     return metered;
 }

@@ -162,6 +162,7 @@ public Q_SLOTS:
     void loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId) override;
     void savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name) override;
     void analyse(const QString &sessionId, const QString &blockId, int channel) override;
+    void holdBlockOff(const QString &sessionId, const QString &blockId, bool held) override;
     void start(const QString &sessionId) override;
     void stop(const QString &sessionId) override;
     void getSessionState(const QString &sessionId) override;

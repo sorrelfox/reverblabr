@@ -40,6 +40,20 @@ enum class FaceKind : std::uint8_t {
     Vu, ///< A pair of needles, for the VU meter.
 };
 
+/// **How far a block can take a sample above what came in**, which is what
+/// decides whether a limit still holds after it.
+enum class GainReach : std::uint8_t {
+    /// It may raise a sample. **The default**, so a block is counted as
+    /// adding until someone has shown it does not.
+    Adds,
+    /// It cannot: it only passes, lowers, or crosses over with gains that add
+    /// to one. A test holds this at full scale for every block that says so.
+    Unity,
+    /// Its output cannot pass a limit it holds, and that limit cannot be
+    /// switched off.
+    EndsInLimit,
+};
+
 /// The stable name of a category or a face, for the facade. Never translated.
 [[nodiscard]] std::string_view blockCategoryName(BlockCategory category) noexcept;
 [[nodiscard]] std::string_view faceKindName(FaceKind face) noexcept;
@@ -144,6 +158,9 @@ struct BlockInfo {
     /// mistaken for a recording and written to a file, or the other way
     /// round.
     bool streamsAudio = false;
+
+    /// What the block can do to a peak (GainReach).
+    GainReach gainReach = GainReach::Adds;
 };
 
 } // namespace rb::dsp
