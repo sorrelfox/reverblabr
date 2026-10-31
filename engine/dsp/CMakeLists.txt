@@ -64,6 +64,8 @@ add_library(reverblabr-dsp STATIC
     spectrum.h
     truepeak.h
     stereogains.h
+    voicelikelihood.cpp
+    voicelikelihood.h
 )
 target_include_directories(reverblabr-dsp PUBLIC ${PROJECT_SOURCE_DIR}/engine)
 target_link_libraries(reverblabr-dsp PUBLIC reverblabr-rt)

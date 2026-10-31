@@ -92,6 +92,8 @@ add_library(reverblabr-blocks STATIC
     timeshiftspill.h
     volume.cpp
     volume.h
+    voicemodel.cpp
+    voicemodel.h
     vumeter.cpp
     vumeter.h
     wave.cpp
@@ -106,7 +108,8 @@ target_link_libraries(reverblabr-blocks PUBLIC reverblabr-dsp PRIVATE reverblabr
 # Pitch Shift runs SoundTouch (LGPL-2.1), linked dynamically.
 pkg_check_modules(SOUNDTOUCH REQUIRED IMPORTED_TARGET soundtouch>=2.1)
 target_link_libraries(reverblabr-blocks PRIVATE PkgConfig::SOUNDTOUCH)
-# Speech Denoise runs RNNoise (ADR-0016), where the distribution has it.
+# Speech Denoise and the voice model run RNNoise (ADR-0016), where the
+# distribution has it. This is the only layer that links it.
 if(RB_BUILD_SPEECH_DENOISE)
     target_sources(reverblabr-blocks PRIVATE speechdenoise.cpp speechdenoise.h)
     target_compile_definitions(reverblabr-blocks PUBLIC RB_HAVE_RNNOISE)

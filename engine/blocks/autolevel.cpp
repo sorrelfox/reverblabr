@@ -103,7 +103,8 @@ float AutoLevel::wantedBoostDb() const noexcept RB_NONBLOCKING
     if (m_store.number(Boost) == 0.0f || loudness < kGateLufs) {
         return 0.0f;
     }
-    return std::clamp(m_store.number(Target) - loudness, 0.0f, m_store.number(MaximumBoost));
+    const PivotLaw upwardOnly{.cutSlope = 0.0f, .mostLiftDb = m_store.number(MaximumBoost)};
+    return pivotGainDb(loudness, m_store.number(Target), upwardOnly);
 }
 
 void AutoLevel::process(ProcessContext &context) noexcept RB_NONBLOCKING

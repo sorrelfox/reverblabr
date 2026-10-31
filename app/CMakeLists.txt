@@ -266,6 +266,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     # The virtual devices' own window, from the title bar's button,
     # and its lists.
     qml/VirtualDevicesWindow.qml
+    qml/ValueField.qml
     qml/VirtualDeviceRow.qml
     qml/VirtualDeviceSection.qml
     # Every saved session in a table of its own.
