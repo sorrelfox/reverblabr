@@ -38,6 +38,7 @@
 #include "blocks/mixer.h"
 #include "blocks/monoenhancer.h"
 #include "blocks/multibandcompressor.h"
+#include "blocks/oneearmix.h"
 #include "blocks/outputdevice.h"
 #include "blocks/pan.h"
 #include "blocks/parametriceq.h"
@@ -99,6 +100,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{Mixer::kTypeId}, &Mixer::make).has_value()
         && registry.add(std::string{InputSwitch::kTypeId}, &InputSwitch::make).has_value()
         && registry.add(std::string{JoinLR::kTypeId}, &JoinLR::make).has_value()
+        && registry.add(std::string{OneEarMix::kTypeId}, &OneEarMix::make).has_value()
         && registry.add(std::string{FrequencyLowering::kTypeId}, &FrequencyLowering::make).has_value()
         && registry.add(std::string{HearingCompensation::kTypeId16}, &HearingCompensation::make16).has_value()
         && registry.add(std::string{FrequencyRaising::kTypeId}, &FrequencyRaising::make).has_value()

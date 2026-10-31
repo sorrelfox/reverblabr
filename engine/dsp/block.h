@@ -174,6 +174,13 @@ public:
     /// two cycles when a path is connected or cut.
     virtual void reset() noexcept RB_NONBLOCKING = 0;
 
+    /// **The block is being switched back on**, by a person or a comparison,
+    /// and is about to run again after a stretch it did not hear. Nearly every
+    /// block has nothing to do here: unlike reset(), this is for one that
+    /// must bring something back gently. Real-time: it runs in the cycle
+    /// the fade starts, just before process().
+    virtual void switchedOn() noexcept RB_NONBLOCKING { }
+
     /// Applies a parameter change that arrived through the parameter queue.
     /// \a index is the position in params(). Real-time, so only parameters
     /// whose value is a number travel this way; the rest change the graph and

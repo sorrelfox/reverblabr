@@ -922,6 +922,16 @@ the ear hears, with about 43 ms of delay, or 85 ms while a move starts below
 and the right side of the other, lined up in time, so that each ear can have
 its own blocks. See <xref linkend="one-ear"/>.</para>
 </sect2>
+
+<sect2 id="block-hearing-oneearmix">
+<title>One Ear Mix</title>
+<para>Puts both sides into one ear, or one mix on both sides for one earbud.
+Sound panned to one side comes through 3 dB lower, not 6, and sound out of
+phase between the sides doesn't cancel the way it does in a plain mono mix. A
+sound a quarter of a cycle apart between the sides can get quieter instead, and
+peaks can rise by several dB, so keep a limit after it. Direction doesn't come
+back: a mix in one ear can't tell you where a sound is.</para>
+</sect2>
 </sect1>
 
 <sect1 id="blocks-plugins">
@@ -1520,7 +1530,7 @@ in place.</para>
 <sect1 id="one-ear">
 <title>One ear at a time</title>
 
-<para>Every block in the Hearing group except Join L/R has an
+<para>Every block in the Hearing group except Join L/R and One Ear Mix has an
 <guilabel>Ear</guilabel> setting, Left or Right, at the top of its settings,
 and its tile shows an <guilabel>L</guilabel> (blue) or an
 <guilabel>R</guilabel> (red). The block changes that side only and passes the

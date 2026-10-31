@@ -132,6 +132,10 @@ public:
     [[nodiscard]] std::expected<ParamEffect, dsp::BlockError>
     setParam(const QString &blockId, const QString &paramId, const QJsonValue &value);
 
+    /// Whether \a paramId of a running block is a press and not a setting
+    /// (ParamFlags::momentary), which the session does not hold.
+    [[nodiscard]] bool isMomentary(const QString &blockId, const QString &paramId) const;
+
     /// **Takes a block out of the sound, or puts it back, without the session
     /// hearing of it**: what a "before" button does, which is a comparison and
     /// not an edit. The next update() builds the graph with the block bypassed

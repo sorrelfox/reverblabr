@@ -233,6 +233,42 @@ TEST(Bypass, SwitchingABlockBackOnFadesTheOtherWay)
     EXPECT_LT(largestStep(across), allowed);
 }
 
+TEST(Bypass, ABlockIsToldOnceThatItIsComingBackOn)
+{
+    class Listening final : public test::GainStage
+    {
+    public:
+        using test::GainStage::GainStage;
+        void switchedOn() noexcept RB_NONBLOCKING override
+        {
+            ++told;
+        }
+        int told = 0;
+    };
+    test::ConstantSource source(1.0f, 1);
+    Listening gain(0.25f, 1);
+
+    GraphSpec bypassed;
+    bypassed.sampleRate = kRate;
+    bypassed.nodes = {node("src", &source), node("fx", &gain, false)};
+    bypassed.edges = {edge(0, 1)};
+    CompiledGraph off = compile(bypassed);
+    (void)run(off, 1, 2);
+    EXPECT_EQ(gain.told, 0);
+
+    GraphSpec active = bypassed;
+    active.nodes[1] = node("fx", &gain, true, kFade);
+    CompiledGraph fading = compile(active, false);
+    (void)run(fading, 1, 16);
+    EXPECT_EQ(gain.told, 1);
+
+    GraphSpec fadingOff = bypassed;
+    fadingOff.nodes[1] = node("fx", &gain, false, kFade);
+    CompiledGraph goingOff = compile(fadingOff, false);
+    (void)run(goingOff, 1, 16);
+    EXPECT_EQ(gain.told, 1) << "switching off is not coming back on";
+}
+
 TEST(Bypass, AFadeLandsExactlyOnTheSideItWasGoingTo)
 {
     test::ConstantSource source(1.0f, 1);

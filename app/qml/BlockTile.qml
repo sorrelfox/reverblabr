@@ -232,6 +232,25 @@ Item {
                       Math.round(tile.latencyMs * 10) / 10)
         : ""
 
+    /// The state dot's colour. A face with something of its own to say sets
+    /// `dot` to "ok", "live", "warning" or "off"; the rest leave it to whether
+    /// sound is passing.
+    function dotColor(face: var): color {
+        const word = face?.dot ?? "";
+        if (!tile.blockEnabled || word === "off") {
+            return AppColors.muted;
+        }
+        switch (word) {
+        case "ok":
+            return AppColors.okMark;
+        case "live":
+            return AppColors.liveMark;
+        case "warning":
+            return AppColors.warningMark;
+        }
+        return tile.showsLive ? AppColors.liveMark : AppColors.okMark;
+    }
+
     /// What a face has to say beyond the line it shows, or nothing — and
     /// how late the block makes the sound, where it does.
     function detailOf(face: var): string {
@@ -491,9 +510,7 @@ Item {
                     implicitWidth: AppMetrics.stateDotSize
                     implicitHeight: implicitWidth
                     radius: width / 2
-                    color: !tile.blockEnabled
-                        ? AppColors.muted
-                        : tile.showsLive ? AppColors.liveMark : AppColors.okMark
+                    color: tile.dotColor(faceLoader.item)
                     Accessible.ignored: true
                 }
             }

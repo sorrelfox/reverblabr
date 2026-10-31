@@ -85,7 +85,7 @@ QtObject {
                                "Puts the left side on the right and the right on the left.");
         case "mono":
             return KI18n.i18nc("@info what the Channels action does",
-                               "Averages the two sides and plays the result on both.");
+                               "Averages the two sides and plays the result on both. Sound panned to one side drops 6 dB, and sound out of phase between the sides cancels. One Ear Mix, in the Hearing group, folds them another way.");
         case "leftToBoth":
             return KI18n.i18nc("@info what the Channels action does",
                                "Plays the left side on both, for a source that only arrives on one.");

@@ -1213,9 +1213,10 @@ void Engine::setParam(const QString &sessionId,
 
     // The session remembers it, so that saving writes it, and so does the
     // history: a knob is undone like anything else, and a whole drag of one
-    // comes back in a single step.
+    // comes back in a single step. A press of a button is none of that.
+    const bool momentary = session->runtime && session->runtime->isMomentary(blockId, paramId);
     for (BlockInstance &block : session->session.blocks) {
-        if (block.id == blockId) {
+        if (block.id == blockId && !momentary) {
             const QJsonValue previous = block.params.value(paramId);
             block.params.insert(paramId, value);
             session->history.record(SetParam{blockId, paramId, value},

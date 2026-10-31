@@ -17,6 +17,7 @@
 #include "blocks/inputdevice.h"
 #include "blocks/limiter.h"
 #include "blocks/multibandcompressor.h"
+#include "blocks/oneearmix.h"
 #include "blocks/outputdevice.h"
 #include "buildversion.h"
 #ifdef RB_HAVE_RNNOISE
@@ -182,6 +183,7 @@ public:
         QHash<QString, QVariantList> spectra;
         QHash<QString, QVariantList> inputSpectra;
         QHash<QString, QVariantList> bandValues;
+        QHash<QString, QVariantList> blockValues;
         QString analysed;
         int analysedChannel = kBothChannels;
         /// The blocks held out of the sound.
@@ -523,6 +525,18 @@ public:
                 into.values[blocks::SpeechDenoise::kGateValue] = peak > 0.0f ? 1.0f : 0.0f;
             }
 #endif
+            if (running && block.type == asText(blocks::OneEarMix::kTypeId)) {
+                into.values[blocks::OneEarMix::kStateValue] = blocks::OneEarMix::kSettled;
+                into.values[blocks::OneEarMix::kFoldLoudnessValue] = dsp::kSilentLufs;
+                into.values[blocks::OneEarMix::kMonoLoudnessValue] = dsp::kSilentLufs;
+                into.values[blocks::OneEarMix::kReadingValue] = blocks::OneEarMix::kNotRead;
+            }
+            if (running) {
+                const QVariantList fake = session.blockValues.value(block.id);
+                for (qsizetype value = 0; value < fake.size() && value < qsizetype(rt::kMaxMeterValues); ++value) {
+                    into.values[value] = fake.at(value).toFloat();
+                }
+            }
             if (running && block.type == asText(blocks::Limiter::kTypeId)) {
                 into.values[blocks::Limiter::kGainReductionValue] = limiterReduction(block, peak);
             }
@@ -1370,6 +1384,16 @@ void MockEngine::setParam(const QString &sessionId,
     }
     for (BlockInstance &block : session->session.blocks) {
         if (block.id == blockId) {
+            // A press of a button, as the engine has it: nothing to keep.
+            if (const auto made = d->registry.create(block.type.toStdString()); made) {
+                const std::string wanted = paramId.toStdString();
+                const auto params = (*made)->params();
+                const auto found = std::ranges::find_if(
+                    params, [&wanted](const dsp::ParamDescriptor &entry) { return entry.id == wanted; });
+                if (found != params.end() && found->flags.momentary) {
+                    return;
+                }
+            }
             const QJsonValue previous = block.params.value(paramId);
             block.params.insert(paramId, value);
             session->history.record(SetParam{blockId, paramId, value},
@@ -1713,6 +1737,18 @@ void MockEngine::setFakeBandValues(const QString &sessionId, const QString &bloc
         return;
     }
     session->bandValues.insert(blockId, values);
+    if (session->state == sessionState::running) {
+        d->publish(*session, true);
+    }
+}
+
+void MockEngine::setFakeBlockValues(const QString &sessionId, const QString &blockId, const QVariantList &values)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    session->blockValues.insert(blockId, values);
     if (session->state == sessionState::running) {
         d->publish(*session, true);
     }

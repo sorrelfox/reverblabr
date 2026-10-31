@@ -72,6 +72,11 @@ struct ParamFlags {
     /// for either ear, so a saved preset leaves the parameter out and
     /// applying one never changes it. The session keeps it as usual.
     bool inPresets = true;
+    /// **A press, not a setting**: a button that asks a running block to do
+    /// something once. The block acts when the value arrives through the
+    /// queue, so what the value is does not matter. The session does not hold
+    /// it, so it reaches neither the file nor undo, and marks nothing unsaved.
+    bool momentary = false;
 };
 
 /// Everything about one parameter that the DSP, the generic settings panel,

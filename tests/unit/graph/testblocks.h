@@ -113,7 +113,7 @@ private:
 
 /// Multiplies what arrives by a gain, channel for channel. An unconnected
 /// input reads as silence, as the interface says it must.
-class GainStage final : public SimpleBlock
+class GainStage : public SimpleBlock
 {
 public:
     explicit GainStage(float gain = 1.0f, std::uint32_t channels = 1);

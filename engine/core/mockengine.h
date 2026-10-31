@@ -185,6 +185,9 @@ public:
     /// Gives \a blockId band values, up to rt::kMaxBandValues,
     /// published beside its spectra while it is analysed.
     Q_INVOKABLE void setFakeBandValues(const QString &sessionId, const QString &blockId, const QVariantList &values);
+    /// What \a blockId publishes as its own numbers, over what the mock works
+    /// out: for a state only a running block can be in.
+    Q_INVOKABLE void setFakeBlockValues(const QString &sessionId, const QString &blockId, const QVariantList &values);
     /// **Laid over the diagnostics the mock makes up**: each
     /// top-level key of \a diagnosticsJson replaces the mock's own, so a
     /// test can give sessions a load, late cycles and a real-time answer,

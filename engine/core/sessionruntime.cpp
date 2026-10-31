@@ -2206,6 +2206,20 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
     return {};
 }
 
+bool SessionRuntime::isMomentary(const QString &blockId, const QString &paramId) const
+{
+    const std::string wanted = paramId.toStdString();
+    for (const Private::Instance &instance : d->instances) {
+        if (instance.id == blockId) {
+            const std::span<const dsp::ParamDescriptor> params = instance.block->params();
+            const auto found = std::ranges::find_if(
+                params, [&wanted](const dsp::ParamDescriptor &entry) { return entry.id == wanted; });
+            return found != params.end() && found->flags.momentary;
+        }
+    }
+    return false;
+}
+
 std::expected<ParamEffect, dsp::BlockError>
 SessionRuntime::setParam(const QString &blockId, const QString &paramId, const QJsonValue &value)
 {

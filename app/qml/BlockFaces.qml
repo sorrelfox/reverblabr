@@ -264,6 +264,11 @@ QtObject {
         FrequencyLoweringFace {}
     }
 
+    /// The One Ear Mix face: where the sound goes, in words.
+    readonly property Component oneEarMix: Component {
+        OneEarMixFace {}
+    }
+
     /// The Frequency Raising face: the same as Frequency Lowering's,
     /// its moves going up.
     readonly property Component frequencyRaising: Component {
@@ -276,6 +281,7 @@ QtObject {
         "advanced.parametriceq": faces.parametricEq,
         "hearing.frequencylowering": faces.frequencyLowering,
         "hearing.frequencyraising": faces.frequencyRaising,
+        "hearing.oneearmix": faces.oneEarMix,
         "output.device": faces.outputDevice,
         "source.application": faces.applicationSource,
         "source.device": faces.inputDevice,

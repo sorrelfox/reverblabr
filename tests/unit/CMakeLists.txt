@@ -86,6 +86,7 @@ rb_add_gtest(reverblabr-dsp-test
         dsp/test_humtracker.cpp
         dsp/test_limiter.cpp
         dsp/test_loudness.cpp
+        dsp/test_quadraturefold.cpp
         dsp/test_paramdescriptor.cpp
         dsp/test_paramstore.cpp
         dsp/test_paramvalue.cpp
@@ -147,6 +148,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_mixer.cpp
         blocks/test_monoenhancer.cpp
         blocks/test_multibandcompressor.cpp
+        blocks/test_oneearmix.cpp
         blocks/test_outputdevice.cpp
         blocks/test_pan.cpp
         blocks/test_parametriceq.cpp

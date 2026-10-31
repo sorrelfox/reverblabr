@@ -135,6 +135,10 @@ QtObject {
         JoinLrHelp {}
     }
 
+    readonly property Component oneEarMix: Component {
+        OneEarMixHelp {}
+    }
+
     readonly property Component limiter: Component {
         LimiterHelp {}
     }
@@ -243,6 +247,7 @@ QtObject {
         "hearing.frequencylowering": help.frequencyLowering,
         "hearing.frequencyraising": help.frequencyRaising,
         "hearing.joinlr": help.joinLr,
+        "hearing.oneearmix": help.oneEarMix,
         "meter.peakrms": help.peakRms,
         "meter.vu": help.vu,
         "output.broadcast": help.broadcast,

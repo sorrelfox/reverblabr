@@ -9,6 +9,7 @@
 // session, build a chain in it, start it, hear it, stop it. The same flow
 // the mock walks, against a real PipeWire.
 
+#include "blocks/oneearmix.h"
 #include "core/audiosystem.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
@@ -336,6 +337,44 @@ TEST_F(EngineThroughTheFacade, SaysWhyASessionWillNotStart)
     EXPECT_EQ(args.value(u"session"_s).toString(), u"Nothing"_s);
     EXPECT_FALSE(args.value(u"reason"_s).toString().isEmpty());
     EXPECT_EQ(states.back().at(1).toString(), u"error"_s);
+}
+
+TEST_F(EngineThroughTheFacade, APressOfAButtonIsNoEdit)
+{
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    dsp::BlockRegistry registry = testRegistry();
+    ASSERT_TRUE(registry.add(std::string{blocks::OneEarMix::kTypeId}, &blocks::OneEarMix::make).has_value());
+    Engine engine(registry, SessionStore{sessions.path()});
+
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    QSignalSpy undoState(&engine, &EngineFacade::undoStateChanged);
+    QSignalSpy errors(&engine, &EngineFacade::error);
+
+    engine.connectToPipeWire();
+    Waiter pump;
+    ASSERT_TRUE(pump.pumpUntil([&] { return engine.isConnected(); }));
+
+    engine.createSession(u"Press"_s);
+    const QString id = opened.back().at(0).toString();
+    engine.applyEdit(id, addBlockEdit(u"src"_s, test::PassThroughSource::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"mix"_s, blocks::OneEarMix::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"out"_s, test::PassThroughOutput::kTypeId));
+    for (std::uint32_t channel = 0; channel < 2; ++channel) {
+        engine.applyEdit(id, connectEdit(u"src"_s, channel, u"mix"_s, channel));
+        engine.applyEdit(id, connectEdit(u"mix"_s, channel, u"out"_s, channel));
+    }
+    engine.start(id);
+    ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+
+    const int told = undoState.count();
+    engine.setParam(id, u"mix"_s, u"matchLevels"_s, u"[true]"_s);
+    EXPECT_EQ(undoState.count(), told) << "a reading took a step in undo";
+    EXPECT_TRUE(errors.isEmpty());
+
+    engine.setParam(id, u"mix"_s, u"lowerDb"_s, u"[1.5]"_s);
+    EXPECT_EQ(undoState.count(), told + 1) << "the setting beside it is an edit as ever";
+    engine.stop(id);
 }
 
 TEST_F(EngineThroughTheFacade, UndoIsHeardWhileTheSessionIsRunning)

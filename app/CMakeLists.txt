@@ -176,6 +176,11 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/MultibandCompressorHelp.qml
     qml/MultibandCompressorPanel.qml
     qml/MultibandWords.qml
+    qml/OneEarMixFace.qml
+    qml/OneEarMixHelp.qml
+    qml/OneEarMixPanel.qml
+    qml/OneEarMixState.qml
+    qml/OneEarMixWords.qml
     qml/OutputDeviceHelp.qml
     qml/OutputDevicePanel.qml
     qml/PanHelp.qml
@@ -364,6 +369,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/hearing.frequencylowering.svg
     icons/hearing.frequencyraising.svg
     icons/hearing.joinlr.svg
+    icons/hearing.oneearmix.svg
 )
 
 # **The Reverblabr appearance's two typefaces ride with it too**: the

@@ -289,6 +289,12 @@ QtObject {
         FrequencyLoweringPanel {}
     }
 
+    /// The One Ear Mix panel: where the sound goes, and a comparison with
+    /// Plain Mono.
+    readonly property Component oneEarMix: Component {
+        OneEarMixPanel {}
+    }
+
     /// The Frequency Raising panel: Frequency Lowering's, its moves
     /// going up, with harmonics as a third way.
     readonly property Component frequencyRaising: Component {
@@ -303,6 +309,7 @@ QtObject {
         "advanced.parametriceq": panels.parametricEq,
         "hearing.frequencylowering": panels.frequencyLowering,
         "hearing.frequencyraising": panels.frequencyRaising,
+        "hearing.oneearmix": panels.oneEarMix,
         "output.device": panels.outputDevice,
         "source.application": panels.applicationSource,
         "source.device": panels.inputDevice,

@@ -26,7 +26,7 @@ Reverblabr shows these words once, before the first block of the Hearing group i
 
 ## One ear at a time
 
-Every block in the Hearing group except Join L/R has an **Ear** setting, Left or Right, at the top of its settings, and its tile shows an **L** (blue) or an **R** (red). The block changes that side only and passes the other side through, delayed by exactly as much as its own side, so the two ears stay in step. Changing the Ear while the session runs fades across instead of clicking, and one undo puts it back. Loading a preset or putting the block back to its default settings never changes it, so a preset made for one ear can be tried on the other.
+Every block in the Hearing group except Join L/R and One Ear Mix has an **Ear** setting, Left or Right, at the top of its settings, and its tile shows an **L** (blue) or an **R** (red). The block changes that side only and passes the other side through, delayed by exactly as much as its own side, so the two ears stay in step. Changing the Ear while the session runs fades across instead of clicking, and one undo puts it back. Loading a preset or putting the block back to its default settings never changes it, so a preset made for one ear can be tried on the other.
 
 A new block starts on the left ear. When the session already has more blocks of the same kind for the left ear than for the right, a new one starts on the right instead, so adding the same block twice gives you one for each ear.
 
@@ -119,3 +119,13 @@ Some ears hear the lows and the highs but not a range in the middle. You can tak
 2. **Frequency Raising** moves the upper half up above it: sound from 2 to 4 kHz squeezed into 4 to 8 kHz.
 
 With the halves split like this, the order doesn't matter. If the ranges overlap, the second block moves what the first one has already moved, so put first the move you want the other to work on. Both belong before any block that sets the level of each range.
+
+## One Ear Mix
+
+**One Ear Mix** puts both sides of a stereo mix into the ear you choose, or one mix on both sides for a single earbud. Put it after anything that needs the two sides, just before the lane forks, with a limit after it. A new block changes nothing until you pick where the sound goes in **Send to**: Left ear, Right ear or Both ears.
+
+**Mono** in the Channels block adds the sides and halves them, which drops sound panned to one side by 6 dB and cancels sound that is out of phase between the sides. One Ear Mix first shifts the two sides a quarter of a cycle apart, so panned sound drops 3 dB and that sound stays. A sound that sits a quarter of a cycle apart between the sides can get quieter instead. Peaks can rise by several dB, so keep a limit after it. The Volume block has one. Direction doesn't come back: a mix in one ear can't tell you where a sound is.
+
+The sound on the side you chose goes on playing, and what was on the other side comes in over about five seconds. The side comes in the same way when the block is switched on again. The tile says which side has sound, in words. If you switch the block off, or the session stops, stereo comes back, and what is on the other side is lost to that ear again.
+
+To check it against an ordinary mono mix, open **Compare with Plain Mono**. **Hear** switches between the two. **Match Levels** reads both for three seconds while something plays, and if One Ear Mix was the louder it fills in **Lower this mix by**, up to 6 dB, so the comparison is about the sound and not the level. Plain Mono is also the better choice for a mono recording in two channels.

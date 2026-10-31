@@ -72,6 +72,8 @@ add_library(reverblabr-blocks STATIC
     pitchshift.h
     pluginblock.cpp
     pluginblock.h
+    oneearmix.cpp
+    oneearmix.h
     outputdevice.cpp
     outputdevice.h
     pan.cpp

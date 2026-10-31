@@ -38,7 +38,7 @@ HelpPage {
         points: [
             KI18n.i18nc("@info help page of the Channels block, one choice of Action", "No change: both sides pass through as they arrive."),
             KI18n.i18nc("@info help page of the Channels block, one choice of Action", "Swap sides: the left side plays on the right and the right on the left."),
-            KI18n.i18nc("@info help page of the Channels block, one choice of Action", "Mono: both sides play the average of the two. A sound in the middle keeps its level, and nothing gets louder than the louder side."),
+            KI18n.i18nc("@info help page of the Channels block, one choice of Action", "Mono: both sides play the average of the two. A sound in the middle keeps its level, and nothing gets louder than the louder side. Sound panned to one side drops 6 dB, and sound out of phase between the sides cancels. One Ear Mix, in the Hearing group, folds them another way."),
             KI18n.i18nc("@info help page of the Channels block, the choices of Action", "Left to both, or Right to both: one side plays on both, and the other side's sound is left out. For a source that arrives on one side only."),
             KI18n.i18nc("@info help page of the Channels block, the choices of Action", "Mute left, or Mute right: that side is silent, and the other plays as it is."),
             KI18n.i18nc("@info help page of the Channels block, the choices of Action", "Invert left, or Invert right: that side is flipped upside down. It sounds the same on its own, but it puts right a microphone or a cable wired the wrong way round, whose side cancels the other out when the two meet."),

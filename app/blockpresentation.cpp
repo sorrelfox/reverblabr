@@ -405,6 +405,14 @@ constexpr std::array kEntries{
                   "Takes the left side from its Left input and the right side from its Right input, so that each "
                   "ear can have blocks of its own on a lane of its own. The two are lined up however late either "
                   "lane is.")},
+    Entry{"hearing.oneearmix",
+          "hearing",
+          kli18nc("@item block name: a mix of both sides for one ear", "One Ear Mix"),
+          kli18nc("@info block description", "A mono mix that puts both sides into one ear"),
+          kli18nc("@info:tooltip block description",
+                  "Puts both sides into one ear, or one mix on both sides for one earbud. Sound panned to one side "
+                  "stays, and sound out of phase between the sides doesn't cancel the way it does in a plain mono "
+                  "mix.")},
 
     // ------------------------------------------------------------ plugins
     Entry{"plugin.builtin",

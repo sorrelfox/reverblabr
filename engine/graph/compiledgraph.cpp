@@ -81,6 +81,8 @@ struct CompiledGraph::Plan {
         float rotationSin = 0.0f;
         /// What the step becomes once the fade is over.
         StepKind settlesTo = StepKind::Block;
+        /// Whether the block is yet to be told it is coming back on.
+        bool tellSwitchedOn = false;
         /// Whether this step's dry signal is silence rather than what
         /// arrived at it.
         ///
@@ -515,6 +517,7 @@ std::expected<CompiledGraph, GraphError> CompiledGraph::compile(const GraphSpec 
         }
         if (node.kind == StepKind::Crossfade) {
             step.fadeRemaining = node.crossfade;
+            step.tellSwitchedOn = !node.fadeToDry;
             // Whichever side is about to be faded in needs as long as the
             // block's own latency to have anything to say: a block's first
             // samples are silence, and so are a fresh delay line's.
@@ -787,6 +790,10 @@ void CompiledGraph::execute(std::uint32_t frames,
         }
         case StepKind::Crossfade: {
             m_plan->fillDry(step, frames);
+            if (step.tellSwitchedOn) {
+                step.tellSwitchedOn = false;
+                step.block->switchedOn();
+            }
             // The block goes on running for the length of the fade, whether
             // it is being switched off or on: the fade needs both sides.
             dsp::ProcessContext context{

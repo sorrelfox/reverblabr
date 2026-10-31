@@ -308,6 +308,25 @@ TEST(MockEngineTest, RefusesAWireToAPortTheAudioSystemOwns)
     EXPECT_EQ(heard.patches.count(), built + 2);
 }
 
+TEST(MockEngineTest, APressOfAButtonIsNoEdit)
+{
+    MockEngine engine;
+    Listener heard(engine);
+    QSignalSpy undoState(&engine, &EngineFacade::undoStateChanged);
+    engine.createSession(u"Press"_s);
+    const QString id = heard.opened.back().at(0).toString();
+    engine.applyEdit(id, addBlockEdit(u"mix"_s, u"hearing.oneearmix"_s));
+    const int told = undoState.count();
+    const int built = heard.patches.count();
+
+    engine.setParam(id, u"mix"_s, u"matchLevels"_s, u"[true]"_s);
+
+    EXPECT_EQ(undoState.count(), told) << "a reading took a step in undo";
+    EXPECT_EQ(heard.patches.count(), built);
+    engine.setParam(id, u"mix"_s, u"lowerDb"_s, u"[1.5]"_s);
+    EXPECT_EQ(undoState.count(), told + 1) << "the setting beside it is an edit as ever";
+}
+
 TEST(MockEngineTest, APresetIsAppliedAsOneEditAndUndoneAsOne)
 {
     // What presets need from undo, through the facade the window uses.

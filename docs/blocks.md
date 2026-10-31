@@ -44,7 +44,7 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 | **Pitch Shift** | Moves the pitch up or down by up to an octave in semitones, and a little further with cents, without making the sound faster or slower. See [below](#pitch-shift). |
 | **Balance** | Turns the left or the right side of a stereo lane down against the other, all the way to silence. |
 | **Pan** | Places a lane anywhere between left and right. The sound is folded to mono first and keeps the same loudness wherever you put it. |
-| **Channels** | Swaps the sides, folds to mono, copies one side to both, mutes or inverts a side, or keeps only what differs between them, fading from one setting to the next. |
+| **Channels** | Swaps the sides, folds to mono, copies one side to both, mutes or inverts a side, or keeps only what differs between them, fading from one setting to the next. Its Mono drops sound panned to one side by 6 dB and cancels sound out of phase between the sides; **One Ear Mix**, in the Hearing group, folds them another way. |
 | **Mono Enhancer** | Gives a mono recording some width above a frequency you choose, keeps the bass in the middle, and still sounds right when played back in mono. |
 
 ### Reverb
@@ -99,6 +99,7 @@ These blocks work on one ear at a time. They are described on their own page, [H
 | **Frequency Lowering** | Moves sound from a high range the ear doesn't hear into a lower one it does, so the hiss of s, sh and f comes back, with about 21 ms of delay. |
 | **Frequency Raising** | The other way round: moves sound from a low or middle range up into one the ear hears, with about 43 ms of delay, or 85 ms while a move starts below 250 Hz. Experimental in parts. |
 | **Join L/R** | Puts two lanes back together as one stereo pair, the left side of one and the right side of the other, lined up in time, so that each ear can have its own blocks. |
+| **One Ear Mix** | Puts both sides into one ear, or one mix on both sides for one earbud. Sound panned to one side comes through 3 dB lower, not 6, and sound out of phase between the sides doesn't cancel the way it does in **Mono**. A sound that sits a quarter of a cycle apart between the sides can get quieter instead, and peaks can rise by several dB, so keep a limit after it. |
 
 ## Plugins
 
