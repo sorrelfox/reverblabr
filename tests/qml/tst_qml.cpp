@@ -12,6 +12,7 @@
 #include "core/mockengine.h"
 #include "diagnostics.h"
 #include "fileactions.h"
+#include "firstusenotice.h"
 #include "mediaplayers.h"
 #include "recentapplications.h"
 #include "sessions.h"
@@ -563,6 +564,8 @@ public Q_SLOTS:
         ui::Appearance::setConfig(m_state);
         // And when Auto Run runs, which the person's own engine would read.
         ui::AutoRunSetting::setConfig(m_state);
+        // And the notice, which must not be answered by a run's last test.
+        ui::FirstUseNotice::setConfig(m_state);
         // **Each run in the appearance its style goes with**, as the
         // application starts: its own style for a Reverblabr appearance —
         // the default, dark — and the desktop's, for which Basic stands in

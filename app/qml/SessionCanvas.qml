@@ -38,6 +38,7 @@ Item {
     /// gesture are two files and a type nobody accepts is a drag that
     /// silently does nothing.
     readonly property string blockTypeMimeType: "application/x-reverblabr-blocktype"
+    readonly property alias hearingNotice: hearingNotice
 
     /// How far in and out the view goes. Half size is where a large session
     /// fits on a screen; twice is where somebody checks what a tile reads.
@@ -293,6 +294,31 @@ Item {
             }
         }
         return right < left ? typeId + "?ear=right" : typeId;
+    }
+
+    /// Whether a person's add of this type stops at the notice first. Only
+    /// what a person chose comes through here: addBlockAt() and
+    /// addBlockAfterSelection() add at once.
+    function noticeComesFirst(typeId: string): bool {
+        return !FirstUseNotice.hearingAccepted && BlockPresentation.category(typeId) === "hearing";
+    }
+
+    /// A block clicked in the library.
+    function chooseBlock(typeId: string) {
+        if (canvas.noticeComesFirst(typeId)) {
+            hearingNotice.ask(() => canvas.addBlockAfterSelection(typeId));
+        } else {
+            canvas.addBlockAfterSelection(typeId);
+        }
+    }
+
+    /// A block dropped on the canvas.
+    function dropBlock(typeId: string, x: real, y: real) {
+        if (canvas.noticeComesFirst(typeId)) {
+            hearingNotice.ask(() => canvas.addBlockAt(typeId, x, y));
+        } else {
+            canvas.addBlockAt(typeId, x, y);
+        }
     }
 
     /// Puts a block where the pointer is, in viewport coordinates, with the
@@ -1999,9 +2025,13 @@ Item {
             if (typeId === "") {
                 return;
             }
-            canvas.addBlockAt(typeId, drop.x, drop.y);
+            canvas.dropBlock(typeId, drop.x, drop.y);
             drop.acceptProposedAction();
         }
+    }
+
+    HearingNotice {
+        id: hearingNotice
     }
 
     // --- what an empty canvas says ---

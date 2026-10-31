@@ -664,6 +664,14 @@ QQC2.ApplicationWindow {
     }
 
     QQC2.Action {
+        id: hearingNoticeAction
+
+        text: KI18n.i18nc("@action:inmenu read the notice about the Hearing blocks again", "Before You Add a Hearing Block…")
+        icon.name: "documentinfo"
+        onTriggered: sessionCanvas.hearingNotice.read()
+    }
+
+    QQC2.Action {
         id: reportBugAction
 
         text: KI18n.i18nc("@action:inmenu", "Report Bug…")
@@ -962,6 +970,10 @@ QQC2.ApplicationWindow {
             }
 
             QQC2.MenuItem {
+                action: hearingNoticeAction
+            }
+
+            QQC2.MenuItem {
                 action: reportBugAction
             }
 
@@ -1138,6 +1150,10 @@ QQC2.ApplicationWindow {
             }
 
             QQC2.MenuItem {
+                action: hearingNoticeAction
+            }
+
+            QQC2.MenuItem {
                 action: reportBugAction
             }
 
@@ -1234,7 +1250,7 @@ QQC2.ApplicationWindow {
                         // Where a clicked block goes is the canvas's to
                         // decide: in automatic-connections mode it follows
                         // whatever is selected.
-                        onBlockChosen: typeId => sessionCanvas.addBlockAfterSelection(typeId)
+                        onBlockChosen: typeId => sessionCanvas.chooseBlock(typeId)
                     }
                 ]
 

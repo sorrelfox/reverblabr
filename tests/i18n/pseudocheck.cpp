@@ -15,6 +15,7 @@
 #include "appearance.h"
 #include "appshell.h"
 #include "core/mockengine.h"
+#include "firstusenotice.h"
 #include "recentapplications.h"
 #include "sessions.h"
 #include "windowstate.h"
@@ -136,6 +137,7 @@ int main(int argc, char *argv[])
     ui::RecentApplications::setConfig(state);
     ui::Sessions::setConfig(state);
     ui::Appearance::setConfig(state);
+    ui::FirstUseNotice::setConfig(state);
 
     core::MockEngine mock;
     mock.addFakeInventory();

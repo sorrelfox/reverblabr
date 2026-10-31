@@ -147,6 +147,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/HearingCompensationPanel.qml
     qml/HighPassHelp.qml
     qml/InfoLine.qml
+    qml/HearingNotice.qml
     qml/InputDeviceHelp.qml
     qml/InputDevicePanel.qml
     qml/InputSwitchControl.qml
@@ -384,6 +385,8 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
 target_sources(reverblabr-ui PRIVATE
     appearance.cpp
     appearance.h
+    firstusenotice.cpp
+    firstusenotice.h
     applicationicon.cpp
     applicationicon.h
     appinfo.cpp

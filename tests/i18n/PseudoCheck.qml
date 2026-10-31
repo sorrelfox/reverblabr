@@ -348,7 +348,8 @@ QtObject {
             step("main menu closed", () => window.mainMenu.close(), null, 50);
 
             for (const [name, dialog] of [["rename", window.renameSessionDialog], ["delete", window.deleteSessionDialog],
-                                          ["open", window.openSessionDialog]]) {
+                                          ["open", window.openSessionDialog],
+                                          ["hearing notice", window.sessionCanvas.hearingNotice]]) {
                 step("dialog " + name, () => dialog.open(), () => dialog.opened, 150);
                 screen("dialog-" + name, () => window, () => [dialog.contentItem.parent], 0);
                 step("dialog " + name + " closed", () => dialog.close(), () => !dialog.visible, 50);

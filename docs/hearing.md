@@ -12,6 +12,18 @@ Please keep two things in mind:
 - **Reverblabr is not a medical device.** It shapes sound for listening and measures nothing about anybody's health. It doesn't replace an audiologist or a hearing aid. If your hearing has changed, have it checked.
 - **Be careful with loud sound.** These blocks can add a lot of gain. Start with the volume low, especially with headphones, raise it slowly, and leave the **Output ceiling** in place.
 
+## Before you add a Hearing block
+
+Reverblabr shows these words once, before the first block of the Hearing group is added. They stay in the **Help** menu.
+
+**Keep it comfortable.** Sound should never be uncomfortable or painful. If it is, turn it down or take your headphones off. Start with the volume low and raise it slowly.
+
+**These limits do not protect your ears.** They work on numbers inside the computer. How loud that is at your ear depends on your volume, your sound card and your headphones, which Reverblabr can't know. Long hours of loud sound can harm hearing with no warning.
+
+**Some changes need a doctor, not a setting.** See a doctor straight away if your hearing changes suddenly or gets much worse within days, in one ear or both. Time matters. If this comes with a weak or numb face or a spinning feeling, or after a blow to the head, call for emergency help. See a doctor soon if one ear is worse than the other, your hearing comes and goes, you hear ringing in one ear or a beat in time with your pulse, you feel dizzy, or an ear hurts, feels blocked, looks injured or leaks blood, pus or fluid. Ringing that keeps you awake or gets you down is worth a visit too. Don't turn one side up to make up for a change: a setting can hide it.
+
+**Before you add gain.** Don't add these blocks on top of headphones or earpieces that already shape the sound for you: the gains add up. That holds on loudspeakers too, if you wear such earpieces while you listen. Don't set them up for a child. Don't rely on a session for alarms or calls you must not miss: if it stops, the sound can stop or change. Don't wear closed headphones where you need to hear traffic.
+
 ## One ear at a time
 
 Every block in the Hearing group except Join L/R has an **Ear** setting, Left or Right, at the top of its settings, and its tile shows an **L** (blue) or an **R** (red). The block changes that side only and passes the other side through, delayed by exactly as much as its own side, so the two ears stay in step. Changing the Ear while the session runs fades across instead of clicking, and one undo puts it back. Loading a preset or putting the block back to its default settings never changes it, so a preset made for one ear can be tried on the other.
