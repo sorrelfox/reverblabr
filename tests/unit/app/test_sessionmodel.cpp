@@ -681,3 +681,33 @@ TEST_F(SessionModelTest, WithNoSessionNothingIsSentAndNothingIsClaimed)
     EXPECT_TRUE(model.block(u"b1"_s).isEmpty());
     EXPECT_TRUE(model.wires().isEmpty());
 }
+
+// A library row: one block, its preset's typed values, the row's name, one
+// step to undo.
+TEST_F(SessionModelTest, ALibraryRowAddsOneBlockSetUpFromItsPreset)
+{
+    QTemporaryDir presets;
+    ASSERT_TRUE(presets.isValid());
+    core::MockEngine engine{core::PresetStore{presets.path()}};
+    ui::SessionModel model;
+    model.attach(&engine);
+    const QString id = openSessionWithBlock(engine, model);
+    const int before = static_cast<int>(model.blockIds().size());
+
+    const QString added = model.addBlock(u"effect.autolevel?preset=voiceEvener"_s, QPointF{});
+    ASSERT_FALSE(added.isEmpty());
+    EXPECT_EQ(model.blockIds().size(), before + 1);
+    EXPECT_EQ(model.blockType(added), u"effect.autolevel"_s);
+    const QVariantMap block = model.block(added);
+    EXPECT_EQ(block.value(u"nickname"_s).toString(), u"Voice Evener"_s);
+    EXPECT_EQ(block.value(u"preset"_s).toString(), u"voiceEvener"_s);
+    const QVariantMap params = model.params(added);
+    EXPECT_EQ(params.value(u"cut"_s).typeId(), QMetaType::Bool);
+    EXPECT_TRUE(params.value(u"cut"_s).toBool());
+    EXPECT_DOUBLE_EQ(params.value(u"target"_s).toDouble(), -23.0);
+    EXPECT_DOUBLE_EQ(params.value(u"band"_s).toDouble(), 1.0);
+    EXPECT_FALSE(params.contains(u"preset"_s)) << "the query's preset went in as a parameter";
+
+    model.undo();
+    EXPECT_EQ(model.blockIds().size(), before) << "the row took more than one step to undo";
+}

@@ -14,6 +14,7 @@
 #include <QString>
 
 #include <expected>
+#include <vector>
 
 namespace rb::dsp
 {
@@ -23,6 +24,7 @@ class BlockRegistry;
 namespace rb::core
 {
 
+class PresetStore;
 struct Session;
 
 /// What the two engines both do with presets.
@@ -48,6 +50,20 @@ struct Session;
                                                                       const Session &session,
                                                                       const QString &blockId,
                                                                       const Preset &preset);
+
+/// Fills in every block in \a commands that arrives naming a preset and
+/// holding no values: what a library row for a set-up block sends.
+///
+/// **The window cannot do this**: the values of a preset never travel through
+/// it (ui::Presets), so a row can only name one. Filled in here, it stays one
+/// AddBlock, so one step to undo, and what goes on to the clients is the block
+/// with its values, as applyPresetEdit() would have set them.
+///
+/// **Only a block with no values.** A copy of a block keeps the marker of the
+/// preset it was last set from along with what was changed since, and those
+/// are not to be overwritten.
+[[nodiscard]] std::expected<void, PresetError>
+fillAddedBlocks(const dsp::BlockRegistry &registry, const PresetStore &presets, std::vector<EditCommand> &commands);
 
 /// What \a blockId is set to now, as a preset called \a name.
 ///

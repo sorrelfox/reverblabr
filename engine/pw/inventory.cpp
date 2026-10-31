@@ -420,6 +420,7 @@ Inventory inventoryOf(const QList<PwNode> &nodes,
             InventoryStream stream;
             stream.name = node.name;
             stream.mediaName = node.props.value(u"media.name"_s);
+            stream.role = node.mediaRole;
             stream.sinks = reaches.value(node.object.id);
             stream.sinks.sort();
             stream.id = node.object.id;
@@ -503,6 +504,7 @@ namespace
     return QJsonObject{
         {"node"_L1, stream.name},
         {"mediaName"_L1, stream.mediaName},
+        {"role"_L1, stream.role},
         {"kind"_L1, streamKindName(stream.kind)},
         {"sinks"_L1, asJsonArray(stream.sinks)},
     };

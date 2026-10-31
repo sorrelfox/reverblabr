@@ -1051,12 +1051,21 @@ QString SessionModel::addBlock(const QString &typeId, const QPointF &position)
     // a type and the plugin it is set to, `plugin.lv2?plugin=<id>`, and a
     // hearing block can start on the right ear, `?ear=right`
     // (SessionCanvas.withStartingEar()). One block, set, in one edit and
-    // one step to undo.
+    // one step to undo. **`preset` is no setting**: the block names the
+    // preset, the engine fills in its values as it takes the edit, and a
+    // library row's block takes the row's name.
     if (const qsizetype query = typeId.indexOf(u'?'); query >= 0) {
         block.type = typeId.left(query);
         const QUrlQuery settings(typeId.mid(query + 1));
         for (const auto &[key, value] : settings.queryItems(QUrl::FullyDecoded)) {
-            block.params.insert(key, value);
+            if (key == "preset"_L1) {
+                block.preset = value;
+            } else {
+                block.params.insert(key, value);
+            }
+        }
+        if (blockPresentation::rows().contains(typeId)) {
+            block.nickname = blockPresentation::name(typeId);
         }
     }
     block.position = position;

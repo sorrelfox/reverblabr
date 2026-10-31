@@ -33,6 +33,10 @@ import org.kde.ki18n
 // folds away the ones they never use. The search still looks through all
 // of them, and a format with nothing that matches is left out.
 //
+// **A row can be a block set up.** The rows BlockPresentation lists are a
+// block type on one of its presets, with a name of their own to be found by.
+// They sit among the blocks of their category while this build has the type.
+//
 // **An empty category is not shown at all.** A heading with nothing under
 // it is a heading that says this build is missing something, which is a
 // thing to say in release notes and not in a sidebar.
@@ -102,13 +106,15 @@ Item {
         const categories = [];
         for (const [order, category] of BlockPresentation.categories.entries()) {
             const found = [];
-            for (const typeId of available) {
+            const setUp = BlockPresentation.rows.filter(id => available.indexOf(BlockPresentation.typeOfRow(id)) >= 0);
+            for (const typeId of available.concat(setUp)) {
                 if (BlockPresentation.category(typeId) !== category) {
                     continue;
                 }
                 const rank = library.rankOf(typeId, needle);
                 if (rank >= 0) {
-                    found.push({ id: typeId, rank: rank, name: BlockPresentation.name(typeId) });
+                    found.push({ id: typeId, rank: rank, name: BlockPresentation.name(typeId),
+                                 kind: setUp.indexOf(typeId) >= 0 ? "preset" : "block" });
                 }
             }
             // **Every plugin is an entry of its own** under Plugins, after
@@ -151,7 +157,7 @@ Item {
             for (const group of groups) {
                 if (group === blocksGroup) {
                     for (const block of category.found) {
-                        built.push({ kind: "block", id: block.id, count: 0 });
+                        built.push({ kind: block.kind, id: block.id, count: 0 });
                     }
                     continue;
                 }

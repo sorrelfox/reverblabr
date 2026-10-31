@@ -51,6 +51,9 @@ struct InventoryStream {
     /// per-tab selection possible later; most applications repeat their own
     /// name.
     QString mediaName;
+    /// media.role, as the program declares it: "Music", "Movie", "Phone".
+    /// Often empty, and then it means nothing.
+    QString role;
     StreamKind kind = StreamKind::Application;
     /// node.name of every node this stream currently reaches. Usually one
     /// sink; empty while the policy has not linked it anywhere.

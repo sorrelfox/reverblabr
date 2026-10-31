@@ -644,9 +644,12 @@ preamp and an option to keep the overall level where it was.</para>
 
 <sect2 id="block-effect-autolevel">
 <title>Auto Level</title>
-<para>Brings quiet passages up towards a steady loudness and leaves loud ones
-alone, with a limiter so that the lift never clips. For a source whose
-loudness keeps changing.</para>
+<para>Brings quiet passages up towards a steady loudness and, if you ask, loud
+ones down, with a limiter so that the lift never clips. For a source whose
+loudness keeps changing. The Voice Evener row in the library adds this block on
+the preset of that name, which does both, for voices on a call. On music or a
+film it takes the loud and soft out: turn it off, or give them a lane of their
+own.</para>
 </sect2>
 
 <sect2 id="block-effect-balance">

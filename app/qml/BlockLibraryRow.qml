@@ -28,7 +28,8 @@ QQC2.ItemDelegate {
     id: row
 
     /// What this line is: `{ kind: "category" | "section" | "block" |
-    /// "plugin", id, count }`; for a format's heading under Plugins its
+    /// "preset" | "plugin", id, count }`, a preset being a block set up, whose
+    /// id BlockPresentation reads as it reads a type's; for a format's heading under Plugins its
     /// format, and for a plugin its name, vendor, format and the block type
     /// it becomes, with the id its library key.
     required property var entry

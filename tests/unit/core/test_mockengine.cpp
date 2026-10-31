@@ -369,6 +369,88 @@ TEST(MockEngineTest, APresetIsAppliedAsOneEditAndUndoneAsOne)
     EXPECT_TRUE(block.value(u"preset"_s).toString().isEmpty()) << "undo left the block showing a preset";
 }
 
+TEST(MockEngineTest, ABlockThatArrivesNamingAPresetIsFilledInAsOneEdit)
+{
+    QTemporaryDir presets;
+    ASSERT_TRUE(presets.isValid());
+    MockEngine engine{PresetStore{presets.path()}};
+    Listener heard(engine);
+    engine.createSession(u"Row"_s);
+    const QString id = heard.opened.back().at(0).toString();
+
+    BlockInstance block;
+    block.id = u"e"_s;
+    block.type = u"effect.autolevel"_s;
+    block.nickname = u"Voice Evener"_s;
+    block.preset = u"voiceEvener"_s;
+    AddBlock command;
+    command.block = block;
+    const int before = heard.patches.count();
+    engine.applyEdit(id, QString::fromUtf8(QJsonDocument(editCommandToJson(command)).toJson()));
+    ASSERT_TRUE(heard.errors.isEmpty()) << heard.lastErrorReason().toStdString();
+    ASSERT_EQ(heard.patches.count(), before + 1) << "the row was more than one edit";
+
+    const auto stored = [&] {
+        engine.resynchronise(id);
+        return QJsonDocument::fromJson(heard.snapshots.back().at(2).toString().toUtf8())
+            .object()
+            .value(u"blocks"_s)
+            .toArray();
+    };
+    const QJsonObject added = stored().at(0).toObject();
+    EXPECT_EQ(added.value(u"nickname"_s).toString(), u"Voice Evener"_s);
+    EXPECT_EQ(added.value(u"preset"_s).toString(), u"voiceEvener"_s);
+    const QJsonObject params = added.value(u"params"_s).toObject();
+    EXPECT_EQ(params.value(u"cut"_s), QJsonValue(true));
+    EXPECT_EQ(params.value(u"boost"_s), QJsonValue(true));
+    EXPECT_DOUBLE_EQ(params.value(u"target"_s).toDouble(), -23.0);
+    EXPECT_DOUBLE_EQ(params.value(u"maximumBoost"_s).toDouble(), 18.0);
+    EXPECT_DOUBLE_EQ(params.value(u"maximumCut"_s).toDouble(), 18.0);
+    EXPECT_DOUBLE_EQ(params.value(u"band"_s).toDouble(), 1.0);
+
+    // What goes on to a client is the block with its values.
+    const QJsonObject patch = QJsonDocument::fromJson(heard.patches.back().at(2).toString().toUtf8()).object();
+    EXPECT_FALSE(patch.value(u"block"_s).toObject().value(u"params"_s).toObject().isEmpty());
+
+    engine.undo(id);
+    EXPECT_TRUE(stored().isEmpty()) << "one undo did not take the block away";
+}
+
+TEST(MockEngineTest, ACopyOfABlockKeepsItsOwnValuesAndAMissingPresetIsRefused)
+{
+    QTemporaryDir presets;
+    ASSERT_TRUE(presets.isValid());
+    MockEngine engine{PresetStore{presets.path()}};
+    Listener heard(engine);
+    engine.createSession(u"Row"_s);
+    const QString id = heard.opened.back().at(0).toString();
+
+    BlockInstance block;
+    block.id = u"e"_s;
+    block.type = u"effect.autolevel"_s;
+    block.preset = u"voiceEvener"_s;
+    block.params = QJsonObject{{u"target"_s, -16.0}};
+    AddBlock command;
+    command.block = block;
+    engine.applyEdit(id, QString::fromUtf8(QJsonDocument(editCommandToJson(command)).toJson()));
+    ASSERT_TRUE(heard.errors.isEmpty());
+    engine.resynchronise(id);
+    const QJsonObject copied = QJsonDocument::fromJson(heard.snapshots.back().at(2).toString().toUtf8())
+                                   .object()
+                                   .value(u"blocks"_s)
+                                   .toArray()
+                                   .at(0)
+                                   .toObject();
+    EXPECT_EQ(copied.value(u"params"_s).toObject().size(), 1) << "a preset was put over a copy's own values";
+
+    block.id = u"f"_s;
+    block.params = {};
+    block.preset = u"noSuchPreset"_s;
+    command.block = block;
+    engine.applyEdit(id, QString::fromUtf8(QJsonDocument(editCommandToJson(command)).toJson()));
+    EXPECT_FALSE(heard.errors.isEmpty()) << "a row that names nothing added a plain block";
+}
+
 TEST(MockEngineTest, SavingAPresetKeepsEveryParameterAndLeavesTheBlockShowingIt)
 {
     QTemporaryDir presets;

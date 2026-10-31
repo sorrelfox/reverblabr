@@ -129,3 +129,7 @@ With the halves split like this, the order doesn't matter. If the ranges overlap
 The sound on the side you chose goes on playing, and what was on the other side comes in over about five seconds. The side comes in the same way when the block is switched on again. The tile says which side has sound, in words. If you switch the block off, or the session stops, stereo comes back, and what is on the other side is lost to that ear again.
 
 To check it against an ordinary mono mix, open **Compare with Plain Mono**. **Hear** switches between the two. **Match Levels** reads both for three seconds while something plays, and if One Ear Mix was the louder it fills in **Lower this mix by**, up to 6 dB, so the comparison is about the sound and not the level. Plain Mono is also the better choice for a mono recording in two channels.
+
+## Voice Evener
+
+**Voice Evener** is a row in the library under Built-in Effects: an Auto Level set up to bring a quiet talker up and a loud one down towards one level, on one lane. It evens level only. A mixed call reaches a lane as one stream, so it is one gain for whoever is talking, and a new talker takes a few seconds to settle. Put it after Speech Denoise and before anything that shapes one ear. On music or a film it takes the loud and soft out: turn it off, or give them a lane of their own.

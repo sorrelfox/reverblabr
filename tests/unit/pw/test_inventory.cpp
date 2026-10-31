@@ -135,6 +135,24 @@ TEST(InventoryTest, TwoStreamsOfOneApplicationAreOneApplication)
     EXPECT_EQ(firefox.streams.at(1).mediaName, u"Another tab"_s);
 }
 
+// What a program says it is playing reaches the window, stream by stream, and
+// a program that says nothing says nothing.
+TEST(InventoryTest, AStreamCarriesItsDeclaredRole)
+{
+    PwNode first = stream(u"player.one"_s, u"Player"_s, u"player"_s);
+    first.mediaRole = u"Music"_s;
+    const PwNode second = stream(u"player.two"_s, u"Player"_s, u"player"_s);
+
+    const Inventory inventory = inventoryOf({first, second}, {}, {}, {});
+
+    ASSERT_EQ(inventory.applications.size(), 1);
+    EXPECT_EQ(inventory.applications.constFirst().streams.at(0).role, u"Music"_s);
+    EXPECT_TRUE(inventory.applications.constFirst().streams.at(1).role.isEmpty());
+    const QJsonObject json = inventoryToJson(inventory);
+    const QJsonArray streams = json.value("applications"_L1).toArray().at(0).toObject().value("streams"_L1).toArray();
+    EXPECT_EQ(streams.at(0).toObject().value("role"_L1).toString(), u"Music"_s);
+}
+
 TEST(InventoryTest, ApplicationsAreToldApartByBinaryThenFlatpakThenName)
 {
     const PwNode byBinary = stream(u"a"_s, u"Player"_s, u"mpv"_s);

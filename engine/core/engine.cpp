@@ -1127,9 +1127,13 @@ void Engine::applyEdit(const QString &sessionId, const QString &editJson)
         return;
     }
     const QJsonDocument document = QJsonDocument::fromJson(editJson.toUtf8());
-    const std::expected<std::vector<EditCommand>, EditJsonError> commands = editCommandsFromJson(document);
+    std::expected<std::vector<EditCommand>, EditJsonError> commands = editCommandsFromJson(document);
     if (!commands) {
         d->fail(ErrorCode::EditRefused, {asText(editJsonErrorName(commands.error()))});
+        return;
+    }
+    if (const std::expected<void, PresetError> filled = fillAddedBlocks(d->registry, d->presets, *commands); !filled) {
+        d->fail(ErrorCode::PresetRefused, {asText(presetErrorName(filled.error()))});
         return;
     }
     // **Ports are checked where the registry is** (blockcatalogue.h): the

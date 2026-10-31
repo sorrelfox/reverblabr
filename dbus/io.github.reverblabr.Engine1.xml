@@ -543,6 +543,7 @@ SPDX-License-Identifier: MIT
                                  "sinks": [ "alsa_output.analog" ],
                                  "streams": [ { "node": "…",
                                                 "mediaName": "A tab",
+                                                "role": "Music",
                                                 "kind": "application",
                                                 "sinks": [ "…" ] } ] } ],
              "otherStreams": [ { "node": "…", "mediaName": "…",

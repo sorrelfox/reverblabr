@@ -531,6 +531,14 @@ public:
                 into.values[blocks::OneEarMix::kMonoLoudnessValue] = dsp::kSilentLufs;
                 into.values[blocks::OneEarMix::kReadingValue] = blocks::OneEarMix::kNotRead;
             }
+            // An Auto Level answers a made-up level by its rule. Before the
+            // made-up values, so a test can show what no steady level gives:
+            // a glide, a pull.
+            if (running && block.type == asText(blocks::AutoLevel::kTypeId)) {
+                into.values[blocks::AutoLevel::kBoostValue] = autoLevelGain(block, peak);
+                into.values[blocks::AutoLevel::kLoudnessValue] = fakeLoudness(peak);
+                into.values[blocks::AutoLevel::kPullValue] = 0.0f;
+            }
             if (running) {
                 const QVariantList fake = session.blockValues.value(block.id);
                 for (qsizetype value = 0; value < fake.size() && value < qsizetype(rt::kMaxMeterValues); ++value) {
@@ -539,10 +547,6 @@ public:
             }
             if (running && block.type == asText(blocks::Limiter::kTypeId)) {
                 into.values[blocks::Limiter::kGainReductionValue] = limiterReduction(block, peak);
-            }
-            if (running && block.type == asText(blocks::AutoLevel::kTypeId)) {
-                into.values[blocks::AutoLevel::kBoostValue] = autoLevelBoost(block, peak);
-                into.values[blocks::AutoLevel::kLoudnessValue] = fakeLoudness(peak);
             }
             // A Multiband Compressor holds a made-up level back in each band
             // as the real one holds a steady tone in that band: by the band's
@@ -621,17 +625,24 @@ public:
         return dsp::gainReductionDb(20.0f * std::log10(peak), settings);
     }
 
-    [[nodiscard]] static float autoLevelBoost(const BlockInstance &block, float peak)
+    [[nodiscard]] static float autoLevelGain(const BlockInstance &block, float peak)
     {
         const float loudness = fakeLoudness(peak);
-        if (!block.params.value("boost"_L1).toBool(true) || loudness < blocks::AutoLevel::kGateLufs) {
+        const bool boosts = block.params.value("boost"_L1).toBool(true);
+        const bool cuts = block.params.value("cut"_L1).toBool(false);
+        if ((!boosts && !cuts) || loudness < blocks::AutoLevel::kGateLufs) {
             return 0.0f;
         }
-        const auto target =
-            static_cast<float>(block.params.value("target"_L1).toDouble(blocks::AutoLevel::kDefaultTargetLufs));
-        const auto maximum = static_cast<float>(
-            block.params.value("maximumBoost"_L1).toDouble(blocks::AutoLevel::kDefaultMaximumBoostDb));
-        return std::clamp(target - loudness, 0.0f, maximum);
+        const auto number = [&block](QLatin1StringView id, float otherwise) {
+            return static_cast<float>(block.params.value(id).toDouble(otherwise));
+        };
+        const float band = number("band"_L1, 0.0f);
+        const dsp::PivotLaw law{
+            .bandAboveLu = band,
+            .bandBelowLu = band,
+            .mostCutDb = cuts ? number("maximumCut"_L1, blocks::AutoLevel::kDefaultMaximumCutDb) : 0.0f,
+            .mostLiftDb = boosts ? number("maximumBoost"_L1, blocks::AutoLevel::kDefaultMaximumBoostDb) : 0.0f};
+        return dsp::pivotGainDb(loudness, number("target"_L1, blocks::AutoLevel::kDefaultTargetLufs), law);
     }
 
     [[nodiscard]] static bool isOutput(const BlockInstance &block)
@@ -1306,9 +1317,13 @@ void MockEngine::applyEdit(const QString &sessionId, const QString &editJson)
         return;
     }
     const QJsonDocument document = QJsonDocument::fromJson(editJson.toUtf8());
-    const std::expected<std::vector<EditCommand>, EditJsonError> commands = editCommandsFromJson(document);
+    std::expected<std::vector<EditCommand>, EditJsonError> commands = editCommandsFromJson(document);
     if (!commands) {
         d->fail(ErrorCode::EditRefused, {asText(editJsonErrorName(commands.error()))});
+        return;
+    }
+    if (const std::expected<void, PresetError> filled = fillAddedBlocks(d->registry, d->presets, *commands); !filled) {
+        d->fail(ErrorCode::PresetRefused, {asText(presetErrorName(filled.error()))});
         return;
     }
     // **Ports are checked where the registry is** (blockcatalogue.h): the

@@ -8,6 +8,7 @@
 #include "core/presetactions.h"
 
 #include "core/paramjson.h"
+#include "core/presetstore.h"
 #include "core/session.h"
 #include "dsp/block.h"
 #include "dsp/blockregistry.h"
@@ -23,6 +24,28 @@ using namespace Qt::StringLiterals;
 
 namespace rb::core
 {
+
+namespace
+{
+
+/// What \a preset sets on a block of its type: not what the block keeps out
+/// of presets.
+[[nodiscard]] QJsonObject settablePart(const dsp::BlockRegistry &registry, const Preset &preset)
+{
+    QJsonObject params = preset.params;
+    if (const std::expected<std::unique_ptr<dsp::Block>, dsp::BlockError> made =
+            registry.create(preset.typeId.toStdString());
+        made) {
+        for (const dsp::ParamDescriptor &descriptor : (*made)->params()) {
+            if (!descriptor.flags.inPresets) {
+                params.remove(QString::fromStdString(descriptor.id));
+            }
+        }
+    }
+    return params;
+}
+
+} // namespace
 
 std::expected<ApplyPreset, PresetError> applyPresetEdit(const dsp::BlockRegistry &registry,
                                                         const Session &session,
@@ -46,22 +69,30 @@ std::expected<ApplyPreset, PresetError> applyPresetEdit(const dsp::BlockRegistry
     ApplyPreset edit;
     edit.blockId = blockId;
     edit.presetId = preset.id;
-    edit.params = preset.params;
     // Nothing to clear: see the header. What it does not mention, it does
-    // not touch — and what is not a preset's to set, it does not set.
-    if (const std::expected<std::unique_ptr<dsp::Block>, dsp::BlockError> made =
-            registry.create(block->type.toStdString());
-        made) {
-        for (const dsp::ParamDescriptor &descriptor : (*made)->params()) {
-            if (!descriptor.flags.inPresets) {
-                edit.params.remove(QString::fromStdString(descriptor.id));
-            }
-        }
-    }
+    // not touch, and what is not a preset's to set, it does not set.
+    edit.params = settablePart(registry, preset);
     if (edit.params.isEmpty()) {
         return std::unexpected(PresetError::NotAPreset);
     }
     return edit;
+}
+
+std::expected<void, PresetError>
+fillAddedBlocks(const dsp::BlockRegistry &registry, const PresetStore &presets, std::vector<EditCommand> &commands)
+{
+    for (EditCommand &command : commands) {
+        auto *added = std::get_if<AddBlock>(&command);
+        if (added == nullptr || added->block.preset.isEmpty() || !added->block.params.isEmpty()) {
+            continue;
+        }
+        const std::expected<Preset, PresetError> preset = presets.preset(added->block.type, added->block.preset);
+        if (!preset) {
+            return std::unexpected(preset.error());
+        }
+        added->block.params = settablePart(registry, *preset);
+    }
+    return {};
 }
 
 std::expected<Preset, PresetError>

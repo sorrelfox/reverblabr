@@ -210,6 +210,33 @@ TestCase {
                "the table knows about more blocks than this build has");
     }
 
+    function test_aBlockSetUpIsARowOfItsOwn() {
+        const library = testCase.openLibrary();
+        const id = "effect.autolevel?preset=voiceEvener";
+        const row = library.rows.find(entry => entry.id === id);
+        verify(row !== undefined, "no Voice Evener in the library");
+        compare(row.kind, "preset");
+        compare(BlockPresentation.description(id), "Keeps voices even: quiet talkers come up and loud ones come down");
+        verify(String(BlockPresentation.icon(id)).endsWith("/voice.svg"), "the row has no icon of its own");
+        verify(library.rows.some(entry => entry.id === "effect.autolevel"), "the row took Auto Level's place");
+
+        library.searchField.text = "voice ev";
+        tryVerify(() => library.rows.some(entry => entry.id === id), 1000, "a search does not find the row");
+        compare(library.rows.find(entry => entry.kind !== "category").id, id);
+        library.searchField.text = "";
+
+        const added = SessionModel.addBlock(id, Qt.point(0, 0));
+        tryVerify(() => SessionModel.blockIds.indexOf(added) >= 0, 2000);
+        compare(SessionModel.block(added).nickname, "Voice Evener");
+        compare(SessionModel.param(added, "cut"), true);
+        compare(SessionModel.param(added, "band"), 1);
+        Presets.forType("effect.autolevel");
+        tryVerify(() => Presets.shownBy("effect.autolevel", SessionModel.block(added).preset ?? "",
+                                        SessionModel.params(added)) === "voiceEvener",
+                  2000, "the footer does not show the preset");
+        compare(Presets.nameOf("effect.autolevel", "voiceEvener"), "Voice Evener");
+    }
+
     function test_theHeadingsAreInTheOrderASessionIsBuiltIn() {
         const library = testCase.openLibrary();
         const shown = testCase.shownCategories(library);

@@ -46,6 +46,13 @@ namespace blockPresentation
 /// and inside a category by name.
 [[nodiscard]] QStringList types();
 
+/// The library rows that are a block type set up from a preset, not a type of
+/// their own. Every function below takes such an id as it takes a type id.
+[[nodiscard]] QStringList rows();
+
+/// The block type \a rowId adds.
+[[nodiscard]] QString typeOfRow(const QString &rowId);
+
 /// The categories, by the engine's stable names, in the order the library
 /// shows them. **An order, not an alphabet**: a session is built along the
 /// signal — where it comes from, what happens to it, where it goes — and
@@ -97,6 +104,8 @@ class BlockPresentation : public QObject
 
     /// Every type id the table has, in the order the library reads.
     Q_PROPERTY(QStringList types READ types CONSTANT)
+    /// The library rows that are a block type set up from a preset.
+    Q_PROPERTY(QStringList rows READ rows CONSTANT)
     /// The categories, in the order the library shows them.
     Q_PROPERTY(QStringList categories READ categories CONSTANT)
 
@@ -104,7 +113,11 @@ public:
     explicit BlockPresentation(QObject *parent = nullptr);
 
     [[nodiscard]] QStringList types() const;
+    [[nodiscard]] QStringList rows() const;
     [[nodiscard]] QStringList categories() const;
+
+    /// The block type a library row adds.
+    [[nodiscard]] Q_INVOKABLE QString typeOfRow(const QString &rowId) const;
 
     /// What a category heading says.
     [[nodiscard]] Q_INVOKABLE QString categoryName(const QString &category) const;

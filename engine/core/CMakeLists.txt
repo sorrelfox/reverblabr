@@ -130,6 +130,7 @@ qt_add_resources(reverblabr-engine "reverblabr-factory-presets"
     FILES
         ../presets/advanced.dehum/10-mains50Hz.json
         ../presets/advanced.dehum/20-mains60Hz.json
+        ../presets/effect.autolevel/10-voiceEvener.json
         ../presets/effect.dynamics/10-default.json
         ../presets/effect.dynamics/20-gentleLeveling.json
         ../presets/effect.dynamics/30-voice.json

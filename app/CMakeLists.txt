@@ -34,6 +34,8 @@ set_source_files_properties(qml/BlockHelp.qml PROPERTIES QT_QML_SINGLETON_TYPE T
 set_source_files_properties(qml/AppGlyphs.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The one voice the window speaks to a screen reader with, unasked.
 set_source_files_properties(qml/Announcer.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+# What the Auto Level tiles did in the last minute, for their cards.
+set_source_files_properties(qml/AutoLevelHistory.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The words for every built-in block's choices.
 set_source_files_properties(qml/ChoiceWords.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 ecm_target_qml_sources(reverblabr-ui SOURCES
@@ -51,8 +53,12 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ApplicationSourceHelp.qml
     qml/ApplicationSourcePanel.qml
     qml/AutoLevelFace.qml
+    qml/AutoLevelGraph.qml
     qml/AutoLevelHelp.qml
+    qml/AutoLevelHistory.qml
     qml/AutoLevelPanel.qml
+    qml/AutoLevelState.qml
+    qml/AutoLevelValueRow.qml
     qml/AutoLevelWords.qml
     qml/BalanceHelp.qml
     qml/BassTrebleFace.qml
@@ -302,6 +308,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/advanced.timeshift.svg
     icons/advanced.transcribe.svg
     icons/effect.autolevel.svg
+    icons/voice.svg
     icons/effect.balance.svg
     icons/effect.basstreble.svg
     icons/effect.channels.svg

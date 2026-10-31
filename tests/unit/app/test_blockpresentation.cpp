@@ -117,6 +117,28 @@ TEST(BlockPresentation, DescriptionsFitOneRow)
     }
 }
 
+// A library row that is a block set up: it has every word a type has, within
+// the same limits, an icon that is really there, and adds a type that exists.
+TEST(BlockPresentation, EveryRowIsCompleteAndAddsABlockThatExists)
+{
+    const QStringList rows = rb::ui::blockPresentation::rows();
+    ASSERT_FALSE(rows.isEmpty());
+    const rb::dsp::BlockRegistry registry = builtins();
+    for (const QString &row : rows) {
+        const QString description = rb::ui::blockPresentation::description(row);
+        EXPECT_FALSE(rb::ui::blockPresentation::name(row).isEmpty());
+        EXPECT_FALSE(description.isEmpty());
+        EXPECT_LE(description.size(), 72) << description.toStdString();
+        EXPECT_FALSE(description.endsWith(u'.'));
+        EXPECT_GE(rb::ui::blockPresentation::tooltip(row).size(), description.size());
+        EXPECT_TRUE(QFile::exists(iconFile(row))) << iconFile(row).toStdString();
+        const QString type = rb::ui::blockPresentation::typeOfRow(row);
+        EXPECT_EQ(rb::ui::blockPresentation::category(row), rb::ui::blockPresentation::category(type));
+        EXPECT_TRUE(registry.create(type.toStdString()).has_value()) << type.toStdString();
+    }
+    EXPECT_FALSE(rb::ui::blockPresentation::types().contains(rows.front())) << "a row is no type";
+}
+
 // The library reads along the signal — where sound comes from, where it
 // goes, what happens to it on the way — and a heading out of that order
 // would send somebody looking in the wrong place for the block they want.

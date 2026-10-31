@@ -151,7 +151,7 @@ constexpr std::array kEntries{
           kli18nc("@info block description", "Evens out a source whose loudness keeps changing"),
           kli18nc("@info:tooltip block description",
                   "Evens out a source whose loudness keeps changing: quiet passages are lifted towards a steady "
-                  "level, and anything already loud enough is left alone.")},
+                  "level, and loud ones can be brought down to it.")},
     Entry{"effect.balance",
           "effects",
           kli18nc("@item block name", "Balance"),
@@ -458,11 +458,28 @@ constexpr std::array kEntries{
     return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size()));
 }
 
+/// **Library rows that are no block type of their own**: a block type set up
+/// from one of its presets. The id is what SessionModel::addBlock() reads, the
+/// type with the preset after it; the row has its own words and its own icon,
+/// and the block it adds carries the name as a nickname.
+constexpr std::array kRows{
+    Entry{"effect.autolevel?preset=voiceEvener",
+          "effects",
+          kli18nc("@item block name", "Voice Evener"),
+          kli18nc("@info block description", "Keeps voices even: quiet talkers come up and loud ones come down"),
+          kli18nc("@info:tooltip block description",
+                  "An Auto Level set up for voices on a call: a quiet talker comes up and a loud one comes down "
+                  "towards one level, and what is near it is left alone.")},
+};
+
 [[nodiscard]] const Entry *find(const QString &typeId)
 {
-    const auto it =
-        std::ranges::find_if(kEntries, [&typeId](const Entry &entry) { return typeId == toQString(entry.typeId); });
-    return it == kEntries.end() ? nullptr : &*it;
+    const auto matches = [&typeId](const Entry &entry) { return typeId == toQString(entry.typeId); };
+    if (const auto it = std::ranges::find_if(kEntries, matches); it != kEntries.end()) {
+        return &*it;
+    }
+    const auto row = std::ranges::find_if(kRows, matches);
+    return row == kRows.end() ? nullptr : &*row;
 }
 
 /// A lazy string as text, in the application's own catalogue. Without the
@@ -487,6 +504,21 @@ QStringList types()
         ids.append(toQString(entry.typeId));
     }
     return ids;
+}
+
+QStringList rows()
+{
+    QStringList ids;
+    ids.reserve(static_cast<qsizetype>(kRows.size()));
+    for (const Entry &entry : kRows) {
+        ids.append(toQString(entry.typeId));
+    }
+    return ids;
+}
+
+QString typeOfRow(const QString &rowId)
+{
+    return rowId.left(rowId.indexOf(u'?'));
 }
 
 bool has(const QString &typeId)
@@ -580,7 +612,8 @@ QUrl icon(const QString &typeId)
     }
     // The icons travel in the QML module's resources, which is where the
     // module's own files are, so a build that has the interface has them.
-    return QUrl(u"qrc:/qt/qml/io/github/reverblabr/icons/%1.svg"_s.arg(typeId));
+    const QString file = typeId == toQString(kRows.front().typeId) ? u"voice"_s : typeId;
+    return QUrl(u"qrc:/qt/qml/io/github/reverblabr/icons/%1.svg"_s.arg(file));
 }
 
 } // namespace blockPresentation
@@ -593,6 +626,16 @@ BlockPresentation::BlockPresentation(QObject *parent)
 QStringList BlockPresentation::types() const
 {
     return blockPresentation::types();
+}
+
+QStringList BlockPresentation::rows() const
+{
+    return blockPresentation::rows();
+}
+
+QString BlockPresentation::typeOfRow(const QString &rowId) const
+{
+    return blockPresentation::typeOfRow(rowId);
 }
 
 QStringList BlockPresentation::categories() const

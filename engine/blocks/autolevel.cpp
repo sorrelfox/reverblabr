@@ -56,6 +56,33 @@ std::vector<ParamDescriptor> AutoLevel::makeDescriptors()
     maximum.defaultValue = ParamValue::ofFloat(kDefaultMaximumBoostDb);
     maximum.unit = ParamUnit::Decibels;
     descriptors.push_back(std::move(maximum));
+
+    // New parameters go here, at the end: queued positions must stay. A
+    // session saved before these has none of them, so it loads with the cut
+    // off and nothing left alone.
+    ParamDescriptor cut;
+    cut.id = "cut";
+    cut.type = ParamType::Bool;
+    cut.defaultValue = ParamValue::ofBool(false);
+    descriptors.push_back(std::move(cut));
+
+    ParamDescriptor maximumCut;
+    maximumCut.id = "maximumCut";
+    maximumCut.type = ParamType::Float;
+    maximumCut.minimum = ParamValue::ofFloat(0.0f);
+    maximumCut.maximum = ParamValue::ofFloat(kHighestMaximumCutDb);
+    maximumCut.defaultValue = ParamValue::ofFloat(kDefaultMaximumCutDb);
+    maximumCut.unit = ParamUnit::Decibels;
+    descriptors.push_back(std::move(maximumCut));
+
+    ParamDescriptor band;
+    band.id = "band";
+    band.type = ParamType::Float;
+    band.minimum = ParamValue::ofFloat(0.0f);
+    band.maximum = ParamValue::ofFloat(kHighestBandLu);
+    band.defaultValue = ParamValue::ofFloat(0.0f);
+    band.unit = ParamUnit::Decibels;
+    descriptors.push_back(std::move(band));
     return descriptors;
 }
 
@@ -92,19 +119,44 @@ std::expected<void, BlockError> AutoLevel::prepare(const PrepareSpec &spec)
     // Time constants, not times to arrive: e^(-1/τ) a sample.
     m_riseCoefficient = static_cast<float>(std::exp(-1.0 / (kRiseMs * 1.0e-3 * spec.sampleRate)));
     m_fallCoefficient = static_cast<float>(std::exp(-1.0 / (kFallMs * 1.0e-3 * spec.sampleRate)));
+    // The guard's release counts in its 10 ms steps, its glide in samples.
+    m_pullReleaseCoefficient = std::exp(-dsp::KWeightedSlices::kSliceMs / kPullReleaseMs);
+    m_pullGlideCoefficient = static_cast<float>(std::exp(-1.0 / (kPullGlideMs * 1.0e-3 * spec.sampleRate)));
     m_meter = spec.meter;
     reset();
     return {};
 }
 
-float AutoLevel::wantedBoostDb() const noexcept RB_NONBLOCKING
+float AutoLevel::lowestGainDb() const noexcept RB_NONBLOCKING
+{
+    return m_store.number(Cut) != 0.0f ? -m_store.number(MaximumCut) : 0.0f;
+}
+
+float AutoLevel::wantedGainDb(float pivotLufs) const noexcept RB_NONBLOCKING
 {
     const float loudness = m_loudness.loudness();
-    if (m_store.number(Boost) == 0.0f || loudness < kGateLufs) {
+    const bool boosts = m_store.number(Boost) != 0.0f;
+    const bool cuts = m_store.number(Cut) != 0.0f;
+    if (loudness < kGateLufs || (!boosts && !cuts)) {
         return 0.0f;
     }
-    const PivotLaw upwardOnly{.cutSlope = 0.0f, .mostLiftDb = m_store.number(MaximumBoost)};
-    return pivotGainDb(loudness, m_store.number(Target), upwardOnly);
+    const float band = m_store.number(Band);
+    const PivotLaw law{.bandAboveLu = band,
+                       .bandBelowLu = band,
+                       .mostCutDb = -lowestGainDb(),
+                       .mostLiftDb = boosts ? m_store.number(MaximumBoost) : 0.0f};
+    return pivotGainDb(loudness, pivotLufs, law);
+}
+
+void AutoLevel::updatePull() noexcept RB_NONBLOCKING
+{
+    const float limit = m_store.number(Target) + kJumpLu;
+    const float over = std::max(0.0f, m_loudness.fast() + m_gainDb - limit);
+    m_pullDb = std::max(over, m_pullDb * m_pullReleaseCoefficient);
+    // Never a lift, and never under the lowest gain allowed. The gain can
+    // stand below that floor for a while after the cut is switched off, and
+    // a negative pull would jump it back up.
+    m_pullDb = std::min(m_pullDb, std::max(0.0f, m_gainDb - lowestGainDb()));
 }
 
 void AutoLevel::process(ProcessContext &context) noexcept RB_NONBLOCKING
@@ -119,16 +171,22 @@ void AutoLevel::process(ProcessContext &context) noexcept RB_NONBLOCKING
         const float left = frame < leftIn.size() ? leftIn[frame] : 0.0f;
         const float right = frame < rightIn.size() ? rightIn[frame] : 0.0f;
         if (m_loudness.push(left, right)) {
-            m_wantedDb = wantedBoostDb();
+            m_wantedDb = wantedGainDb(m_store.number(Target));
         }
-        // **Down quickly only when the source got loud**; a boost falling
-        // because the source went under the gate, or was switched off,
-        // falls at the slow rate, so a pause does not pull it down.
-        const bool loudAgain =
-            m_wantedDb < m_boostDb && m_loudness.loudness() >= kGateLufs && m_store.number(Boost) != 0.0f;
+        // **Down quickly only when the source got loud**; a gain falling
+        // because the source went under the gate, or both ways were switched
+        // off, falls at the slow rate, so a pause does not pull it down.
+        const bool active = m_store.number(Boost) != 0.0f || m_store.number(Cut) != 0.0f;
+        const bool loudAgain = m_wantedDb < m_gainDb && m_loudness.loudness() >= kGateLufs && active;
         const float coefficient = loudAgain ? m_fallCoefficient : m_riseCoefficient;
-        m_boostDb = m_wantedDb + (m_boostDb - m_wantedDb) * coefficient;
-        const float gain = std::exp2(m_boostDb * (0.05f * 3.321928f));
+        m_gainDb = m_wantedDb + (m_gainDb - m_wantedDb) * coefficient;
+        if (m_loudness.sliceEnded()) {
+            updatePull();
+        }
+        m_smoothPullDb = m_pullDb + (m_smoothPullDb - m_pullDb) * m_pullGlideCoefficient;
+        // The glide lags the pull, so the floor is held here as well.
+        m_appliedDb = std::max(m_gainDb - m_smoothPullDb, std::min(m_gainDb, lowestGainDb()));
+        const float gain = std::exp2(m_appliedDb * (0.05f * 3.321928f));
         if (frame < leftOut.size()) {
             leftOut[frame] = left * gain;
         }
@@ -141,8 +199,9 @@ void AutoLevel::process(ProcessContext &context) noexcept RB_NONBLOCKING
     m_limiter.process(context.output, context.frames);
 
     if (m_meter != nullptr) {
-        m_meter->publish(kBoostValue, m_boostDb);
+        m_meter->publish(kBoostValue, m_appliedDb);
         m_meter->publish(kLoudnessValue, m_loudness.loudness());
+        m_meter->publish(kPullValue, m_gainDb - m_appliedDb);
     }
 }
 
@@ -150,8 +209,11 @@ void AutoLevel::reset() noexcept RB_NONBLOCKING
 {
     m_loudness.reset();
     m_limiter.reset();
-    m_boostDb = 0.0f;
+    m_gainDb = 0.0f;
     m_wantedDb = 0.0f;
+    m_pullDb = 0.0f;
+    m_smoothPullDb = 0.0f;
+    m_appliedDb = 0.0f;
 }
 
 void AutoLevel::applyParam(std::uint32_t index, float value) noexcept RB_NONBLOCKING

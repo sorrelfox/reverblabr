@@ -113,7 +113,7 @@ The released surface is written down line by line in [`dbus/io.github.reverblabr
 
 | Method | Does | Answered by |
 |---|---|---|
-| `ApplyEdit(s sessionId, s editJson)` | one edit command, or a JSON array of them applied whole or not at all as one step to undo: `addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect`, `setParam`, `rename`, `setNotes`, `setEnabled`, `setSessionSetting`, `applyPreset`, `setTimer`, `removeTimer` ([architecture.md](architecture.md)) | a `SessionPatch` per command, or `edit.refused` |
+| `ApplyEdit(s sessionId, s editJson)` | one edit command, or a JSON array of them applied whole or not at all as one step to undo: `addBlock`, `removeBlock`, `moveBlock`, `connect`, `disconnect`, `setParam`, `rename`, `setNotes`, `setEnabled`, `setSessionSetting`, `applyPreset`, `setTimer`, `removeTimer` ([architecture.md](architecture.md)). An `addBlock` whose block names a `preset` and holds no `params` arrives with that preset's values, in the one step | a `SessionPatch` per command, or `edit.refused`; for a preset that is not there, `preset.refused` |
 | `SetParam(s sessionId, s blockId, s paramId, s valueJson)` | one parameter, with the value as JSON; meant for a value that moves, so it produces no patch | `edit.refused` if refused |
 | `Undo(s sessionId)`, `Redo(s sessionId)` | take back, or put back, the last thing done | patches, and `UndoStateChanged` |
 | `GetUndoState(s sessionId)` | what Undo and Redo would do now | `UndoStateChanged` |

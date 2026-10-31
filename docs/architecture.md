@@ -174,6 +174,7 @@ Every block, whether source, effect, meter or output, implements one interface, 
      - **What was found is kept** in `plugins.sqlite` in the user's cache, with each candidate's modification time. A scan describes only what is new or has changed, forgets what has gone, and retries a blocklisted candidate only when asked. LSP's 27 LV2 bundles, 194 plugins, take about a second the first time and nothing after.
      - **The engine scans the first time it is asked** (`ListPlugins`) and when a folder it looks in changes.
      - **Every plugin is an entry of its own** in the library, under Plugins, for a format this build can host. The entry is a key, `plugin.<format>?plugin=<id>`, carried where a block's type is, and `SessionModel::addBlock()` reads it back into one block set to that plugin.
+     - **A row can be a block set up**: `BlockPresentation` keeps a few rows that are a type and a preset, `<type>?preset=<id>`, with words and an icon of their own. `addBlock()` sends a block that names the preset and has the row's name as its nickname, and the engine fills in the values as it takes the edit (`fillAddedBlocks()`, in the mock too), since a preset's values never travel through the window. It is one `addBlock`, so one step to undo.
      - **A new format is a `PluginFormat`, a describer in the host and a loader.** The scan, the cache and the library need nothing more.
    - **A plugin's choice is its value as the scan wrote it** (`%.9g`), in the block and in the panel alike, and a new host is given a choice from the file as its position, as it is given a number.
    - **LV2 plugins run in the host through lilv**.
@@ -512,7 +513,7 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
 | Echo | `effect.echo` |
 | Reverb | `effect.reverb` |
 | Pitch Shift | `effect.pitchshift` |
-| Auto Level | `effect.autolevel` |
+| Auto Level | `effect.autolevel` (the library's Voice Evener row is `effect.autolevel?preset=voiceEvener`, no type of its own) |
 | Balance | `effect.balance` |
 | Channels | `effect.channels` |
 | Simple Compressor | `effect.simplecompressor` |

@@ -34,7 +34,7 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 | **Simple Compressor** | Steadies the level with one choice (Gentle, Moderate, Heavy, Voice or Broadcast) instead of six controls, and shows what that choice sets. |
 | **Multiband Compressor** | Three compressors side by side, for the lows, the middle and the highs. A loud bass doesn't pull the voice down with it, and a harsh "s" can be tamed on its own. Drag the lines between the bands to move where they meet. With every ratio at 1:1, the sound comes out as it went in. |
 | **Limiter** | Keeps a lane under a ceiling between −12 and 0 dB, including peaks that fall between samples, and shows how hard it is working. |
-| **Auto Level** | Brings quiet passages up towards a steady loudness and leaves loud ones alone, with a limiter so the lift never clips. |
+| **Auto Level** | Brings quiet passages up towards a steady loudness and, if you ask, loud ones down, with a limiter so that the lift never clips. The **Voice Evener** row in the library adds it on the preset of that name, which does both, for voices on a call. |
 | **10-Band EQ** | Ten sliders from 31 Hz to 16 kHz, ±12 dB each, with twenty presets, a preamp and an option to keep the overall level where it was. |
 | **Bass & Treble** | Lifts or cuts the low and the high end by up to 12 dB, to warm a source up or brighten it. |
 | **Low Pass Filter** | Rolls off hiss and other high noise above a cutoff, at 12 or 24 dB per octave. |

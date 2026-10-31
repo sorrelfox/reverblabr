@@ -1,0 +1,12 @@
+{
+    "schema": 1,
+    "type": "effect.autolevel",
+    "params": {
+        "boost": true,
+        "cut": true,
+        "target": -23.0,
+        "maximumBoost": 18.0,
+        "maximumCut": 18.0,
+        "band": 1.0
+    }
+}
