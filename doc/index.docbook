@@ -1003,6 +1003,18 @@ sound a quarter of a cycle apart between the sides can get quieter instead, and
 peaks can rise by several dB, so keep a limit after it. Direction doesn't come
 back: a mix in one ear can't tell you where a sound is.</para>
 </sect2>
+
+<sect2 id="block-hearing-suddensounds">
+<title>Sudden Sounds</title>
+<para>Softens sudden sharp sounds, such as clicks and knocks, without turning
+everything down. It compares five ranges of the sound with what each held just
+before, and acts for moments at a time. A sound that stays loud is left alone
+after about a quarter of a second, and a door's low thump goes through nearly as
+it came. A new block is set to Off and changes nothing, and at any Strength the
+sound comes less than a thousandth of a second later. It works on one ear. Leave
+it off for music: it softens drums and plucked notes too. Put it before any block
+that moves or lifts sound.</para>
+</sect2>
 </sect1>
 
 <sect1 id="blocks-plugins">

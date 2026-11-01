@@ -66,6 +66,8 @@ add_library(reverblabr-dsp STATIC
     smoothing.h
     spectrum.cpp
     spectrum.h
+    transientcut.cpp
+    transientcut.h
     truepeak.h
     stereogains.h
     voicelikelihood.cpp

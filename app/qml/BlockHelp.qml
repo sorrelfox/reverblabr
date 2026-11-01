@@ -145,6 +145,9 @@ QtObject {
     readonly property Component nightLevel: Component {
         NightLevelHelp {}
     }
+    readonly property Component suddenSounds: Component {
+        SuddenSoundsHelp {}
+    }
     readonly property Component voiceForward: Component {
         VoiceForwardHelp {}
     }
@@ -267,6 +270,7 @@ QtObject {
         "hearing.frequencyraising": help.frequencyRaising,
         "hearing.joinlr": help.joinLr,
         "hearing.oneearmix": help.oneEarMix,
+        "hearing.suddensounds": help.suddenSounds,
         "meter.speechnow": help.speechNow,
         "meter.voicegauge": help.voiceGauge,
         "meter.soundside": help.soundSide,

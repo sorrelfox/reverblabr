@@ -544,6 +544,7 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
 | Dehum | `advanced.dehum` |
 | Join L/R | `hearing.joinlr` |
 | One Ear Mix | `hearing.oneearmix` |
+| Sudden Sounds | `hearing.suddensounds` |
 | Frequency Lowering | `hearing.frequencylowering` |
 | Frequency Raising | `hearing.frequencyraising` |
 | Hearing Compensation 16 | `hearing.compensation16` |

@@ -30,6 +30,7 @@ QtObject {
     readonly property OneEarMixWords oneEarMix: OneEarMixWords {}
     readonly property NightLevelWords nightLevel: NightLevelWords {}
     readonly property SoundSideWords soundSide: SoundSideWords {}
+    readonly property SuddenSoundsWords suddenSounds: SuddenSoundsWords {}
     readonly property SpeechNowWords speechNow: SpeechNowWords {}
     readonly property FilterWords filter: FilterWords {}
     readonly property WaveWords wave: WaveWords {}
@@ -95,6 +96,8 @@ QtObject {
             return words.soundSide.bandName(choice);
         case "pivotFrom":
             return words.nightLevel.pivotFromName(choice);
+        case "strength":
+            return words.suddenSounds.strengthName(choice);
         case "sendTo":
             return words.oneEarMix.sendName(choice);
         case "hear":

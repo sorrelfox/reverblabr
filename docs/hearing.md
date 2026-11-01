@@ -130,6 +130,12 @@ The sound on the side you chose goes on playing, and what was on the other side 
 
 To check it against an ordinary mono mix, open **Compare with Plain Mono**. **Hear** switches between the two. **Match Levels** reads both for three seconds while something plays, and if One Ear Mix was the louder it fills in **Lower this mix by**, up to 6 dB, so the comparison is about the sound and not the level. Plain Mono is also the better choice for a mono recording in two channels.
 
+## Sudden Sounds
+
+**Sudden Sounds** softens sudden sharp sounds, such as clicks and knocks, without turning everything down. It watches five ranges and acts for moments at a time. A sound that stays loud is left alone after about a quarter of a second.
+
+A new block changes nothing until you choose a **Strength**. Put it before any block that moves or lifts sound. Leave it off for music: it softens drums and plucked notes too. If you see it acting while nothing sudden happens, it is touching speech: **Gentle** takes less off each time, and **Off** stops it. A door's low thump goes through nearly as it came. A cut can leave a peak a little higher than it came in, even though it only ever takes sound away. Its thresholds are provisional: they have not yet been set on recordings of real sounds.
+
 ## Speech Now
 
 **Speech Now** is a block under Meters that shows a word while a voice is on a lane, on its tile, in the tray and on a small label over other programs, and for a moment after it stops. It reads the sound and doesn't change it. It can be wrong, and it can't tell who is speaking. See [the block](blocks.md#speech-now).

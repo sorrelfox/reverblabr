@@ -12,6 +12,7 @@ import io.github.reverblabr
 
 // **A thin level bar, as the tray's popover draws them**: how loud
 // something is, from -60 dBFS to full scale, in the danger colour at the top.
+// A reading that is no level sets its own `from` and `to`.
 //
 // **Read out as a progress bar with a value**, as a block's meter is:
 // `value` between `from` and `to`, in whole decibels, brought up to
@@ -30,7 +31,7 @@ Rectangle {
     property bool running: true
 
     property real from: -60
-    readonly property real to: 0
+    property real to: 0
     /// The level a screen reader is given, in whole decibels.
     property real value: bar.from
     /// Whether the top of the bar is a danger. Off where 0 dB means no change.

@@ -100,6 +100,8 @@ add_library(reverblabr-blocks STATIC
     voicegauge.h
     soundside.cpp
     soundside.h
+    suddensounds.cpp
+    suddensounds.h
     nightlevel.cpp
     nightlevel.h
     voicecompressor.cpp

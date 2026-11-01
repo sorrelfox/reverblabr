@@ -83,6 +83,9 @@ QtObject {
     readonly property Component nightLevel: Component {
         NightLevelFace {}
     }
+    readonly property Component suddenSounds: Component {
+        SuddenSoundsFace {}
+    }
     readonly property Component voiceForward: Component {
         VoiceForwardFace {}
     }
@@ -303,6 +306,7 @@ QtObject {
         "hearing.frequencylowering": faces.frequencyLowering,
         "hearing.frequencyraising": faces.frequencyRaising,
         "hearing.oneearmix": faces.oneEarMix,
+        "hearing.suddensounds": faces.suddenSounds,
         "meter.speechnow": faces.speechNow,
         "meter.voicegauge": faces.voiceGauge,
         "meter.soundside": faces.soundSide,

@@ -306,6 +306,9 @@ QtObject {
     readonly property Component nightLevel: Component {
         NightLevelPanel {}
     }
+    readonly property Component suddenSounds: Component {
+        SuddenSoundsPanel {}
+    }
     readonly property Component voiceForward: Component {
         VoiceForwardPanel {}
     }
@@ -331,6 +334,7 @@ QtObject {
         "hearing.frequencylowering": panels.frequencyLowering,
         "hearing.frequencyraising": panels.frequencyRaising,
         "hearing.oneearmix": panels.oneEarMix,
+        "hearing.suddensounds": panels.suddenSounds,
         "meter.speechnow": panels.speechNow,
         "meter.voicegauge": panels.voiceGauge,
         "meter.soundside": panels.soundSide,

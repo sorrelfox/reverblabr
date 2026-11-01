@@ -146,6 +146,7 @@ These blocks work on one ear at a time. They are described on their own page, [H
 | **Frequency Raising** | The other way round: moves sound from a low or middle range up into one the ear hears, with about 43 ms of delay, or 85 ms while a move starts below 250 Hz. Experimental in parts. |
 | **Join L/R** | Puts two lanes back together as one stereo pair, the left side of one and the right side of the other, lined up in time, so that each ear can have its own blocks. |
 | **One Ear Mix** | Puts both sides into one ear, or one mix on both sides for one earbud. Sound panned to one side comes through 3 dB lower, not 6, and sound out of phase between the sides doesn't cancel the way it does in **Mono**. A sound that sits a quarter of a cycle apart between the sides can get quieter instead, and peaks can rise by several dB, so keep a limit after it. |
+| **Sudden Sounds** | Softens sudden sharp sounds, such as clicks and knocks, for moments at a time, one range of the sound at a time, for one ear. A sound that stays loud is left alone. It changes nothing until you choose a Strength. Leave it off for music. Less than a millisecond of delay. |
 
 ## Plugins
 

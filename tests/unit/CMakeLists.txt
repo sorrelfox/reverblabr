@@ -96,6 +96,7 @@ rb_add_gtest(reverblabr-dsp-test
         dsp/test_stereogains.cpp
         dsp/test_voicelikelihood.cpp
         dsp/test_centresplit.cpp
+        dsp/test_transientcut.cpp
     LIBRARIES reverblabr-dsp reverblabr-dsp-testkit
 )
 set_target_properties(reverblabr-dsp-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
@@ -168,6 +169,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_soundside.cpp
         blocks/test_nightlevel.cpp
         blocks/test_voicecompressor.cpp
+        blocks/test_suddensounds.cpp
         blocks/test_voiceforward.cpp
         blocks/test_voicemodel.cpp
         blocks/test_vumeter.cpp

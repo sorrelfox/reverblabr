@@ -455,6 +455,13 @@ constexpr std::array kEntries{
                   "Puts both sides into one ear, or one mix on both sides for one earbud. Sound panned to one side "
                   "stays, and sound out of phase between the sides doesn't cancel the way it does in a plain mono "
                   "mix.")},
+    Entry{"hearing.suddensounds",
+          "hearing",
+          kli18nc("@item block name", "Sudden Sounds"),
+          kli18nc("@info block description", "Softens sudden sharp sounds such as clicks and knocks"),
+          kli18nc("@info:tooltip block description",
+                  "Softens sudden sharp sounds such as clicks and knocks. Changes nothing until you choose a "
+                  "Strength.")},
 
     // ------------------------------------------------------------ plugins
     Entry{"plugin.builtin",

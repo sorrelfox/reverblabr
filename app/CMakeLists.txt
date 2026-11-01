@@ -288,6 +288,11 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/VoiceCompressorPanel.qml
     qml/VoiceCompressorState.qml
     qml/VoiceCompressorWords.qml
+    qml/SuddenSoundsFace.qml
+    qml/SuddenSoundsHelp.qml
+    qml/SuddenSoundsPanel.qml
+    qml/SuddenSoundsState.qml
+    qml/SuddenSoundsWords.qml
     qml/VoiceForwardFace.qml
     qml/VoiceForwardHelp.qml
     qml/VoiceForwardPanel.qml
@@ -434,6 +439,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/hearing.frequencyraising.svg
     icons/hearing.joinlr.svg
     icons/hearing.oneearmix.svg
+    icons/hearing.suddensounds.svg
 )
 
 # **The Reverblabr appearance's two typefaces ride with it too**: the

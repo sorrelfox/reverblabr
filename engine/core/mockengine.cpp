@@ -26,6 +26,7 @@
 #include "blocks/nightlevel.h"
 #include "blocks/soundside.h"
 #include "blocks/speechnow.h"
+#include "blocks/suddensounds.h"
 #include "blocks/sync.h"
 #include "blocks/timeshift.h"
 #include "blocks/voicecompressor.h"
@@ -581,6 +582,9 @@ public:
                 into.values[blocks::NightLevel::kFoundValue] = blocks::NightLevel::kNoLevel;
                 into.values[blocks::NightLevel::kReadingValue] = fakeLoudness(peak);
                 into.values[blocks::NightLevel::kStateValue] = blocks::NightLevel::NoSpeechYet;
+            }
+            if (running && block.type == asText(blocks::SuddenSounds::kTypeId)) {
+                into.values[blocks::SuddenSounds::kCountValue] = 0.0f;
             }
             if (running && block.type == asText(blocks::VoiceForward::kTypeId)) {
                 into.values[blocks::VoiceForward::kFoundValue] = blocks::VoiceForward::Quiet;
