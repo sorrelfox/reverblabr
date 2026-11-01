@@ -33,6 +33,8 @@ Rectangle {
     readonly property real to: 0
     /// The level a screen reader is given, in whole decibels.
     property real value: bar.from
+    /// Whether the top of the bar is a danger. Off where 0 dB means no change.
+    property bool warnsAtTop: true
 
     implicitHeight: Kirigami.Units.smallSpacing
     radius: AppMetrics.barRadius
@@ -61,7 +63,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         radius: AppMetrics.barRadius
         width: parent.width * Math.max(0, Math.min(1, (bar.db - bar.from) / (bar.to - bar.from)))
-        color: bar.db >= -0.1 ? AppColors.dangerMark : AppColors.liveMark
+        color: bar.warnsAtTop && bar.db >= -0.1 ? AppColors.dangerMark : AppColors.liveMark
         visible: bar.running
     }
 }

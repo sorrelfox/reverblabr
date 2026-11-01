@@ -28,6 +28,7 @@
 #include "blocks/speechnow.h"
 #include "blocks/sync.h"
 #include "blocks/timeshift.h"
+#include "blocks/voiceforward.h"
 #include "blocks/voicegauge.h"
 #include "blocks/vumeter.h"
 #include "core/audiosystem.h"
@@ -579,6 +580,9 @@ public:
                 into.values[blocks::NightLevel::kFoundValue] = blocks::NightLevel::kNoLevel;
                 into.values[blocks::NightLevel::kReadingValue] = fakeLoudness(peak);
                 into.values[blocks::NightLevel::kStateValue] = blocks::NightLevel::NoSpeechYet;
+            }
+            if (running && block.type == asText(blocks::VoiceForward::kTypeId)) {
+                into.values[blocks::VoiceForward::kFoundValue] = blocks::VoiceForward::Quiet;
             }
             // An Auto Level answers a made-up level by its rule. Before the
             // made-up values, so a test can show what no steady level gives:

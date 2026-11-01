@@ -146,6 +146,10 @@ To check it against an ordinary mono mix, open **Compare with Plain Mono**. **He
 
 **Night Level** is a block under Built-in Effects for films and shows on one lane. It finds the level of speech and brings louder and quieter sounds part of the way towards it, by amounts you set apart. A new block is set to nothing: press Light, Night or Strong on its card. Until it hears speech it changes nothing, so the start of a film passes as it came. The level comes from a voice detector and it can be wrong, so you can type one. A sudden sound can still start loud, since the block can't know what comes next. Its limit is a digital one, not a level at your ears. It presses music too, so turn it off for music, and use it or Voice Evener on a lane, not both. Put it before One Ear Mix.
 
+## Voice Forward
+
+**Voice Forward** is a block under Built-in Effects for films and shows in stereo. It finds what is alike on both sides and turns the rest down with one control, Background, less between voices. It finds sameness and not voices, so a centred drum stays and a voice off to one side goes down. At 0 dB or switched off the sound passes unchanged, only about 23 ms later. On mono it leaves the voice band alone and moves only what lies under 100 Hz and over 12 kHz, and One Ear Mix belongs after it. Hold for before, on its card, plays the sound without it for as long as it is held. Don't use it in a game, where sounds at the sides tell you where things are. No measurement here shows that it helps anyone follow speech.
+
 ## Voice Evener
 
 **Voice Evener** is a row in the library under Built-in Effects: an Auto Level set up to bring a quiet talker up and a loud one down towards one level, on one lane. It evens level only. A mixed call reaches a lane as one stream, so it is one gain for whoever is talking, and a new talker takes a few seconds to settle. Put it after Speech Denoise and before anything that shapes one ear. On music or a film it takes the loud and soft out: turn it off, or give them a lane of their own.

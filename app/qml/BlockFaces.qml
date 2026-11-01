@@ -83,6 +83,9 @@ QtObject {
     readonly property Component nightLevel: Component {
         NightLevelFace {}
     }
+    readonly property Component voiceForward: Component {
+        VoiceForwardFace {}
+    }
     readonly property Component soundSide: Component {
         SoundSideFace {}
     }
@@ -299,6 +302,7 @@ QtObject {
         "meter.voicegauge": faces.voiceGauge,
         "meter.soundside": faces.soundSide,
         "effect.nightlevel": faces.nightLevel,
+        "effect.voiceforward": faces.voiceForward,
         "output.device": faces.outputDevice,
         "source.application": faces.applicationSource,
         "source.device": faces.inputDevice,

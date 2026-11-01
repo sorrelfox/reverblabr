@@ -158,6 +158,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/HighPassHelp.qml
     qml/InfoLine.qml
     qml/HearingNotice.qml
+    qml/HoldForBefore.qml
     qml/InputDeviceHelp.qml
     qml/InputDevicePanel.qml
     qml/InputSwitchControl.qml
@@ -280,6 +281,11 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SoundSideState.qml
     qml/SoundSideStrip.qml
     qml/SoundSideWords.qml
+    qml/VoiceForwardFace.qml
+    qml/VoiceForwardHelp.qml
+    qml/VoiceForwardPanel.qml
+    qml/VoiceForwardState.qml
+    qml/VoiceForwardWords.qml
     qml/VoiceGaugeBar.qml
     qml/VoiceGaugeDot.qml
     qml/VoiceGaugeFace.qml
@@ -368,6 +374,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/meter.voicegauge.svg
     icons/meter.soundside.svg
     icons/effect.nightlevel.svg
+    icons/effect.voiceforward.svg
     icons/meter.vu.svg
     icons/output.broadcast.svg
     icons/output.device.svg

@@ -114,6 +114,24 @@ TestCase {
         SessionModel.removeBlock("sides");
     }
 
+    function test_theVoiceForwardShortcutSwitchesEveryBlockOneWay() {
+        const targets = createTemporaryObject(targetsComponent, testCase, { speaker: testCase.speaker });
+        compare(targets.act("voiceForward.toggle"), 0, "no Voice Forward, nothing to do");
+
+        testCase.add("forward", "effect.voiceforward");
+        testCase.add("forward2", "effect.voiceforward");
+        tryVerify(() => SessionModel.blockIds.indexOf("forward2") >= 0, 1000, "the block did not arrive");
+        SessionModel.setBlockEnabled("forward2", false);
+        compare(targets.act("voiceForward.toggle"), 2);
+        verify(!SessionModel.block("forward").enabled, "one was on, so all go off");
+        verify(!SessionModel.block("forward2").enabled);
+        compare(targets.act("voiceForward.toggle"), 2);
+        verify(SessionModel.block("forward").enabled);
+        verify(SessionModel.block("forward2").enabled);
+        SessionModel.removeBlock("forward");
+        SessionModel.removeBlock("forward2");
+    }
+
     function test_sayVoiceLevelIsOneSentenceAndNothingWithNoGauge() {
         const targets = createTemporaryObject(targetsComponent, testCase, { speaker: testCase.speaker });
         Announcer.reset();

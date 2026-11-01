@@ -1,0 +1,7 @@
+{
+    "schema": 1,
+    "type": "effect.voiceforward",
+    "params": {
+        "background": -15.0
+    }
+}

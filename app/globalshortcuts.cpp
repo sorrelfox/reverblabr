@@ -132,6 +132,7 @@ QList<GlobalShortcuts::Action> GlobalShortcuts::fixedActions()
         {QString(kSayWhoIsSpeaking), i18nc("@action a global shortcut", "Say Who Is Speaking")},
         {QString(kSayVoiceLevel), i18nc("@action a global shortcut", "Say Voice Level")},
         {QString(kSoundSideStrip), i18nc("@action a global shortcut", "Show or hide Sound Side's strip")},
+        {QString(kVoiceForwardToggle), i18nc("@action a global shortcut", "Voice Forward on or off")},
     };
 }
 

@@ -24,6 +24,8 @@ add_library(reverblabr-dsp STATIC
     blockregistry.h
     channelmap.cpp
     channelmap.h
+    centresplit.cpp
+    centresplit.h
     crossover.cpp
     crossover.h
     decibel.cpp

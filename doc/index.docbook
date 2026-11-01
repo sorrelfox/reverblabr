@@ -662,6 +662,16 @@ you can type one. It can't know what comes next, so a sudden sound can start
 loud.</para>
 </sect2>
 
+<sect2 id="block-effect-voiceforward">
+<title>Voice Forward</title>
+<para>Finds what is alike on both sides of a stereo sound and turns the rest down
+with one Background control, a little between voices and further while there is
+sound in the centre. At 0 dB, or switched off, the sound passes unchanged, only
+later. It can't tell a voice from centred music or a drum, and a voice off to one
+side goes down with the rest. On a mono sound it moves only what lies under 100 Hz and over 12 kHz. Hold level slowly
+raises the whole sound after what was taken out. It adds about 23 ms.</para>
+</sect2>
+
 <sect2 id="block-effect-balance">
 <title>Balance</title>
 <para>Turns the left or the right side of a stereo lane down against the

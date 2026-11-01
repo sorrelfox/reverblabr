@@ -26,6 +26,8 @@ import org.kde.ki18n
 //   showing, as a strip hidden under a game can't say so itself.
 //   Nothing else says this unasked, since a sentence every few seconds would
 //   be spoken over the talker.
+// - Voice Forward: on or off, every block the same way, since a film played
+//   full screen hides the card.
 QtObject {
     id: targets
 
@@ -35,6 +37,7 @@ QtObject {
     readonly property string speechNowType: "meter.speechnow"
     readonly property string voiceGaugeType: "meter.voicegauge"
     readonly property string soundSideType: "meter.soundside"
+    readonly property string voiceForwardType: "effect.voiceforward"
     /// What speaks a sentence to a screen reader: the window, set by Main.
     property Item speaker: null
     /// How far the Time Shift shortcuts jump (GlobalShortcuts::kJumpSeconds).
@@ -75,6 +78,8 @@ QtObject {
             return targets.sayVoiceLevel();
         case "soundSide.strip":
             return targets.toggleStrip();
+        case "voiceForward.toggle":
+            return targets.toggleVoiceForward();
         }
         return 0;
     }
@@ -153,6 +158,19 @@ QtObject {
         });
         if (targets.speaker !== null) {
             Announcer.sayNow(targets.speaker, parts.join(KI18n.i18nc("@info between the parts of a spoken list", ", ")));
+        }
+        return blocks.length;
+    }
+
+    /// Switches every Voice Forward off if any is on, and otherwise on.
+    function toggleVoiceForward(): int {
+        const blocks = targets.blocksOf(targets.voiceForwardType);
+        if (blocks.length === 0) {
+            return 0;
+        }
+        const on = !blocks.some(blockId => SessionModel.block(blockId).enabled ?? true);
+        for (const blockId of blocks) {
+            SessionModel.setBlockEnabled(blockId, on);
         }
         return blocks.length;
     }

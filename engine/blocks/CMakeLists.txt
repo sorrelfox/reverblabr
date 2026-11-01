@@ -102,6 +102,8 @@ add_library(reverblabr-blocks STATIC
     soundside.h
     nightlevel.cpp
     nightlevel.h
+    voiceforward.cpp
+    voiceforward.h
     voicemodel.cpp
     voicemodel.h
     vumeter.cpp

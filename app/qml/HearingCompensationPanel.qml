@@ -174,7 +174,6 @@ ColumnLayout {
     Component.onCompleted: panel.askForSpectrum()
     Component.onDestruction: {
         panel.letGoOfSpectrum();
-        panel.endComparing();
     }
 
     HearingBands {
@@ -503,20 +502,12 @@ ColumnLayout {
         }
     }
 
-    /// **A comparison is not an edit**: it goes round the session, so undo
-    /// and the unsaved mark see nothing.
-    property bool comparing: false
-
-    function beginComparing() {
-        panel.comparing = true;
-        SessionModel.holdBlockOff(panel.blockId, true);
+    // B, wherever the focus is in the card (HoldForBefore).
+    Keys.onPressed: event => {
+        event.accepted = beforeControl.keyDown(event);
     }
-
-    function endComparing() {
-        if (panel.comparing) {
-            panel.comparing = false;
-            SessionModel.holdBlockOff(panel.blockId, false);
-        }
+    Keys.onReleased: event => {
+        event.accepted = beforeControl.keyUp(event);
     }
 
     function gainText(db: real): string {
@@ -602,22 +593,16 @@ ColumnLayout {
             Layout.fillWidth: true
         }
 
-        QQC2.Button {
+        HoldForBefore {
             id: beforeControl
 
+            blockId: panel.blockId
             // Down to its icon in a narrow card; its words are its name.
             // Filling up to its own width, so the row can shrink it.
             Layout.fillWidth: true
             Layout.minimumWidth: implicitHeight
             Layout.maximumWidth: implicitWidth
             Layout.preferredWidth: implicitWidth
-            text: KI18n.i18nc("@action:button hold to hear the sound without the block", "Hold for before")
-            icon.name: "media-playback-pause"
-            onPressed: panel.beginComparing()
-            onReleased: panel.endComparing()
-            onCanceled: panel.endComparing()
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.text: KI18n.i18nc("@info:tooltip", "The sound without this block, for as long as it is held")
         }
     }
 

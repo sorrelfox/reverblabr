@@ -160,6 +160,13 @@ constexpr std::array kEntries{
         kli18nc("@info:tooltip block description",
                 "Finds the level of speech and moves other sounds towards it. Set apart how far loud sounds come "
                 "down and quiet sounds come up.")},
+    Entry{"effect.voiceforward",
+          "effects",
+          kli18nc("@item block name", "Voice Forward"),
+          kli18nc("@info block description", "Moves voices forward against music and effects"),
+          kli18nc("@info:tooltip block description",
+                  "Turns down what differs between left and right. A sound that is alike on both sides stays where it "
+                  "is.")},
     Entry{"effect.balance",
           "effects",
           kli18nc("@item block name", "Balance"),

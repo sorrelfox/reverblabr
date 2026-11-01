@@ -43,6 +43,7 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 | **Reverb** | Puts the sound in a room. See [below](#reverb). |
 | **Pitch Shift** | Moves the pitch up or down by up to an octave in semitones, and a little further with cents, without making the sound faster or slower. See [below](#pitch-shift). |
 | **Night Level** | Finds the level of speech in what is playing, leaves sound near it alone, and brings louder and quieter sounds part of the way towards it. Until it hears speech it changes nothing. It presses music too, so turn it off for music. |
+| **Voice Forward** | Finds what is alike on both sides of a stereo sound and turns the rest down with one control, less between voices. At 0 dB or switched off the sound passes unchanged. It can't tell a voice from centred music, and a voice off to one side goes down with the rest. About 23 ms of delay. |
 | **Balance** | Turns the left or the right side of a stereo lane down against the other, all the way to silence. |
 | **Pan** | Places a lane anywhere between left and right. The sound is folded to mono first and keeps the same loudness wherever you put it. |
 | **Channels** | Swaps the sides, folds to mono, copies one side to both, mutes or inverts a side, or keeps only what differs between them, fading from one setting to the next. Its Mono drops sound panned to one side by 6 dB and cancels sound out of phase between the sides; **One Ear Mix**, in the Hearing group, folds them another way. |

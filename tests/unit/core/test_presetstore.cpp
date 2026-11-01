@@ -198,6 +198,16 @@ TEST_F(Presets, APresetFileIsTheSameBytesInAnyLocale)
     EXPECT_DOUBLE_EQ(read->params.value(u"gain"_s).toDouble(), 0.5);
 }
 
+TEST_F(Presets, VoiceForwardShipsItsTwoAtTheirDepths)
+{
+    const QList<Preset> presets = PresetStore::factoryPresetsFor(u"effect.voiceforward"_s);
+    ASSERT_EQ(presets.size(), 2);
+    EXPECT_EQ(presets[0].id, u"music-stays"_s);
+    EXPECT_DOUBLE_EQ(presets[0].params.value(u"background"_s).toDouble(), -6.0);
+    EXPECT_EQ(presets[1].id, u"voices-first"_s);
+    EXPECT_DOUBLE_EQ(presets[1].params.value(u"background"_s).toDouble(), -15.0);
+}
+
 TEST_F(Presets, EveryShippedPresetNamesParametersItsBlockActuallyHas)
 {
     // **The one thing that cannot be checked by reading either side.** A
@@ -241,11 +251,12 @@ TEST_F(Presets, EveryShippedPresetNamesParametersItsBlockActuallyHas)
             }
         }
     }
-    EXPECT_EQ(shippedCount, 49)
+    EXPECT_EQ(shippedCount, 51)
         << "the shipped presets are three for Volume and five for Dynamics, "
            "twenty for the 10-Band EQ, two for Dehum, three for "
            "Hearing Compensation 16, three for Hearing Compensation 64, one for Auto Level, two for Speech Now "
-           ", two for Voice Gauge, two for Sound Side, three for Night Level and three for Reverb";
+           ", two for Voice Gauge, two for Sound Side, three for Night Level, two for Voice Forward and three for "
+           "Reverb";
 }
 
 TEST_F(Presets, APresetMatchesTheValuesItNamesAndNoOthers)

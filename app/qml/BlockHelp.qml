@@ -145,6 +145,9 @@ QtObject {
     readonly property Component nightLevel: Component {
         NightLevelHelp {}
     }
+    readonly property Component voiceForward: Component {
+        VoiceForwardHelp {}
+    }
     readonly property Component soundSide: Component {
         SoundSideHelp {}
     }
@@ -265,6 +268,7 @@ QtObject {
         "meter.voicegauge": help.voiceGauge,
         "meter.soundside": help.soundSide,
         "effect.nightlevel": help.nightLevel,
+        "effect.voiceforward": help.voiceForward,
         "meter.peakrms": help.peakRms,
         "meter.vu": help.vu,
         "output.broadcast": help.broadcast,

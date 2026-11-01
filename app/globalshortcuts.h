@@ -84,6 +84,7 @@ public:
     static constexpr QLatin1StringView kSayWhoIsSpeaking{"speechNow.say"};
     static constexpr QLatin1StringView kSayVoiceLevel{"voiceGauge.say"};
     static constexpr QLatin1StringView kSoundSideStrip{"soundSide.strip"};
+    static constexpr QLatin1StringView kVoiceForwardToggle{"voiceForward.toggle"};
     /// A session's action is this followed by its id.
     static constexpr QLatin1StringView kSessionPrefix{"session."};
     /// How far the Time Shift shortcuts jump, in seconds.

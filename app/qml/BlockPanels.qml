@@ -301,6 +301,9 @@ QtObject {
     readonly property Component nightLevel: Component {
         NightLevelPanel {}
     }
+    readonly property Component voiceForward: Component {
+        VoiceForwardPanel {}
+    }
     readonly property Component soundSide: Component {
         SoundSidePanel {}
     }
@@ -327,6 +330,7 @@ QtObject {
         "meter.voicegauge": panels.voiceGauge,
         "meter.soundside": panels.soundSide,
         "effect.nightlevel": panels.nightLevel,
+        "effect.voiceforward": panels.voiceForward,
         "output.device": panels.outputDevice,
         "source.application": panels.applicationSource,
         "source.device": panels.inputDevice,
