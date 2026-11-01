@@ -59,6 +59,8 @@ class TrayState : public QObject
     /// `[{sessionId, sessionName, blockId, type, nickname}]`, in the order
     /// the sessions were opened and the blocks sit.
     Q_PROPERTY(QVariantList meters READ meters NOTIFY metersChanged)
+    /// What the floating window has been asked to show, in the same shape.
+    Q_PROPERTY(QVariantList floating READ floating NOTIFY metersChanged)
     /// Whether there is a tray to show the icon in. **Without one, closing
     /// the window must end the application**, or it would go on running with
     /// no way back to it. TrayIcon sets it as hosts come and go; a test sets
@@ -88,6 +90,7 @@ public:
         QString sessionId;
         QString blockId;
         QString nickname;
+        QString type;
     };
 
     /// Follows \a facade (see attach()). **Not default-constructible, on
@@ -117,6 +120,7 @@ public:
     /// meters(). **Here because the tray already follows every open session's
     /// blocks**, so nothing keeps a second copy; metersChanged() covers them.
     [[nodiscard]] QList<SurfaceBlock> floatingBlocks() const;
+    [[nodiscard]] QVariantList floating() const;
     [[nodiscard]] bool isAvailable() const;
     void setAvailable(bool available);
     [[nodiscard]] bool isWindowShown() const;
@@ -136,6 +140,10 @@ public:
     /// (TelemetryWatch); whether it is switched on; and what it publishes.
     /// Silence for a meter whose session does not run.
     [[nodiscard]] Q_INVOKABLE QVariantMap meterLevel(const QString &sessionId, const QString &blockId) const;
+
+    /// Takes a block off the floating window, in any open session: with the
+    /// main window closed the popover is the only way to.
+    Q_INVOKABLE void hideFromFloating(const QString &sessionId, const QString &blockId);
 
     /// What the icon's clicks ask for, said by TrayIcon and by tests.
     Q_INVOKABLE void requestPopover();

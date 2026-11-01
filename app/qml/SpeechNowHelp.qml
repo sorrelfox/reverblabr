@@ -67,7 +67,7 @@ HelpPage {
         ]
         paragraphs: [
             KI18n.i18nc("@info help page of the Speech Now block", "A small window that stays over other programs, with a row for each Speech Now that has this on, up to four. It stays when you close the main window, while there is a system tray. It starts off, so nothing appears unasked."),
-            KI18n.i18nc("@info help page of the Speech Now block", "Drag it to move it. On a desktop that may not keep it on top, the card says so. A full-screen share may show it, name included.")
+            KI18n.i18nc("@info help page of the Speech Now block", "Drag it to move it. Turn it off here or in the tray's popover. On a desktop that may not keep it on top, the card says so. A full-screen share may show it, name included.")
         ]
     }
 

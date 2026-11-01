@@ -125,6 +125,10 @@ QtObject {
                                                        colors.textBackgrounds)
     readonly property color accent: colors.followsSystem ? Kirigami.Theme.highlightColor
                                                          : colors.designPalette.accent
+    /// **A voice level's bar, the same in both appearances.** The accent
+    /// follows the desktop's highlight, which can be green, and a level must
+    /// not look approved. So this is the design's blue on every desktop.
+    readonly property color voiceBar: colors.designPalette.accent
     /// The accent, faint: a selection's fill, a focus ring's glow.
     readonly property color accentSoft: colors.followsSystem
                                         ? Qt.rgba(colors.accent.r, colors.accent.g, colors.accent.b, 0.35)

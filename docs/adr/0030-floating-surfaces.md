@@ -10,7 +10,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 ## Context
 
-Speech Now shows a word beside a call's video, over other programs, and later blocks will put a level bar and a strip there too. A window has to stay above a maximised program. On Wayland `Qt.WindowStaysOnTopHint` is only a hint, and nothing else in Qt asks for it. KWin offers `zwlr_layer_shell_v1`, and `layer-shell-qt` lets a Qt window be such a surface through a QML module. That module is one more thing a desktop may not have, on Linux distributions in general and in the headless containers the tests run in.
+Speech Now shows a word beside a call's video, over other programs, Voice Gauge a level bar, and a later block will put a strip there too. A window has to stay above a maximised program. On Wayland `Qt.WindowStaysOnTopHint` is only a hint, and nothing else in Qt asks for it. KWin offers `zwlr_layer_shell_v1`, and `layer-shell-qt` lets a Qt window be such a surface through a QML module. That module is one more thing a desktop may not have, on Linux distributions in general and in the headless containers the tests run in.
 
 The surfaces must also go on with the main window closed, over every open session, while the tray reads nothing with its popover shut and `Meters` follows the one session in front. A stopped session, an overloaded one and an engine that has died must all stop them from showing their last word.
 
@@ -28,7 +28,7 @@ The surfaces must also go on with the main window closed, over every open sessio
 
 - Nothing about the build changes, and a desktop without the module loses only the promise of staying on top.
 - `FloatingLayerWindow.qml` gets no static check, so a mistake in it shows only on a Wayland session. It holds nothing but the attached properties.
-- A drag on a layer surface moves the margins from the pointer's position, as the desktop can't move it. On a plain Wayland window the desktop moves it and Reverblabr can't read where to, so the place set on the card is the only one kept there.
+- A drag on a layer surface moves the margins from the pointer's position, as the desktop can't move it. On a plain window the desktop moves it. On X11 the window reads where it landed and writes that down once it has stood still for 300 ms, as a system move gives no release to wait for. On plain Wayland Reverblabr can't read where to, so the place set on the card is the only one kept there.
 - Being on the overlay layer, the label may be carried along in a full-screen share.
 - A surface closes with the application. The daemon draws nothing.
 

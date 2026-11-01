@@ -15,7 +15,9 @@ import org.kde.ki18n
 
 // **What a click on the tray icon opens**: every saved session with
 // Run and Stop and how loud it is, and the meters somebody marked "Show in
-// system tray", each of which brings its session forward when clicked.
+// system tray", each of which brings its session forward when clicked, and
+// what the floating window shows, each of which can be turned off here: with
+// the main window closed, this is the one place that can.
 //
 // **A small window of its own, not a menu.** A tray icon on Wayland is told
 // nothing about where on the screen it sits, so a popover cannot be pinned
@@ -39,10 +41,15 @@ Window {
         id: speechWords
     }
 
+    VoiceGaugeWords {
+        id: gaugeWords
+    }
+
     /// The parts, for the tests.
     readonly property alias overview: overview
     readonly property alias sessionList: sessionList
     readonly property alias meterList: meterList
+    readonly property alias floatingList: floatingList
     readonly property alias attentionMessage: attentionMessage
     readonly property alias openButton: openButton
     readonly property alias allSessionsButton: allSessionsButton
@@ -278,12 +285,17 @@ Window {
                 readonly property var level: TrayState.frame >= 0
                     ? TrayState.meterLevel(meter.modelData.sessionId, meter.modelData.blockId) : ({})
                 readonly property real peakDb: meter.level.peakDb ?? -120
-                /// Speech Now has a word to show and no level to draw.
-                readonly property bool saysAWord: meter.modelData.type === "meter.speechnow"
-                readonly property string wordKind: speechWords.kindOf(meter.level.watch ?? "stopped",
-                                                                      meter.level.enabled ?? true,
-                                                                      (meter.level.values ?? [0])[0])
-                readonly property string shownWord: speechWords.word(meter.wordKind)
+                readonly property bool isGauge: meter.modelData.type === "meter.voicegauge"
+                /// These have words to show and no signal level to draw.
+                readonly property bool saysAWord: meter.isGauge || meter.modelData.type === "meter.speechnow"
+                readonly property var values: meter.level.values ?? [0, gaugeWords.noReading]
+                readonly property string wordKind: meter.isGauge
+                    ? gaugeWords.kindOf(meter.level.watch ?? "stopped", meter.level.enabled ?? true,
+                                        meter.values[0], meter.values[1])
+                    : speechWords.kindOf(meter.level.watch ?? "stopped", meter.level.enabled ?? true, meter.values[0])
+                readonly property string shownWord: meter.isGauge
+                    ? gaugeWords.trayLine(meter.wordKind, meter.values[0], meter.values[1])
+                    : speechWords.word(meter.wordKind)
                 readonly property alias levelBar: meterBar
 
                 Accessible.name: meter.saysAWord
@@ -325,7 +337,14 @@ Window {
                         spacing: AppMetrics.mediumSpacing
 
                         SpeechNowDot {
+                            visible: !meter.isGauge
                             kind: meter.wordKind
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        VoiceGaugeDot {
+                            visible: meter.isGauge
+                            dot: gaugeWords.dot(meter.wordKind)
                             Layout.alignment: Qt.AlignVCenter
                         }
 
@@ -347,6 +366,49 @@ Window {
                         running: meter.peakDb > -120
                     }
                 }
+            }
+        }
+
+        // --- what the floating window shows ---
+        Kirigami.Heading {
+            Layout.fillWidth: true
+            Layout.topMargin: AppMetrics.mediumSpacing
+            level: 4
+            visible: floatingList.count > 0
+            text: KI18n.i18nc("@title what the floating window shows, in the system tray's popover", "Floating window")
+            elide: Text.ElideRight
+        }
+
+        ListView {
+            id: floatingList
+
+            /// One row's height.
+            readonly property real rowHeight: Kirigami.Units.gridUnit * 2
+
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.min(floatingList.count * floatingList.rowHeight, Kirigami.Units.gridUnit * 6)
+            Layout.minimumHeight: Math.min(floatingList.count, 2) * floatingList.rowHeight
+            visible: floatingList.count > 0
+            clip: true
+            model: TrayState.floating
+            boundsBehavior: Flickable.StopAtBounds
+            QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+
+            // Ticked for as long as it shows. Unticked, it leaves the list.
+            delegate: QQC2.CheckBox {
+                id: shown
+
+                required property var modelData
+
+                width: ListView.view.width
+                height: floatingList.rowHeight
+                checked: true
+                text: KI18n.i18nc("@option:check %1 is a block, %2 its session", "%1 in %2",
+                                  shown.modelData.nickname !== "" ? shown.modelData.nickname
+                                                                  : BlockPresentation.name(shown.modelData.type),
+                                  shown.modelData.sessionName)
+                Accessible.name: text
+                onToggled: TrayState.hideFromFloating(shown.modelData.sessionId, shown.modelData.blockId)
             }
         }
     }

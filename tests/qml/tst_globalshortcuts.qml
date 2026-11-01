@@ -93,6 +93,46 @@ TestCase {
         tryVerify(() => Meters.live, 1000, "the session never went live");
     }
 
+    function test_sayVoiceLevelIsOneSentenceAndNothingWithNoGauge() {
+        const targets = createTemporaryObject(targetsComponent, testCase, { speaker: testCase.speaker });
+        Announcer.reset();
+        compare(targets.act("voiceGauge.say"), 0);
+        compare(Announcer.last, "");
+
+        testCase.add("level", "meter.voicegauge");
+        tryVerify(() => SessionModel.blockIds.indexOf("level") >= 0, 1000, "the block did not arrive");
+        compare(targets.act("voiceGauge.say"), 1);
+        compare(Announcer.last, "Not watching");
+
+        testCase.run();
+        // A voice, between marks.
+        TestEngine.setFakeBlockValues(testCase.sessionId, "level", [112, -24, -120, 0]);
+        tryVerify(() => Meters.watchState("level") === "watching" && (Meters.levels("level").values ?? [0])[0] === 112, 1000);
+        compare(targets.act("voiceGauge.say"), 1);
+        compare(Announcer.last, "Minus 24 LUFS, between marks");
+        // Nothing arrives.
+        TestEngine.setFakeBlockValues(testCase.sessionId, "level", [100, -24, -120, 0]);
+        tryVerify(() => (Meters.levels("level").values ?? [0])[0] === 100, 1000);
+        compare(targets.act("voiceGauge.say"), 1);
+        compare(Announcer.last, "No sound here");
+
+        testCase.add("other", "meter.voicegauge");
+        tryVerify(() => SessionModel.blockIds.indexOf("other") >= 0, 1000, "the block did not arrive");
+        SessionModel.renameBlock("level", "You");
+        SessionModel.renameBlock("other", "Second");
+        compare(targets.act("voiceGauge.say"), 2);
+        verify(Announcer.last.startsWith("You: "), Announcer.last);
+        verify(Announcer.last.indexOf(", Second: ") > 0, Announcer.last);
+
+        TestEngine.setFakeBlockValues(testCase.sessionId, "level", []);
+        TestEngine.stop(testCase.sessionId);
+        Meters.watch("");
+        for (const id of ["level", "other"]) {
+            TestEngine.applyEdit(testCase.sessionId, JSON.stringify({ op: "removeBlock", blockId: id }));
+        }
+        tryVerify(() => SessionModel.blockIds.indexOf("other") < 0, 1000);
+    }
+
     function test_sayWhoIsSpeakingIsOneSentenceAnsweringTheGap() {
         testCase.add("call", "meter.speechnow");
         testCase.add("you", "meter.speechnow");

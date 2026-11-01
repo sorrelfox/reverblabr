@@ -51,6 +51,33 @@ Window {
         return Math.round(Math.max(0, across > size ? Math.min(pixels, across - size) : pixels));
     }
 
+    /// Whether the desktop says where it moved this window to. X11 does. On
+    /// Wayland a plain window is not told (ADR-0030).
+    property bool readsItsPlace: Qt.platform.pluginName === "xcb"
+
+    /// Writes down where the desktop has put it, if that is not where it was
+    /// asked to be. **Asked of the window, as nothing tells it a move ended:**
+    /// the desktop holds the pointer through a system move, so no release
+    /// reaches the mouse area. Only a place that came from elsewhere differs
+    /// from the edges, so what the card sets is never written back.
+    function noteWhereItIs() {
+        const on = surface.screen;
+        if (!surface.readsItsPlace || surface.movedByMargins || surface.inPercent || !on) {
+            return;
+        }
+        const left = surface.x - on.virtualX;
+        const top = surface.y - on.virtualY;
+        const moved = on.name !== (surface.placedOn?.name ?? on.name);
+        if (left === surface.leftEdge && top === surface.topEdge && !moved) {
+            return;
+        }
+        const changes = { left: left, top: top };
+        if (moved && on.name !== "") {
+            changes.screen = on.name;
+        }
+        FloatingSurface.setPlacement(surface.surfaceName, changes);
+    }
+
     /// Writes down a drag of (\a dx, \a dy) pixels.
     function moveBy(dx: real, dy: real) {
         const across = surface.inPercent && surface.placedOn ? 100 / surface.placedOn.width : 1;
@@ -64,14 +91,26 @@ Window {
     // **Not the main window's**, which it outlasts: closing that one must not
     // take this along.
     transientParent: null
-    x: surface.leftEdge
-    y: surface.topEdge
+    x: (surface.placedOn?.virtualX ?? 0) + surface.leftEdge
+    y: (surface.placedOn?.virtualY ?? 0) + surface.topEdge
     width: Math.max(1, content.implicitWidth)
     height: Math.max(1, content.implicitHeight)
     screen: surface.placedOn
     color: "transparent"
     flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus
         | (surface.clickThrough ? Qt.WindowTransparentForInput : 0)
+
+    onXChanged: settled.restart()
+    onYChanged: settled.restart()
+
+    // A move is many positions, and this is a file in a person's home
+    // directory: written once, when it has stopped.
+    Timer {
+        id: settled
+
+        interval: 300
+        onTriggered: surface.noteWhereItIs()
+    }
 
     Loader {
         id: content

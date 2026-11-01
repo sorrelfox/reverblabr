@@ -40,6 +40,9 @@ QQC2.TextField {
     /// How far the arrows go. **Apart from `to`**, for an owner that lets a
     /// value be typed higher than it can be stepped to and asks about it.
     property real stepTop: field.to
+    /// What it says at `from`, when that value means something other than
+    /// a number. Passing through sends nothing, as for any text it wrote.
+    property string lowestText: ""
     /// What a screen reader calls it. The owner's words.
     required property string label
 
@@ -52,6 +55,9 @@ QQC2.TextField {
     signal stepRefused
 
     function shown(number) {
+        if (field.lowestText !== "" && number <= field.from) {
+            return field.lowestText;
+        }
         return Number(number).toLocaleString(Qt.locale(), 'f', field.decimals);
     }
 

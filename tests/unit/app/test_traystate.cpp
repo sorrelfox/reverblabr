@@ -294,6 +294,44 @@ TEST_F(TrayStateTest, AMeterWithItsPeakBarOffReadsItsRmsInTheTray)
     engine.stop(id);
 }
 
+TEST_F(TrayStateTest, AVoiceGaugeIsAMeterAndCarriesWhatItPublishes)
+{
+    core::MockEngine engine;
+    const QString id = openSession(engine, u"Words"_s);
+    engine.applyEdit(id, addBlock(u"you"_s, u"meter.voicegauge"_s, QJsonObject{{u"showInTray"_s, true}}));
+    ui::AppShell::setEngine(&engine, [&](const QString &sessionId) { return engine.telemetryOf(sessionId); });
+    ui::TrayState tray(&engine);
+    ASSERT_TRUE(spinUntil([&] { return tray.meters().size() == 1; }));
+    EXPECT_EQ(tray.meters().at(0).toMap().value(u"type"_s).toString(), "meter.voicegauge"_L1);
+    engine.start(id);
+    engine.setFakeBlockValues(id, u"you"_s, {112.0, -24.0, -120.0, 4034.0});
+    ASSERT_TRUE(spinUntil([&] {
+        tray.readLevels();
+        return tray.meterLevel(id, u"you"_s).value(u"watch"_s).toString() == "watching"_L1;
+    }));
+    const QVariantList values = tray.meterLevel(id, u"you"_s).value(u"values"_s).toList();
+    ASSERT_EQ(values.size(), 4);
+    EXPECT_EQ(values.at(0).toInt(), 112);
+    EXPECT_EQ(values.at(1).toInt(), -24);
+    ui::AppShell::setEngine(nullptr);
+}
+
+TEST_F(TrayStateTest, ABlockIsTakenOffTheFloatingWindowFromTheTray)
+{
+    core::MockEngine engine;
+    const QString id = openSession(engine, u"Words"_s);
+    engine.applyEdit(id, addBlock(u"you"_s, u"meter.voicegauge"_s, QJsonObject{{u"showFloating"_s, true}}));
+    engine.applyEdit(id, addBlock(u"call"_s, u"meter.speechnow"_s, QJsonObject{{u"showFloating"_s, true}}));
+    ui::TrayState tray(&engine);
+    ASSERT_TRUE(spinUntil([&] { return tray.floating().size() == 2; }));
+    EXPECT_EQ(tray.floating().at(0).toMap().value(u"sessionId"_s).toString(), id);
+    EXPECT_EQ(tray.floating().at(0).toMap().value(u"sessionName"_s).toString(), "Words"_L1);
+
+    tray.hideFromFloating(id, u"you"_s);
+    ASSERT_TRUE(spinUntil([&] { return tray.floating().size() == 1; }));
+    EXPECT_EQ(tray.floating().at(0).toMap().value(u"blockId"_s).toString(), "call"_L1);
+}
+
 TEST_F(TrayStateTest, ASpeechNowReadsItsWordAndNotWatchingWhenNobodyPublishes)
 {
     core::MockEngine engine;

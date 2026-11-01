@@ -70,6 +70,7 @@ The original goes straight through, so a Reverb doesn't delay the lane.
 | **Peak/RMS** | A level meter for any point in a lane, with peak hold and clip lights. Its RMS bar has a paler bar above it that jumps up to each peak; untick **Show peak bar** in its settings to hide that one, on the tile and in the system tray. |
 | **VU** | A pair of needles that follow the average level, the way a tape machine's meters did, against a reference level you choose. |
 | **Speech Now** | Shows Speaking while a voice is on this lane, and Quiet when not. For a moment after a voice stops it shows Quiet again. It can't tell who is speaking or what was said, and the sound passes unchanged. |
+| **Voice Gauge** | Shows the level of a voice at this point on the lane, in LUFS, against two marks you place. It says where the reading stands against your marks, and nothing about how you sound. It can be wrong, and the sound passes unchanged. |
 
 Any of them can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
 
@@ -81,9 +82,25 @@ Put one right after the block whose sound you want to watch, before anything tha
 
 **Detector** picks how it listens. **Voice model** is a small model on this computer. It needs a sound system at 48 kHz and a build that has it, and the card says so when one is missing. **Level and rhythm** uses far less of the processor and can be wrong more often. It misses voices in a noisy room and passes music with a beat.
 
-Under **Show it on**, **Floating label** adds a row to a small window that stays over other programs, up to four rows from any open session. It stays when you close the main window, while there is a system tray. Drag it to move it, or set its place under **Place the label**. It reads **Not watching** whenever the block can't hear its lane: the session stopped, the session is overloaded, or the engine stopped answering. A full-screen share may carry the label, name included.
+Under **Show it on**, **Floating label** adds a row to a small window that stays over other programs, up to four rows from any open session. It stays when you close the main window, while there is a system tray. Drag it to move it, or set its place under **Place the label**. Turn it off in the card or in the tray's popover. It reads **Not watching** whenever the block can't hear its lane: the session stopped, the session is overloaded, or the engine stopped answering. A full-screen share may carry the label, name included.
 
 Nothing is spoken unasked. With a screen reader, set a key for **Say Who Is Speaking** ([global shortcuts](desktop.md#global-shortcuts)).
+
+### Voice Gauge
+
+Put it right after the microphone's Input Device and name it You. With nothing wired after it, the call program keeps the real microphone, and a stopped session costs the call nothing.
+
+The number is the level over the last few seconds of voice, in LUFS. It takes a second of voice to appear. In a pause it stays and the word says **Held**, and after **Forget after** with no voice it starts clean. It moves with the voice, the distance to the microphone and the gain, and the block can't tell them apart. It is a level at this point, before the call program. It can't see a mute inside that program or what the other side hears, and a voice from a loudspeaker counts too.
+
+**Upper mark** and **Lower mark** start Not set, as a built-in level would say what a voice should be. After 20 seconds of voice, **Use This Level** places them around that level, **Room each side** apart from it, and the card notes the microphone they were placed on. If someone is on a call with you, ask them to say when the level suits them and press it then. Marks hold for this microphone at this gain. You can also type them. Moving one past the other pushes it along. The words are **Between marks**, **Above upper mark** and **Below lower mark**, or with one mark **Above** or **Below** it, and a word changes only half a unit past a mark. The bar is one colour wherever it stands, and no sound or notice comes at a mark.
+
+**No sound here** means nothing has reached this point for 2 seconds. It can't say why. To check, say a word and watch the dot: orange means a voice is being counted, and says nothing further along.
+
+**Reading over** is how many seconds of voice the number is the mean of. The **Quick** and **Steady** presets set it, and leave the marks alone. **Detector** is the same as in Speech Now.
+
+Put it before Voice Evener. After that block the reading sits near its target and hides what the voice did. After Speech Denoise, a pause can read as No sound here. A Bluetooth headset drops to hands-free sound while anything records from it, and a session left running holds it there outside calls too.
+
+Under **Show it on**, **Floating bar** adds a row to the same small window as Speech Now's label, with the number, the word and a track. On the track the marks keep one place, a third and two thirds along. Set a key for **Say Voice Level** to have your screen reader say the number and the word ([global shortcuts](desktop.md#global-shortcuts)). Nothing is spoken unasked.
 
 ## Advanced
 

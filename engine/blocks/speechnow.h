@@ -102,6 +102,10 @@ public:
     /// What kDetectorValue carries now.
     [[nodiscard]] float detectorReading() const noexcept RB_NONBLOCKING;
 
+    /// That word for a detector in that state: Voice Gauge says the same.
+    [[nodiscard]] static float detectorReadingOf(dsp::VoiceModelState model,
+                                                 dsp::VoiceDetector preferred) noexcept RB_NONBLOCKING;
+
     /// How likely a voice was in the last whole frame, 0 to 1.
     [[nodiscard]] float voice() const noexcept RB_NONBLOCKING
     {

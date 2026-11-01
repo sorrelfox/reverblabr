@@ -96,6 +96,8 @@ add_library(reverblabr-blocks STATIC
     timeshiftspill.h
     volume.cpp
     volume.h
+    voicegauge.cpp
+    voicegauge.h
     voicemodel.cpp
     voicemodel.h
     vumeter.cpp

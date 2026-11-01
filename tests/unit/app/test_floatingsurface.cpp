@@ -60,11 +60,12 @@ bool spinUntil(Predicate predicate, int milliseconds = 3000)
     return QString::fromUtf8(QJsonDocument(core::editCommandToJson(command)).toJson(QJsonDocument::Compact));
 }
 
-[[nodiscard]] QString addBlock(const QString &blockId, const QJsonObject &params = {})
+[[nodiscard]] QString
+addBlock(const QString &blockId, const QJsonObject &params = {}, const QString &type = u"meter.speechnow"_s)
 {
     core::BlockInstance block;
     block.id = blockId;
-    block.type = u"meter.speechnow"_s;
+    block.type = type;
     block.params = params;
     return edit(core::AddBlock{block, -1});
 }
@@ -150,6 +151,40 @@ TEST_F(FloatingSurfaceTest, ARowSaysWhatItsBlockPublishes)
     surface->read();
     EXPECT_EQ(row().value(u"state"_s).toInt(), 1);
     EXPECT_EQ(row().value(u"nickname"_s).toString(), "Call"_L1);
+}
+
+TEST_F(FloatingSurfaceTest, AGaugesRowCarriesItsNumberAndItsMarks)
+{
+    engine.applyEdit(id, addBlock(u"you"_s, kFloating, u"meter.voicegauge"_s));
+    ASSERT_TRUE(spinUntil([&] { return surface->isWanted(); }));
+    run(id);
+    engine.setFakeBlockValues(id, u"you"_s, {112.0, -24.04, -120.0, 4034.0});
+    surface->read();
+    EXPECT_EQ(row().value(u"type"_s).toString(), "meter.voicegauge"_L1);
+    EXPECT_EQ(row().value(u"state"_s).toInt(), 112);
+    EXPECT_DOUBLE_EQ(row().value(u"reading"_s).toDouble(), -24.0) << "a tenth is the most anyone could see";
+    EXPECT_EQ(row().value(u"marks"_s).toInt(), 4034);
+}
+
+TEST_F(FloatingSurfaceTest, ASpeechNowsRowHasNoNumberToChangeBetweenWords)
+{
+    engine.applyEdit(id, addBlock(u"call"_s, kFloating));
+    ASSERT_TRUE(spinUntil([&] { return surface->isWanted(); }));
+    run(id);
+    EXPECT_FALSE(row().contains(u"reading"_s));
+}
+
+TEST_F(FloatingSurfaceTest, ALevelThatMovesLessThanATenthIsNoChange)
+{
+    engine.applyEdit(id, addBlock(u"you"_s, kFloating, u"meter.voicegauge"_s));
+    ASSERT_TRUE(spinUntil([&] { return surface->isWanted(); }));
+    run(id);
+    engine.setFakeBlockValues(id, u"you"_s, {112.0, -24.01, -120.0, 0.0});
+    surface->read();
+    QSignalSpy changes(surface.get(), &ui::FloatingSurface::rowsChanged);
+    engine.setFakeBlockValues(id, u"you"_s, {112.0, -24.02, -120.0, 0.0});
+    surface->read();
+    EXPECT_EQ(changes.count(), 0);
 }
 
 TEST_F(FloatingSurfaceTest, ReadsAStoppedAnOverloadedAndASilentEngineAlike)

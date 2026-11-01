@@ -1,0 +1,7 @@
+{
+    "schema": 1,
+    "type": "meter.voicegauge",
+    "params": {
+        "readingSeconds": 2.0
+    }
+}

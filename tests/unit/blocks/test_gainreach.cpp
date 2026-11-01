@@ -99,6 +99,7 @@ TEST(GainReach, EveryBlockIsWhatTheTableSays)
         {"meter.peakrms", GainReach::Unity},
         {"meter.vu", GainReach::Unity},
         {"meter.speechnow", GainReach::Unity},
+        {"meter.voicegauge", GainReach::Unity},
         {"output.recorder", GainReach::Unity},
         {"effect.balance", GainReach::Unity},
         {"advanced.sync", GainReach::Unity},
@@ -134,5 +135,5 @@ TEST(GainReach, EveryUnityBlockStaysUnderItsInput)
             }
         }
     }
-    EXPECT_EQ(tried, 8U);
+    EXPECT_EQ(tried, 9U);
 }

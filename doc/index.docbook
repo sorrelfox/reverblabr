@@ -808,7 +808,21 @@ machine's meters did, against a reference level you choose.</para>
 anyone has finished. It can't tell who is speaking or what was said, and music
 can look like a voice. The sound passes unchanged. The word can also show in
 the system tray and on a small floating label over other programs, and it reads
-<guilabel>Not watching</guilabel> whenever the block can't hear its lane.</para>
+<guilabel>Not watching</guilabel> whenever the block can't hear its lane. Turn
+the label off in the block's settings or in the tray's popover.</para>
+</sect2>
+
+<sect2 id="block-meter-voicegauge">
+<title>Voice Gauge</title>
+<para>Shows the level of a voice at this point on the lane, in LUFS, against two
+marks you place. The number is held through pauses. It says where the reading
+stands against your marks, and nothing about how you sound, and it can be wrong.
+The marks start <guilabel>Not set</guilabel>, and after 20 seconds of voice
+<guilabel>Use This Level</guilabel> places them around that level. It is a level
+before the call program, so it can't see a mute there or what the other side
+hears, and a voice from a loudspeaker counts too. The sound passes unchanged. The
+reading can also show in the system tray and on the floating window, and <guilabel>Say
+Voice Level</guilabel> has your screen reader say it.</para>
 </sect2>
 </sect1>
 
@@ -1309,7 +1323,8 @@ B</guilabel>; <guilabel>Time Shift: pause or play</guilabel>, <guilabel>back
 file</guilabel>. These act on every block of that kind in the session the
 main window shows (or showed last, while it is hidden). <guilabel>Say Who Is
 Speaking</guilabel> has your screen reader say one sentence from every Speech
-Now block there.</para></listitem>
+Now block there, and <guilabel>Say Voice Level</guilabel> one from every Voice
+Gauge block.</para></listitem>
 </varlistentry>
 </variablelist>
 

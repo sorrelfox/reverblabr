@@ -266,8 +266,17 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SpeechNowPanel.qml
     qml/SpeechNowState.qml
     qml/SpeechNowWords.qml
+    qml/VoiceGaugeBar.qml
+    qml/VoiceGaugeDot.qml
+    qml/VoiceGaugeFace.qml
+    qml/VoiceGaugeHelp.qml
+    qml/VoiceGaugePanel.qml
+    qml/VoiceGaugeRow.qml
+    qml/VoiceGaugeState.qml
+    qml/VoiceGaugeWords.qml
     qml/TypedValueRow.qml
     qml/FloatingLabel.qml
+    qml/FloatingPlaceSection.qml
     qml/FloatingLayerWindow.qml
     qml/FloatingWindow.qml
     qml/FloatingWindows.qml
@@ -342,6 +351,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/effect.volume.svg
     icons/meter.peakrms.svg
     icons/meter.speechnow.svg
+    icons/meter.voicegauge.svg
     icons/meter.vu.svg
     icons/output.broadcast.svg
     icons/output.device.svg

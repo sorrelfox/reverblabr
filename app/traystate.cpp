@@ -36,6 +36,7 @@ namespace
 constexpr auto kPeakRmsType = "meter.peakrms"_L1;
 constexpr auto kVuType = "meter.vu"_L1;
 constexpr auto kSpeechNowType = "meter.speechnow"_L1;
+constexpr auto kVoiceGaugeType = "meter.voicegauge"_L1;
 constexpr auto kShowInTray = "showInTray"_L1;
 constexpr auto kShowPeak = "showPeak"_L1;
 constexpr auto kShowFloating = "showFloating"_L1;
@@ -48,14 +49,14 @@ constexpr auto kShowFloating = "showFloating"_L1;
 /// Whether a block is a meter the person asked to see in the tray.
 [[nodiscard]] bool isTrayMeter(const QString &type, const QJsonObject &params)
 {
-    return (type == kPeakRmsType || type == kVuType || type == kSpeechNowType)
+    return (type == kPeakRmsType || type == kVuType || type == kSpeechNowType || type == kVoiceGaugeType)
         && params.value(kShowInTray).toBool(false);
 }
 
 /// Whether a block is one the person asked to see on the floating label.
 [[nodiscard]] bool isFloating(const QString &type, const QJsonObject &params)
 {
-    return type == kSpeechNowType && params.value(kShowFloating).toBool(false);
+    return (type == kSpeechNowType || type == kVoiceGaugeType) && params.value(kShowFloating).toBool(false);
 }
 
 /// Which surfaces ask for a block, as something to compare.
@@ -497,11 +498,36 @@ QList<TrayState::SurfaceBlock> TrayState::floatingBlocks() const
         }
         for (const Private::Block &block : found->blocks) {
             if (isFloating(block.type, block.params)) {
-                list.append({sessionId, block.id, block.nickname});
+                list.append({sessionId, block.id, block.nickname, block.type});
             }
         }
     }
     return list;
+}
+
+QVariantList TrayState::floating() const
+{
+    QVariantList list;
+    for (const SurfaceBlock &block : floatingBlocks()) {
+        list.append(QVariantMap{{u"sessionId"_s, block.sessionId},
+                                {u"sessionName"_s, d->sessions.value(block.sessionId).name},
+                                {u"blockId"_s, block.blockId},
+                                {u"type"_s, block.type},
+                                {u"nickname"_s, block.nickname}});
+    }
+    return list;
+}
+
+void TrayState::hideFromFloating(const QString &sessionId, const QString &blockId)
+{
+    if (!d->facade) {
+        return;
+    }
+    // An edit like the card's: only an edit tells every surface. And not
+    // through SessionModel, which holds only the session in front.
+    const QJsonObject edit{
+        {u"op"_s, u"setParam"_s}, {u"blockId"_s, blockId}, {u"key"_s, QString(kShowFloating)}, {u"value"_s, false}};
+    d->facade->applyEdit(sessionId, QString::fromUtf8(QJsonDocument(edit).toJson(QJsonDocument::Compact)));
 }
 
 bool TrayState::isAvailable() const

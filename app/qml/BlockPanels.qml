@@ -298,6 +298,9 @@ QtObject {
     readonly property Component speechNow: Component {
         SpeechNowPanel {}
     }
+    readonly property Component voiceGauge: Component {
+        VoiceGaugePanel {}
+    }
 
     /// The Frequency Raising panel: Frequency Lowering's, its moves
     /// going up, with harmonics as a third way.
@@ -315,6 +318,7 @@ QtObject {
         "hearing.frequencyraising": panels.frequencyRaising,
         "hearing.oneearmix": panels.oneEarMix,
         "meter.speechnow": panels.speechNow,
+        "meter.voicegauge": panels.voiceGauge,
         "output.device": panels.outputDevice,
         "source.application": panels.applicationSource,
         "source.device": panels.inputDevice,

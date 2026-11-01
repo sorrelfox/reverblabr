@@ -21,6 +21,7 @@ import org.kde.ki18n
 // - Recorder: a new file, only for one that is recording, as its Split
 //   button is only there then.
 // - Speech Now: one sentence from all of them, "Call speaking, You quiet".
+// - Voice Gauge: one sentence, "Minus 24 LUFS, between marks".
 //   Nothing else says this unasked, since a sentence every few seconds would
 //   be spoken over the talker.
 QtObject {
@@ -30,12 +31,14 @@ QtObject {
     readonly property string timeShiftType: "advanced.timeshift"
     readonly property string recorderType: "output.recorder"
     readonly property string speechNowType: "meter.speechnow"
+    readonly property string voiceGaugeType: "meter.voicegauge"
     /// What speaks a sentence to a screen reader: the window, set by Main.
     property Item speaker: null
     /// How far the Time Shift shortcuts jump (GlobalShortcuts::kJumpSeconds).
     readonly property int jumpSeconds: 10
 
     readonly property SpeechNowWords speechWords: SpeechNowWords {}
+    readonly property VoiceGaugeWords gaugeWords: VoiceGaugeWords {}
 
     readonly property Component timeShiftReading: Component {
         TimeShiftState {}
@@ -65,6 +68,8 @@ QtObject {
             return targets.splitRecorders();
         case "speechNow.say":
             return targets.sayWhoIsSpeaking();
+        case "voiceGauge.say":
+            return targets.sayVoiceLevel();
         }
         return 0;
     }
@@ -126,9 +131,30 @@ QtObject {
         return blocks.length;
     }
 
-    function nameOf(blockId: string): string {
+    /// One sentence for a gauge, and with several each says its name.
+    function sayVoiceLevel(): int {
+        const blocks = targets.blocksOf(targets.voiceGaugeType);
+        if (blocks.length === 0) {
+            return 0;
+        }
+        const parts = blocks.map(blockId => {
+            const levels = Meters.levels(blockId);
+            const values = levels.values ?? [0, targets.gaugeWords.noReading];
+            const kind = targets.gaugeWords.kindOf(Meters.watchState(blockId), levels.enabled ?? true, values[0], values[1]);
+            const sentence = targets.gaugeWords.spoken(kind, values[0], values[1]);
+            return blocks.length === 1 ? sentence
+                : KI18n.i18nc("@info:status spoken, %1 is what a block is called, %2 what it says", "%1: %2",
+                              targets.nameOf(blockId, targets.voiceGaugeType), sentence);
+        });
+        if (targets.speaker !== null) {
+            Announcer.sayNow(targets.speaker, parts.join(KI18n.i18nc("@info between the parts of a spoken list", ", ")));
+        }
+        return blocks.length;
+    }
+
+    function nameOf(blockId: string, type = targets.speechNowType): string {
         const name = SessionModel.block(blockId).nickname ?? "";
-        return name !== "" ? name : BlockPresentation.name(targets.speechNowType);
+        return name !== "" ? name : BlockPresentation.name(type);
     }
 
     function splitRecorders(): int {

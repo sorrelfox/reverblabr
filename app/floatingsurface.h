@@ -51,8 +51,9 @@ class FloatingSurface : public QObject
     QML_ELEMENT
     QML_SINGLETON
 
-    /// The label's rows, at most kMostRows, as `[{sessionId, blockId,
-    /// nickname, watch, enabled, state}]`.
+    /// The label's rows, at most kMostRows, as `[{sessionId, blockId, type,
+    /// nickname, watch, enabled, state}]`, and `reading` and `marks` for a
+    /// Voice Gauge.
     Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
     /// How many rows there was no room for.
     Q_PROPERTY(int leftOut READ leftOut NOTIFY rowsChanged)

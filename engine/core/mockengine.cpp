@@ -26,6 +26,7 @@
 #include "blocks/speechnow.h"
 #include "blocks/sync.h"
 #include "blocks/timeshift.h"
+#include "blocks/voicegauge.h"
 #include "blocks/vumeter.h"
 #include "core/audiosystem.h"
 #include "core/blockcatalogue.h"
@@ -545,6 +546,26 @@ public:
                     block.params.value("detector"_L1).toString() == "levelAndRhythm"_L1
                     ? blocks::SpeechNow::kLevelAndRhythmChosen
                     : blocks::SpeechNow::kModelListening;
+            }
+            // A Voice Gauge has no voice to read in a made-up level either:
+            // sound, no number yet, until a test gives it one. Its marks are
+            // the block's own rule on what it was given.
+            if (running && block.type == asText(blocks::VoiceGauge::kTypeId)) {
+                const auto mark = [&block](QLatin1StringView key) {
+                    return block.params.value(key).toVariant().isValid()
+                        ? static_cast<float>(block.params.value(key).toDouble())
+                        : blocks::VoiceGauge::kNotSet;
+                };
+                const blocks::VoiceGauge::Marks marks =
+                    blocks::VoiceGauge::pushed(mark("upperMark"_L1), mark("lowerMark"_L1), false);
+                const float detector = block.params.value("detector"_L1).toString() == "levelAndRhythm"_L1
+                    ? blocks::SpeechNow::kLevelAndRhythmChosen
+                    : blocks::SpeechNow::kModelListening;
+                into.values[blocks::VoiceGauge::kStateValue] = static_cast<float>(blocks::VoiceGauge::RoomOnly)
+                    + detector * static_cast<float>(blocks::VoiceGauge::kPerDetector);
+                into.values[blocks::VoiceGauge::kReadingValue] = dsp::kSilentLufs;
+                into.values[blocks::VoiceGauge::kWholeLevelValue] = dsp::kSilentLufs;
+                into.values[blocks::VoiceGauge::kMarksValue] = blocks::VoiceGauge::marksWordOf(marks);
             }
             // An Auto Level answers a made-up level by its rule. Before the
             // made-up values, so a test can show what no steady level gives:

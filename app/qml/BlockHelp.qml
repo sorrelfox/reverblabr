@@ -142,6 +142,9 @@ QtObject {
     readonly property Component speechNow: Component {
         SpeechNowHelp {}
     }
+    readonly property Component voiceGauge: Component {
+        VoiceGaugeHelp {}
+    }
 
     readonly property Component limiter: Component {
         LimiterHelp {}
@@ -253,6 +256,7 @@ QtObject {
         "hearing.joinlr": help.joinLr,
         "hearing.oneearmix": help.oneEarMix,
         "meter.speechnow": help.speechNow,
+        "meter.voicegauge": help.voiceGauge,
         "meter.peakrms": help.peakRms,
         "meter.vu": help.vu,
         "output.broadcast": help.broadcast,

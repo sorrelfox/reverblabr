@@ -55,6 +55,7 @@
 #include "blocks/sync.h"
 #include "blocks/systemaudio.h"
 #include "blocks/timeshift.h"
+#include "blocks/voicegauge.h"
 #include "blocks/volume.h"
 #include "blocks/vumeter.h"
 #include "blocks/wave.h"
@@ -98,6 +99,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{Volume::kTypeId}, &Volume::make).has_value()
         && registry.add(std::string{VuMeter::kTypeId}, &VuMeter::make).has_value()
         && registry.add(std::string{SpeechNow::kTypeId}, &SpeechNow::make).has_value()
+        && registry.add(std::string{VoiceGauge::kTypeId}, &VoiceGauge::make).has_value()
         && registry.add(std::string{Ducking::kTypeId}, &Ducking::make).has_value()
         && registry.add(std::string{Mixer::kTypeId}, &Mixer::make).has_value()
         && registry.add(std::string{InputSwitch::kTypeId}, &InputSwitch::make).has_value()

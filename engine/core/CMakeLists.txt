@@ -170,4 +170,6 @@ qt_add_resources(reverblabr-engine "reverblabr-factory-presets"
         ../presets/hearing.compensation64/030-steeperSlope.json
         ../presets/meter.speechnow/10-quick.json
         ../presets/meter.speechnow/20-steady.json
+        ../presets/meter.voicegauge/10-quick.json
+        ../presets/meter.voicegauge/20-steady.json
 )

@@ -9,6 +9,7 @@
 
 #include "appshell.h"
 #include "blocks/speechnow.h"
+#include "blocks/voicegauge.h"
 #include "traystate.h"
 #include "windowstate.h"
 
@@ -156,16 +157,30 @@ void FloatingSurface::read()
         const auto watch = m_watches.constFind(session);
         const QString said = watch != m_watches.cend() ? QString(watch->stateOf(published != nullptr, now))
                                                        : QString(TelemetryWatch::kStopped);
-        rows.append(QVariantMap{
+        QVariantMap row{
             {u"sessionId"_s, block.sessionId},
             {u"blockId"_s, block.blockId},
+            {u"type"_s, block.type},
             {u"nickname"_s, block.nickname},
             {u"watch"_s, said},
             {u"enabled"_s, published == nullptr || published->enabled},
             {u"state"_s,
              published != nullptr ? static_cast<int>(std::lround(published->values[blocks::SpeechNow::kStateValue]))
                                   : 0},
-        });
+        };
+        // Only for a block with a number: a tenth of an LU is the most a
+        // person could see, and the voice likelihood of a Speech Now would
+        // make every read a change.
+        if (block.type == blocks::VoiceGauge::kTypeId) {
+            const float reading =
+                published != nullptr ? published->values[blocks::VoiceGauge::kReadingValue] : dsp::kSilentLufs;
+            row.insert(u"reading"_s, std::round(static_cast<double>(reading) * 10.0) / 10.0);
+            row.insert(u"marks"_s,
+                       published != nullptr
+                           ? static_cast<int>(std::lround(published->values[blocks::VoiceGauge::kMarksValue]))
+                           : 0);
+        }
+        rows.append(row);
     }
     for (auto it = m_watches.begin(); it != m_watches.end();) {
         it = sessions.contains(it.key()) ? std::next(it) : m_watches.erase(it);

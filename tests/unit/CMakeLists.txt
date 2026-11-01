@@ -163,6 +163,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_systemaudio.cpp
         blocks/test_timeshift.cpp
         blocks/test_volume.cpp
+        blocks/test_voicegauge.cpp
         blocks/test_voicemodel.cpp
         blocks/test_vumeter.cpp
         blocks/test_wave.cpp

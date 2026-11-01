@@ -36,12 +36,6 @@ ColumnLayout {
     /// How long a name may be.
     readonly property int longestName: 24
 
-    readonly property var placement: FloatingSurface.placementRevision >= 0 ? FloatingSurface.placement("label") : ({})
-    /// The screen the numbers below are measured on.
-    readonly property var placedOn: {
-        return FloatingWindows.screenNamed(panel.placement.screen ?? "") ?? FloatingWindows.screens[0] ?? null;
-    }
-
     readonly property string modelRefused: words.modelRefused(reading.detector)
     readonly property bool floating: reading.params.showFloating === true
     readonly property bool inTray: reading.params.showInTray === true
@@ -60,10 +54,10 @@ ColumnLayout {
     readonly property alias onTopLine: onTopText
     readonly property alias fullLine: fullText
     readonly property alias placeSection: place
-    readonly property alias sizeChoices: sizeRepeater
-    readonly property alias screenChoice: screenControl
-    readonly property alias leftField: leftControl
-    readonly property alias topField: topControl
+    readonly property alias sizeChoices: place.sizeChoices
+    readonly property alias screenChoice: place.screenChoice
+    readonly property alias leftField: place.leftField
+    readonly property alias topField: place.topField
     readonly property alias timingSection: timing
     readonly property alias holdRow: holdControl
     readonly property alias markRow: markControl
@@ -321,132 +315,10 @@ ColumnLayout {
         }
     }
 
-    CollapsibleSection {
+    FloatingPlaceSection {
         id: place
 
         title: KI18n.i18nc("@title:group a part of the Speech Now card", "Place the label")
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.labelSpacing
-
-            QQC2.Label {
-                text: KI18n.i18nc("@label how big the floating label is", "Size")
-                color: AppColors.muted
-            }
-
-            SegmentedFrame {
-                shrinkable: true
-                Layout.fillWidth: true
-
-                QQC2.ButtonGroup {
-                    id: sizeGroup
-                }
-
-                Repeater {
-                    id: sizeRepeater
-
-                    model: ["small", "large"]
-
-                    delegate: SegmentedChoice {
-                        id: sizeButton
-
-                        required property string modelData
-
-                        text: words.sizeName(sizeButton.modelData)
-                        Accessible.name: text
-                        QQC2.ButtonGroup.group: sizeGroup
-                        onClicked: FloatingSurface.setPlacement("label", { size: sizeButton.modelData })
-
-                        SessionBound {
-                            control: sizeButton
-                            property: "checked"
-                            value: panel.placement.size === sizeButton.modelData
-                        }
-                    }
-                }
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.labelSpacing
-
-            QQC2.Label {
-                text: KI18n.i18nc("@label which screen the floating label is on", "Screen")
-                color: AppColors.muted
-            }
-
-            QQC2.ComboBox {
-                id: screenControl
-
-                readonly property var names: FloatingWindows.screens.map(screen => screen.name).filter(name => name !== "")
-
-                Layout.fillWidth: true
-                model: [KI18n.i18nc("@item:inlistbox the screen the main window is on", "The window's")].concat(screenControl.names)
-                currentIndex: screenControl.names.indexOf(panel.placement.screen ?? "") + 1
-                Accessible.name: KI18n.i18nc("@label which screen the floating label is on", "Screen")
-                onActivated: index => FloatingSurface.setPlacement("label", { screen: index === 0 ? "" : screenControl.names[index - 1] })
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.labelSpacing
-
-            QQC2.Label {
-                text: KI18n.i18nc("@label how far the floating label sits from the left of the screen", "From the left")
-                color: AppColors.muted
-                Layout.fillWidth: true
-            }
-
-            ValueField {
-                id: leftControl
-
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 4
-                label: KI18n.i18nc("@label how far the floating label sits from the left of the screen", "From the left")
-                value: panel.placement.left ?? 0
-                to: panel.placedOn?.width ?? 16384
-                decimals: 0
-                stepSize: 10
-                pageStepSize: 100
-                onValueEdited: number => FloatingSurface.setPlacement("label", { left: number })
-            }
-
-            QQC2.Label {
-                text: KI18n.i18nc("@label the unit of a place on the screen", "px")
-                color: AppColors.muted
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: AppMetrics.labelSpacing
-
-            QQC2.Label {
-                text: KI18n.i18nc("@label how far the floating label sits from the top of the screen", "From the top")
-                color: AppColors.muted
-                Layout.fillWidth: true
-            }
-
-            ValueField {
-                id: topControl
-
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 4
-                label: KI18n.i18nc("@label how far the floating label sits from the top of the screen", "From the top")
-                value: panel.placement.top ?? 0
-                to: panel.placedOn?.height ?? 16384
-                decimals: 0
-                stepSize: 10
-                pageStepSize: 100
-                onValueEdited: number => FloatingSurface.setPlacement("label", { top: number })
-            }
-
-            QQC2.Label {
-                text: KI18n.i18nc("@label the unit of a place on the screen", "px")
-                color: AppColors.muted
-            }
-        }
     }
 
     CollapsibleSection {

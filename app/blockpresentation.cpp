@@ -279,6 +279,13 @@ constexpr std::array kEntries{
           kli18nc("@info block description", "Shows a word and a dot while someone is speaking on this lane"),
           kli18nc("@info:tooltip block description",
                   "Shows when a voice is on this lane and when it stops. The sound itself passes unchanged.")},
+    Entry{"meter.voicegauge",
+          "meters",
+          kli18nc("@item block name", "Voice Gauge"),
+          kli18nc("@info block description", "Shows the level of a voice on this lane against marks you place"),
+          kli18nc("@info:tooltip block description",
+                  "Reads the level of a voice on this lane over a few seconds and holds it through pauses. The sound "
+                  "itself passes unchanged.")},
 
     // ----------------------------------------------------------- advanced
     Entry{"advanced.declick",

@@ -509,6 +509,7 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
 | Peak/RMS meter | `meter.peakrms` |
 | VU meter | `meter.vu` |
 | Speech Now | `meter.speechnow` |
+| Voice Gauge | `meter.voicegauge` |
 | Volume | `effect.volume` |
 | Dynamics Processor | `effect.dynamics` |
 | Echo | `effect.echo` |

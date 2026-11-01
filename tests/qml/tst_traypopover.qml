@@ -178,4 +178,51 @@ TestCase {
                   "All Sessions… in the tray's menu opened nothing");
         window.sessionsWindow.close();
     }
+
+    function test_aVoiceGaugeShowsItsNumberAndWhereItStandsAndNoSignalBar() {
+        const window = testCase.openWindow();
+        const id = testCase.makeSession("Tray gauge");
+        TestEngine.applyEdit(id, JSON.stringify({
+            op: "addBlock",
+            block: { id: "trayGauge", nickname: "You", type: "meter.voicegauge", params: { showInTray: true } },
+            index: -1
+        }));
+        const popover = testCase.openPopover(window);
+        const find = () => TrayState.meters.findIndex(m => m.sessionId === id && m.blockId === "trayGauge");
+        tryVerify(() => find() >= 0, 1000, "the gauge is not listed");
+        popover.meterList.positionViewAtIndex(find(), ListView.Contain);
+        tryVerify(() => popover.meterList.itemAtIndex(find()) !== null, 1000, "the gauge is not shown");
+        const meter = popover.meterList.itemAtIndex(find());
+        compare(meter.meterName, "You");
+        compare(meter.shownWord, "Not watching");
+        TestEngine.start(id);
+        TestEngine.setFakeBlockValues(id, "trayGauge", [112, -24, -120, 0]);
+        tryCompare(meter, "shownWord", "-24 LUFS, between marks", 2000);
+        verify(!meter.levelBar.visible);
+        TestEngine.stop(id);
+    }
+
+    function test_theFloatingWindowCanBeTurnedOffHere() {
+        const window = testCase.openWindow();
+        const id = testCase.makeSession("Tray floating");
+        TestEngine.applyEdit(id, JSON.stringify({
+            op: "addBlock",
+            block: { id: "onTop", nickname: "Call", type: "meter.speechnow", params: { showFloating: true } },
+            index: -1
+        }));
+        const other = testCase.makeSession("Somewhere else again");
+        compare(Sessions.currentId, other);
+
+        const popover = testCase.openPopover(window);
+        const find = () => TrayState.floating.findIndex(m => m.sessionId === id && m.blockId === "onTop");
+        tryVerify(() => find() >= 0, 1000, "the block is not listed");
+        popover.floatingList.positionViewAtIndex(find(), ListView.Contain);
+        tryVerify(() => popover.floatingList.itemAtIndex(find()) !== null, 1000, "the block is not shown");
+        const row = popover.floatingList.itemAtIndex(find());
+        verify(row.checked);
+        compare(row.text, "Call in Tray floating");
+        compare(row.Accessible.name, "Call in Tray floating");
+        mouseClick(row);
+        tryVerify(() => find() < 0, 1000, "it stayed on the window");
+    }
 }

@@ -97,7 +97,7 @@ QtObject {
             found = words.compressor.modeName(choice);
             break;
         case "detector":
-            found = typeId === "meter.speechnow" ? words.speechNow.detectorChoice(choice)
+            found = typeId === "meter.speechnow" || typeId === "meter.voicegauge" ? words.speechNow.detectorChoice(choice)
                                                  : words.compressor.detectorName(choice);
             break;
         case "action":

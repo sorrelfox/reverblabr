@@ -134,6 +134,10 @@ To check it against an ordinary mono mix, open **Compare with Plain Mono**. **He
 
 **Speech Now** is a block under Meters that shows a word while a voice is on a lane, on its tile, in the tray and on a small label over other programs, and for a moment after it stops. It reads the sound and doesn't change it. It can be wrong, and it can't tell who is speaking. See [the block](blocks.md#speech-now).
 
+## Voice Gauge
+
+**Voice Gauge** is a block under Meters for a microphone lane. It shows the level of the voice over the last few seconds, holds it through pauses, and says where it stands against two marks you place, and nothing about how you sound. It reads the sound and doesn't change it. It can be wrong, and it reads whatever voice is there. It is a level before the call program, so it can't see a mute there or what the other side hears. See [the block](blocks.md#voice-gauge).
+
 ## Voice Evener
 
 **Voice Evener** is a row in the library under Built-in Effects: an Auto Level set up to bring a quiet talker up and a loud one down towards one level, on one lane. It evens level only. A mixed call reaches a lane as one stream, so it is one gain for whoever is talking, and a new talker takes a few seconds to settle. Put it after Speech Denoise and before anything that shapes one ear. On music or a film it takes the loud and soft out: turn it off, or give them a lane of their own.

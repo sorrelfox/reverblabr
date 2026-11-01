@@ -41,6 +41,16 @@ ColumnLayout {
     property int decimals: 0
     /// Whether the slider spreads the range by ratio, as a time wants.
     property bool logarithmic: false
+    /// What the field says at the lowest value, in place of a number that
+    /// means nothing there.
+    property string lowestInField: ""
+    /// Whether the row writes the value itself. Off for an owner that writes
+    /// something else along with it, and hears `edited`.
+    property bool writes: true
+
+    /// The value was typed, stepped to, or moved to on the slider. \a moving
+    /// while the slider is held: a last one comes with it false.
+    signal edited(real number, bool moving)
 
     /// The parts, so that a test drives what a person drives.
     readonly property alias slider: bar
@@ -51,6 +61,14 @@ ColumnLayout {
     /// A value kept to the row's own steps.
     function stepped(number: real): real {
         return Number(number.toFixed(row.decimals));
+    }
+
+    /// Hands on \a number, by the session or by the owner.
+    function write(number: real, moving: bool) {
+        if (row.writes) {
+            SessionModel.setParam(row.blockId, row.paramId, number, moving);
+        }
+        row.edited(number, moving);
     }
 
     /// A value's place on the slider, and back.
@@ -78,7 +96,8 @@ ColumnLayout {
         ValueField {
             id: typed
 
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+            Layout.preferredWidth: Kirigami.Units.gridUnit * (row.lowestInField === "" ? 3 : 4)
+            lowestText: row.lowestInField
             label: row.label
             value: row.value
             from: row.from
@@ -87,7 +106,7 @@ ColumnLayout {
             stepSize: row.stepSize
             pageStepSize: row.pageStepSize
             Accessible.description: row.spoken
-            onValueEdited: number => SessionModel.setParam(row.blockId, row.paramId, row.stepped(number))
+            onValueEdited: number => row.write(row.stepped(number), false)
         }
 
         QQC2.Label {
@@ -109,9 +128,13 @@ ColumnLayout {
         Accessible.name: row.label
         Accessible.description: row.spoken
 
-        onMoved: SessionModel.setParam(row.blockId, row.paramId, row.offSlider(value), true)
+        onMoved: row.write(row.offSlider(value), true)
         onPressedChanged: if (!pressed) {
-            SessionModel.commitParam(row.blockId, row.paramId);
+            if (row.writes) {
+                SessionModel.commitParam(row.blockId, row.paramId);
+            } else {
+                row.edited(row.offSlider(value), false);
+            }
         }
 
         SessionBound {
