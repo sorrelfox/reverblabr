@@ -45,6 +45,14 @@ QtObject {
         return true;
     }
 
+    /// Says \a message through \a item because somebody just asked for it, so
+    /// no gap applies. What is said next, unasked, waits its gap after this.
+    function sayNow(item: Item, message: string) {
+        announcer.lastAt = Date.now();
+        announcer.last = message;
+        item.Accessible.announce(message);
+    }
+
     /// Forgets what was said and when, for a test that starts afresh.
     function reset() {
         announcer.last = "";

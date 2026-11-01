@@ -113,6 +113,10 @@ struct TelemetrySnapshot {
     /// latency, which is what it tells the audio system.
     std::uint32_t processLatency = 0;
     bool running = false;
+    /// **Overloaded**: the session gave way and runs none of its blocks, so
+    /// what they published last says nothing about now. Frames still come,
+    /// so nothing else in a snapshot shows it.
+    bool shedding = false;
     /// **The one block whose spectrum is being taken**, zero-padded,
     /// or empty: whichever block's curve somebody is looking at, and
     /// nothing is worked out for the rest. Its spectrum is spectrumBands

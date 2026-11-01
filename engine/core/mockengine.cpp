@@ -23,6 +23,7 @@
 #ifdef RB_HAVE_RNNOISE
 #include "blocks/speechdenoise.h"
 #endif
+#include "blocks/speechnow.h"
 #include "blocks/sync.h"
 #include "blocks/timeshift.h"
 #include "blocks/vumeter.h"
@@ -176,6 +177,9 @@ public:
         /// interface keeps the address it was handed for as long as it is
         /// watching.
         PublishedSlot telemetry;
+        /// What a test has said is wrong with its telemetry.
+        bool overloaded = false;
+        bool frozen = false;
         /// The peak amplitude a test has given each block, if any.
         QHash<QString, float> levels;
         /// The spectrum a test has given each block, and whose is asked
@@ -369,7 +373,7 @@ public:
     void publishTelemetry()
     {
         for (auto &entry : open) {
-            if (entry.second.state == sessionState::running) {
+            if (entry.second.state == sessionState::running && !entry.second.frozen) {
                 publish(entry.second, true);
             }
         }
@@ -385,6 +389,7 @@ public:
         snapshot.frame = ++frame;
         snapshot.nanos = static_cast<std::uint64_t>(clock.nsecsElapsed());
         snapshot.running = running;
+        snapshot.shedding = running && session.overloaded;
         if (running) {
             // Plausible and steady, because nothing here is measuring
             // anything: a mock whose load wandered would have every test of
@@ -530,6 +535,16 @@ public:
                 into.values[blocks::OneEarMix::kFoldLoudnessValue] = dsp::kSilentLufs;
                 into.values[blocks::OneEarMix::kMonoLoudnessValue] = dsp::kSilentLufs;
                 into.values[blocks::OneEarMix::kReadingValue] = blocks::OneEarMix::kNotRead;
+            }
+            // A Speech Now has no sound to hear in a made-up level. It reads
+            // Quiet, with the model where the build has one, until a test
+            // gives it words of its own.
+            if (running && block.type == asText(blocks::SpeechNow::kTypeId)) {
+                into.values[blocks::SpeechNow::kStateValue] = blocks::SpeechNow::kQuiet;
+                into.values[blocks::SpeechNow::kDetectorValue] =
+                    block.params.value("detector"_L1).toString() == "levelAndRhythm"_L1
+                    ? blocks::SpeechNow::kLevelAndRhythmChosen
+                    : blocks::SpeechNow::kModelListening;
             }
             // An Auto Level answers a made-up level by its rule. Before the
             // made-up values, so a test can show what no steady level gives:
@@ -1718,6 +1733,26 @@ void MockEngine::setFakeLevel(const QString &sessionId, const QString &blockId, 
     // is allowed to take would be mostly spent before anything happened.
     if (session->state == sessionState::running) {
         d->publish(*session, true);
+    }
+}
+
+void MockEngine::setFakeOverload(const QString &sessionId, bool overloaded)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session == nullptr) {
+        return;
+    }
+    session->overloaded = overloaded;
+    if (session->state == sessionState::running) {
+        d->publish(*session, true);
+    }
+}
+
+void MockEngine::setFakeFrozen(const QString &sessionId, bool frozen)
+{
+    Private::Open *session = d->require(sessionId);
+    if (session != nullptr) {
+        session->frozen = frozen;
     }
 }
 

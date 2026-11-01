@@ -414,6 +414,7 @@ void TelemetrySampler::sample()
         snapshot.dspLoad += node_telemetry.lastLoad;
         snapshot.peakDspLoad += node_telemetry.peakLoad;
         snapshot.xruns = static_cast<std::uint32_t>(std::max<std::uint64_t>(snapshot.xruns, node_telemetry.xruns));
+        snapshot.shedding = snapshot.shedding || node_telemetry.shedding != 0;
         if (node == nodes.front()) {
             snapshot.sampleRate = node_telemetry.sampleRate;
             snapshot.frames = node_telemetry.frames;

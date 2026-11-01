@@ -66,6 +66,10 @@ public:
     /// What each one means is the block's business and its panel's.
     [[nodiscard]] Q_INVOKABLE QVariantMap levels(const QString &blockId) const;
 
+    /// What can be said of \a blockId now: "watching", "stopped", "overloaded"
+    /// or "noNews" (TelemetryWatch). Bound like levels(), to `frame`.
+    [[nodiscard]] Q_INVOKABLE QString watchState(const QString &blockId) const;
+
     /// **Asks for \a blockId's live spectra and band values**,
     /// or nobody's when it is empty; of both sides mixed, or of \a channel
     /// (0 or 1) alone, for a block that works on one ear. What a curve

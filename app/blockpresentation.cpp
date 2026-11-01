@@ -273,6 +273,12 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "A pair of needles that follow the average level the way a tape machine's meters did, against "
                   "a reference level you choose.")},
+    Entry{"meter.speechnow",
+          "meters",
+          kli18nc("@item block name", "Speech Now"),
+          kli18nc("@info block description", "Shows a word and a dot while someone is speaking on this lane"),
+          kli18nc("@info:tooltip block description",
+                  "Shows when a voice is on this lane and when it stops. The sound itself passes unchanged.")},
 
     // ----------------------------------------------------------- advanced
     Entry{"advanced.declick",

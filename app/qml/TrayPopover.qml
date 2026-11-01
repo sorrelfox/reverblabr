@@ -35,6 +35,10 @@ Window {
     width: Kirigami.Units.gridUnit * 22
     height: Math.min(content.implicitHeight + AppMetrics.panelPadding * 2, Kirigami.Units.gridUnit * 32)
 
+    SpeechNowWords {
+        id: speechWords
+    }
+
     /// The parts, for the tests.
     readonly property alias overview: overview
     readonly property alias sessionList: sessionList
@@ -274,10 +278,19 @@ Window {
                 readonly property var level: TrayState.frame >= 0
                     ? TrayState.meterLevel(meter.modelData.sessionId, meter.modelData.blockId) : ({})
                 readonly property real peakDb: meter.level.peakDb ?? -120
+                /// Speech Now has a word to show and no level to draw.
+                readonly property bool saysAWord: meter.modelData.type === "meter.speechnow"
+                readonly property string wordKind: speechWords.kindOf(meter.level.watch ?? "stopped",
+                                                                      meter.level.enabled ?? true,
+                                                                      (meter.level.values ?? [0])[0])
+                readonly property string shownWord: speechWords.word(meter.wordKind)
                 readonly property alias levelBar: meterBar
 
-                Accessible.name: KI18n.i18nc("@action:button %1 is a meter, %2 its session", "%1 in %2",
-                                             meter.meterName, meter.modelData.sessionName)
+                Accessible.name: meter.saysAWord
+                    ? KI18n.i18nc("@action:button %1 is a meter, %2 its session, %3 what it says", "%1 in %2: %3",
+                                  meter.meterName, meter.modelData.sessionName, meter.shownWord)
+                    : KI18n.i18nc("@action:button %1 is a meter, %2 its session", "%1 in %2",
+                                  meter.meterName, meter.modelData.sessionName)
                 Accessible.description: KI18n.i18nc("@info:tooltip", "Brings its session forward")
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: Accessible.description
@@ -306,9 +319,27 @@ Window {
                         }
                     }
 
+                    RowLayout {
+                        Layout.fillWidth: true
+                        visible: meter.saysAWord
+                        spacing: AppMetrics.mediumSpacing
+
+                        SpeechNowDot {
+                            kind: meter.wordKind
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        ElidedLabel {
+                            Layout.fillWidth: true
+                            text: meter.shownWord
+                            font: AppFonts.small
+                        }
+                    }
+
                     LevelBar {
                         id: meterBar
 
+                        visible: !meter.saysAWord
                         Layout.fillWidth: true
                         implicitHeight: Kirigami.Units.smallSpacing * 2
                         name: meter.meterName

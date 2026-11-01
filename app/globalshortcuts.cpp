@@ -129,6 +129,7 @@ QList<GlobalShortcuts::Action> GlobalShortcuts::fixedActions()
                 kJumpSeconds)},
         {QString(kTimeShiftLive), i18nc("@action a global shortcut", "Time Shift: back to live")},
         {QString(kRecorderSplit), i18nc("@action a global shortcut", "Recorder: start a new file")},
+        {QString(kSayWhoIsSpeaking), i18nc("@action a global shortcut", "Say Who Is Speaking")},
     };
 }
 

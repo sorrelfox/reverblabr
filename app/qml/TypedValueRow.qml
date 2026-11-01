@@ -12,11 +12,11 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// One of Auto Level's numbers: its name, a typed value, its unit, a slider,
-// and what its lowest value means.
+// A number on a block's card: its name, a typed value, its unit, a slider, and
+// what its lowest value means.
 //
-// **Two ways to one value, and the keys mean one thing.** Arrows step by 1 and
-// Page keys by 3 in the field, and the slider is out of the Tab order.
+// **Two ways to one value, and the keys mean one thing.** The arrows and Page
+// keys step in the field, and the slider is out of the Tab order.
 ColumnLayout {
     id: row
 
@@ -34,12 +34,33 @@ ColumnLayout {
     required property real to
     /// What is said under the row while the value is at its lowest.
     property string atLowest: ""
+    /// What the arrows and Page keys move it by, how many places show, and
+    /// what the slider snaps to.
+    property real stepSize: 1
+    property real pageStepSize: 3
+    property int decimals: 0
+    /// Whether the slider spreads the range by ratio, as a time wants.
+    property bool logarithmic: false
 
     /// The parts, so that a test drives what a person drives.
     readonly property alias slider: bar
     readonly property alias field: typed
     readonly property alias lowestNote: note
     readonly property bool noteShown: row.atLowest !== "" && row.value === row.from
+
+    /// A value kept to the row's own steps.
+    function stepped(number: real): real {
+        return Number(number.toFixed(row.decimals));
+    }
+
+    /// A value's place on the slider, and back.
+    function onSlider(number: real): real {
+        return row.logarithmic ? Math.log(number) : number;
+    }
+
+    function offSlider(place: real): real {
+        return row.logarithmic ? row.stepped(Math.round(Math.exp(place) / row.stepSize) * row.stepSize) : place;
+    }
 
     Layout.fillWidth: true
     spacing: 0
@@ -62,11 +83,11 @@ ColumnLayout {
             value: row.value
             from: row.from
             to: row.to
-            decimals: 0
-            stepSize: 1
-            pageStepSize: 3
+            decimals: row.decimals
+            stepSize: row.stepSize
+            pageStepSize: row.pageStepSize
             Accessible.description: row.spoken
-            onValueEdited: number => SessionModel.setParam(row.blockId, row.paramId, Math.round(number))
+            onValueEdited: number => SessionModel.setParam(row.blockId, row.paramId, row.stepped(number))
         }
 
         QQC2.Label {
@@ -80,15 +101,15 @@ ColumnLayout {
 
         Layout.fillWidth: true
         Layout.topMargin: AppMetrics.pullIntoRow
-        from: row.from
-        to: row.to
-        stepSize: 1
-        snapMode: QQC2.Slider.SnapAlways
+        from: row.onSlider(row.from)
+        to: row.onSlider(row.to)
+        stepSize: row.logarithmic ? 0 : row.stepSize
+        snapMode: row.logarithmic ? QQC2.Slider.NoSnap : QQC2.Slider.SnapAlways
         activeFocusOnTab: false
         Accessible.name: row.label
         Accessible.description: row.spoken
 
-        onMoved: SessionModel.setParam(row.blockId, row.paramId, value, true)
+        onMoved: SessionModel.setParam(row.blockId, row.paramId, row.offSlider(value), true)
         onPressedChanged: if (!pressed) {
             SessionModel.commitParam(row.blockId, row.paramId);
         }
@@ -96,7 +117,7 @@ ColumnLayout {
         SessionBound {
             control: bar
             property: "value"
-            value: row.value
+            value: row.onSlider(row.value)
             suspended: bar.pressed
         }
     }

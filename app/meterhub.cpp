@@ -36,6 +36,7 @@ class MeterHub::Private
 {
 public:
     const core::TelemetrySlot *slot = nullptr;
+    TelemetryWatch telemetryWatch;
     QList<BlockLevels> blocks;
     /// Where each block sits in the list, so that a face can ask for its own
     /// levels by id without walking fifty of them.
@@ -107,6 +108,7 @@ void MeterHub::watch(const core::TelemetrySlot *slot)
 {
     d->slot = slot;
     d->lastFrame = 0;
+    d->telemetryWatch.forget();
     d->resize(0);
     // **The holds go with the session they were chosen in.** Block ids are
     // only unique inside a session, so keeping them would give a block of
@@ -176,6 +178,7 @@ bool MeterHub::tick()
     d->lastTick = now;
     d->lastFrame = snapshot.frame;
     d->latest = snapshot;
+    d->telemetryWatch.saw(snapshot, now);
 
     d->resize(snapshot.blockCount);
     for (qsizetype index = 0; index < d->blocks.size(); ++index) {
@@ -292,6 +295,16 @@ std::uint32_t MeterHub::frames() const
 bool MeterHub::isRunning() const
 {
     return d->latest.running;
+}
+
+QLatin1StringView MeterHub::watchOf(const QString &blockId) const
+{
+    return d->telemetryWatch.stateOf(block(blockId) != nullptr, d->clock());
+}
+
+bool MeterHub::isUnmoved() const
+{
+    return d->telemetryWatch.isUnmoved(d->clock());
 }
 
 std::uint64_t MeterHub::frame() const

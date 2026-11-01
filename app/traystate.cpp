@@ -23,7 +23,7 @@
 #include <QTimer>
 
 #include <algorithm>
-#include <cstring>
+#include <utility>
 
 using namespace Qt::StringLiterals;
 
@@ -35,8 +35,10 @@ namespace
 
 constexpr auto kPeakRmsType = "meter.peakrms"_L1;
 constexpr auto kVuType = "meter.vu"_L1;
+constexpr auto kSpeechNowType = "meter.speechnow"_L1;
 constexpr auto kShowInTray = "showInTray"_L1;
 constexpr auto kShowPeak = "showPeak"_L1;
+constexpr auto kShowFloating = "showFloating"_L1;
 
 [[nodiscard]] QJsonObject objectOf(const QString &json)
 {
@@ -46,7 +48,25 @@ constexpr auto kShowPeak = "showPeak"_L1;
 /// Whether a block is a meter the person asked to see in the tray.
 [[nodiscard]] bool isTrayMeter(const QString &type, const QJsonObject &params)
 {
-    return (type == kPeakRmsType || type == kVuType) && params.value(kShowInTray).toBool(false);
+    return (type == kPeakRmsType || type == kVuType || type == kSpeechNowType)
+        && params.value(kShowInTray).toBool(false);
+}
+
+/// Whether a block is one the person asked to see on the floating label.
+[[nodiscard]] bool isFloating(const QString &type, const QJsonObject &params)
+{
+    return type == kSpeechNowType && params.value(kShowFloating).toBool(false);
+}
+
+/// Which surfaces ask for a block, as something to compare.
+[[nodiscard]] std::pair<bool, bool> surfacesOf(const QString &type, const QJsonObject &params)
+{
+    return {isTrayMeter(type, params), isFloating(type, params)};
+}
+
+[[nodiscard]] bool onASurface(const QString &type, const QJsonObject &params)
+{
+    return surfacesOf(type, params) != std::pair{false, false};
 }
 
 /// Whether a tray meter's bar follows the root mean square rather than the
@@ -118,6 +138,16 @@ public:
     /// Each tray meter's level, by "session/block".
     QHash<QString, float> levels;
     QHash<QString, bool> active;
+    /// What each tray meter's block last said about itself, by the same key.
+    struct Said {
+        QString watch = QString(TelemetryWatch::kStopped);
+        bool enabled = true;
+        QVariantList values;
+    };
+    QHash<QString, Said> said;
+    /// Each session's telemetry is believed or not, as every surface's is.
+    QHash<QString, TelemetryWatch> watches;
+    QElapsedTimer sinceStart;
 
     [[nodiscard]] static QString keyOf(const QString &sessionId, const QString &blockId)
     {
@@ -141,6 +171,7 @@ TrayState::TrayState(core::EngineFacade *facade, QObject *parent)
     : QObject(parent)
     , d(std::make_unique<Private>())
 {
+    d->sinceStart.start();
     d->ticker.setInterval(kLevelTickMs);
     connect(&d->ticker, &QTimer::timeout, this, &TrayState::readLevels);
     connect(&d->policy, &notify::NotificationPolicy::notify, this, [this](const notify::Notification &notification) {
@@ -187,6 +218,8 @@ void TrayState::attach(core::EngineFacade *facade)
     d->paused.clear();
     d->levels.clear();
     d->active.clear();
+    d->said.clear();
+    d->watches.clear();
     d->noticed = false;
     d->noticedText.clear();
     if (facade == nullptr) {
@@ -305,16 +338,16 @@ void TrayState::attach(core::EngineFacade *facade)
                     } else {
                         session.blocks.append(made);
                     }
-                    metersMoved = isTrayMeter(made.type, made.params);
+                    metersMoved = onASurface(made.type, made.params);
                 } else if (op == "removeBlock"_L1 && block != session.blocks.end()) {
-                    metersMoved = isTrayMeter(block->type, block->params);
+                    metersMoved = onASurface(block->type, block->params);
                     session.blocks.erase(block);
                 } else if (op == "setParam"_L1 && block != session.blocks.end()) {
-                    const bool before = isTrayMeter(block->type, block->params);
+                    const auto before = surfacesOf(block->type, block->params);
                     block->params.insert(patch.value("key"_L1).toString(), patch.value("value"_L1));
-                    metersMoved = before != isTrayMeter(block->type, block->params);
+                    metersMoved = before != surfacesOf(block->type, block->params);
                 } else if (op == "applyPreset"_L1 && block != session.blocks.end()) {
-                    const bool before = isTrayMeter(block->type, block->params);
+                    const auto before = surfacesOf(block->type, block->params);
                     const QJsonObject params = patch.value("params"_L1).toObject();
                     for (auto it = params.begin(); it != params.end(); ++it) {
                         block->params.insert(it.key(), it.value());
@@ -322,7 +355,7 @@ void TrayState::attach(core::EngineFacade *facade)
                     for (const QJsonValue &key : patch.value("clear"_L1).toArray()) {
                         block->params.remove(key.toString());
                     }
-                    metersMoved = before != isTrayMeter(block->type, block->params);
+                    metersMoved = before != surfacesOf(block->type, block->params);
                 } else if (op == "rename"_L1) {
                     if (blockId.isEmpty()) {
                         session.name = patch.value("name"_L1).toString();
@@ -330,7 +363,7 @@ void TrayState::attach(core::EngineFacade *facade)
                         Q_EMIT changed();
                     } else if (block != session.blocks.end()) {
                         block->nickname = patch.value("name"_L1).toString();
-                        metersMoved = isTrayMeter(block->type, block->params);
+                        metersMoved = onASurface(block->type, block->params);
                     }
                 }
                 if (metersMoved) {
@@ -454,6 +487,23 @@ QVariantList TrayState::meters() const
     return list;
 }
 
+QList<TrayState::SurfaceBlock> TrayState::floatingBlocks() const
+{
+    QList<SurfaceBlock> list;
+    for (const QString &sessionId : std::as_const(d->openOrder)) {
+        const auto found = d->sessions.constFind(sessionId);
+        if (found == d->sessions.cend()) {
+            continue;
+        }
+        for (const Private::Block &block : found->blocks) {
+            if (isFloating(block.type, block.params)) {
+                list.append({sessionId, block.id, block.nickname});
+            }
+        }
+    }
+    return list;
+}
+
 bool TrayState::isAvailable() const
 {
     return d->available;
@@ -521,8 +571,12 @@ void TrayState::acknowledge()
 QVariantMap TrayState::meterLevel(const QString &sessionId, const QString &blockId) const
 {
     const QString key = Private::keyOf(sessionId, blockId);
+    const Private::Said said = d->said.value(key);
     return QVariantMap{{u"peakDb"_s, static_cast<double>(d->levels.value(key, dsp::kSilenceDb))},
-                       {u"active"_s, d->active.value(key, false)}};
+                       {u"active"_s, d->active.value(key, false)},
+                       {u"watch"_s, said.watch},
+                       {u"enabled"_s, said.enabled},
+                       {u"values"_s, said.values}};
 }
 
 void TrayState::requestPopover()
@@ -572,23 +626,28 @@ void TrayState::readLevels()
             const auto block = std::ranges::find(session->blocks, blockId, &Private::Block::id);
             rmsOnly = block != session->blocks.cend() && showsRmsOnly(block->type, block->params);
         }
+        Private::Said said;
         if (const core::TelemetrySlot *slot = running ? AppShell::telemetryOf(sessionId) : nullptr; slot != nullptr) {
             const core::TelemetrySnapshot snapshot = slot->load();
-            const QByteArray id = blockId.toUtf8().left(core::kMaxTelemetryIdBytes - 1);
-            const std::uint32_t blocks = std::min<std::uint32_t>(snapshot.blockCount, core::kMaxMeteredBlocks);
-            for (std::uint32_t block = 0; block < blocks; ++block) {
-                const core::BlockTelemetry &levels = snapshot.blocks[block];
-                if (std::strncmp(levels.id, id.constData(), core::kMaxTelemetryIdBytes) != 0) {
-                    continue;
-                }
-                const std::uint32_t channels = std::min<std::uint32_t>(levels.channelCount, rt::kMaxMeterChannels);
+            TelemetryWatch &watch = d->watches[sessionId];
+            watch.saw(snapshot, d->sinceStart.elapsed());
+            const core::BlockTelemetry *levels = TelemetryWatch::find(snapshot, blockId);
+            said.watch = QString(watch.stateOf(levels != nullptr, d->sinceStart.elapsed()));
+            if (levels != nullptr) {
+                const std::uint32_t channels = std::min<std::uint32_t>(levels->channelCount, rt::kMaxMeterChannels);
                 for (std::uint32_t channel = 0; channel < channels; ++channel) {
-                    loudest = std::max(loudest, dsp::gainToDb(rmsOnly ? levels.rms[channel] : levels.peak[channel]));
+                    loudest = std::max(loudest, dsp::gainToDb(rmsOnly ? levels->rms[channel] : levels->peak[channel]));
                 }
-                active = levels.active;
-                break;
+                active = levels->active;
+                said.enabled = levels->enabled;
+                for (const float value : levels->values) {
+                    said.values.append(static_cast<double>(value));
+                }
             }
+        } else {
+            d->watches.remove(sessionId);
         }
+        d->said.insert(key, said);
         const float previous = d->levels.value(key, dsp::kSilenceDb);
         d->levels.insert(key,
                          running ? std::max(loudest, std::max(dsp::kSilenceDb, previous - fall)) : dsp::kSilenceDb);
@@ -597,6 +656,9 @@ void TrayState::readLevels()
     // A meter that is gone keeps no level for when it comes back.
     for (auto it = d->levels.begin(); it != d->levels.end();) {
         it = seen.contains(it.key()) ? std::next(it) : d->levels.erase(it);
+    }
+    for (auto it = d->said.begin(); it != d->said.end();) {
+        it = seen.contains(it.key()) ? std::next(it) : d->said.erase(it);
     }
     ++d->frame;
     Q_EMIT ticked();

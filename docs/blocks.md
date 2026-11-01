@@ -69,8 +69,21 @@ The original goes straight through, so a Reverb doesn't delay the lane.
 |---|---|
 | **Peak/RMS** | A level meter for any point in a lane, with peak hold and clip lights. Its RMS bar has a paler bar above it that jumps up to each peak; untick **Show peak bar** in its settings to hide that one, on the tile and in the system tray. |
 | **VU** | A pair of needles that follow the average level, the way a tape machine's meters did, against a reference level you choose. |
+| **Speech Now** | Shows Speaking while a voice is on this lane, and Quiet when not. For a moment after a voice stops it shows Quiet again. It can't tell who is speaking or what was said, and the sound passes unchanged. |
 
-Either meter can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
+Any of them can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
+
+### Speech Now
+
+Put one right after the block whose sound you want to watch, before anything that changes the level. Name it in its card: a tile called Call and a tile called You read as two talkers. Nothing else tells two voices on one lane apart.
+
+**Quiet again** says what the sound did. A pause for thought and the end of a turn look the same, so it does not mean a talker has finished. **Hold** is how long a voice may pause and still count as Speaking, and a longer one gives fewer false stops and shows the true stop later. The **Steady** preset is the longer one. **Shortest talk** keeps a cough from earning the mark. Music, singing and film can read as Speaking.
+
+**Detector** picks how it listens. **Voice model** is a small model on this computer. It needs a sound system at 48 kHz and a build that has it, and the card says so when one is missing. **Level and rhythm** uses far less of the processor and can be wrong more often. It misses voices in a noisy room and passes music with a beat.
+
+Under **Show it on**, **Floating label** adds a row to a small window that stays over other programs, up to four rows from any open session. It stays when you close the main window, while there is a system tray. Drag it to move it, or set its place under **Place the label**. It reads **Not watching** whenever the block can't hear its lane: the session stopped, the session is overloaded, or the engine stopped answering. A full-screen share may carry the label, name included.
+
+Nothing is spoken unasked. With a screen reader, set a key for **Say Who Is Speaking** ([global shortcuts](desktop.md#global-shortcuts)).
 
 ## Advanced
 

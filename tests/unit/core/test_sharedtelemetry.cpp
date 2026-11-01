@@ -173,9 +173,10 @@ TEST(SharedTelemetry, AnEarlierLayoutsMemoryIsNotRead)
         std::uint64_t layout;
         std::size_t bytes;
     };
-    const std::array<Earlier, 2> earlier{{
+    const std::array<Earlier, 3> earlier{{
         {1, 0x7afda2ad6c511ce9ULL, 8768}, // levels, values and one spectrum
         {2, 0x42fac5df59932e93ULL, 9408}, // 64 band values, the spectrum before
+        {3, 0x851b0297d732b8d3ULL, 9664}, // 128 band values
     }};
 
     auto *region = new (::operator new(sizeof(TelemetryRegion), std::align_val_t{64})) TelemetryRegion;
@@ -188,8 +189,10 @@ TEST(SharedTelemetry, AnEarlierLayoutsMemoryIsNotRead)
     for (const Earlier &layout : earlier) {
         region->version = layout.version;
         region->layout = layout.layout;
-        // Its own size, which is shorter than this build's.
-        EXPECT_EQ(refusal(layout.bytes), SharedTelemetryError::NotMapped) << "version " << layout.version;
+        // Its own size, where that is shorter than this build's.
+        if (layout.bytes < sizeof(TelemetryRegion)) {
+            EXPECT_EQ(refusal(layout.bytes), SharedTelemetryError::NotMapped) << "version " << layout.version;
+        }
         // And its header in memory of this build's size: the header is
         // what says no.
         EXPECT_EQ(refusal(sizeof(TelemetryRegion)), SharedTelemetryError::WrongLayout)

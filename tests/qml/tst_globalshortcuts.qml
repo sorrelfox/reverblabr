@@ -25,6 +25,7 @@ TestCase {
     when: windowShown
 
     property string sessionId: ""
+    readonly property Item speaker: Item {}
 
     Component {
         id: targetsComponent
@@ -90,6 +91,33 @@ TestCase {
         Meters.watch(testCase.sessionId);
         TestEngine.start(testCase.sessionId);
         tryVerify(() => Meters.live, 1000, "the session never went live");
+    }
+
+    function test_sayWhoIsSpeakingIsOneSentenceAnsweringTheGap() {
+        testCase.add("call", "meter.speechnow");
+        testCase.add("you", "meter.speechnow");
+        SessionModel.renameBlock("call", "Call");
+        SessionModel.renameBlock("you", "You");
+        tryVerify(() => SessionModel.blockIds.length === 6, 1000, "the blocks did not arrive");
+        const targets = createTemporaryObject(targetsComponent, testCase, { speaker: testCase.speaker });
+        Announcer.reset();
+        compare(targets.act("speechNow.say"), 2);
+        compare(Announcer.last, "Call not watching, You not watching");
+
+        testCase.run();
+        TestEngine.setFakeBlockValues(testCase.sessionId, "call", [1, 0.9, 0]);
+        TestEngine.setFakeBlockValues(testCase.sessionId, "you", [0, 0, 0]);
+        tryVerify(() => Meters.watchState("call") === "watching"
+                  && (Meters.levels("call").values ?? [0])[0] === 1, 1000);
+        // Right after the last one: it was asked for, so no gap holds it back.
+        compare(targets.act("speechNow.say"), 2);
+        compare(Announcer.last, "Call speaking, You quiet");
+        TestEngine.setFakeBlockValues(testCase.sessionId, "call", []);
+        TestEngine.setFakeBlockValues(testCase.sessionId, "you", []);
+        for (const id of ["call", "you"]) {
+            TestEngine.applyEdit(testCase.sessionId, JSON.stringify({ op: "removeBlock", blockId: id }));
+        }
+        tryVerify(() => SessionModel.blockIds.length === 4, 1000);
     }
 
     function test_theInputSwitchShortcutsSetEverySwitchInTheFrontSession() {

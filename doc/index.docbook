@@ -799,6 +799,17 @@ sets how long it waits.</para>
 <para>A pair of needles that follow the average level, the way a tape
 machine's meters did, against a reference level you choose.</para>
 </sect2>
+
+<sect2 id="block-meter-speechnow">
+<title>Speech Now</title>
+<para>Shows <guilabel>Speaking</guilabel> while a voice is on this lane, and
+<guilabel>Quiet</guilabel> when not. For a moment after a voice stops it shows
+<guilabel>Quiet again</guilabel>, which says what the sound did and not that
+anyone has finished. It can't tell who is speaking or what was said, and music
+can look like a voice. The sound passes unchanged. The word can also show in
+the system tray and on a small floating label over other programs, and it reads
+<guilabel>Not watching</guilabel> whenever the block can't hear its lane.</para>
+</sect2>
 </sect1>
 
 <sect1 id="blocks-advanced">
@@ -1296,7 +1307,9 @@ B</guilabel>; <guilabel>Time Shift: pause or play</guilabel>, <guilabel>back
 10 seconds</guilabel>, <guilabel>forward 10 seconds</guilabel> and
 <guilabel>back to live</guilabel>; <guilabel>Recorder: start a new
 file</guilabel>. These act on every block of that kind in the session the
-main window shows (or showed last, while it is hidden).</para></listitem>
+main window shows (or showed last, while it is hidden). <guilabel>Say Who Is
+Speaking</guilabel> has your screen reader say one sentence from every Speech
+Now block there.</para></listitem>
 </varlistentry>
 </variablelist>
 

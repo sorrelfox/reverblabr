@@ -139,6 +139,10 @@ QtObject {
         OneEarMixHelp {}
     }
 
+    readonly property Component speechNow: Component {
+        SpeechNowHelp {}
+    }
+
     readonly property Component limiter: Component {
         LimiterHelp {}
     }
@@ -248,6 +252,7 @@ QtObject {
         "hearing.frequencyraising": help.frequencyRaising,
         "hearing.joinlr": help.joinLr,
         "hearing.oneearmix": help.oneEarMix,
+        "meter.speechnow": help.speechNow,
         "meter.peakrms": help.peakRms,
         "meter.vu": help.vu,
         "output.broadcast": help.broadcast,

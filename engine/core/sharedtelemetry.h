@@ -27,8 +27,9 @@ namespace rb::core
 ///   channel both spectra are of.
 /// - 3: 128 band values rather than 64, for the 64-band block's gains and
 ///   levels.
+/// - 4: whether the session has given way to overload.
 inline constexpr std::uint32_t kTelemetryMagic = 0x4c544252;
-inline constexpr std::uint32_t kTelemetryVersion = 3;
+inline constexpr std::uint32_t kTelemetryVersion = 4;
 
 /// **A fingerprint of the snapshot's layout**: its size, its blocks' size
 /// and every bound that shapes it. Two builds that would read the same
@@ -42,6 +43,7 @@ inline constexpr std::uint32_t kTelemetryVersion = 3;
         alignof(TelemetrySnapshot),
         sizeof(BlockTelemetry),
         offsetof(TelemetrySnapshot, blocks),
+        offsetof(TelemetrySnapshot, analysedId),
         offsetof(TelemetrySnapshot, inputSpectrum),
         offsetof(TelemetrySnapshot, bandValues),
         sizeof(TelemetrySlot),

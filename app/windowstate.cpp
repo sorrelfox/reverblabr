@@ -34,6 +34,11 @@ constexpr QLatin1StringView kDetachedPanelsGroup{"DetachedPanels"};
 constexpr QLatin1StringView kWindowsGroup{"Windows"};
 /// Tables' column layouts, a JSON entry each, named by the table.
 constexpr QLatin1StringView kTablesGroup{"Tables"};
+/// The floating windows' places, a JSON entry each, named by the surface.
+constexpr QLatin1StringView kFloatingGroup{"Floating"};
+/// Where a floating window starts: near a corner, out of the way.
+constexpr double kFloatingStartPixels = 40.0;
+constexpr double kFloatingStartPercent = 5.0;
 
 } // namespace
 
@@ -220,6 +225,31 @@ void WindowState::setTableLayout(const QString &table, const QVariantMap &layout
     const KSharedConfig::Ptr config = g_config ? g_config : KSharedConfig::openStateConfig();
     KConfigGroup state(config, kTablesGroup);
     state.writeEntry(table, QString::fromUtf8(QJsonDocument(written).toJson(QJsonDocument::Compact)));
+    state.sync();
+}
+
+QVariantMap WindowState::floatingPlacement(const QString &surface, const QString &unit) const
+{
+    const KSharedConfig::Ptr config = g_config ? g_config : KSharedConfig::openStateConfig();
+    const QString written = KConfigGroup(config, kFloatingGroup).readEntry(surface, QString{});
+    const QJsonObject placement = QJsonDocument::fromJson(written.toUtf8()).object();
+    const double start = unit == "percent"_L1 ? kFloatingStartPercent : kFloatingStartPixels;
+    return QVariantMap{{u"left"_s, placement.value("left"_L1).toDouble(start)},
+                       {u"top"_s, placement.value("top"_L1).toDouble(start)},
+                       {u"unit"_s, unit},
+                       {u"size"_s, placement.value("size"_L1).toString(u"small"_s)},
+                       {u"screen"_s, placement.value("screen"_L1).toString()}};
+}
+
+void WindowState::setFloatingPlacement(const QString &surface, const QVariantMap &placement)
+{
+    const QJsonObject written{{"left"_L1, placement.value(u"left"_s).toDouble()},
+                              {"top"_L1, placement.value(u"top"_s).toDouble()},
+                              {"size"_L1, placement.value(u"size"_s).toString()},
+                              {"screen"_L1, placement.value(u"screen"_s).toString()}};
+    const KSharedConfig::Ptr config = g_config ? g_config : KSharedConfig::openStateConfig();
+    KConfigGroup state(config, kFloatingGroup);
+    state.writeEntry(surface, QString::fromUtf8(QJsonDocument(written).toJson(QJsonDocument::Compact)));
     state.sync();
 }
 

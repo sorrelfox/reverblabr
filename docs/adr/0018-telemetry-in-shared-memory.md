@@ -21,7 +21,7 @@ What there is to work with:
 ## Decision
 
 **Every open session publishes into shared memory, in either mode.** `core::SharedTelemetry` is a `TelemetryRegion` in a memfd:
-- a header holds a magic number, a version and a fingerprint of the snapshot's layout (its size, its blocks' size, the offset of the blocks, and every bound that shapes it);
+- a header holds a magic number, a version and a fingerprint of the snapshot's layout (its size, its blocks' size, the offsets of the blocks and of what follows the flags, and every bound that shapes it);
 - the seqlock follows the header, unchanged.
 
 `core::PublishedSlot` is what the sampler and the mock publish into. It uses the shared region, or a slot of the process's own only if the kernel refuses a memfd. The engine in the window reads the very same memory through a pointer, so in-process meters test the bytes a daemon window reads.
@@ -47,7 +47,7 @@ What there is to work with:
 - **Nothing about levels crosses the bus while a session runs.** `bus.engine` watches a mock daemon publishing sixty snapshots a second with `dbus-monitor --profile` while a window reads every 16 ms, and sees no message. A window on the daemon has meters, wire colours and state dots, so the daemon can become the default.
 - **A window that goes takes its mappings with it**, and the daemon keeps no descriptor it has handed out. Ten windows mapping and closing leave the descriptor and mapping counts where they started, on both sides.
 - **The layout is a contract between two builds.** A change to the snapshot changes the fingerprint, and a window of another build refuses the memory instead of misreading it. It shows no levels rather than wrong ones. Raising `kTelemetryVersion` is still right when the meaning changes but the layout does not.
-- **One memfd per open session**, 8768 bytes (three pages), whether or not a window is on the daemon. It is created when the session opens and freed when it closes. Version 2 added the analysed block's spectrum before it, its band values and the channel both spectra are of: 9408 bytes, still three pages, and a window of version 1 refuses it. Version 3 doubled the band values to 128, for the 64-band listening block's gain and level in each band: 9664 bytes, still three pages.
+- **One memfd per open session**, 8768 bytes (three pages), whether or not a window is on the daemon. It is created when the session opens and freed when it closes. Version 2 added the analysed block's spectrum before it, its band values and the channel both spectra are of: 9408 bytes, still three pages, and a window of version 1 refuses it. Version 3 doubled the band values to 128, for the 64-band listening block's gain and level in each band: 9664 bytes, still three pages. Version 4 adds whether the session has given way to overload, in bytes that were padding: the same 9664, with the place of the fields after it added to the fingerprint so that it tells the two apart.
 - **Nothing on the real-time side changes**: the engine thread publishes into the same seqlock, which now lives in a mapping.
 
 ## Alternatives considered

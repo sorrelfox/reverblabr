@@ -149,6 +149,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_monoenhancer.cpp
         blocks/test_multibandcompressor.cpp
         blocks/test_oneearmix.cpp
+        blocks/test_speechnow.cpp
         blocks/test_outputdevice.cpp
         blocks/test_pan.cpp
         blocks/test_parametriceq.cpp
@@ -432,6 +433,7 @@ rb_add_gtest(reverblabr-app-test
         app/test_errorsurface.cpp
         app/test_diagnostics.cpp
         app/test_fileactions.cpp
+        app/test_floatingsurface.cpp
         app/test_globalshortcuts.cpp
         app/test_inventory.cpp
         app/test_launchrequests.cpp
@@ -444,6 +446,7 @@ rb_add_gtest(reverblabr-app-test
         app/test_recordingstatus.cpp
         app/test_sessionmodel.cpp
         app/test_sessionoverview.cpp
+        app/test_telemetrywatch.cpp
         app/test_traystate.cpp
         app/test_systemaudio.cpp
         app/test_virtualdevices.cpp

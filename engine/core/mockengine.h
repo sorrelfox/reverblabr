@@ -188,6 +188,13 @@ public:
     /// What \a blockId publishes as its own numbers, over what the mock works
     /// out: for a state only a running block can be in.
     Q_INVOKABLE void setFakeBlockValues(const QString &sessionId, const QString &blockId, const QVariantList &values);
+    /// **The session gives way to overload**, or stops doing so: its blocks
+    /// run no more and frames still come, as with the real thing.
+    Q_INVOKABLE void setFakeOverload(const QString &sessionId, bool overloaded);
+    /// **Nobody publishes any more**, or somebody does again: the last
+    /// snapshot stands in the memory, still saying it runs, as an engine that
+    /// died leaves it.
+    Q_INVOKABLE void setFakeFrozen(const QString &sessionId, bool frozen);
     /// **Laid over the diagnostics the mock makes up**: each
     /// top-level key of \a diagnosticsJson replaces the mock's own, so a
     /// test can give sessions a load, late cycles and a real-time answer,

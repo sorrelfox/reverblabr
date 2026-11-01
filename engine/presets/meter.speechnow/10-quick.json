@@ -1,0 +1,9 @@
+{
+    "schema": 1,
+    "type": "meter.speechnow",
+    "params": {
+        "holdMs": 200.0,
+        "quietAgainSeconds": 2.0,
+        "shortestTalkMs": 300.0
+    }
+}

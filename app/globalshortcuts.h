@@ -40,7 +40,8 @@ namespace rb::ui
 ///   main window shows (or showed last, while it is hidden), and on every
 ///   block of that kind in it, which is usually one: Input Switch to A or
 ///   B; Time Shift pause or play, back and forward 10 seconds, back to live;
-///   Recorder, start a new file (only a Recorder that is recording). A
+///   Recorder, start a new file (only a Recorder that is recording); Say Who
+///   Is Speaking, one sentence from every Speech Now. A
 ///   session with no such block, or no session open, does nothing. The
 ///   window's QML does these (ShortcutTargets.qml), since it is what knows
 ///   the front session and its blocks' live readings.
@@ -80,6 +81,7 @@ public:
     static constexpr QLatin1StringView kTimeShiftForward{"timeShift.forward"};
     static constexpr QLatin1StringView kTimeShiftLive{"timeShift.live"};
     static constexpr QLatin1StringView kRecorderSplit{"recorder.split"};
+    static constexpr QLatin1StringView kSayWhoIsSpeaking{"speechNow.say"};
     /// A session's action is this followed by its id.
     static constexpr QLatin1StringView kSessionPrefix{"session."};
     /// How far the Time Shift shortcuts jump, in seconds.

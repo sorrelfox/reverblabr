@@ -294,6 +294,46 @@ TEST_F(TrayStateTest, AMeterWithItsPeakBarOffReadsItsRmsInTheTray)
     engine.stop(id);
 }
 
+TEST_F(TrayStateTest, ASpeechNowReadsItsWordAndNotWatchingWhenNobodyPublishes)
+{
+    core::MockEngine engine;
+    const QString id = openSession(engine, u"Words"_s);
+    engine.applyEdit(id, addBlock(u"call"_s, u"meter.speechnow"_s, QJsonObject{{u"showInTray"_s, true}}));
+    ui::AppShell::setEngine(&engine, [&](const QString &sessionId) { return engine.telemetryOf(sessionId); });
+    ui::TrayState tray(&engine);
+    ASSERT_TRUE(spinUntil([&] { return tray.meters().size() == 1; }));
+    tray.readLevels();
+    EXPECT_EQ(tray.meterLevel(id, u"call"_s).value(u"watch"_s).toString(), "stopped"_L1);
+
+    engine.start(id);
+    engine.setFakeBlockValues(id, u"call"_s, {1.0f});
+    ASSERT_TRUE(spinUntil([&] { return tray.runningCount() == 1; }));
+    tray.readLevels();
+    const QVariantMap level = tray.meterLevel(id, u"call"_s);
+    EXPECT_EQ(level.value(u"watch"_s).toString(), "watching"_L1);
+    EXPECT_EQ(level.value(u"values"_s).toList().value(0).toInt(), 1);
+
+    engine.setFakeOverload(id, true);
+    tray.readLevels();
+    EXPECT_EQ(tray.meterLevel(id, u"call"_s).value(u"watch"_s).toString(), "overloaded"_L1);
+    engine.setFakeOverload(id, false);
+    engine.stop(id);
+}
+
+TEST_F(TrayStateTest, AFloatingBlockIsNoTrayMeterAndAToggleOfEitherIsNews)
+{
+    core::MockEngine engine;
+    const QString id = openSession(engine, u"Toggles"_s);
+    engine.applyEdit(id, addBlock(u"call"_s, u"meter.speechnow"_s));
+    ui::TrayState tray(&engine);
+    ASSERT_TRUE(spinUntil([&] { return tray.floatingBlocks().isEmpty() && tray.meters().isEmpty(); }));
+    QSignalSpy moved(&tray, &ui::TrayState::metersChanged);
+    engine.applyEdit(id, edit(core::SetParam{u"call"_s, u"showFloating"_s, true}));
+    ASSERT_TRUE(spinUntil([&] { return tray.floatingBlocks().size() == 1; }));
+    EXPECT_EQ(moved.count(), 1);
+    EXPECT_TRUE(tray.meters().isEmpty());
+}
+
 TEST_F(TrayStateTest, WhatWentWrongAsksForAttentionUntilItIsSeen)
 {
     core::MockEngine engine;

@@ -50,6 +50,9 @@ constexpr std::array kFactoryNames{
     FactoryName{"doubleVolume"_L1, kli18nc("@item:inmenu a preset for the Volume block", "Double volume (200 %)")},
     // Auto Level.
     FactoryName{"voiceEvener"_L1, kli18nc("@item:inmenu a preset for the Auto Level block", "Voice Evener")},
+    // Speech Now.
+    FactoryName{"quick"_L1, kli18nc("@item:inmenu a preset for the Speech Now block", "Quick")},
+    FactoryName{"steady"_L1, kli18nc("@item:inmenu a preset for the Speech Now block", "Steady")},
     // Dynamics Processor.
     FactoryName{"default"_L1, kli18nc("@item:inmenu a preset for the Dynamics block", "Default")},
     FactoryName{"gentleLeveling"_L1, kli18nc("@item:inmenu a preset for the Dynamics block", "Gentle leveling")},

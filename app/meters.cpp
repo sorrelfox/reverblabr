@@ -61,6 +61,7 @@ public:
     QTimer ticker;
     qulonglong frame = 0;
     bool live = false;
+    bool unmoved = false;
     QString sessionId;
     QString analysed;
     int analysedChannel = core::kBothChannels;
@@ -77,9 +78,13 @@ Meters::Meters(QObject *parent)
         const bool fresh = d->hub.tick();
         d->live = d->hub.isRunning();
         ++d->frame;
-        if (fresh || !d->live) {
+        // **No new frame is news once**, or whoever binds to this would go on
+        // showing an engine that has gone as if it still ran.
+        const bool unmoved = d->hub.isUnmoved();
+        if (fresh || !d->live || unmoved != d->unmoved) {
             Q_EMIT ticked();
         }
+        d->unmoved = unmoved;
     });
     // **An address that has changed is read afresh** (ADR-0018): a window
     // on the daemon has no levels until their memory is mapped, and must
@@ -152,6 +157,11 @@ QVariantMap Meters::levels(const QString &blockId) const
         {"enabled"_L1, block->enabled},
         {"latencyMs"_L1, block->latencyMs},
     };
+}
+
+QString Meters::watchState(const QString &blockId) const
+{
+    return d->hub.watchOf(blockId);
 }
 
 void Meters::analyse(const QString &blockId, int channel)

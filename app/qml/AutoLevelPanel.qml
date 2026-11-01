@@ -246,7 +246,7 @@ ColumnLayout {
                           Math.round(panel.settings.maximumBoost), Math.round(panel.settings.maximumCut),
                           panel.words.bandText(panel.settings.band))
 
-        AutoLevelValueRow {
+        TypedValueRow {
             id: targetControl
 
             blockId: panel.blockId
@@ -260,7 +260,7 @@ ColumnLayout {
             enabled: panel.anyOn
         }
 
-        AutoLevelValueRow {
+        TypedValueRow {
             id: maximumControl
 
             Layout.topMargin: AppMetrics.panelRowGap
@@ -275,7 +275,7 @@ ColumnLayout {
             enabled: panel.boostOn
         }
 
-        AutoLevelValueRow {
+        TypedValueRow {
             id: maximumCutControl
 
             Layout.topMargin: AppMetrics.panelRowGap
@@ -291,7 +291,7 @@ ColumnLayout {
             atLowest: KI18n.i18nc("@info Maximum cut at 0", "At 0 dB nothing is turned down")
         }
 
-        AutoLevelValueRow {
+        TypedValueRow {
             id: bandControl
 
             Layout.topMargin: AppMetrics.panelRowGap

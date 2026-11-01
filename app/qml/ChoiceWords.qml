@@ -28,6 +28,7 @@ QtObject {
     readonly property CompressorWords compressor: CompressorWords {}
     readonly property ChannelsWords channels: ChannelsWords {}
     readonly property OneEarMixWords oneEarMix: OneEarMixWords {}
+    readonly property SpeechNowWords speechNow: SpeechNowWords {}
     readonly property FilterWords filter: FilterWords {}
     readonly property WaveWords wave: WaveWords {}
     readonly property RecorderWords recorder: RecorderWords {}
@@ -96,7 +97,8 @@ QtObject {
             found = words.compressor.modeName(choice);
             break;
         case "detector":
-            found = words.compressor.detectorName(choice);
+            found = typeId === "meter.speechnow" ? words.speechNow.detectorChoice(choice)
+                                                 : words.compressor.detectorName(choice);
             break;
         case "action":
             found = words.channels.actionName(choice);

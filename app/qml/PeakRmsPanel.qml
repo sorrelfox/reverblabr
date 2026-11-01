@@ -224,6 +224,7 @@ ColumnLayout {
                                            "Draws the paler bar that jumps up to each peak above the RMS bar")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+            // An edit and not a bare value: only an edit tells the tray.
             onToggled: SessionModel.setParam(panel.blockId, "showPeak", peakControl.checked)
 
             SessionBound {
@@ -244,7 +245,7 @@ ColumnLayout {
                                            "Shows this meter when you click Reverblabr's icon in the system tray")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-            onToggled: SessionModel.setParam(panel.blockId, "showInTray", trayControl.checked)
+            onToggled: SessionModel.setParams(panel.blockId, [["showInTray", trayControl.checked]])
 
             SessionBound {
                 control: trayControl

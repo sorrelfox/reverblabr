@@ -97,6 +97,13 @@ public:
     /// Writes a table's layout down, as it changes.
     Q_INVOKABLE void setTableLayout(const QString &table, const QVariantMap &layout);
 
+    /// Where a floating window sits on this desktop, as `{left, top, unit,
+    /// size, screen}`, with \a unit for what has not been written yet.
+    /// **The state file, not a session**: a place on a screen belongs to
+    /// the screen. FloatingSurface is what reads and clamps it.
+    [[nodiscard]] QVariantMap floatingPlacement(const QString &surface, const QString &unit) const;
+    void setFloatingPlacement(const QString &surface, const QVariantMap &placement);
+
     /// Writes it down. **Called when the window closes**, not on every
     /// resize: a drag of a window edge is a hundred resizes, and a hundred
     /// writes to a file in a person's home directory.

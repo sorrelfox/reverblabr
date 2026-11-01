@@ -77,6 +77,10 @@ QtObject {
         VuFace {}
     }
 
+    readonly property Component speechNow: Component {
+        SpeechNowFace {}
+    }
+
     /// The Pan face: the same drawing as Balance's, for where one sound is
     /// placed rather than which side is trimmed.
     readonly property Component pan: Component {
@@ -282,6 +286,7 @@ QtObject {
         "hearing.frequencylowering": faces.frequencyLowering,
         "hearing.frequencyraising": faces.frequencyRaising,
         "hearing.oneearmix": faces.oneEarMix,
+        "meter.speechnow": faces.speechNow,
         "output.device": faces.outputDevice,
         "source.application": faces.applicationSource,
         "source.device": faces.inputDevice,

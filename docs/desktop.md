@@ -43,7 +43,7 @@ The **Schedule** tab in the sidebar (Ctrl+4) starts a session at set times, such
 
 While Reverblabr runs, its icon sits in the system tray. With nothing running it waits among the hidden icons, and it moves into view while a session runs.
 
-- **Click it** to see every saved session, how loud each one is, and **Run** or **Stop** for each. Meters you marked **Show in system tray** in a Peak/RMS or VU meter's settings are listed there as well.
+- **Click it** to see every saved session, how loud each one is, and **Run** or **Stop** for each. Meters you marked **Show in system tray** in a Peak/RMS, VU or Speech Now block's settings are listed there as well.
 - **Middle-click it** to show or hide the main window. Its menu has **Show Reverblabr**, **All Sessions…** and **Quit**.
 - **A red dot** on the icon means something is being recorded. **A warning sign** means something went wrong; click the icon to read what.
 
@@ -69,6 +69,7 @@ Reverblabr's shortcuts work while the window is in the background or hidden in t
 - **Run or stop "name"**, one for every saved session. The shortcut follows its session: renaming the session keeps the key, deleting it removes the key. A session that isn't open is opened and started.
 - **Show Reverblabr** brings the main window to the front.
 - **Input Switch: play A** and **play B**; **Time Shift: pause or play**, **back 10 seconds**, **forward 10 seconds** and **back to live**; **Recorder: start a new file**. These act on every block of that kind in the session the main window shows (or showed last, while it's hidden).
+- **Say Who Is Speaking** has your screen reader say one sentence from every Speech Now block in that session, such as "Call speaking, You quiet". By the time it is spoken the state may have changed, so it tells you whether a lane has a voice, not when to come in.
 
 The shortcuts belong to the window's process, so they work while it runs, open or hidden in the tray. Quitting from the tray ends them, even if sessions keep running in the background engine.
 

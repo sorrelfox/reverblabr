@@ -9,6 +9,7 @@
 
 #include "core/telemetry.h"
 #include "dsp/decibel.h"
+#include "telemetrywatch.h"
 
 #include <QHash>
 #include <QObject>
@@ -148,6 +149,12 @@ public:
     [[nodiscard]] std::uint32_t sampleRate() const;
     [[nodiscard]] std::uint32_t frames() const;
     [[nodiscard]] bool isRunning() const;
+    /// What can be said of \a blockId now: a word of TelemetryWatch's. **What
+    /// a surface goes by when it says something about the sound now**, since
+    /// a level of nought and a stopped session must not read alike.
+    [[nodiscard]] QLatin1StringView watchOf(const QString &blockId) const;
+    /// Whether the frame has stood still long enough not to be believed.
+    [[nodiscard]] bool isUnmoved() const;
     /// The number of the snapshot last read, which counts up in the engine.
     [[nodiscard]] std::uint64_t frame() const;
 

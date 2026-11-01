@@ -68,6 +68,11 @@ TEST(TelemetryTest, StoppingTakesOneLastSnapshot)
     EXPECT_FALSE(sampler.slot().load().running);
 }
 
+TEST(TelemetryTest, ASnapshotStartsWithNoOverload)
+{
+    EXPECT_FALSE(TelemetrySnapshot{}.shedding);
+}
+
 TEST(TelemetryTest, TheSnapshotIsSomethingThatCanBeCopiedByteForByte)
 {
     // It travels through a seqlock today and through a shared-memory region

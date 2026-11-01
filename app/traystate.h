@@ -8,6 +8,7 @@
 #pragma once
 
 #include "core/enginefacade.h"
+#include "telemetrywatch.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -82,6 +83,13 @@ public:
     /// How often the levels are read while watching.
     static constexpr int kLevelTickMs = 50;
 
+    /// A block some surface other than its tile shows.
+    struct SurfaceBlock {
+        QString sessionId;
+        QString blockId;
+        QString nickname;
+    };
+
     /// Follows \a facade (see attach()). **Not default-constructible, on
     /// purpose**: QML would make a singleton of its own with a default
     /// constructor rather than call create(), and the icon and the window
@@ -105,6 +113,10 @@ public:
     [[nodiscard]] QString status() const;
     [[nodiscard]] QString toolTip() const;
     [[nodiscard]] QVariantList meters() const;
+    /// The blocks marked for the floating label, in the same order as
+    /// meters(). **Here because the tray already follows every open session's
+    /// blocks**, so nothing keeps a second copy; metersChanged() covers them.
+    [[nodiscard]] QList<SurfaceBlock> floatingBlocks() const;
     [[nodiscard]] bool isAvailable() const;
     void setAvailable(bool available);
     [[nodiscard]] bool isWindowShown() const;
@@ -118,9 +130,11 @@ public:
     /// looking does not mend it.
     Q_INVOKABLE void acknowledge();
 
-    /// One tray meter's level now, as `{peakDb, active}`: the loudest of its
-    /// channels, falling steadily after a peak, and whether there was any
-    /// sound at all. Silence for a meter whose session does not run.
+    /// One tray meter's level now, as `{peakDb, active, watch, enabled,
+    /// values}`: the loudest of its channels, falling steadily after a peak;
+    /// whether there was any sound at all; what can be said of the block
+    /// (TelemetryWatch); whether it is switched on; and what it publishes.
+    /// Silence for a meter whose session does not run.
     [[nodiscard]] Q_INVOKABLE QVariantMap meterLevel(const QString &sessionId, const QString &blockId) const;
 
     /// What the icon's clicks ask for, said by TrayIcon and by tests.

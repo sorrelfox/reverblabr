@@ -36,6 +36,11 @@ set_source_files_properties(qml/AppGlyphs.qml PROPERTIES QT_QML_SINGLETON_TYPE T
 set_source_files_properties(qml/Announcer.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # What the Auto Level tiles did in the last minute, for their cards.
 set_source_files_properties(qml/AutoLevelHistory.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+# The one file that imports a module a desktop may not have: loaded by name,
+# so nothing may check or compile it ahead of time (ADR-0030).
+set_source_files_properties(qml/FloatingLayerWindow.qml PROPERTIES QT_QML_SKIP_QMLLINT TRUE QT_QML_SKIP_CACHEGEN TRUE)
+# Which window a floating surface gets on this desktop.
+set_source_files_properties(qml/FloatingWindows.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The words for every built-in block's choices.
 set_source_files_properties(qml/ChoiceWords.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 ecm_target_qml_sources(reverblabr-ui SOURCES
@@ -58,7 +63,6 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/AutoLevelHistory.qml
     qml/AutoLevelPanel.qml
     qml/AutoLevelState.qml
-    qml/AutoLevelValueRow.qml
     qml/AutoLevelWords.qml
     qml/BalanceHelp.qml
     qml/BassTrebleFace.qml
@@ -256,6 +260,17 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ToolBarRow.qml
     qml/VolumeFace.qml
     qml/VolumeHelp.qml
+    qml/SpeechNowDot.qml
+    qml/SpeechNowFace.qml
+    qml/SpeechNowHelp.qml
+    qml/SpeechNowPanel.qml
+    qml/SpeechNowState.qml
+    qml/SpeechNowWords.qml
+    qml/TypedValueRow.qml
+    qml/FloatingLabel.qml
+    qml/FloatingLayerWindow.qml
+    qml/FloatingWindow.qml
+    qml/FloatingWindows.qml
     qml/VuFace.qml
     qml/VuGauge.qml
     qml/VuHelp.qml
@@ -326,6 +341,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/effect.simplecompressor.svg
     icons/effect.volume.svg
     icons/meter.peakrms.svg
+    icons/meter.speechnow.svg
     icons/meter.vu.svg
     icons/output.broadcast.svg
     icons/output.device.svg
@@ -475,12 +491,16 @@ target_sources(reverblabr-ui PRIVATE
     sessionoverview.h
     trayicon.cpp
     trayicon.h
+    telemetrywatch.cpp
+    telemetrywatch.h
     traystate.cpp
     traystate.h
     sessions.cpp
     sessions.h
     errormessages.cpp
     errormessages.h
+    floatingsurface.cpp
+    floatingsurface.h
     meterhub.cpp
     meterhub.h
     volumescale.cpp

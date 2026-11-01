@@ -84,6 +84,8 @@ add_library(reverblabr-blocks STATIC
     reverb.h
     simplecompressor.cpp
     simplecompressor.h
+    speechnow.cpp
+    speechnow.h
     sync.cpp
     sync.h
     systemaudio.cpp

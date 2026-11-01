@@ -609,6 +609,12 @@ TEST_F(Runtime, ASessionThatGivesWayToKeepTheLoopAliveSaysWhichBlockCostTheMost)
     }
     std::cerr << "the data loop is real-time: the session gave way\n";
     EXPECT_EQ(heaviest.value(0), u"fx"_s) << heaviest.join(u", "_s).toStdString();
+    // **The snapshot says so too**, or a surface would go on showing what the
+    // blocks last published: its frames keep coming.
+    TelemetrySampler sampler;
+    sampler.watch(&runtime);
+    sampler.sample();
+    EXPECT_TRUE(sampler.slot().load().shedding);
     engine.pump(std::chrono::milliseconds{500});
     EXPECT_EQ(said, 1) << "one occasion, said once";
     runtime.stop();

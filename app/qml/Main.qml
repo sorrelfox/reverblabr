@@ -187,6 +187,9 @@ QQC2.ApplicationWindow {
     /// been opened — null until then.
     readonly property alias sessionsWindowAction: sessionsWindowAction
     readonly property SessionsWindow sessionsWindow: sessionsWindowLoader.item as SessionsWindow
+    /// Whether the floating windows may be up: until this window closes
+    /// with no tray to come back from.
+    property bool floatingAllowed: true
     /// The system tray's popover, once the icon has been clicked —
     /// null until then.
     readonly property TrayPopover trayPopover: trayPopoverLoader.item as TrayPopover
@@ -263,6 +266,9 @@ QQC2.ApplicationWindow {
         if (root.sessionsWindow !== null && root.sessionsWindow.visible) {
             root.sessionsWindow.saveSize();
         }
+        // **With no tray, closing is quitting**, and a floating window still
+        // up would keep the application running with no way back to it.
+        root.floatingAllowed = TrayState.available;
         // **With a tray, closing is hiding**: the application goes on
         // in the tray, so the windows that belong to this one are closed
         // here rather than by the application ending.
@@ -416,7 +422,31 @@ QQC2.ApplicationWindow {
     // main(); GlobalShortcuts carries its presses here, which is also how a
     // test makes them. Show Reverblabr brings this window forward; the block
     // shortcuts act on the session this window shows.
-    readonly property ShortcutTargets shortcutTargets: ShortcutTargets {}
+    /// The floating label's window, once something asks for it.
+    readonly property alias floatingLabel: floatingLabel
+
+    Loader {
+        id: floatingLabel
+
+        active: FloatingSurface.wanted && root.floatingAllowed
+        sourceComponent: FloatingWindows.window
+        onLoaded: {
+            item.surfaceName = FloatingWindows.labelStack;
+            item.homeScreen = root.screen;
+            item.contentComponent = floatingLabelContent;
+            item.visible = true;
+        }
+    }
+
+    Component {
+        id: floatingLabelContent
+
+        FloatingLabel {}
+    }
+
+    readonly property ShortcutTargets shortcutTargets: ShortcutTargets {
+        speaker: root.contentItem
+    }
 
     Connections {
         target: GlobalShortcuts

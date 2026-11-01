@@ -65,6 +65,9 @@ libsndfile-devel
 soxr-devel
 # Speech Denoise (ADR-0016). Optional: without it that block is left out.
 rnnoise-devel
+# The floating label over other programs (ADR-0030). Optional, and read at
+# run time: without it the label is a plain window.
+layer-shell-qt
 # A recording's tags
 taglib-devel
 # Pitch Shift: SoundTouch, LGPL-2.1, linked dynamically

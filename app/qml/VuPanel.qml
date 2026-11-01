@@ -209,7 +209,8 @@ ColumnLayout {
                                            "Shows this meter when you click Reverblabr's icon in the system tray")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-            onToggled: SessionModel.setParam(panel.blockId, "showInTray", trayControl.checked)
+            // An edit and not a bare value: only an edit tells the tray.
+            onToggled: SessionModel.setParams(panel.blockId, [["showInTray", trayControl.checked]])
 
             SessionBound {
                 control: trayControl
