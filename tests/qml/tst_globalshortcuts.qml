@@ -93,6 +93,27 @@ TestCase {
         tryVerify(() => Meters.live, 1000, "the session never went live");
     }
 
+    function test_theStripShortcutShowsWithASweepAndHidesWithout() {
+        const targets = createTemporaryObject(targetsComponent, testCase, { speaker: testCase.speaker });
+        Announcer.reset();
+        compare(targets.act("soundSide.strip"), 0, "no Sound Side, nothing to do");
+        compare(Announcer.last, "");
+
+        testCase.add("sides", "meter.soundside");
+        tryVerify(() => SessionModel.blockIds.indexOf("sides") >= 0, 1000, "the block did not arrive");
+        compare(targets.act("soundSide.strip"), 1);
+        compare(SessionModel.param("sides", "showStrip"), true);
+        verify(FloatingWindows.sweeping, "showing it runs the test once");
+        compare(Announcer.last, "Strip on");
+
+        FloatingWindows.sweeping = false;
+        FloatingWindows.sweepTimer.stop();
+        compare(targets.act("soundSide.strip"), 1);
+        compare(SessionModel.param("sides", "showStrip"), false);
+        verify(!FloatingWindows.sweeping, "hiding it mid-game runs nothing");
+        SessionModel.removeBlock("sides");
+    }
+
     function test_sayVoiceLevelIsOneSentenceAndNothingWithNoGauge() {
         const targets = createTemporaryObject(targetsComponent, testCase, { speaker: testCase.speaker });
         Announcer.reset();

@@ -172,4 +172,6 @@ qt_add_resources(reverblabr-engine "reverblabr-factory-presets"
         ../presets/meter.speechnow/20-steady.json
         ../presets/meter.voicegauge/10-quick.json
         ../presets/meter.voicegauge/20-steady.json
+        ../presets/meter.soundside/10-wholeMix.json
+        ../presets/meter.soundside/20-higherSounds.json
 )

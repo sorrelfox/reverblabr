@@ -53,6 +53,9 @@ constexpr std::array kFactoryNames{
     // Speech Now and Voice Gauge.
     FactoryName{"quick"_L1, kli18nc("@item:inmenu a preset for the Speech Now block", "Quick")},
     FactoryName{"steady"_L1, kli18nc("@item:inmenu a preset for the Speech Now block", "Steady")},
+    // Sound Side.
+    FactoryName{"wholeMix"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Whole mix")},
+    FactoryName{"higherSounds"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Higher sounds")},
     // Dynamics Processor.
     FactoryName{"default"_L1, kli18nc("@item:inmenu a preset for the Dynamics block", "Default")},
     FactoryName{"gentleLeveling"_L1, kli18nc("@item:inmenu a preset for the Dynamics block", "Gentle leveling")},

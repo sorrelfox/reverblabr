@@ -71,6 +71,7 @@ The original goes straight through, so a Reverb doesn't delay the lane.
 | **VU** | A pair of needles that follow the average level, the way a tape machine's meters did, against a reference level you choose. |
 | **Speech Now** | Shows Speaking while a voice is on this lane, and Quiet when not. For a moment after a voice stops it shows Quiet again. It can't tell who is speaking or what was said, and the sound passes unchanged. |
 | **Voice Gauge** | Shows the level of a voice at this point on the lane, in LUFS, against two marks you place. It says where the reading stands against your marks, and nothing about how you sound. It can be wrong, and the sound passes unchanged. |
+| **Sound Side** | Shows which channel is louder, with a moving mark and a word. It can't tell what made the sound, and it can't tell front from back. The sound passes unchanged. |
 
 Any of them can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
 
@@ -101,6 +102,18 @@ The number is the level over the last few seconds of voice, in LUFS. It takes a 
 Put it before Voice Evener. After that block the reading sits near its target and hides what the voice did. After Speech Denoise, a pause can read as No sound here. A Bluetooth headset drops to hands-free sound while anything records from it, and a session left running holds it there outside calls too.
 
 Under **Show it on**, **Floating bar** adds a row to the same small window as Speech Now's label, with the number, the word and a track. On the track the marks keep one place, a third and two thirds along. Set a key for **Say Voice Level** to have your screen reader say the number and the word ([global shortcuts](desktop.md#global-shortcuts)). Nothing is spoken unasked.
+
+### Sound Side
+
+Put it after an Application block that holds only the game and before One Ear Mix. After a fold there is nothing left to compare, and the card offers **Move Before One Ear Mix**. Turn off the game's own mono option and use One Ear Mix after this block instead.
+
+The word is **Left**, **Right**, **Centre** for near-equal sides that match, **Both** for near-equal sides that do not, **Quiet** under **Level gate**, or **Same** when both sides have carried one sound for 5 seconds. A side needs a quarter of the way, about 2 dB between the channels, and a word has to stand for a tenth of a second. The mark does not wait: it jumps at once, stands for a quarter of a second, and fades over another. With no sound there is no mark, so silence never reads as a sound straight ahead.
+
+It compares energy on two channels and nothing else. A loud bed hides a quiet sound: a sound on one side alone leaves Centre only within about 2 dB of one channel of the bed. **Band** on **Range** compares only what lies between **From** and **To**. The **Whole mix** and **Higher sounds** presets set it. To stays an octave above From.
+
+**Strip on screen** shows a thin dark strip over other programs, the same drawing as on the card. It takes no clicks and no focus, and it touches nothing of the game's. **Place Strip** gives it a frame and the keyboard until you press Enter or Esc, **Test Strip** runs the mark across once on the strip alone, and **Show** chooses a **Mark** or two **Bars**. Size, Show and the place belong to this desktop. There is one strip, and with several blocks the first has it. It goes with the window and the tray icon. Set a key for **Show or hide Sound Side's strip** ([global shortcuts](desktop.md#global-shortcuts)), which runs the test once each time it shows the strip. Direction is never spoken: the card's **Side now** is there to land on.
+
+Sound Side reads this lane's sound and does not touch the game. Some games and tournaments still forbid tools that show direction. Check their rules before you use it. That choice is yours.
 
 ## Advanced
 

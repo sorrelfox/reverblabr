@@ -23,6 +23,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <tuple>
 #include <utility>
 
 using namespace Qt::StringLiterals;
@@ -40,6 +41,8 @@ constexpr auto kVoiceGaugeType = "meter.voicegauge"_L1;
 constexpr auto kShowInTray = "showInTray"_L1;
 constexpr auto kShowPeak = "showPeak"_L1;
 constexpr auto kShowFloating = "showFloating"_L1;
+constexpr auto kSoundSideType = "meter.soundside"_L1;
+constexpr auto kShowStrip = "showStrip"_L1;
 
 [[nodiscard]] QJsonObject objectOf(const QString &json)
 {
@@ -59,15 +62,21 @@ constexpr auto kShowFloating = "showFloating"_L1;
     return (type == kSpeechNowType || type == kVoiceGaugeType) && params.value(kShowFloating).toBool(false);
 }
 
-/// Which surfaces ask for a block, as something to compare.
-[[nodiscard]] std::pair<bool, bool> surfacesOf(const QString &type, const QJsonObject &params)
+/// Whether a block is one the person asked to see on the strip on screen.
+[[nodiscard]] bool isOnStrip(const QString &type, const QJsonObject &params)
 {
-    return {isTrayMeter(type, params), isFloating(type, params)};
+    return type == kSoundSideType && params.value(kShowStrip).toBool(false);
+}
+
+/// Which surfaces ask for a block, as something to compare.
+[[nodiscard]] std::tuple<bool, bool, bool> surfacesOf(const QString &type, const QJsonObject &params)
+{
+    return {isTrayMeter(type, params), isFloating(type, params), isOnStrip(type, params)};
 }
 
 [[nodiscard]] bool onASurface(const QString &type, const QJsonObject &params)
 {
-    return surfacesOf(type, params) != std::pair{false, false};
+    return surfacesOf(type, params) != std::tuple{false, false, false};
 }
 
 /// Whether a tray meter's bar follows the root mean square rather than the
@@ -498,6 +507,23 @@ QList<TrayState::SurfaceBlock> TrayState::floatingBlocks() const
         }
         for (const Private::Block &block : found->blocks) {
             if (isFloating(block.type, block.params)) {
+                list.append({sessionId, block.id, block.nickname, block.type});
+            }
+        }
+    }
+    return list;
+}
+
+QList<TrayState::SurfaceBlock> TrayState::stripBlocks() const
+{
+    QList<SurfaceBlock> list;
+    for (const QString &sessionId : std::as_const(d->openOrder)) {
+        const auto found = d->sessions.constFind(sessionId);
+        if (found == d->sessions.cend()) {
+            continue;
+        }
+        for (const Private::Block &block : found->blocks) {
+            if (isOnStrip(block.type, block.params)) {
                 list.append({sessionId, block.id, block.nickname, block.type});
             }
         }

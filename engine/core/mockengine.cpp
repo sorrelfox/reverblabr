@@ -23,6 +23,7 @@
 #ifdef RB_HAVE_RNNOISE
 #include "blocks/speechdenoise.h"
 #endif
+#include "blocks/soundside.h"
 #include "blocks/speechnow.h"
 #include "blocks/sync.h"
 #include "blocks/timeshift.h"
@@ -566,6 +567,12 @@ public:
                 into.values[blocks::VoiceGauge::kReadingValue] = dsp::kSilentLufs;
                 into.values[blocks::VoiceGauge::kWholeLevelValue] = dsp::kSilentLufs;
                 into.values[blocks::VoiceGauge::kMarksValue] = blocks::VoiceGauge::marksWordOf(marks);
+            }
+            // A Sound Side has no two sides in a made-up level: Quiet, until a
+            // test gives it some.
+            if (running && block.type == asText(blocks::SoundSide::kTypeId)) {
+                into.values[blocks::SoundSide::kLevelValue] = blocks::SoundSide::kNoLevel;
+                into.values[blocks::SoundSide::kStateValue] = blocks::SoundSide::Quiet;
             }
             // An Auto Level answers a made-up level by its rule. Before the
             // made-up values, so a test can show what no steady level gives:

@@ -286,6 +286,13 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "Reads the level of a voice on this lane over a few seconds and holds it through pauses. The sound "
                   "itself passes unchanged.")},
+    Entry{"meter.soundside",
+          "meters",
+          kli18nc("@item block name", "Sound Side"),
+          kli18nc("@info block description", "Shows which side of the mix is louder right now"),
+          kli18nc("@info:tooltip block description",
+                  "Compares the left and right channels of this lane and shows the louder side. The sound passes "
+                  "unchanged.")},
 
     // ----------------------------------------------------------- advanced
     Entry{"advanced.declick",

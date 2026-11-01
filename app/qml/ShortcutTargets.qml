@@ -22,6 +22,8 @@ import org.kde.ki18n
 //   button is only there then.
 // - Speech Now: one sentence from all of them, "Call speaking, You quiet".
 // - Voice Gauge: one sentence, "Minus 24 LUFS, between marks".
+// - Sound Side: shows or hides the strip, and runs the mark across it once on
+//   showing, as a strip hidden under a game can't say so itself.
 //   Nothing else says this unasked, since a sentence every few seconds would
 //   be spoken over the talker.
 QtObject {
@@ -32,6 +34,7 @@ QtObject {
     readonly property string recorderType: "output.recorder"
     readonly property string speechNowType: "meter.speechnow"
     readonly property string voiceGaugeType: "meter.voicegauge"
+    readonly property string soundSideType: "meter.soundside"
     /// What speaks a sentence to a screen reader: the window, set by Main.
     property Item speaker: null
     /// How far the Time Shift shortcuts jump (GlobalShortcuts::kJumpSeconds).
@@ -70,6 +73,8 @@ QtObject {
             return targets.sayWhoIsSpeaking();
         case "voiceGauge.say":
             return targets.sayVoiceLevel();
+        case "soundSide.strip":
+            return targets.toggleStrip();
         }
         return 0;
     }
@@ -148,6 +153,26 @@ QtObject {
         });
         if (targets.speaker !== null) {
             Announcer.sayNow(targets.speaker, parts.join(KI18n.i18nc("@info between the parts of a spoken list", ", ")));
+        }
+        return blocks.length;
+    }
+
+    /// Hides the strip if any block has it, and otherwise shows it. An edit,
+    /// as only an edit tells the surface.
+    function toggleStrip(): int {
+        const blocks = targets.blocksOf(targets.soundSideType);
+        if (blocks.length === 0) {
+            return 0;
+        }
+        const on = !blocks.some(blockId => SessionModel.param(blockId, "showStrip") === true);
+        for (const blockId of blocks) {
+            SessionModel.setParams(blockId, [["showStrip", on]]);
+        }
+        if (on) {
+            FloatingWindows.sweepStrip();
+            if (targets.speaker !== null) {
+                Announcer.sayNow(targets.speaker, KI18n.i18nc("@info:status spoken, of a Sound Side", "Strip on"));
+            }
         }
         return blocks.length;
     }

@@ -164,6 +164,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_timeshift.cpp
         blocks/test_volume.cpp
         blocks/test_voicegauge.cpp
+        blocks/test_soundside.cpp
         blocks/test_voicemodel.cpp
         blocks/test_vumeter.cpp
         blocks/test_wave.cpp
@@ -435,6 +436,7 @@ rb_add_gtest(reverblabr-app-test
         app/test_diagnostics.cpp
         app/test_fileactions.cpp
         app/test_floatingsurface.cpp
+        app/test_soundsidereadings.cpp
         app/test_globalshortcuts.cpp
         app/test_inventory.cpp
         app/test_launchrequests.cpp

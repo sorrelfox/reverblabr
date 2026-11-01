@@ -60,6 +60,9 @@ class FloatingSurface : public QObject
     /// Whether anything asks for the label. Both check boxes start off, so
     /// no window appears over somebody's screen unasked.
     Q_PROPERTY(bool wanted READ isWanted NOTIFY rowsChanged)
+    /// The block the strip on screen shows, as `{sessionId, blockId}`, and
+    /// empty with none. There is one strip, and the first block to ask has it.
+    Q_PROPERTY(QVariantMap strip READ strip NOTIFY stripChanged)
     /// Counts up when a placement changes, for bindings to depend on.
     Q_PROPERTY(int placementRevision READ placementRevision NOTIFY placementChanged)
 
@@ -84,11 +87,12 @@ public:
     [[nodiscard]] QVariantList rows() const;
     [[nodiscard]] int leftOut() const;
     [[nodiscard]] bool isWanted() const;
+    [[nodiscard]] QVariantMap strip() const;
     [[nodiscard]] int placementRevision() const;
 
-    /// Where \a surface sits, as `{left, top, unit, size, screen}`.
+    /// Where \a surface sits, as `{left, top, unit, size, screen, show}`.
     /// `unit` is "px" or "percent"; `screen` is a screen's name, or empty for
-    /// the one the main window is on.
+    /// the one the main window is on; `show` is "mark" or "bars", the strip's.
     [[nodiscard]] Q_INVOKABLE QVariantMap placement(const QString &surface) const;
     /// Takes the keys of \a changes, within their range, and writes the
     /// placement down. With \a moving true it is only remembered, as a drag
@@ -105,6 +109,7 @@ public:
 
 Q_SIGNALS:
     void rowsChanged();
+    void stripChanged();
     void placementChanged();
 
 private:
@@ -114,6 +119,7 @@ private:
     QVariantList m_rows;
     int m_leftOut = 0;
     bool m_wanted = false;
+    QVariantMap m_strip;
     int m_placementRevision = 0;
     QTimer m_ticker;
     QElapsedTimer m_sinceStart;

@@ -51,6 +51,7 @@
 #ifdef RB_HAVE_RNNOISE
 #include "blocks/speechdenoise.h"
 #endif
+#include "blocks/soundside.h"
 #include "blocks/speechnow.h"
 #include "blocks/sync.h"
 #include "blocks/systemaudio.h"
@@ -100,6 +101,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{VuMeter::kTypeId}, &VuMeter::make).has_value()
         && registry.add(std::string{SpeechNow::kTypeId}, &SpeechNow::make).has_value()
         && registry.add(std::string{VoiceGauge::kTypeId}, &VoiceGauge::make).has_value()
+        && registry.add(std::string{SoundSide::kTypeId}, &SoundSide::make).has_value()
         && registry.add(std::string{Ducking::kTypeId}, &Ducking::make).has_value()
         && registry.add(std::string{Mixer::kTypeId}, &Mixer::make).has_value()
         && registry.add(std::string{InputSwitch::kTypeId}, &InputSwitch::make).has_value()

@@ -104,7 +104,7 @@ TEST_F(GlobalShortcutsTest, TheFixedActionsComeFirstEachWithAnIdAndWords)
     core::MockEngine engine;
     ui::GlobalShortcuts shortcuts(&engine);
     const QList<ui::GlobalShortcuts::Action> fixed = ui::GlobalShortcuts::fixedActions();
-    ASSERT_EQ(fixed.size(), 10);
+    ASSERT_EQ(fixed.size(), 11);
     QSet<QString> ids;
     for (const ui::GlobalShortcuts::Action &action : fixed) {
         EXPECT_FALSE(action.text.isEmpty()) << action.id.toStdString();
@@ -147,7 +147,7 @@ TEST_F(GlobalShortcutsTest, ADeletedSessionsActionIsForgottenButNotWhenNothingIs
     const QString keep = openSession(engine, u"Keep"_s);
     const QString gone = openSession(engine, u"Gone"_s);
     ui::GlobalShortcuts shortcuts(&engine);
-    ASSERT_TRUE(spinUntil([&] { return shortcuts.isReady() && shortcuts.actions().size() == 12; }));
+    ASSERT_TRUE(spinUntil([&] { return shortcuts.isReady() && shortcuts.actions().size() == 13; }));
 
     QSignalSpy forgotten(&shortcuts, &ui::GlobalShortcuts::forgotten);
     engine.deleteSession(gone);

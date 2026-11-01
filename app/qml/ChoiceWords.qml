@@ -28,6 +28,7 @@ QtObject {
     readonly property CompressorWords compressor: CompressorWords {}
     readonly property ChannelsWords channels: ChannelsWords {}
     readonly property OneEarMixWords oneEarMix: OneEarMixWords {}
+    readonly property SoundSideWords soundSide: SoundSideWords {}
     readonly property SpeechNowWords speechNow: SpeechNowWords {}
     readonly property FilterWords filter: FilterWords {}
     readonly property WaveWords wave: WaveWords {}
@@ -89,6 +90,8 @@ QtObject {
             return words.moveSourceName(choice);
         case "moveWhen":
             return words.moveWhenName(typeId, choice);
+        case "band":
+            return words.soundSide.bandName(choice);
         case "sendTo":
             return words.oneEarMix.sendName(choice);
         case "hear":

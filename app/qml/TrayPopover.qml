@@ -50,6 +50,7 @@ Window {
     readonly property alias sessionList: sessionList
     readonly property alias meterList: meterList
     readonly property alias floatingList: floatingList
+    readonly property alias stripLine: stripText
     readonly property alias attentionMessage: attentionMessage
     readonly property alias openButton: openButton
     readonly property alias allSessionsButton: allSessionsButton
@@ -367,6 +368,17 @@ Window {
                     }
                 }
             }
+        }
+
+        // --- the strip on screen: said here, and turned off on its card ---
+        QQC2.Label {
+            id: stripText
+
+            Layout.fillWidth: true
+            Layout.topMargin: AppMetrics.mediumSpacing
+            visible: (FloatingSurface.strip.blockId ?? "") !== ""
+            text: KI18n.i18nc("@info in the system tray's popover", "Sound Side: strip on")
+            elide: Text.ElideRight
         }
 
         // --- what the floating window shows ---

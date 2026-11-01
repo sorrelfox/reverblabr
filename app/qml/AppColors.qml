@@ -129,6 +129,13 @@ QtObject {
     /// follows the desktop's highlight, which can be green, and a level must
     /// not look approved. So this is the design's blue on every desktop.
     readonly property color voiceBar: colors.designPalette.accent
+    /// The strip on screen: dark in both appearances, as the picture under it
+    /// is unknown, and with its mark the brightest thing on it.
+    readonly property color overlayPlate: Qt.rgba(0.07, 0.08, 0.09, 0.85)
+    readonly property color overlayTrack: Qt.rgba(1, 1, 1, 0.12)
+    readonly property color overlayText: "#f4f5f6"
+    readonly property color overlayMuted: "#9aa0a6"
+    readonly property color overlayMark: colors.live
     /// The accent, faint: a selection's fill, a focus ring's glow.
     readonly property color accentSoft: colors.followsSystem
                                         ? Qt.rgba(colors.accent.r, colors.accent.g, colors.accent.b, 0.35)

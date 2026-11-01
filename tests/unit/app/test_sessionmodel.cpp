@@ -605,6 +605,55 @@ TEST_F(SessionModelTest, ALinkMovedToALaneThatWillNotHaveItEndsUpWhereItStarted)
     EXPECT_EQ(model.wireCount(), 2);
 }
 
+TEST_F(SessionModelTest, ABlockMovesBeforeAnotherAsOneStepOfUndo)
+{
+    core::MockEngine engine;
+    ui::SessionModel model;
+    model.attach(&engine);
+    const QString id = openSessionWithAChainsWorthOfBlocks(engine, model);
+    engine.applyEdit(id, addBlockEdit(u"b4"_s, u"effect.volume"_s));
+    // Source, b2, b4 and out: b4 goes before b2, as a meter before a fold.
+    ASSERT_TRUE(model.connectLanes(u"b1"_s, u"b2"_s, 2));
+    ASSERT_TRUE(model.connectLanes(u"b2"_s, u"b4"_s, 2));
+    ASSERT_TRUE(model.connectLanes(u"b4"_s, u"b3"_s, 2));
+    model.moveBlock(u"b2"_s, QPointF(100, 0));
+    model.moveBlock(u"b4"_s, QPointF(200, 0));
+
+    EXPECT_FALSE(model.moveBlockBefore(u"b4"_s, u"b4"_s));
+    EXPECT_FALSE(model.moveBlockBefore(u"b4"_s, u"nobody"_s));
+    EXPECT_TRUE(model.moveBlockBefore(u"b4"_s, u"b2"_s));
+    for (const int port : {0, 1}) {
+        EXPECT_TRUE(model.hasWire(u"b1"_s, port, u"b4"_s, port));
+        EXPECT_TRUE(model.hasWire(u"b4"_s, port, u"b2"_s, port));
+        EXPECT_TRUE(model.hasWire(u"b2"_s, port, u"b3"_s, port));
+    }
+    EXPECT_EQ(model.wireCount(), 6);
+    EXPECT_EQ(model.blockPosition(u"b4"_s), QPointF(100, 0));
+    EXPECT_EQ(model.blockPosition(u"b2"_s), QPointF(200, 0));
+
+    model.undo();
+    EXPECT_TRUE(model.hasWire(u"b2"_s, 0, u"b4"_s, 0)) << "one step puts it all back";
+    EXPECT_TRUE(model.hasWire(u"b4"_s, 1, u"b3"_s, 1));
+    EXPECT_FALSE(model.hasWire(u"b1"_s, 0, u"b4"_s, 0));
+    EXPECT_EQ(model.wireCount(), 6);
+    EXPECT_EQ(model.blockPosition(u"b4"_s), QPointF(200, 0));
+}
+
+TEST_F(SessionModelTest, ABlockAtTheEndOfAChainMovesBeforeToo)
+{
+    core::MockEngine engine;
+    ui::SessionModel model;
+    model.attach(&engine);
+    const QString id = openSessionWithAChainsWorthOfBlocks(engine, model);
+    engine.applyEdit(id, addBlockEdit(u"b4"_s, u"effect.volume"_s));
+    ASSERT_TRUE(model.connectLanes(u"b1"_s, u"b2"_s, 2));
+    ASSERT_TRUE(model.connectLanes(u"b2"_s, u"b4"_s, 2));
+    EXPECT_TRUE(model.moveBlockBefore(u"b4"_s, u"b2"_s));
+    EXPECT_TRUE(model.hasWire(u"b1"_s, 0, u"b4"_s, 0));
+    EXPECT_TRUE(model.hasWire(u"b4"_s, 0, u"b2"_s, 0));
+    EXPECT_EQ(model.wireCount(), 4);
+}
+
 TEST_F(SessionModelTest, ALinkIsDrawnAndTakenOutAChannelAtATimeButAskedForAsOne)
 {
     core::MockEngine engine;

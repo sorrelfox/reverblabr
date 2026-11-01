@@ -138,6 +138,10 @@ To check it against an ordinary mono mix, open **Compare with Plain Mono**. **He
 
 **Voice Gauge** is a block under Meters for a microphone lane. It shows the level of the voice over the last few seconds, holds it through pauses, and says where it stands against two marks you place, and nothing about how you sound. It reads the sound and doesn't change it. It can be wrong, and it reads whatever voice is there. It is a level before the call program, so it can't see a mute there or what the other side hears. See [the block](blocks.md#voice-gauge).
 
+
+## Sound Side
+
+**Sound Side** is a block under Meters that compares the two channels of a lane and shows the louder one, as a mark and a word, on its tile, on its card and in a thin strip over other programs. It reads the sound and doesn't change it. It says which channel is louder and nothing about what made a sound, and it can't tell front from back. A loud bed hides a quiet sound, and music and voices move the mark too, so it can be wrong. Put it before One Ear Mix, since after a fold there are no sides left. Sound Side reads this lane's sound and does not touch the game. Some games and tournaments still forbid tools that show direction. Check their rules before you use it. That choice is yours. See [the block](blocks.md#sound-side).
 ## Voice Evener
 
 **Voice Evener** is a row in the library under Built-in Effects: an Auto Level set up to bring a quiet talker up and a loud one down towards one level, on one lane. It evens level only. A mixed call reaches a lane as one stream, so it is one gain for whoever is talking, and a new talker takes a few seconds to settle. Put it after Speech Denoise and before anything that shapes one ear. On music or a film it takes the loud and soft out: turn it off, or give them a lane of their own.

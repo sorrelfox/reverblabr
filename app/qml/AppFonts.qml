@@ -83,6 +83,12 @@ QtObject {
                                    }), Appearance.points(pixels));
     }
 
+    /// A word on the strip on screen: a size in pixels of its own, as the strip
+    /// is measured against a screen and not against a card.
+    function stripWord(pixels: real): font {
+        return Qt.font({ pixelSize: pixels, bold: true });
+    }
+
     /// \a font at \a points. **Set on the value, not handed to Qt.font()**,
     /// which keeps only whole points: 12.5 pixels is 9.375 of them.
     function sized(font: font, points: real): font {

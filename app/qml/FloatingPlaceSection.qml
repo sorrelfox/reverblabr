@@ -13,7 +13,8 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.ki18n
 
-// Where the floating window sits: its size, its screen and its two margins.
+// Where a floating window sits: its size, its screen and its two margins, for
+// the label in pixels or the strip in percent.
 //
 // **Not a setting of any block.** It is this desktop's (FloatingSurface), and
 // one window holds every block's row, so this reads and writes there and no
@@ -21,7 +22,20 @@ import org.kde.ki18n
 CollapsibleSection {
     id: place
 
-    readonly property var placement: FloatingSurface.placementRevision >= 0 ? FloatingSurface.placement("label") : ({})
+    /// Which window this places (FloatingWindows).
+    property string surfaceName: "label"
+    /// What the two numbers are called, their unit, their keys and their top.
+    property string acrossLabel: KI18n.i18nc("@label how far the floating label sits from the left of the screen", "From the left")
+    property string downLabel: KI18n.i18nc("@label how far the floating label sits from the top of the screen", "From the top")
+    property string unit: KI18n.i18nc("@label the unit of a place on the screen", "px")
+    property real stepSize: 10
+    property real pageStepSize: 100
+    property real acrossTop: place.placedOn?.width ?? 16384
+    property real downTop: place.placedOn?.height ?? 16384
+    /// Whether the size is chosen here. The strip's stands beside its switch.
+    property bool showsSize: true
+
+    readonly property var placement: FloatingSurface.placementRevision >= 0 ? FloatingSurface.placement(place.surfaceName) : ({})
     /// The screen the numbers below are measured on.
     readonly property var placedOn: {
         return FloatingWindows.screenNamed(place.placement.screen ?? "") ?? FloatingWindows.screens[0] ?? null;
@@ -36,6 +50,7 @@ CollapsibleSection {
     readonly property SpeechNowWords words: SpeechNowWords {}
 
     RowLayout {
+        visible: place.showsSize
         Layout.fillWidth: true
         spacing: AppMetrics.labelSpacing
 
@@ -65,7 +80,7 @@ CollapsibleSection {
                     text: place.words.sizeName(sizeButton.modelData)
                     Accessible.name: text
                     QQC2.ButtonGroup.group: sizeGroup
-                    onClicked: FloatingSurface.setPlacement("label", { size: sizeButton.modelData })
+                    onClicked: FloatingSurface.setPlacement(place.surfaceName, { size: sizeButton.modelData })
 
                     SessionBound {
                         control: sizeButton
@@ -95,7 +110,7 @@ CollapsibleSection {
             model: [KI18n.i18nc("@item:inlistbox the screen the main window is on", "The window's")].concat(screenControl.names)
             currentIndex: screenControl.names.indexOf(place.placement.screen ?? "") + 1
             Accessible.name: KI18n.i18nc("@label which screen the floating label is on", "Screen")
-            onActivated: index => FloatingSurface.setPlacement("label", { screen: index === 0 ? "" : screenControl.names[index - 1] })
+            onActivated: index => FloatingSurface.setPlacement(place.surfaceName, { screen: index === 0 ? "" : screenControl.names[index - 1] })
         }
     }
 
@@ -104,7 +119,7 @@ CollapsibleSection {
         spacing: AppMetrics.labelSpacing
 
         QQC2.Label {
-            text: KI18n.i18nc("@label how far the floating label sits from the left of the screen", "From the left")
+            text: place.acrossLabel
             color: AppColors.muted
             Layout.fillWidth: true
         }
@@ -113,17 +128,17 @@ CollapsibleSection {
             id: leftControl
 
             Layout.preferredWidth: Kirigami.Units.gridUnit * 4
-            label: KI18n.i18nc("@label how far the floating label sits from the left of the screen", "From the left")
+            label: place.acrossLabel
             value: place.placement.left ?? 0
-            to: place.placedOn?.width ?? 16384
+            to: place.acrossTop
             decimals: 0
-            stepSize: 10
-            pageStepSize: 100
-            onValueEdited: number => FloatingSurface.setPlacement("label", { left: number })
+            stepSize: place.stepSize
+            pageStepSize: place.pageStepSize
+            onValueEdited: number => FloatingSurface.setPlacement(place.surfaceName, { left: number })
         }
 
         QQC2.Label {
-            text: KI18n.i18nc("@label the unit of a place on the screen", "px")
+            text: place.unit
             color: AppColors.muted
         }
     }
@@ -133,7 +148,7 @@ CollapsibleSection {
         spacing: AppMetrics.labelSpacing
 
         QQC2.Label {
-            text: KI18n.i18nc("@label how far the floating label sits from the top of the screen", "From the top")
+            text: place.downLabel
             color: AppColors.muted
             Layout.fillWidth: true
         }
@@ -142,17 +157,17 @@ CollapsibleSection {
             id: topControl
 
             Layout.preferredWidth: Kirigami.Units.gridUnit * 4
-            label: KI18n.i18nc("@label how far the floating label sits from the top of the screen", "From the top")
+            label: place.downLabel
             value: place.placement.top ?? 0
-            to: place.placedOn?.height ?? 16384
+            to: place.downTop
             decimals: 0
-            stepSize: 10
-            pageStepSize: 100
-            onValueEdited: number => FloatingSurface.setPlacement("label", { top: number })
+            stepSize: place.stepSize
+            pageStepSize: place.pageStepSize
+            onValueEdited: number => FloatingSurface.setPlacement(place.surfaceName, { top: number })
         }
 
         QQC2.Label {
-            text: KI18n.i18nc("@label the unit of a place on the screen", "px")
+            text: place.unit
             color: AppColors.muted
         }
     }

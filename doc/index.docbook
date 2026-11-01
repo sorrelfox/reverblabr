@@ -824,6 +824,18 @@ hears, and a voice from a loudspeaker counts too. The sound passes unchanged. Th
 reading can also show in the system tray and on the floating window, and <guilabel>Say
 Voice Level</guilabel> has your screen reader say it.</para>
 </sect2>
+
+<sect2 id="block-meter-soundside">
+<title>Sound Side</title>
+<para>Shows which channel of a stereo lane is louder right now, with a moving mark
+and a word, on the tile, on the card and in a thin strip that stays over other
+programs. It compares the two channels and passes the sound unchanged. It can't
+tell what made a sound or tell front from back, and music and voices move it too.
+When nothing is over the gate there is no mark. Put it before
+<guilabel>One Ear Mix</guilabel>: after a fold there are no sides left to compare.
+Some games and tournaments forbid tools that show direction, so check their rules
+before you use it.</para>
+</sect2>
 </sect1>
 
 <sect1 id="blocks-advanced">

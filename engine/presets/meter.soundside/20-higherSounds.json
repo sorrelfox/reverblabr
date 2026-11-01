@@ -1,0 +1,9 @@
+{
+    "schema": 1,
+    "type": "meter.soundside",
+    "params": {
+        "band": "range",
+        "fromHz": 1000.0,
+        "toHz": 6000.0
+    }
+}

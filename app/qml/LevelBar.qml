@@ -29,7 +29,7 @@ Rectangle {
     /// silent.
     property bool running: true
 
-    readonly property real from: -60
+    property real from: -60
     readonly property real to: 0
     /// The level a screen reader is given, in whole decibels.
     property real value: bar.from

@@ -202,6 +202,20 @@ TestCase {
         TestEngine.stop(id);
     }
 
+    function test_theStripIsOneLineWithNoControl() {
+        const window = testCase.openWindow();
+        const id = testCase.makeSession("Tray strip");
+        const popover = testCase.openPopover(window);
+        verify(!popover.stripLine.visible);
+        TestEngine.applyEdit(id, JSON.stringify({
+            op: "addBlock", block: { id: "sides", type: "meter.soundside", params: { showStrip: true } }, index: -1
+        }));
+        tryVerify(() => popover.stripLine.visible, 1000, "the strip is not said");
+        compare(popover.stripLine.text, "Sound Side: strip on");
+        TestEngine.applyEdit(id, JSON.stringify({ op: "removeBlock", blockId: "sides" }));
+        tryVerify(() => !popover.stripLine.visible, 1000);
+    }
+
     function test_theFloatingWindowCanBeTurnedOffHere() {
         const window = testCase.openWindow();
         const id = testCase.makeSession("Tray floating");

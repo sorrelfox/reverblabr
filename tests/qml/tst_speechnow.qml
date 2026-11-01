@@ -292,9 +292,9 @@ TestCase {
         verify(window.flags & Qt.WindowTransparentForInput);
         verify(window.inPercent);
         FloatingSurface.setPlacement("strip", { left: 50, top: 0 });
-        compare(window.edge(50, 1000, 100), 500);
+        compare(window.edge(50, 1000, 100), 450, "of the room left, so 50 is the middle");
         compare(window.edge(100, 1000, 100), 900, "kept on the screen");
-        window.moveBy(window.placedOn.width / 10, window.placedOn.height / 20);
+        window.moveBy((window.placedOn.width - window.width) / 10, (window.placedOn.height - window.height) / 20);
         fuzzyCompare(FloatingSurface.placement("strip").left, 60, 0.01);
         fuzzyCompare(FloatingSurface.placement("strip").top, 5, 0.01);
         FloatingSurface.setPlacement("strip", {});

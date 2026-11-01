@@ -34,6 +34,59 @@ QtObject {
         return name === "" ? undefined : windows.screens.find(screen => screen.name === name);
     }
 
+    /// Place Strip is under way: the strip has a frame and the keyboard.
+    property bool placing: false
+    /// Where it stood when that began, for Esc to go back to.
+    property var beforePlacing: ({})
+    /// Test Strip is running: the strip's mark goes left, centre, right.
+    property bool sweeping: false
+    property real sweepPan: 0
+    readonly property var sweepStops: [-0.8, 0, 0.8]
+    property int sweepStop: 0
+    /// How long the mark stands at each stop. Three stops are the three seconds.
+    readonly property int sweepStopMs: 1000
+    /// Whether the strip has to be up though no block asks for it.
+    readonly property bool stripInUse: windows.placing || windows.sweeping
+
+    /// Moves the mark across once, on the strip alone.
+    function sweepStrip() {
+        windows.sweepStop = 0;
+        windows.sweepPan = windows.sweepStops[0];
+        windows.sweeping = true;
+        windows.sweepTimer.restart();
+    }
+
+    readonly property Timer sweepTimer: Timer {
+        interval: windows.sweepStopMs
+        repeat: true
+        onTriggered: {
+            if (++windows.sweepStop >= windows.sweepStops.length) {
+                windows.sweeping = false;
+                windows.sweepTimer.stop();
+            } else {
+                windows.sweepPan = windows.sweepStops[windows.sweepStop];
+            }
+        }
+    }
+
+    function startPlacing() {
+        // A second press must not make the moved place the one Esc goes to.
+        if (windows.placing) {
+            return;
+        }
+        const placement = FloatingSurface.placement(windows.strip);
+        windows.beforePlacing = { left: placement.left, top: placement.top };
+        windows.placing = true;
+    }
+
+    /// Ends Place Strip: \a keep writes the place, and otherwise it goes back.
+    function endPlacing(keep: bool) {
+        if (windows.placing) {
+            FloatingSurface.setPlacement(windows.strip, keep ? {} : windows.beforePlacing);
+            windows.placing = false;
+        }
+    }
+
     readonly property Component layer: Qt.platform.pluginName === "wayland"
         ? Qt.createComponent("FloatingLayerWindow.qml") : null
     readonly property Component plain: Component {

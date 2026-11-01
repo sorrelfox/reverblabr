@@ -30,8 +30,15 @@ Window {
 
     readonly property var placement: FloatingSurface.placementRevision >= 0 ? FloatingSurface.placement(surface.surfaceName) : ({})
     readonly property bool inPercent: surface.placement.unit === "percent"
-    /// Lets clicks fall through. Nothing on a strip is for clicking.
-    readonly property bool clickThrough: surface.surfaceName === FloatingWindows.strip
+    readonly property bool isStrip: surface.surfaceName === FloatingWindows.strip
+    /// Place Strip is under way here: the one time this takes the keyboard.
+    readonly property bool placing: surface.isStrip && FloatingWindows.placing
+    /// Lets clicks fall through. Nothing on a strip is for clicking, unless it
+    /// is being placed.
+    readonly property bool clickThrough: surface.isStrip && !surface.placing
+    /// A drag is worked out here and not left to the desktop. A place in
+    /// percent has to be written, and the desktop would not say.
+    readonly property bool movesItself: surface.movedByMargins || surface.inPercent
 
     /// The screen to be on when the placement names none: the main window's.
     property var homeScreen: FloatingWindows.screens[0] ?? null
@@ -45,9 +52,10 @@ Window {
     readonly property int topEdge: surface.edge(surface.placement.top ?? 0, surface.placedOn?.height ?? 0, surface.height)
 
     /// Pixels from a stored \a place, on a screen \a across wide, for a
-    /// window \a size wide.
+    /// window \a size wide. **A percent is of the room left over**, so 50 is
+    /// the middle whatever the size, and 100 is the far edge.
     function edge(place: real, across: real, size: real): int {
-        const pixels = surface.inPercent ? place / 100 * across : place;
+        const pixels = surface.inPercent ? place / 100 * Math.max(0, across - size) : place;
         return Math.round(Math.max(0, across > size ? Math.min(pixels, across - size) : pixels));
     }
 
@@ -78,10 +86,15 @@ Window {
         FloatingSurface.setPlacement(surface.surfaceName, changes);
     }
 
+    /// The keys while placing, for a test.
+    readonly property alias placingKeys: keys
+
     /// Writes down a drag of (\a dx, \a dy) pixels.
     function moveBy(dx: real, dy: real) {
-        const across = surface.inPercent && surface.placedOn ? 100 / surface.placedOn.width : 1;
-        const down = surface.inPercent && surface.placedOn ? 100 / surface.placedOn.height : 1;
+        const across = surface.inPercent && surface.placedOn
+            ? 100 / Math.max(1, surface.placedOn.width - surface.width) : 1;
+        const down = surface.inPercent && surface.placedOn
+            ? 100 / Math.max(1, surface.placedOn.height - surface.height) : 1;
         FloatingSurface.setPlacement(surface.surfaceName, {
             left: (surface.placement.left ?? 0) + dx * across,
             top: (surface.placement.top ?? 0) + dy * down
@@ -97,11 +110,25 @@ Window {
     height: Math.max(1, content.implicitHeight)
     screen: surface.placedOn
     color: "transparent"
-    flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus
+    flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+        | (surface.placing ? 0 : Qt.WindowDoesNotAcceptFocus)
         | (surface.clickThrough ? Qt.WindowTransparentForInput : 0)
 
     onXChanged: settled.restart()
     onYChanged: settled.restart()
+    onPlacingChanged: {
+        if (surface.placing) {
+            surface.requestActivate();
+            keys.forceActiveFocus();
+        }
+    }
+    // Esc's place is still known, and a window that goes must not leave the
+    // keyboard promised to nothing.
+    Component.onDestruction: {
+        if (surface.placing) {
+            FloatingWindows.endPlacing(false);
+        }
+    }
 
     // A move is many positions, and this is a file in a person's home
     // directory: written once, when it has stopped.
@@ -119,6 +146,57 @@ Window {
         sourceComponent: surface.contentComponent
     }
 
+    // Arrows move it by a little and the Page keys by more; Home and End are
+    // the sideways Page keys. Written once, as a drag is.
+    Item {
+        id: keys
+
+        readonly property int stepPixels: 10
+        readonly property int pagePixels: 50
+
+        focus: surface.placing
+        Keys.onPressed: event => event.accepted = surface.placing && keys.press(event.key)
+
+        /// Does what \a key means while placing, and says whether it means
+        /// anything.
+        function press(key: int): bool {
+            switch (key) {
+            case Qt.Key_Left:
+                surface.moveBy(-keys.stepPixels, 0);
+                return true;
+            case Qt.Key_Right:
+                surface.moveBy(keys.stepPixels, 0);
+                return true;
+            case Qt.Key_Up:
+                surface.moveBy(0, -keys.stepPixels);
+                return true;
+            case Qt.Key_Down:
+                surface.moveBy(0, keys.stepPixels);
+                return true;
+            case Qt.Key_Home:
+                surface.moveBy(-keys.pagePixels, 0);
+                return true;
+            case Qt.Key_End:
+                surface.moveBy(keys.pagePixels, 0);
+                return true;
+            case Qt.Key_PageUp:
+                surface.moveBy(0, -keys.pagePixels);
+                return true;
+            case Qt.Key_PageDown:
+                surface.moveBy(0, keys.pagePixels);
+                return true;
+            case Qt.Key_Return:
+            case Qt.Key_Enter:
+                FloatingWindows.endPlacing(true);
+                return true;
+            case Qt.Key_Escape:
+                FloatingWindows.endPlacing(false);
+                return true;
+            }
+            return false;
+        }
+    }
+
     MouseArea {
         id: drag
 
@@ -130,19 +208,19 @@ Window {
         Accessible.ignored: true
         onPressed: mouse => {
             drag.pressedAt = Qt.point(mouse.x, mouse.y);
-            if (!surface.movedByMargins) {
+            if (!surface.movesItself) {
                 surface.startSystemMove();
             }
         }
         // The window moves under the pointer, so each move is measured from
         // where the press was and not from the last move.
         onPositionChanged: mouse => {
-            if (surface.movedByMargins && pressed) {
+            if (surface.movesItself && pressed) {
                 surface.moveBy(mouse.x - drag.pressedAt.x, mouse.y - drag.pressedAt.y);
             }
         }
         onReleased: {
-            if (surface.movedByMargins) {
+            if (surface.movesItself && !surface.placing) {
                 FloatingSurface.setPlacement(surface.surfaceName, {});
             }
         }

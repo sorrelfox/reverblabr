@@ -70,6 +70,7 @@ Reverblabr's shortcuts work while the window is in the background or hidden in t
 - **Show Reverblabr** brings the main window to the front.
 - **Input Switch: play A** and **play B**; **Time Shift: pause or play**, **back 10 seconds**, **forward 10 seconds** and **back to live**; **Recorder: start a new file**. These act on every block of that kind in the session the main window shows (or showed last, while it's hidden).
 - **Say Who Is Speaking** has your screen reader say one sentence from every Speech Now block in that session, such as "Call speaking, You quiet". By the time it is spoken the state may have changed, so it tells you whether a lane has a voice, not when to come in.
+- **Show or hide Sound Side's strip** shows or hides the strip of the Sound Side blocks in that session. Each time it shows the strip it runs the mark across once, so you see during play whether it is there.
 - **Say Voice Level** has your screen reader say one sentence from every Voice Gauge block in that session, such as "Minus 24 LUFS, between marks", or "No sound here". With several, each says its name.
 
 The shortcuts belong to the window's process, so they work while it runs, open or hidden in the tray. Quitting from the tray ends them, even if sessions keep running in the background engine.

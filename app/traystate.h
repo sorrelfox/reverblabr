@@ -121,6 +121,9 @@ public:
     /// blocks**, so nothing keeps a second copy; metersChanged() covers them.
     [[nodiscard]] QList<SurfaceBlock> floatingBlocks() const;
     [[nodiscard]] QVariantList floating() const;
+    /// The blocks marked for the strip on screen, in the same order. There is
+    /// one strip, so the first of them has it.
+    [[nodiscard]] QList<SurfaceBlock> stripBlocks() const;
     [[nodiscard]] bool isAvailable() const;
     void setAvailable(bool available);
     [[nodiscard]] bool isWindowShown() const;

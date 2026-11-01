@@ -71,6 +71,11 @@ bool FloatingSurface::isWanted() const
     return m_wanted;
 }
 
+QVariantMap FloatingSurface::strip() const
+{
+    return m_strip;
+}
+
 int FloatingSurface::placementRevision() const
 {
     return m_placementRevision;
@@ -112,6 +117,14 @@ void FloatingSurface::setClock(std::function<qint64()> clock)
 
 void FloatingSurface::rowsMoved()
 {
+    const QList<TrayState::SurfaceBlock> strips = m_tray->stripBlocks();
+    const QVariantMap strip = strips.isEmpty()
+        ? QVariantMap{}
+        : QVariantMap{{u"sessionId"_s, strips.first().sessionId}, {u"blockId"_s, strips.first().blockId}};
+    if (strip != m_strip) {
+        m_strip = strip;
+        Q_EMIT stripChanged();
+    }
     if (!m_tray->floatingBlocks().isEmpty()) {
         read();
         if (!m_ticker.isActive()) {

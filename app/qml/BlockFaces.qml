@@ -80,6 +80,9 @@ QtObject {
     readonly property Component speechNow: Component {
         SpeechNowFace {}
     }
+    readonly property Component soundSide: Component {
+        SoundSideFace {}
+    }
     readonly property Component voiceGauge: Component {
         VoiceGaugeFace {}
     }
@@ -291,6 +294,7 @@ QtObject {
         "hearing.oneearmix": faces.oneEarMix,
         "meter.speechnow": faces.speechNow,
         "meter.voicegauge": faces.voiceGauge,
+        "meter.soundside": faces.soundSide,
         "output.device": faces.outputDevice,
         "source.application": faces.applicationSource,
         "source.device": faces.inputDevice,

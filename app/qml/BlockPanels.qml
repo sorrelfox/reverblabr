@@ -298,6 +298,9 @@ QtObject {
     readonly property Component speechNow: Component {
         SpeechNowPanel {}
     }
+    readonly property Component soundSide: Component {
+        SoundSidePanel {}
+    }
     readonly property Component voiceGauge: Component {
         VoiceGaugePanel {}
     }
@@ -319,6 +322,7 @@ QtObject {
         "hearing.oneearmix": panels.oneEarMix,
         "meter.speechnow": panels.speechNow,
         "meter.voicegauge": panels.voiceGauge,
+        "meter.soundside": panels.soundSide,
         "output.device": panels.outputDevice,
         "source.application": panels.applicationSource,
         "source.device": panels.inputDevice,

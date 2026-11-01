@@ -23,7 +23,8 @@ FloatingWindow {
     LayerShell.Window.scope: "reverblabr"
     LayerShell.Window.layer: LayerShell.Window.LayerOverlay
     LayerShell.Window.anchors: LayerShell.Window.AnchorTop | LayerShell.Window.AnchorLeft
-    LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityNone
+    LayerShell.Window.keyboardInteractivity: surface.placing ? LayerShell.Window.KeyboardInteractivityExclusive
+                                                             : LayerShell.Window.KeyboardInteractivityNone
     LayerShell.Window.activateOnShow: false
     // Minus one measures the margins from the screen's edges, not from what
     // a panel leaves over, and moves nobody else.

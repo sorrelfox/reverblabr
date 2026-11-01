@@ -1323,6 +1323,72 @@ bool SessionModel::moveLane(const QString &fromBlock,
     return true;
 }
 
+bool SessionModel::moveBlockBefore(const QString &blockId, const QString &beforeBlockId)
+{
+    const auto findBlock = [this](const QString &id) {
+        return std::ranges::find(d->session.blocks, id, &core::BlockInstance::id);
+    };
+    const auto moved = findBlock(blockId);
+    const auto before = findBlock(beforeBlockId);
+    if (blockId == beforeBlockId || moved == d->session.blocks.end() || before == d->session.blocks.end()) {
+        return false;
+    }
+    std::vector<core::Wire> intoMoved;
+    std::vector<core::Wire> outOfMoved;
+    std::vector<core::Wire> intoBefore;
+    std::vector<core::EditCommand> commands;
+    for (const core::Wire &wire : d->session.wires) {
+        const bool in = wire.toBlock == blockId;
+        const bool out = wire.fromBlock == blockId;
+        const bool feedsBefore = wire.toBlock == beforeBlockId;
+        if (in) {
+            intoMoved.push_back(wire);
+        }
+        if (out) {
+            outOfMoved.push_back(wire);
+        }
+        if (feedsBefore) {
+            intoBefore.push_back(wire);
+        }
+        if (in || out || feedsBefore) {
+            commands.push_back(core::Disconnect{wire});
+        }
+    }
+    std::vector<core::Wire> drawn;
+    for (const core::Wire &wire : intoBefore) {
+        // What already ran from this block needs no wire of its own.
+        if (wire.fromBlock != blockId) {
+            drawn.push_back(asWire(wire.fromBlock, wire.fromPort, blockId, wire.toPort));
+        }
+        drawn.push_back(asWire(blockId, wire.toPort, beforeBlockId, wire.toPort));
+    }
+    for (const core::Wire &out : outOfMoved) {
+        if (out.toBlock == beforeBlockId) {
+            continue;
+        }
+        for (const core::Wire &in : intoMoved) {
+            if (in.toPort == out.fromPort) {
+                drawn.push_back(asWire(in.fromBlock, in.fromPort, out.toBlock, out.toPort));
+            }
+        }
+    }
+    core::Session trial = d->session;
+    for (const core::EditCommand &command : commands) {
+        (void)core::applyEdit(trial, command);
+    }
+    for (const core::Wire &wire : drawn) {
+        if (core::connectRefusal(trial, wire)) {
+            return false;
+        }
+        (void)core::applyEdit(trial, core::Connect{wire, -1});
+        commands.push_back(core::Connect{wire, -1});
+    }
+    commands.push_back(core::MoveBlock{blockId, before->position});
+    commands.push_back(core::MoveBlock{beforeBlockId, moved->position});
+    d->applyAll(commands);
+    return true;
+}
+
 int SessionModel::sentParamCount() const
 {
     return d->sent;

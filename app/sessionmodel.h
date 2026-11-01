@@ -389,6 +389,13 @@ public:
                               int wasChannels = 0,
                               int toFirstPort = 0);
 
+    /// Lifts \a blockId out of the chain and puts it straight before
+    /// \a beforeBlockId, as one edit: what fed that block feeds this one, and
+    /// what this one fed is fed by what fed it. The two tiles swap places.
+    /// Answers whether it was sent; a chain that will not have it stays as it
+    /// was.
+    Q_INVOKABLE bool moveBlockBefore(const QString &blockId, const QString &beforeBlockId);
+
     Q_INVOKABLE bool connectBlocks(const QString &fromBlock, int fromPort, const QString &toBlock, int toPort);
     Q_INVOKABLE void disconnectBlocks(const QString &fromBlock, int fromPort, const QString &toBlock, int toPort);
 

@@ -266,6 +266,13 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SpeechNowPanel.qml
     qml/SpeechNowState.qml
     qml/SpeechNowWords.qml
+    qml/SoundSideFace.qml
+    qml/SoundSideHelp.qml
+    qml/SoundSideOverlay.qml
+    qml/SoundSidePanel.qml
+    qml/SoundSideState.qml
+    qml/SoundSideStrip.qml
+    qml/SoundSideWords.qml
     qml/VoiceGaugeBar.qml
     qml/VoiceGaugeDot.qml
     qml/VoiceGaugeFace.qml
@@ -352,6 +359,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/meter.peakrms.svg
     icons/meter.speechnow.svg
     icons/meter.voicegauge.svg
+    icons/meter.soundside.svg
     icons/meter.vu.svg
     icons/output.broadcast.svg
     icons/output.device.svg
@@ -511,6 +519,8 @@ target_sources(reverblabr-ui PRIVATE
     errormessages.h
     floatingsurface.cpp
     floatingsurface.h
+    soundsidereadings.cpp
+    soundsidereadings.h
     meterhub.cpp
     meterhub.h
     volumescale.cpp

@@ -38,7 +38,9 @@ constexpr QLatin1StringView kTablesGroup{"Tables"};
 constexpr QLatin1StringView kFloatingGroup{"Floating"};
 /// Where a floating window starts: near a corner, out of the way.
 constexpr double kFloatingStartPixels = 40.0;
-constexpr double kFloatingStartPercent = 5.0;
+/// The strip starts at the top of the screen and in the middle of it.
+constexpr double kStripStartAcross = 50.0;
+constexpr double kStripStartDown = 4.0;
 
 } // namespace
 
@@ -233,12 +235,14 @@ QVariantMap WindowState::floatingPlacement(const QString &surface, const QString
     const KSharedConfig::Ptr config = g_config ? g_config : KSharedConfig::openStateConfig();
     const QString written = KConfigGroup(config, kFloatingGroup).readEntry(surface, QString{});
     const QJsonObject placement = QJsonDocument::fromJson(written.toUtf8()).object();
-    const double start = unit == "percent"_L1 ? kFloatingStartPercent : kFloatingStartPixels;
-    return QVariantMap{{u"left"_s, placement.value("left"_L1).toDouble(start)},
-                       {u"top"_s, placement.value("top"_L1).toDouble(start)},
-                       {u"unit"_s, unit},
-                       {u"size"_s, placement.value("size"_L1).toString(u"small"_s)},
-                       {u"screen"_s, placement.value("screen"_L1).toString()}};
+    const bool inPercent = unit == "percent"_L1;
+    return QVariantMap{
+        {u"left"_s, placement.value("left"_L1).toDouble(inPercent ? kStripStartAcross : kFloatingStartPixels)},
+        {u"top"_s, placement.value("top"_L1).toDouble(inPercent ? kStripStartDown : kFloatingStartPixels)},
+        {u"unit"_s, unit},
+        {u"size"_s, placement.value("size"_L1).toString(inPercent ? u"medium"_s : u"small"_s)},
+        {u"screen"_s, placement.value("screen"_L1).toString()},
+        {u"show"_s, placement.value("show"_L1).toString(u"mark"_s)}};
 }
 
 void WindowState::setFloatingPlacement(const QString &surface, const QVariantMap &placement)
@@ -246,7 +250,8 @@ void WindowState::setFloatingPlacement(const QString &surface, const QVariantMap
     const QJsonObject written{{"left"_L1, placement.value(u"left"_s).toDouble()},
                               {"top"_L1, placement.value(u"top"_s).toDouble()},
                               {"size"_L1, placement.value(u"size"_s).toString()},
-                              {"screen"_L1, placement.value(u"screen"_s).toString()}};
+                              {"screen"_L1, placement.value(u"screen"_s).toString()},
+                              {"show"_L1, placement.value(u"show"_s).toString()}};
     const KSharedConfig::Ptr config = g_config ? g_config : KSharedConfig::openStateConfig();
     KConfigGroup state(config, kFloatingGroup);
     state.writeEntry(surface, QString::fromUtf8(QJsonDocument(written).toJson(QJsonDocument::Compact)));

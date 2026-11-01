@@ -265,6 +265,36 @@ TEST_F(FloatingSurfaceTest, ADragIsWrittenDownWhenItEnds)
     EXPECT_EQ(surface->placement(u"label"_s).value(u"left"_s).toInt(), 500);
 }
 
+TEST_F(FloatingSurfaceTest, TheStripGoesToTheFirstBlockThatAsksForIt)
+{
+    QSignalSpy told(surface.get(), &ui::FloatingSurface::stripChanged);
+    EXPECT_TRUE(surface->strip().isEmpty());
+    engine.applyEdit(id, addBlock(u"first"_s, {{u"showStrip"_s, true}}, u"meter.soundside"_s));
+    ASSERT_TRUE(spinUntil([&] { return !surface->strip().isEmpty(); }));
+    EXPECT_EQ(surface->strip().value(u"blockId"_s).toString(), "first"_L1);
+    EXPECT_EQ(surface->strip().value(u"sessionId"_s).toString(), id);
+    EXPECT_EQ(told.count(), 1);
+    EXPECT_FALSE(surface->isWanted()) << "a strip is not a row of the label";
+
+    engine.applyEdit(id, addBlock(u"second"_s, {{u"showStrip"_s, true}}, u"meter.soundside"_s));
+    EXPECT_FALSE(spinUntil([&] { return surface->strip().value(u"blockId"_s).toString() != "first"_L1; }, 50));
+
+    engine.applyEdit(id, edit(core::RemoveBlock{u"first"_s}));
+    ASSERT_TRUE(spinUntil([&] { return surface->strip().value(u"blockId"_s).toString() == "second"_L1; }));
+}
+
+TEST_F(FloatingSurfaceTest, TheStripStartsMediumAtTheTopInTheMiddle)
+{
+    const QVariantMap strip = surface->placement(u"strip"_s);
+    EXPECT_EQ(strip.value(u"left"_s).toDouble(), 50.0);
+    EXPECT_EQ(strip.value(u"top"_s).toDouble(), 4.0);
+    EXPECT_EQ(strip.value(u"size"_s).toString(), "medium"_L1);
+    EXPECT_EQ(strip.value(u"show"_s).toString(), "mark"_L1);
+
+    surface->setPlacement(u"strip"_s, {{u"show"_s, u"bars"_s}});
+    EXPECT_EQ(surface->placement(u"strip"_s).value(u"show"_s).toString(), "bars"_L1);
+}
+
 TEST_F(FloatingSurfaceTest, ALabelSitsInPixelsAndAStripInPercent)
 {
     EXPECT_EQ(surface->placement(u"label"_s).value(u"unit"_s).toString(), "px"_L1);

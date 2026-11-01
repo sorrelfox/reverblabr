@@ -235,6 +235,18 @@ QtObject {
     /// The grid of dots on the canvas: the prototype's 20 pixels, three of
     /// the eight-pixel snaps while following the system.
     readonly property real canvasGridSpacing: metrics.followsSystem ? 24 : 20
+    /// The strip on screen at each size: width and height, the word's size
+    /// and the mark's width, in pixels on any appearance.
+    function stripSize(size: string): var {
+        switch (size) {
+        case "small":
+            return { width: 360, height: 24, word: 12, mark: 5 };
+        case "large":
+            return { width: 810, height: 54, word: 24, mark: 10 };
+        }
+        return { width: 540, height: 36, word: 16, mark: 7 };
+    }
+
     /// The canvas's overlays, the connection mode at the top left and the
     /// zoom at the bottom right: how far in from the canvas's corner.
     readonly property real overlayInset: metrics.followsSystem ? Kirigami.Units.largeSpacing : 16

@@ -444,6 +444,29 @@ QQC2.ApplicationWindow {
         FloatingLabel {}
     }
 
+    /// The strip's window, likewise, and for as long as a test or Place Strip
+    /// needs it with no block asking.
+    readonly property alias floatingStrip: floatingStrip
+
+    Loader {
+        id: floatingStrip
+
+        active: ((FloatingSurface.strip.blockId ?? "") !== "" || FloatingWindows.stripInUse) && root.floatingAllowed
+        sourceComponent: FloatingWindows.window
+        onLoaded: {
+            item.surfaceName = FloatingWindows.strip;
+            item.homeScreen = root.screen;
+            item.contentComponent = floatingStripContent;
+            item.visible = true;
+        }
+    }
+
+    Component {
+        id: floatingStripContent
+
+        SoundSideOverlay {}
+    }
+
     readonly property ShortcutTargets shortcutTargets: ShortcutTargets {
         speaker: root.contentItem
     }
