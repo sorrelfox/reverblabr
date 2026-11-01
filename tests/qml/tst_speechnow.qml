@@ -311,6 +311,39 @@ TestCase {
         FloatingSurface.setPlacement("label", {});
     }
 
+    function test_aPlaceInPercentDoesNotHangOnAScreenWithNoSizeYet() {
+        const window = createTemporaryObject(plainWindow, testCase, { surfaceName: FloatingWindows.strip });
+        window.homeScreen = { width: 0, height: 0 };
+        verify(window.placedOn.width > 0);
+        compare(window.placedOn, FloatingWindows.screens[0]);
+    }
+
+    function test_aDragNeverPassesTheScreensEdge() {
+        const window = createTemporaryObject(plainWindow, testCase);
+        window.moveBy(-5000, 100000);
+        compare(FloatingSurface.placement("label").left, 0);
+        compare(FloatingSurface.placement("label").top, window.placedOn.height - window.height);
+        FloatingSurface.setPlacement("label", {});
+    }
+
+    // What a real drag does on a compositor: until the window has landed each
+    // event still says the pointer is that far from the press.
+    function test_aDragDoesNotRunAwayFromThePointerBeforeTheWindowLands() {
+        const window = createTemporaryObject(plainWindow, testCase, { movedByMargins: true });
+        const left = FloatingSurface.placement("label").left;
+        const top = FloatingSurface.placement("label").top;
+        for (let step = 1; step <= 20; ++step) {
+            window.pointer.follow(step * 3, step);
+        }
+        compare(FloatingSurface.placement("label").left, left + 3, "only the first event moved it");
+        compare(FloatingSurface.placement("label").top, top + 1);
+        tryVerify(() => {
+            window.pointer.follow(6, 2);
+            return FloatingSurface.placement("label").left === left + 9;
+        }, 1000, "a move after the window landed was lost");
+        FloatingSurface.setPlacement("label", {});
+    }
+
     function test_withNoTrayClosingTheWindowTakesTheLabelToo() {
         SessionModel.setParams("now", [["showFloating", true]]);
         tryVerify(() => FloatingSurface.wanted, 1000);

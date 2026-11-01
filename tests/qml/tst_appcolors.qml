@@ -307,7 +307,7 @@ TestCase {
     // both.
     function test_the_colours_that_are_not_the_prototypes_so_they_can_be_read_data() {
         return [
-            { tag: "dark", mode: Appearance.ReverblabrDark, muted: "#a4acb3" },
+            { tag: "dark", mode: Appearance.ReverblabrDark, muted: "#a3abb2" },
             { tag: "light", mode: Appearance.ReverblabrLight, muted: "#5e6569" }
         ];
     }

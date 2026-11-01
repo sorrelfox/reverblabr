@@ -40,11 +40,17 @@ Window {
     /// percent has to be written, and the desktop would not say.
     readonly property bool movesItself: surface.movedByMargins || surface.inPercent
 
-    /// The screen to be on when the placement names none: the main window's.
+    /// The screen to be on when the placement names none: the main window's,
+    /// which it learns only once it has opened.
     property var homeScreen: FloatingWindows.screens[0] ?? null
-    /// The screen it asks for.
+    /// The screen it asks for. **A main window still opening has a screen with
+    /// no size yet**, and a place in percent of nothing is the top left corner.
     readonly property var placedOn: {
-        return FloatingWindows.screenNamed(surface.placement.screen ?? "") ?? surface.homeScreen;
+        const named = FloatingWindows.screenNamed(surface.placement.screen ?? "");
+        if (named) {
+            return named;
+        }
+        return (surface.homeScreen?.width ?? 0) > 0 ? surface.homeScreen : FloatingWindows.screens[0];
     }
     /// How far it sits from the screen's left and top edges, in pixels, kept
     /// on the screen. What the layer shell's margins are set from.
@@ -88,16 +94,26 @@ Window {
 
     /// The keys while placing, for a test.
     readonly property alias placingKeys: keys
+    /// The pointer's side of a drag, for a test.
+    readonly property alias pointer: drag
 
-    /// Writes down a drag of (\a dx, \a dy) pixels.
+    /// \a place kept on a screen \a across wide, for a window \a size wide.
+    function onTheScreen(place: real, across: real, size: real): real {
+        const most = surface.inPercent ? 100 : Math.max(0, across - size);
+        return across > 0 ? Math.max(0, Math.min(place, most)) : place;
+    }
+
+    /// Writes down a drag of (\a dx, \a dy) pixels. **Kept on the screen as
+    /// it is written:** a stored place past the edge is what the card would
+    /// show, and a move back would have that distance to undo first.
     function moveBy(dx: real, dy: real) {
-        const across = surface.inPercent && surface.placedOn
-            ? 100 / Math.max(1, surface.placedOn.width - surface.width) : 1;
-        const down = surface.inPercent && surface.placedOn
-            ? 100 / Math.max(1, surface.placedOn.height - surface.height) : 1;
+        const wide = surface.placedOn?.width ?? 0;
+        const high = surface.placedOn?.height ?? 0;
+        const across = surface.inPercent && surface.placedOn ? 100 / Math.max(1, wide - surface.width) : 1;
+        const down = surface.inPercent && surface.placedOn ? 100 / Math.max(1, high - surface.height) : 1;
         FloatingSurface.setPlacement(surface.surfaceName, {
-            left: (surface.placement.left ?? 0) + dx * across,
-            top: (surface.placement.top ?? 0) + dy * down
+            left: surface.onTheScreen((surface.placement.left ?? 0) + dx * across, wide, surface.width),
+            top: surface.onTheScreen((surface.placement.top ?? 0) + dy * down, high, surface.height)
         }, true);
     }
 
@@ -116,7 +132,13 @@ Window {
 
     onXChanged: settled.restart()
     onYChanged: settled.restart()
+    // **A layer surface's margins and focus take effect with its next
+    // commit**, and a window with nothing new to draw makes none: a strip
+    // showing Quiet would not move until something else repainted it.
+    onLeftEdgeChanged: surface.update()
+    onTopEdgeChanged: surface.update()
     onPlacingChanged: {
+        surface.update();
         if (surface.placing) {
             surface.requestActivate();
             keys.forceActiveFocus();
@@ -202,6 +224,18 @@ Window {
 
         property point pressedAt
 
+        /// Follows the pointer, now at (\a x, \a y) in the window. A window
+        /// that moves itself has to wait for a move to reach the screen: until
+        /// it has, the pointer's place is still measured from the old one, so
+        /// the same distance would be added again with each event and the
+        /// window would run away from the pointer.
+        function follow(x: real, y: real) {
+            if (!landing.running) {
+                surface.moveBy(x - drag.pressedAt.x, y - drag.pressedAt.y);
+                landing.restart();
+            }
+        }
+
         anchors.fill: parent
         enabled: !surface.clickThrough
         cursorShape: Qt.SizeAllCursor
@@ -216,13 +250,20 @@ Window {
         // where the press was and not from the last move.
         onPositionChanged: mouse => {
             if (surface.movesItself && pressed) {
-                surface.moveBy(mouse.x - drag.pressedAt.x, mouse.y - drag.pressedAt.y);
+                drag.follow(mouse.x, mouse.y);
             }
         }
         onReleased: {
             if (surface.movesItself && !surface.placing) {
                 FloatingSurface.setPlacement(surface.surfaceName, {});
             }
+        }
+
+        Timer {
+            id: landing
+
+            // Two frames at 60 Hz, and a compositor's own frame.
+            interval: 50
         }
     }
 }

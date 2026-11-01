@@ -96,7 +96,7 @@ Rectangle {
                     ElidedLabel {
                         text: row.shownWord
                         color: AppColors.text
-                        font: label.large ? AppFonts.heading : AppFonts.strong
+                        font: label.large ? AppFonts.stripWord(16) : AppFonts.strong
                         Layout.rightMargin: Kirigami.Units.smallSpacing * 2
                         Accessible.ignored: true
                     }

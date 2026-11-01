@@ -35,6 +35,14 @@ Rectangle {
     property real value: bar.from
     /// Whether the top of the bar is a danger. Off where 0 dB means no change.
     property bool warnsAtTop: true
+    /// How much of a cut this is rather than a level: the bar is empty at 0 dB
+    /// and fills as the value falls towards `from`.
+    property bool fillsDown: false
+    /// How full the bar is, from 0 to 1.
+    readonly property real filled: {
+        const part = (bar.db - bar.from) / (bar.to - bar.from);
+        return Math.max(0, Math.min(1, bar.fillsDown ? 1 - part : part));
+    }
 
     implicitHeight: Kirigami.Units.smallSpacing
     radius: AppMetrics.barRadius
@@ -62,7 +70,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         radius: AppMetrics.barRadius
-        width: parent.width * Math.max(0, Math.min(1, (bar.db - bar.from) / (bar.to - bar.from)))
+        width: parent.width * bar.filled
         color: bar.warnsAtTop && bar.db >= -0.1 ? AppColors.dangerMark : AppColors.liveMark
         visible: bar.running
     }

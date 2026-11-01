@@ -432,7 +432,7 @@ QQC2.ApplicationWindow {
         sourceComponent: FloatingWindows.window
         onLoaded: {
             item.surfaceName = FloatingWindows.labelStack;
-            item.homeScreen = root.screen;
+            item.homeScreen = Qt.binding(() => root.screen);
             item.contentComponent = floatingLabelContent;
             item.visible = true;
         }
@@ -455,7 +455,7 @@ QQC2.ApplicationWindow {
         sourceComponent: FloatingWindows.window
         onLoaded: {
             item.surfaceName = FloatingWindows.strip;
-            item.homeScreen = root.screen;
+            item.homeScreen = Qt.binding(() => root.screen);
             item.contentComponent = floatingStripContent;
             item.visible = true;
         }
@@ -469,6 +469,18 @@ QQC2.ApplicationWindow {
 
     readonly property ShortcutTargets shortcutTargets: ShortcutTargets {
         speaker: root.contentItem
+    }
+
+    // **The keyboard goes back when Place Strip ends.** The strip had it, and
+    // a surface that gives it up names nobody to have it next: the desktop
+    // leaves it with the strip and every key is lost until the next click.
+    Connections {
+        target: FloatingWindows
+        function onPlacingChanged() {
+            if (!FloatingWindows.placing && root.visible) {
+                root.requestActivate();
+            }
+        }
     }
 
     Connections {

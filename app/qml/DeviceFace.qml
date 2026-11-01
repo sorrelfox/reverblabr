@@ -126,26 +126,31 @@ Item {
             Accessible.ignored: true
         }
 
-        ElidedLabel {
-            id: lineText
-
-            text: face.line
-            color: face.unavailable ? AppColors.warningText : AppColors.muted
-            font: AppFonts.faceLine
-            elide: Text.ElideRight
-            horizontalAlignment: Text.AlignHCenter
+        // **On one line**: a tile has room for the icon and one line of words,
+        // and a second one sat on its lower edge.
+        RowLayout {
+            spacing: Kirigami.Units.smallSpacing
             Layout.fillWidth: true
-        }
 
-        ElidedLabel {
-            id: limitText
+            ElidedLabel {
+                id: lineText
 
-            visible: face.limiting
-            text: face.limitWord
-            color: AppColors.muted
-            font: AppFonts.faceLine
-            horizontalAlignment: Text.AlignHCenter
-            Layout.fillWidth: true
+                text: face.line
+                color: face.unavailable ? AppColors.warningText : AppColors.muted
+                font: AppFonts.faceLine
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+            }
+
+            ElidedLabel {
+                id: limitText
+
+                visible: face.limiting
+                text: face.limitWord
+                color: AppColors.muted
+                font: AppFonts.faceLine
+            }
         }
 
         Item {

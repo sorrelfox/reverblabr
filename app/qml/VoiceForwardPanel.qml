@@ -156,12 +156,13 @@ ColumnLayout {
         db: Math.min(0, panel.reading.takenOutDb)
         running: panel.reading.current
         warnsAtTop: false
+        fillsDown: true
 
         // Where Background stands.
         Rectangle {
             id: mark
 
-            x: takenOutMeter.width * (panel.reading.background - panel.words.lowestCut) / -panel.words.lowestCut - width / 2
+            x: takenOutMeter.width * panel.reading.background / panel.words.lowestCut - width / 2
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: 1

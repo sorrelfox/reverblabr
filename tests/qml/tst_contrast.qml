@@ -127,6 +127,18 @@ TestCase {
 
     // **Nothing is moved that did not have to be**: a colour that already
     // clears its ratio is the fill itself.
+    // A warning that turns green says the opposite of what it means.
+    function test_aColourMovedToReadKeepsItsHue_data() { return testCase.appearances(); }
+    function test_aColourMovedToReadKeepsItsHue(data) {
+        Appearance.mode = data.mode;
+        const fills = [[AppColors.warning, AppColors.warningText], [AppColors.warning, AppColors.warningMark],
+                       [AppColors.live, AppColors.liveText], [AppColors.live, AppColors.liveMark]];
+        for (const pair of fills) {
+            const hue = pair[1].hslHue;
+            verify(Math.abs(hue - pair[0].hslHue) < 0.05, `${pair[0]} became ${pair[1]}`);
+        }
+    }
+
     function test_whatAlreadyReadsIsLeftAlone() {
         Appearance.mode = Appearance.ReverblabrDark;
         compare(AppColors.liveText, AppColors.live, "the dark live orange was moved though it reads");

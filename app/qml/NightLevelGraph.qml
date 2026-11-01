@@ -204,9 +204,10 @@ Item {
         Accessible.ignored: true
     }
 
+    // At the foot of the band: the peak line crosses the top of it.
     QQC2.Label {
         x: Math.max(graph.leftRoom, graph.atX(0) - width / 2)
-        y: graph.topRoom + Kirigami.Units.smallSpacing
+        y: graph.topRoom + graph.plotHeight - height - Kirigami.Units.smallSpacing
         horizontalAlignment: Text.AlignHCenter
         text: KI18n.i18nc("@label on Night Level's graph", "speech\nleft alone -5 to +3")
         font: AppFonts.small

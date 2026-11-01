@@ -150,7 +150,9 @@ ColumnLayout {
             implicitWidth: AppMetrics.stateDotSize
             implicitHeight: AppMetrics.stateDotSize
             radius: width / 2
-            color: reading.arriving ? AppColors.liveMark : (reading.lowered ? AppColors.warningMark : AppColors.okMark)
+            color: !reading.live && reading.acting ? AppColors.muted
+                                                   : (reading.arriving ? AppColors.liveMark
+                                                                       : (reading.lowered ? AppColors.warningMark : AppColors.okMark))
             Layout.alignment: Qt.AlignVCenter
             Accessible.ignored: true
         }

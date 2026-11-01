@@ -243,11 +243,19 @@ QtObject {
     function readableToward(colour: color, ratio: real, backgrounds: var, toward: color): color {
         // **The colour itself when it already reads**, not a copy of it: a
         // test, and anything else, can compare it with the fill.
+        //
+        // **Mixed channel by channel, not by Kirigami's interpolation**, which
+        // walks the hue: from the warning orange to a near-black with a blue
+        // cast, that passes through green, and a warning came out green on
+        // the light palette.
         if (backgrounds.every(background => colors.contrast(colour, background) >= ratio)) {
             return colour;
         }
         for (let step = 1; step <= 50; ++step) {
-            const tried = colors.whole(Kirigami.ColorUtils.linearInterpolation(colour, toward, step / 50));
+            const part = step / 50;
+            const tried = colors.whole(Qt.rgba(colour.r + (toward.r - colour.r) * part,
+                                               colour.g + (toward.g - colour.g) * part,
+                                               colour.b + (toward.b - colour.b) * part, colour.a));
             if (backgrounds.every(background => colors.contrast(tried, background) >= ratio)) {
                 return tried;
             }

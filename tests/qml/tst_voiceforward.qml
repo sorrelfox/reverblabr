@@ -184,6 +184,17 @@ TestCase {
         tryCompare(panel.foundLabel, "text", row.want, 1000);
     }
 
+    // Nothing taken out is an empty bar, not a full one.
+    function test_takenOutFillsAsMoreIsTakenOut() {
+        const panel = testCase.panelFor();
+        SessionModel.setParam("forward", "background", -6);
+        testCase.play([0, testCase.words.centre, 0, 0]);
+        tryCompare(panel.takenOutBar, "filled", 0, 1000);
+        fuzzyCompare(panel.backgroundMark.x + panel.backgroundMark.width / 2, panel.takenOutBar.width / 4, 0.51);
+        testCase.play([-12, testCase.words.centre, 0, 0]);
+        tryCompare(panel.takenOutBar, "filled", 0.5, 1000);
+    }
+
     function test_takenOutIsShownAndItsLineStandsAtBackground() {
         const panel = testCase.panelFor();
         testCase.play([-7.2, testCase.words.centre, 0, 0]);
