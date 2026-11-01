@@ -54,6 +54,9 @@ constexpr std::array kFactoryNames{
     FactoryName{"quick"_L1, kli18nc("@item:inmenu a preset for the Speech Now block", "Quick")},
     FactoryName{"steady"_L1, kli18nc("@item:inmenu a preset for the Speech Now block", "Steady")},
     // Sound Side.
+    FactoryName{"light"_L1, kli18nc("@item:inmenu a preset for the Night Level block", "Light")},
+    FactoryName{"night"_L1, kli18nc("@item:inmenu a preset for the Night Level block", "Night")},
+    FactoryName{"strong"_L1, kli18nc("@item:inmenu a preset for the Night Level block", "Strong")},
     FactoryName{"wholeMix"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Whole mix")},
     FactoryName{"higherSounds"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Higher sounds")},
     // Dynamics Processor.

@@ -73,30 +73,10 @@ QtObject {
         }
     }
 
-    /// **A stated fact, not a guess.** Whether a program that feeds this block
-    /// says, by its `media.role`, that it is playing music or a film. Following
-    /// the wires back to the Application blocks: saying nothing means nothing.
-    readonly property bool declaredMusic: {
-        if (SessionModel.revision < 0 || SessionModel.paramRevision < 0 || Inventory.revision < 0) {
-            return false;
-        }
-        const wires = SessionModel.wires();
-        const seen = [reading.blockId];
-        for (let next = 0; next < seen.length; ++next) {
-            for (const wire of wires) {
-                if (wire.toBlock === seen[next] && seen.indexOf(wire.fromBlock) < 0) {
-                    seen.push(wire.fromBlock);
-                }
-            }
-        }
-        return seen.some(id => SessionModel.blockType(id) === "source.application" && reading.saysMusic(id));
+    /// Whether a program that feeds this block says it plays music or a film.
+    readonly property LaneProgram program: LaneProgram {
+        blockId: reading.blockId
+        roles: ["Music", "Movie"]
     }
-
-    function saysMusic(sourceId: string): bool {
-        const rule = Inventory.applicationRuleFrom(SessionModel.param(sourceId, "binary") ?? "",
-                                                   SessionModel.param(sourceId, "flatpakId") ?? "",
-                                                   SessionModel.param(sourceId, "name") ?? "");
-        const streams = rule === "" ? [] : (Inventory.application(rule).streams ?? []);
-        return streams.some(stream => stream.role === "Music" || stream.role === "Movie");
-    }
+    readonly property bool declaredMusic: reading.program.declared
 }

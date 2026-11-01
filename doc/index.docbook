@@ -652,6 +652,16 @@ film it takes the loud and soft out: turn it off, or give them a lane of their
 own.</para>
 </sect2>
 
+<sect2 id="block-effect-nightlevel">
+<title>Night Level</title>
+<para>Finds the level of speech in what is playing. Sounds near it stay as they
+are, louder ones come down, quieter ones come up, by amounts you set apart. Until
+it hears speech it changes nothing. For films and shows. It presses music too, so
+turn it off for music. The level comes from a voice detector and can be wrong, so
+you can type one. It can't know what comes next, so a sudden sound can start
+loud.</para>
+</sect2>
+
 <sect2 id="block-effect-balance">
 <title>Balance</title>
 <para>Turns the left or the right side of a stereo lane down against the

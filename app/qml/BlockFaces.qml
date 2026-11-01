@@ -80,6 +80,9 @@ QtObject {
     readonly property Component speechNow: Component {
         SpeechNowFace {}
     }
+    readonly property Component nightLevel: Component {
+        NightLevelFace {}
+    }
     readonly property Component soundSide: Component {
         SoundSideFace {}
     }
@@ -295,6 +298,7 @@ QtObject {
         "meter.speechnow": faces.speechNow,
         "meter.voicegauge": faces.voiceGauge,
         "meter.soundside": faces.soundSide,
+        "effect.nightlevel": faces.nightLevel,
         "output.device": faces.outputDevice,
         "source.application": faces.applicationSource,
         "source.device": faces.inputDevice,

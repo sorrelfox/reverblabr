@@ -241,11 +241,11 @@ TEST_F(Presets, EveryShippedPresetNamesParametersItsBlockActuallyHas)
             }
         }
     }
-    EXPECT_EQ(shippedCount, 46)
+    EXPECT_EQ(shippedCount, 49)
         << "the shipped presets are three for Volume and five for Dynamics, "
            "twenty for the 10-Band EQ, two for Dehum, three for "
            "Hearing Compensation 16, three for Hearing Compensation 64, one for Auto Level, two for Speech Now "
-           ", two for Voice Gauge, two for Sound Side and three for Reverb";
+           ", two for Voice Gauge, two for Sound Side, three for Night Level and three for Reverb";
 }
 
 TEST_F(Presets, APresetMatchesTheValuesItNamesAndNoOthers)

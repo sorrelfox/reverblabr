@@ -268,3 +268,20 @@ TEST(LookaheadLimiterTest, ACeilingThatRisesThenFallsThenRisesEndsWhereItWasSent
     limiter.setCeilingGain(dbToGain(-6.0f));
     EXPECT_NEAR(levelAfter(limiter, 2.0, 256), -6.0f, 0.1f);
 }
+
+TEST(LookaheadLimiterTest, TheReleaseCanBeHeldToARateAndIsNotByDefault)
+{
+    const auto dbAfterPeak = [](float mostRelease) {
+        LookaheadLimiter limiter;
+        limiter.prepare(48000.0, 1);
+        limiter.setMostReleaseDbPerSecond(mostRelease);
+        std::vector<float> samples(48000, 0.1f);
+        samples[100] = 1.0f * 10.0f;
+        std::array<float *, 1> channels{samples.data()};
+        limiter.process(AudioBlock{channels.data(), 1, 12000}, 12000);
+        return 20.0f * std::log10(limiter.gain());
+    };
+    // A quarter of a second after a peak of 21 dB over the ceiling.
+    EXPECT_GT(dbAfterPeak(0.0f), -1.0f);
+    EXPECT_NEAR(dbAfterPeak(12.0f), -21.0f + 12.0f * (12000.0f - 172.0f) / 48000.0f, 0.3f);
+}

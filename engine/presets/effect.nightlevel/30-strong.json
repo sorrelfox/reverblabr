@@ -1,0 +1,8 @@
+{
+    "schema": 1,
+    "type": "effect.nightlevel",
+    "params": {
+        "cut": 100.0,
+        "boost": 100.0
+    }
+}

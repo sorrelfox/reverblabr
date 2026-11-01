@@ -136,6 +136,9 @@ qt_add_resources(reverblabr-engine "reverblabr-factory-presets"
         ../presets/effect.dynamics/30-voice.json
         ../presets/effect.dynamics/40-noiseGate.json
         ../presets/effect.dynamics/50-hardLimiting.json
+        ../presets/effect.nightlevel/10-light.json
+        ../presets/effect.nightlevel/20-night.json
+        ../presets/effect.nightlevel/30-strong.json
         ../presets/effect.equalizer10/010-flat.json
         ../presets/effect.equalizer10/020-bassBoost.json
         ../presets/effect.equalizer10/030-lessBass.json

@@ -142,6 +142,10 @@ To check it against an ordinary mono mix, open **Compare with Plain Mono**. **He
 ## Sound Side
 
 **Sound Side** is a block under Meters that compares the two channels of a lane and shows the louder one, as a mark and a word, on its tile, on its card and in a thin strip over other programs. It reads the sound and doesn't change it. It says which channel is louder and nothing about what made a sound, and it can't tell front from back. A loud bed hides a quiet sound, and music and voices move the mark too, so it can be wrong. Put it before One Ear Mix, since after a fold there are no sides left. Sound Side reads this lane's sound and does not touch the game. Some games and tournaments still forbid tools that show direction. Check their rules before you use it. That choice is yours. See [the block](blocks.md#sound-side).
+## Night Level
+
+**Night Level** is a block under Built-in Effects for films and shows on one lane. It finds the level of speech and brings louder and quieter sounds part of the way towards it, by amounts you set apart. A new block is set to nothing: press Light, Night or Strong on its card. Until it hears speech it changes nothing, so the start of a film passes as it came. The level comes from a voice detector and it can be wrong, so you can type one. A sudden sound can still start loud, since the block can't know what comes next. Its limit is a digital one, not a level at your ears. It presses music too, so turn it off for music, and use it or Voice Evener on a lane, not both. Put it before One Ear Mix.
+
 ## Voice Evener
 
 **Voice Evener** is a row in the library under Built-in Effects: an Auto Level set up to bring a quiet talker up and a loud one down towards one level, on one lane. It evens level only. A mixed call reaches a lane as one stream, so it is one gain for whoever is talking, and a new talker takes a few seconds to settle. Put it after Speech Denoise and before anything that shapes one ear. On music or a film it takes the loud and soft out: turn it off, or give them a lane of their own.

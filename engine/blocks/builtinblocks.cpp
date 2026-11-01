@@ -38,6 +38,7 @@
 #include "blocks/mixer.h"
 #include "blocks/monoenhancer.h"
 #include "blocks/multibandcompressor.h"
+#include "blocks/nightlevel.h"
 #include "blocks/oneearmix.h"
 #include "blocks/outputdevice.h"
 #include "blocks/pan.h"
@@ -102,6 +103,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{SpeechNow::kTypeId}, &SpeechNow::make).has_value()
         && registry.add(std::string{VoiceGauge::kTypeId}, &VoiceGauge::make).has_value()
         && registry.add(std::string{SoundSide::kTypeId}, &SoundSide::make).has_value()
+        && registry.add(std::string{NightLevel::kTypeId}, &NightLevel::make).has_value()
         && registry.add(std::string{Ducking::kTypeId}, &Ducking::make).has_value()
         && registry.add(std::string{Mixer::kTypeId}, &Mixer::make).has_value()
         && registry.add(std::string{InputSwitch::kTypeId}, &InputSwitch::make).has_value()

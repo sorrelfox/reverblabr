@@ -23,6 +23,7 @@
 #ifdef RB_HAVE_RNNOISE
 #include "blocks/speechdenoise.h"
 #endif
+#include "blocks/nightlevel.h"
 #include "blocks/soundside.h"
 #include "blocks/speechnow.h"
 #include "blocks/sync.h"
@@ -573,6 +574,11 @@ public:
             if (running && block.type == asText(blocks::SoundSide::kTypeId)) {
                 into.values[blocks::SoundSide::kLevelValue] = blocks::SoundSide::kNoLevel;
                 into.values[blocks::SoundSide::kStateValue] = blocks::SoundSide::Quiet;
+            }
+            if (running && block.type == asText(blocks::NightLevel::kTypeId)) {
+                into.values[blocks::NightLevel::kFoundValue] = blocks::NightLevel::kNoLevel;
+                into.values[blocks::NightLevel::kReadingValue] = fakeLoudness(peak);
+                into.values[blocks::NightLevel::kStateValue] = blocks::NightLevel::NoSpeechYet;
             }
             // An Auto Level answers a made-up level by its rule. Before the
             // made-up values, so a test can show what no steady level gives:

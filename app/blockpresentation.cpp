@@ -152,6 +152,14 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "Evens out a source whose loudness keeps changing: quiet passages are lifted towards a steady "
                   "level, and loud ones can be brought down to it.")},
+    Entry{
+        "effect.nightlevel",
+        "effects",
+        kli18nc("@item block name", "Night Level"),
+        kli18nc("@info block description", "Keeps speech where it is and brings louder and quieter sounds towards it"),
+        kli18nc("@info:tooltip block description",
+                "Finds the level of speech and moves other sounds towards it. Set apart how far loud sounds come "
+                "down and quiet sounds come up.")},
     Entry{"effect.balance",
           "effects",
           kli18nc("@item block name", "Balance"),

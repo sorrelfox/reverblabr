@@ -135,6 +135,17 @@ public:
             dbPerSecond > 0.0f ? std::pow(10.0, static_cast<double>(dbPerSecond) / (20.0 * m_sampleRate)) : 1.0;
     }
 
+    /// **Makes the gain come back no faster than this** after a peak, on top of
+    /// the release, sample by sample. For a block that promises nothing it
+    /// does rises quickly: the price is that a short peak leaves a longer dip.
+    /// A rate of nought, the default, is the release alone. Not for the audio
+    /// thread: set it after prepare().
+    void setMostReleaseDbPerSecond(float dbPerSecond) noexcept
+    {
+        m_mostReleaseFactor =
+            dbPerSecond > 0.0f ? std::pow(10.0, static_cast<double>(dbPerSecond) / (20.0 * m_sampleRate)) : 1.0;
+    }
+
     /// How long the gain takes to come back from silence to unity. Real-time.
     void setReleaseMs(float releaseMs) noexcept RB_NONBLOCKING
     {
@@ -245,7 +256,12 @@ public:
             // **In double**: near unity a float gap shrinking by a thousandth
             // a sample rounds back to itself and the gain stalls a hair
             // under one for ever.
-            m_held = target < m_held ? target : target - (target - m_held) * m_releaseCoefficient;
+            if (target < m_held) {
+                m_held = target;
+            } else {
+                const double released = target - (target - m_held) * m_releaseCoefficient;
+                m_held = m_mostReleaseFactor == 1.0 ? released : std::min(released, m_held * m_mostReleaseFactor);
+            }
 
             // **Then averaged over the lookahead**, so the gain comes
             // down as a ramp rather than a step. A step in the gain is a
@@ -369,6 +385,8 @@ private:
     float m_ceiling = 1.0f;
     /// What the ceiling is multiplied by a sample on its way up, or 1.
     double m_riseFactor = 1.0;
+    /// What the gain may be multiplied by a sample on its way back, or 1.
+    double m_mostReleaseFactor = 1.0;
     double m_releaseCoefficient = 0.0;
     /// The gain before the averaging: the window's smallest, released.
     double m_held = 1.0;

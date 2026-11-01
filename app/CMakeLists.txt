@@ -266,6 +266,13 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SpeechNowPanel.qml
     qml/SpeechNowState.qml
     qml/SpeechNowWords.qml
+    qml/LaneProgram.qml
+    qml/NightLevelFace.qml
+    qml/NightLevelGraph.qml
+    qml/NightLevelHelp.qml
+    qml/NightLevelPanel.qml
+    qml/NightLevelState.qml
+    qml/NightLevelWords.qml
     qml/SoundSideFace.qml
     qml/SoundSideHelp.qml
     qml/SoundSideOverlay.qml
@@ -360,6 +367,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/meter.speechnow.svg
     icons/meter.voicegauge.svg
     icons/meter.soundside.svg
+    icons/effect.nightlevel.svg
     icons/meter.vu.svg
     icons/output.broadcast.svg
     icons/output.device.svg

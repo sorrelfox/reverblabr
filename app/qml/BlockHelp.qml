@@ -142,6 +142,9 @@ QtObject {
     readonly property Component speechNow: Component {
         SpeechNowHelp {}
     }
+    readonly property Component nightLevel: Component {
+        NightLevelHelp {}
+    }
     readonly property Component soundSide: Component {
         SoundSideHelp {}
     }
@@ -261,6 +264,7 @@ QtObject {
         "meter.speechnow": help.speechNow,
         "meter.voicegauge": help.voiceGauge,
         "meter.soundside": help.soundSide,
+        "effect.nightlevel": help.nightLevel,
         "meter.peakrms": help.peakRms,
         "meter.vu": help.vu,
         "output.broadcast": help.broadcast,
