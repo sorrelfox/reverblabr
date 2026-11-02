@@ -41,6 +41,11 @@ struct Entry {
     /// The longer form for the tooltip, where the extra room earns
     /// something: what it is good for, or what it is not to be confused with.
     KLazyLocalizedString tooltip;
+    /// **Still being debugged.** The one place that says so: the tile's
+    /// badge, the card's line, the tooltip and the help page all follow it.
+    /// Take it off the row when the block leaves beta, and the two lines in
+    /// docs/blocks.md and doc/index.docbook with it.
+    bool beta = false;
 };
 
 /// One heading in the library.
@@ -230,6 +235,14 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "Rolls off everything above a chosen frequency, for hiss and other high noise. The roll-off "
                   "can be gentle or steep.")},
+    Entry{"effect.model",
+          "effects",
+          kli18nc("@item block name", "Model"),
+          kli18nc("@info block description", "Runs the sound through a trained model from a folder"),
+          kli18nc("@info:tooltip block description",
+                  "Runs the sound through a trained model from a folder you choose. Only the model's output "
+                  "leaves the block, so without one it is silent."),
+          true},
     Entry{"effect.monoenhancer",
           "effects",
           kli18nc("@item block name", "Mono Enhancer"),
@@ -645,7 +658,22 @@ QString description(const QString &typeId)
 QString tooltip(const QString &typeId)
 {
     const Entry *entry = find(typeId);
-    return entry == nullptr ? QString{} : text(entry->tooltip);
+    if (entry == nullptr) {
+        return {};
+    }
+    return entry->beta ? text(entry->tooltip) + u'\n' + betaNote() : text(entry->tooltip);
+}
+
+bool isBeta(const QString &typeId)
+{
+    const Entry *entry = find(typeId);
+    return entry != nullptr && entry->beta;
+}
+
+QString betaNote()
+{
+    return i18nc("@info a block that is not finished yet",
+                 "Beta: this block is still being debugged and may contain bugs. It is not yet fully tested.");
 }
 
 QString category(const QString &typeId)
@@ -711,9 +739,20 @@ QVariantMap BlockPresentation::describe(const QString &typeId) const
         {u"name"_s, blockPresentation::name(typeId)},
         {u"description"_s, blockPresentation::description(typeId)},
         {u"tooltip"_s, blockPresentation::tooltip(typeId)},
+        {u"beta"_s, blockPresentation::isBeta(typeId)},
         {u"category"_s, blockPresentation::category(typeId)},
         {u"icon"_s, blockPresentation::icon(typeId)},
     };
+}
+
+bool BlockPresentation::isBeta(const QString &typeId) const
+{
+    return blockPresentation::isBeta(typeId);
+}
+
+QString BlockPresentation::betaNote() const
+{
+    return blockPresentation::betaNote();
 }
 
 QString BlockPresentation::name(const QString &typeId) const

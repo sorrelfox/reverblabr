@@ -278,6 +278,14 @@ QtObject {
             return KI18n.i18nc("@action:button", "Variable bit rate");
         case "bitrateMode/cbr":
             return KI18n.i18nc("@action:button", "Constant bit rate");
+        case "spareTime/20ms":
+            return KI18n.i18nc("@item:inlistbox the time a Model block allows, in milliseconds", "20 ms");
+        case "spareTime/50ms":
+            return KI18n.i18nc("@item:inlistbox the time a Model block allows, in milliseconds", "50 ms");
+        case "spareTime/100ms":
+            return KI18n.i18nc("@item:inlistbox the time a Model block allows, in milliseconds", "100 ms");
+        case "spareTime/250ms":
+            return KI18n.i18nc("@item:inlistbox the time a Model block allows, in milliseconds", "250 ms");
         case "monoMode/dualMono":
             return KI18n.i18nc("@item:inlistbox a mono plugin on a stereo lane runs once a side", "Once a side (dual mono)");
         case "monoMode/downmix":

@@ -50,6 +50,45 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 | **Channels** | Swaps the sides, folds to mono, copies one side to both, mutes or inverts a side, or keeps only what differs between them, fading from one setting to the next. Its Mono drops sound panned to one side by 6 dB and cancels sound out of phase between the sides; **One Ear Mix**, in the Hearing group, folds them another way. |
 | **Mono Enhancer** | Gives a mono recording some width above a frequency you choose, keeps the bass in the middle, and still sounds right when played back in mono. |
 
+### Model
+
+Beta: this block is still being debugged and may contain bugs. It is not yet fully tested.
+
+Runs the sound through a trained model from a folder you choose, and plays what the model makes of it. The model runs in a process of its own, so a model that is slow or crashes cannot stop the session or the other lanes. Reverblabr includes no models and never downloads one. If the folder has a licence file, the card names it. The build needs ONNX Runtime; without it this block is not in the library.
+
+**Sound only leaves this block after the model has processed it.** In every other case the block is silent, and nothing reaches the next block: when it is switched off (it is not passed through, unlike other blocks), with no model chosen, while one loads, when one cannot be loaded, when the model falls behind, when its process crashes, hangs or restarts, and when it gives back something that is not sound. A very short fade on the model's own sound keeps a stop from clicking. The input is never faded in. The session keeps running, the other lanes are not touched, and the card says why it is silent.
+
+**Spare time** (20, 50, 100 or 250 ms) is the time a run may take, and is part of the delay, which is one hop of the model plus what its own processing needs plus this. It is the same at every quantum, and the other lanes are kept in step with it. The default of 50 ms covers quanta up to 2048 at 48 kHz.
+
+**Mono models** run once a side, or once on the two sides mixed.
+
+A folder is recognised by its `reverblabr-model.json`, or by the inputs of its ONNX file. This version runs:
+
+- a streaming DeepFilterNet export, known by its inputs `input_frame`, `states` and `atten_lim_db`, for noise cleanup at 48 kHz;
+- any ONNX model described by a `reverblabr-model.json`.
+
+Voice conversion, speech through a language model and GGUF files are recognised and not run yet, and the card says so. Files that can run code when opened (`.pt`, `.pth`, `.ckpt`, `.pkl`) are never opened.
+
+```json
+{
+  "format": 1,
+  "file": "model.onnx",
+  "sampleRate": 48000,
+  "channels": 1,
+  "frameSize": 480,
+  "hopSize": 480,
+  "latencySamples": 0,
+  "input": "audio",
+  "output": "out",
+  "state": [{ "input": "state_in", "output": "state_out" }],
+  "constants": { "strength": 1.0 },
+  "threads": 1,
+  "licence": "LICENSE.txt"
+}
+```
+
+`file`, `sampleRate`, `channels`, `frameSize`, `input` and `output` are required. Inputs and outputs are 32-bit floats, of shape `[frames]`, `[channels, frames]` or `[1, channels, frames]`. A run takes `frameSize` samples and gives back `frameSize` or `hopSize`, of which the last `hopSize` are used. `latencySamples` is how late the model's answer is, at its own rate. Each `state` pair starts at zeros and carries a run's output to the next run's input. `constants` are inputs that hold one number. See [ADR-0031](adr/0031-model-block.md).
+
 ### Reverb
 
 Start from one of the presets in its settings (**Small room**, **Hall** or **Plate**), then adjust:
@@ -152,7 +191,7 @@ These blocks work on one ear at a time. They are described on their own page, [H
 
 Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK), **VST3®** (where the build has the VST3 SDK 3.8 or later) and **LADSPA**. The library lists what it found under **Plugins**, a heading for each format with the plugins under it in alphabetical order; click a heading to fold it away. The search looks through all of them. **Look for plugins again** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for. LSP's plugins are a good first set to try.
 
-Every plugin runs in a separate process, so a plugin that crashes or hangs takes nothing else down with it. Its block is bypassed, the sound goes on without it, and the block shows a button to restart it. A plugin's settings appear in a panel built from the parameters it offers.
+Every plugin runs in a separate process, so a plugin that crashes or hangs takes nothing else down with it. Its block is bypassed (the Model block is not a plugin and is silent instead), the sound goes on without it, and the block shows a button to restart it. A plugin's settings appear in a panel built from the parameters it offers.
 
 An LV2, CLAP or VST3 plugin that has a window of its own shows it with **Plugin Window**, and the panel and the window follow each other. A knob turned in the window is one step for **Undo**, however long it was held. The plugin's own presets are listed in the panel under **Plugin presets**: an LV2 plugin's are the ones other LV2 programs see, and a VST3 plugin's are its `.vstpreset` files in `~/.vst3/presets` and the system's preset folders. **Save…** keeps the settings as one of them, where other programs that use the plugin find it too.
 

@@ -210,6 +210,52 @@ TEST(Bypass, SwitchingABlockOffAcrossAFadeLeavesNoClick)
     EXPECT_LT(largestStep(across), allowed) << "the fade lurched somewhere";
 }
 
+TEST(Bypass, ABlockThatSaysSoIsSilencedRatherThanPassedThrough)
+{
+    // In the middle of a lane, with something to pass through, and it does not.
+    test::ConstantSource source(1.0f, 1);
+    test::GainStage gain(0.25f, 1);
+    gain.setSilentWhenOff(true);
+    GraphSpec spec;
+    spec.sampleRate = kRate;
+    spec.nodes = {node("src", &source), node("fx", &gain, false)};
+    spec.edges = {edge(0, 1)};
+    CompiledGraph graph = compile(spec);
+    for (const float sample : run(graph, 1, 4)) {
+        ASSERT_EQ(sample, 0.0f);
+    }
+}
+
+TEST(Bypass, ThatBlocksFadeNeverLetsTheInputThrough)
+{
+    test::ConstantSource source(1.0f, 1);
+    test::GainStage gain(0.25f, 1);
+    gain.setSilentWhenOff(true);
+
+    GraphSpec active;
+    active.sampleRate = kRate;
+    active.nodes = {node("src", &source), node("fx", &gain)};
+    active.edges = {edge(0, 1)};
+    CompiledGraph running = compile(active);
+    (void)run(running, 1, 4);
+
+    GraphSpec bypassed = active;
+    bypassed.nodes[1] = node("fx", &gain, false, kFade);
+    CompiledGraph fading = compile(bypassed, false);
+    const std::vector<float> down = run(fading, 1, 16);
+    for (const float sample : down) {
+        ASSERT_LE(sample, 0.2501f) << "louder than the block ever was: the input came through";
+    }
+    EXPECT_EQ(down.back(), 0.0f);
+
+    GraphSpec returning = active;
+    returning.nodes[1] = node("fx", &gain, true, kFade);
+    CompiledGraph rising = compile(returning, false);
+    for (const float sample : run(rising, 1, 16)) {
+        ASSERT_LE(sample, 0.2501f) << "louder than the block ever was: the input came through";
+    }
+}
+
 TEST(Bypass, SwitchingABlockBackOnFadesTheOtherWay)
 {
     test::ConstantSource source(1.0f, 1);

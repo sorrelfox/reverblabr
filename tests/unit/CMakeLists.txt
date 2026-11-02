@@ -118,6 +118,29 @@ rb_add_gtest(reverblabr-rt-test
 )
 set_target_properties(reverblabr-rt-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
+# The Model block and what it shares with its host, where the build has them.
+if(RB_BUILD_MODEL_BLOCK)
+    rb_add_gtest(reverblabr-model-test
+        LAYER model
+        SOURCES
+            graph/testblocks.cpp
+            graph/testblocks.h
+            model/onnxbytes.cpp
+            model/onnxbytes.h
+            model/test_modelblock.cpp
+            model/test_modelfolder.cpp
+        LIBRARIES
+            reverblabr-blocks
+            reverblabr-modelproto
+            reverblabr-dsp-testkit
+    )
+    target_include_directories(reverblabr-model-test PRIVATE graph model)
+    target_compile_definitions(reverblabr-model-test PRIVATE
+        RB_TEST_MODEL_HOST="$<TARGET_FILE:reverblabr-model-host>"
+    )
+    add_dependencies(reverblabr-model-test reverblabr-model-host)
+endif()
+
 rb_add_gtest(reverblabr-blocks-test
     LAYER blocks
     SOURCES

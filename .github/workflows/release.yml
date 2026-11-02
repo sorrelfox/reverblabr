@@ -82,7 +82,7 @@ jobs:
         working-directory: src
         run: |
           version=$(head -n 1 VERSION | tr -d '[:space:]')
-          for program in reverblabrd reverblabr-ctl reverblabr-plugin-host; do
+          for program in reverblabrd reverblabr-ctl reverblabr-plugin-host reverblabr-model-host; do
             answer=$(build/release/bin/$program --version | head -n 1)
             echo "$program: $answer"
             [ "${answer##* }" = "$version" ] || { echo "::error::$program says \"$answer\", the release is $version"; exit 1; }

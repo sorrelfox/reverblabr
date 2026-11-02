@@ -143,6 +143,9 @@ QtObject {
 
     /// The FIR Filter panel: a file to choose, and what the running
     /// block made of it, which no generated panel could show.
+    readonly property Component model: Component {
+        ModelPanel {}
+    }
     readonly property Component firFilter: Component {
         FirFilterPanel {}
     }
@@ -350,6 +353,7 @@ QtObject {
         "hearing.compensation64": panels.hearingCompensation64,
         "advanced.denoise": panels.denoise,
         "advanced.ducking": panels.ducking,
+        "effect.model": panels.model,
         "advanced.firfilter": panels.firFilter,
         "advanced.inputswitch": panels.inputSwitch,
         "advanced.mixer": panels.mixer,

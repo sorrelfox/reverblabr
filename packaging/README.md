@@ -75,6 +75,8 @@ The widget talks to the background engine, so it is no use without it. A package
 
 `reverblabr-plugin-host`, in the libexec folder (`/usr/libexec/` on Fedora), runs each plugin in a process of its own ([ADR-0014](../docs/adr/0014-plugin-host-process.md)) and describes plugins for the library. LV2 and LADSPA plugins are always hosted. **CLAP and VST3 plugins** are hosted when the build finds their SDKs: the CLAP SDK (`clap-devel`), and the VST3 SDK's interface headers, 3.8 or later (`vst3sdk-devel`; [ADR-0028](../docs/adr/0028-vst3-hosting.md)). Both are headers only, so the package needs neither at run time. `-DRB_BUILD_VST3=ON` makes the VST3 SDK a requirement, which a package should set: an SDK older than 3.8 is not under the MIT licence and is not used. A package description that names VST3 should say that VST is a registered trademark of Steinberg Media Technologies GmbH.
 
+`reverblabr-model-host`, in the same folder, runs a Model block's model in a process of its own ([ADR-0031](../docs/adr/0031-model-block.md)). It is built when the build finds ONNX Runtime (`onnxruntime-devel`), and it is the only program that links it. `-DRB_BUILD_MODEL_BLOCK=ON` makes ONNX Runtime a requirement. No model is packaged.
+
 ## The all-users helper
 
 Built when KF6Auth is found. Its four files are the `authhelper` install component, listed in [docs/development.md](../docs/development.md#trying-the-all-users-helper). They are what lets Reverblabr make virtual devices for every user after asking for an administrator's password.

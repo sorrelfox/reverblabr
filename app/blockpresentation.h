@@ -84,6 +84,14 @@ namespace blockPresentation
 /// The longer form, for the library's tooltip. At most two sentences.
 [[nodiscard]] QString tooltip(const QString &typeId);
 
+/// Whether the block is still being debugged. The one flag for it, on the
+/// block's row: its badge, its card's line, its tooltip and its help page
+/// follow from this.
+[[nodiscard]] bool isBeta(const QString &typeId);
+
+/// What such a block says of itself.
+[[nodiscard]] QString betaNote();
+
 /// The category the block belongs to, by the engine's stable name
 /// ("sources", "effects", …), which is also what the tint follows.
 [[nodiscard]] QString category(const QString &typeId);
@@ -132,6 +140,9 @@ public:
     [[nodiscard]] Q_INVOKABLE QString name(const QString &typeId) const;
     [[nodiscard]] Q_INVOKABLE QString description(const QString &typeId) const;
     [[nodiscard]] Q_INVOKABLE QString tooltip(const QString &typeId) const;
+    /// Whether the block is still being debugged, and what it then says.
+    [[nodiscard]] Q_INVOKABLE bool isBeta(const QString &typeId) const;
+    [[nodiscard]] Q_INVOKABLE QString betaNote() const;
     [[nodiscard]] Q_INVOKABLE QString category(const QString &typeId) const;
     [[nodiscard]] Q_INVOKABLE QUrl icon(const QString &typeId) const;
 };

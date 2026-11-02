@@ -78,6 +78,18 @@ add_executable(reverblabr-pw-session-test
     ${CMAKE_CURRENT_SOURCE_DIR}/../unit/pw/sessionblocks.cpp
 )
 pkg_check_modules(RB_PW_TEST_SNDFILE REQUIRED IMPORTED_TARGET sndfile)
+# The Model block in a running session, where the build has it (ADR-0031).
+if(RB_BUILD_MODEL_BLOCK)
+    target_sources(reverblabr-pw-session-test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../unit/model/onnxbytes.cpp
+    )
+    target_include_directories(reverblabr-pw-session-test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../unit/model)
+    target_compile_definitions(reverblabr-pw-session-test PRIVATE
+        RB_HAVE_MODEL_BLOCK
+        RB_MODEL_HOST="$<TARGET_FILE:reverblabr-model-host>"
+    )
+    add_dependencies(reverblabr-pw-session-test reverblabr-model-host)
+endif()
 # The Speech Denoise scenario, where the build has the block (ADR-0016).
 if(RB_BUILD_SPEECH_DENOISE)
     target_compile_definitions(reverblabr-pw-session-test PRIVATE RB_HAVE_RNNOISE)
@@ -180,6 +192,11 @@ set_tests_properties(pw.recording PROPERTIES TIMEOUT 300)
 add_test(NAME pw.plugin-sessions COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test>
          --gtest_filter=PluginSessions.*)
 set_tests_properties(pw.plugin-sessions PROPERTIES TIMEOUT 300)
+if(RB_BUILD_MODEL_BLOCK)
+    add_test(NAME pw.model-sessions COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test>
+             --gtest_filter=ModelSessions.*)
+    set_tests_properties(pw.model-sessions PROPERTIES TIMEOUT 120)
+endif()
 
 # Listening to a recording beside a running session.
 add_test(NAME pw.preview COMMAND ${RB_PW_HARNESS} $<TARGET_FILE:reverblabr-pw-session-test>

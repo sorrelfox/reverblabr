@@ -37,7 +37,7 @@ echo "Installed reverblabr $version"
 # The window needs a display for nothing but its window; --version answers
 # before it opens one.
 export QT_QPA_PLATFORM=offscreen
-for program in reverblabr reverblabrd reverblabr-ctl /usr/libexec/reverblabr-plugin-host; do
+for program in reverblabr reverblabrd reverblabr-ctl /usr/libexec/reverblabr-plugin-host /usr/libexec/reverblabr-model-host; do
     answer=$("$program" --version 2>/dev/null | head -n 1)
     echo "$program: $answer"
     [ "${answer##* }" = "$version" ] || die "$program says \"$answer\", the package is $version"
@@ -50,6 +50,7 @@ expected=(
     /usr/bin/reverblabrd
     /usr/bin/reverblabr-ctl
     /usr/libexec/reverblabr-plugin-host
+    /usr/libexec/reverblabr-model-host
     /usr/share/applications/io.github.reverblabr.Reverblabr.desktop
     /usr/share/metainfo/io.github.reverblabr.Reverblabr.metainfo.xml
     /usr/share/icons/hicolor/scalable/apps/io.github.reverblabr.Reverblabr.svg

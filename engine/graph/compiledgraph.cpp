@@ -97,7 +97,9 @@ struct CompiledGraph::Plan {
         ///
         /// It is the *block* that says which it is
         /// (`BlockInfo::inputsFromAudioSystem`, `::outputsToAudioSystem`),
-        /// not the category it is listed under.
+        /// not the category it is listed under. A block in the middle of a
+        /// lane can say it too (`BlockInfo::silentWhenOff`): one whose output
+        /// must only ever be its own.
         bool dryIsSilence = false;
         /// **The lanes a dry signal is folded from**. A block that
         /// takes more than one signal — a voice and the music it ducks — is
@@ -389,7 +391,7 @@ std::expected<CompiledGraph, GraphError> CompiledGraph::compile(const GraphSpec 
         internal.fadeToDry = !node.enabled;
         // **The block says which end of a lane it is at**, not the category
         // it is listed under.
-        internal.dryIsSilence = info.inputsFromAudioSystem || info.outputsToAudioSystem;
+        internal.dryIsSilence = info.inputsFromAudioSystem || info.outputsToAudioSystem || info.silentWhenOff;
         internal.kind = internal.crossfade > 0 ? StepKind::Crossfade
             : node.enabled                     ? StepKind::Block
                                                : StepKind::Passthrough;

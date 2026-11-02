@@ -18,6 +18,10 @@
 #include "blocks/applicationsource.h"
 #include "blocks/builtinblocks.h"
 #include "blocks/inputdevice.h"
+#ifdef RB_HAVE_MODEL_BLOCK
+#include "blocks/modelblock.h"
+#include "onnxbytes.h"
+#endif
 #include "blocks/outputdevice.h"
 #include "blocks/peakrmsmeter.h"
 #include "blocks/pluginblock.h"
@@ -51,6 +55,8 @@
 #include <csignal>
 #include <cstdio>
 #include <filesystem>
+#include <format>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -917,6 +923,172 @@ TEST_F(PluginSessions, AKilledHostIsLinkedAroundWithin100MsAndTheSessionRunsOn)
     EXPECT_EQ(runtime.pluginHealth(u"p"_s), PluginHealth::Crashed);
     runtime.stop();
 }
+
+#ifdef RB_HAVE_MODEL_BLOCK
+
+namespace
+{
+
+/// The Model block in a real session: nothing but the model's answer leaves
+/// it, however the graph is run (ADR-0031).
+class ModelSessions : public PluginSessions
+{
+protected:
+    void SetUp() override
+    {
+        PluginSessions::SetUp();
+        qputenv("REVERBLABR_MODEL_HOST", RB_MODEL_HOST);
+        ASSERT_TRUE(m_folder.isValid());
+        std::ofstream(m_folder.filePath(u"model.onnx"_s).toStdString(), std::ios::binary) << test::gainModel(0.5f, 480);
+        std::ofstream(m_folder.filePath(u"reverblabr-model.json"_s).toStdString())
+            << R"({"format": 1, "file": "model.onnx", "sampleRate": 48000, "channels": 1, "frameSize": 480,
+                  "input": "audio", "output": "out"})";
+    }
+
+    /// A session with a Model block between the two devices.
+    [[nodiscard]] Session modelSession(const QString &folder) const
+    {
+        SessionBuilder builder;
+        builder.wire(u"m"_s, u"out"_s).wire(u"in"_s, u"m"_s);
+        Session session = builder.session();
+        BlockInstance model;
+        model.id = u"m"_s;
+        model.type = typeOf(blocks::ModelBlock::kTypeId);
+        model.params = QJsonObject{{"folder"_L1, folder}};
+        session.blocks.append(model);
+        return session;
+    }
+
+    /// The model host of this process, or -1. There is one in these tests.
+    [[nodiscard]] static int modelHost()
+    {
+        std::error_code ignored;
+        for (const auto &task : std::filesystem::directory_iterator("/proc/self/task", ignored)) {
+            std::ifstream children(task.path() / "children");
+            int pid = 0;
+            while (children >> pid) {
+                std::ifstream name(std::format("/proc/{}/comm", pid));
+                std::string comm;
+                name >> comm;
+                if (comm.starts_with("reverblabr-mode")) {
+                    return pid;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /// Sound through the model, as the output hears it.
+    void waitForSound()
+    {
+        ASSERT_TRUE(m_pump->pumpUntil([this] { return modelHost() > 0; }, 5s));
+        ASSERT_TRUE(m_pump->pumpUntil([this] { return m_sound->listen(*m_pump, 100ms).heard() > 0; }, 10s))
+            << "the model's answer never reached the output\n"
+            << dumpGraph();
+    }
+
+    QTemporaryDir m_folder;
+};
+
+} // namespace
+
+TEST_F(ModelSessions, WithNoModelNothingReachesTheOutput)
+{
+    SessionRuntime runtime(m_pump->connection(), m_pump->mirror(), m_registry);
+    ASSERT_TRUE(m_pump->waitUntilReady());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kInput)).has_value());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kOutput)).has_value());
+    ASSERT_TRUE(runtime.start(modelSession({})).has_value());
+    ASSERT_TRUE(m_pump->pumpUntil([this] { return m_sound->counts().silent > 50; }));
+    m_pump->pump(200ms);
+    const Devices::Heard heard = m_sound->listen(*m_pump, 500ms);
+    EXPECT_EQ(heard.heard(), 0U);
+    EXPECT_GT(heard.silent, 10U);
+    runtime.stop();
+}
+
+TEST_F(ModelSessions, SwitchedOffNothingReachesTheOutputAndBackOnTheModelIsHeard)
+{
+    SessionRuntime runtime(m_pump->connection(), m_pump->mirror(), m_registry);
+    Session session = modelSession(m_folder.path());
+    ASSERT_TRUE(m_pump->waitUntilReady());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kInput)).has_value());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kOutput)).has_value());
+    ASSERT_TRUE(runtime.start(session).has_value());
+    waitForSound();
+
+    for (BlockInstance &block : session.blocks) {
+        if (block.id == u"m"_s) {
+            block.enabled = false;
+        }
+    }
+    ASSERT_TRUE(runtime.update(session).has_value());
+    m_pump->pump(300ms);
+    const Devices::Heard off = m_sound->listen(*m_pump, 500ms);
+    EXPECT_EQ(off.heard(), 0U) << "the input came round a block that was switched off";
+    EXPECT_GT(off.silent, 10U);
+
+    for (BlockInstance &block : session.blocks) {
+        if (block.id == u"m"_s) {
+            block.enabled = true;
+        }
+    }
+    ASSERT_TRUE(runtime.update(session).has_value());
+    waitForSound();
+    runtime.stop();
+}
+
+TEST_F(ModelSessions, AHostKilledInASessionIsSilenceAndTheSessionRunsOn)
+{
+    SessionRuntime runtime(m_pump->connection(), m_pump->mirror(), m_registry);
+    const Session session = modelSession(m_folder.path());
+    ASSERT_TRUE(m_pump->waitUntilReady());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kInput)).has_value());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kOutput)).has_value());
+    ASSERT_TRUE(runtime.start(session).has_value());
+    forceQuantum(256);
+    m_pump->pump(300ms);
+    waitForSound();
+
+    ASSERT_TRUE(signalProcess(modelHost(), SIGKILL));
+    // What the model had already made, and the fade, go first. A new host
+    // comes half a second after the kill.
+    m_pump->pump(120ms);
+    const Devices::Heard gone = m_sound->listen(*m_pump, 250ms);
+    EXPECT_EQ(gone.heard(), 0U) << "something came out with no model to make it";
+    EXPECT_GT(gone.silent, 10U) << "the session stopped";
+
+    waitForSound();
+    EXPECT_NE(runtime.nodes().size(), 0U);
+    runtime.stop();
+}
+
+TEST_F(ModelSessions, ALaneAroundTheBlockGoesOnThroughItsSilence)
+{
+    SessionRuntime runtime(m_pump->connection(), m_pump->mirror(), m_registry);
+    Session session = modelSession(m_folder.path());
+    for (std::uint32_t channel = 0; channel < 2; ++channel) {
+        Wire around;
+        around.fromBlock = u"in"_s;
+        around.fromPort = channel;
+        around.toBlock = u"out"_s;
+        around.toPort = channel;
+        session.wires.append(around);
+    }
+    ASSERT_TRUE(m_pump->waitUntilReady());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kInput)).has_value());
+    ASSERT_TRUE(m_pump->awaitNode(QString::fromLatin1(kOutput)).has_value());
+    ASSERT_TRUE(runtime.start(session).has_value());
+    waitForSound();
+    ASSERT_TRUE(signalProcess(modelHost(), SIGKILL));
+    m_pump->pump(120ms);
+    const Devices::Heard around = m_sound->listen(*m_pump, 250ms);
+    EXPECT_GT(around.heard(), 5U) << "the other lane stopped with the model";
+    EXPECT_EQ(around.silent, 0U);
+    runtime.stop();
+}
+
+#endif
 
 TEST_F(PluginSessions, AStoppedHostIsLinkedAroundWithin100MsAndKilled)
 {

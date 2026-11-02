@@ -65,6 +65,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/AutoLevelState.qml
     qml/AutoLevelWords.qml
     qml/BalanceHelp.qml
+    qml/BetaBadge.qml
+    qml/BetaNote.qml
     qml/BassTrebleFace.qml
     qml/BassTrebleHelp.qml
     qml/BassTreblePanel.qml
@@ -180,6 +182,10 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/MixerPanel.qml
     qml/MixerStrip.qml
     qml/Main.qml
+    qml/ModelFace.qml
+    qml/ModelHelp.qml
+    qml/ModelPanel.qml
+    qml/ModelState.qml
     qml/MonoEnhancerFace.qml
     qml/MonoEnhancerHelp.qml
     qml/MonoEnhancerPanel.qml
@@ -376,6 +382,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/effect.lowpass.svg
     icons/effect.monoenhancer.svg
     icons/effect.multibandcompressor.svg
+    icons/effect.model.svg
     icons/effect.pan.svg
     icons/effect.pitchshift.svg
     icons/effect.reverb.svg
@@ -528,6 +535,8 @@ target_sources(reverblabr-ui PRIVATE
     recordinglist.h
     recordingpreview.cpp
     recordingpreview.h
+    modelfolderreader.cpp
+    modelfolderreader.h
     recordingstatus.cpp
     recordingstatus.h
     broadcaststatus.cpp
@@ -620,6 +629,11 @@ if(RB_BUILD_AUTH_HELPER)
     target_link_libraries(reverblabr-ui PRIVATE KF6::AuthCore)
 endif()
 target_compile_definitions(reverblabr-ui PRIVATE REVERBLABR_KAUTH=$<BOOL:${RB_BUILD_AUTH_HELPER}>)
+# Where the program is that reads a Model block's folder (ADR-0031).
+target_compile_definitions(reverblabr-ui PRIVATE
+    RB_MODEL_HOST_INSTALLED="${KDE_INSTALL_FULL_LIBEXECDIR}/reverblabr-model-host"
+    RB_MODEL_HOST_BUILT="$<$<BOOL:${RB_BUILD_MODEL_BLOCK}>:$<TARGET_FILE:reverblabr-model-host>>"
+)
 if(TARGET Qt6::WaylandClientPrivate)
     target_link_libraries(reverblabr-ui PRIVATE Qt6::WaylandClientPrivate)
     target_compile_definitions(reverblabr-ui PRIVATE REVERBLABR_WAYLAND_WINDOW_MENU=1)

@@ -109,6 +109,7 @@ check required "soxr" "$(pkg-config --modversion soxr 2>/dev/null)" "0.1.3"
 # Speech Denoise (ADR-0016). Optional: Kubuntu 26.04 has no package,
 # and a build without it leaves that one block out.
 check optional "RNNoise (Speech Denoise)" "$(pkg-config --modversion rnnoise 2>/dev/null)" "0.2"
+check optional "ONNX Runtime (Model block)" "$(pkg-config --modversion libonnxruntime 2>/dev/null)" "1.20"
 # A recording's tags.
 check required "TagLib" "$(pkg-config --modversion taglib 2>/dev/null)" "2.0"
 # Pitch Shift: SoundTouch. 2.1 has the settings the block sets.

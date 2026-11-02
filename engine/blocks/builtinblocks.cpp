@@ -49,6 +49,9 @@
 #include "blocks/recorder.h"
 #include "blocks/reverb.h"
 #include "blocks/simplecompressor.h"
+#ifdef RB_HAVE_MODEL_BLOCK
+#include "blocks/modelblock.h"
+#endif
 #ifdef RB_HAVE_RNNOISE
 #include "blocks/speechdenoise.h"
 #endif
@@ -138,6 +141,10 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
 #ifdef RB_HAVE_LIVESTREAM
     // Where the build can draw its picture and keep its key (ADR-0027).
     all = all && registry.add(std::string{LiveStream::kTypeId}, &LiveStream::make).has_value();
+#endif
+#ifdef RB_HAVE_MODEL_BLOCK
+    // Where the build has its host, and ONNX Runtime for it (ADR-0031).
+    all = all && registry.add(std::string{ModelBlock::kTypeId}, &ModelBlock::make).has_value();
 #endif
 #ifdef RB_HAVE_RNNOISE
     // Where the distribution has RNNoise (ADR-0016).

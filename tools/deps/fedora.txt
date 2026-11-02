@@ -65,6 +65,8 @@ libsndfile-devel
 soxr-devel
 # Speech Denoise (ADR-0016). Optional: without it that block is left out.
 rnnoise-devel
+# Optional: the Model block's host runs models through ONNX Runtime
+onnxruntime-devel
 # The floating label over other programs (ADR-0030). Optional, and read at
 # run time: without it the label is a plain window.
 layer-shell-qt

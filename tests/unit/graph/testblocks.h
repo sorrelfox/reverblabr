@@ -82,6 +82,12 @@ public:
         m_info.latencySamples = samples;
     }
 
+    /// Says nothing but this block's own work may leave it.
+    void setSilentWhenOff(bool silent) noexcept
+    {
+        m_info.silentWhenOff = silent;
+    }
+
     /// The tick every block writes its place in. Reset it before a cycle.
     static int s_tick;
 

@@ -172,6 +172,9 @@ QtObject {
 
     /// The FIR Filter face: the impulse response's file and its
     /// length.
+    readonly property Component model: Component {
+        ModelFace {}
+    }
     readonly property Component firFilter: Component {
         FirFilterFace {}
     }
@@ -336,6 +339,7 @@ QtObject {
         "effect.reverb": faces.reverb,
         "effect.monoenhancer": faces.monoEnhancer,
         "effect.multibandcompressor": faces.multibandCompressor,
+        "effect.model": faces.model,
         "effect.pan": faces.pan,
         "effect.equalizer10": faces.equalizer10,
         "effect.simplecompressor": faces.simpleCompressor,

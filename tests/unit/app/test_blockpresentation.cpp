@@ -244,3 +244,15 @@ TEST(BlockPresentation, QmlSeesTheSameWords)
     EXPECT_EQ(presentation.types(), rb::ui::blockPresentation::types());
     EXPECT_TRUE(presentation.describe(u"effect.somethingLater"_s).isEmpty());
 }
+
+TEST(BlockPresentation, ABlockInBetaSaysSoWhereABlockIsDescribed)
+{
+    using namespace rb::ui::blockPresentation;
+    const QString typeId = u"effect.model"_s;
+    EXPECT_TRUE(isBeta(typeId));
+    EXPECT_TRUE(tooltip(typeId).contains(betaNote()));
+    EXPECT_TRUE(betaNote().startsWith(u"Beta:"_s));
+    EXPECT_TRUE(rb::ui::BlockPresentation{}.describe(typeId).value(u"beta"_s).toBool());
+    EXPECT_FALSE(isBeta(u"effect.volume"_s));
+    EXPECT_FALSE(tooltip(u"effect.volume"_s).contains(betaNote()));
+}

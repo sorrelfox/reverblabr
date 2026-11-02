@@ -126,6 +126,17 @@ pkg_check_modules(SOUNDTOUCH REQUIRED IMPORTED_TARGET soundtouch>=2.1)
 target_link_libraries(reverblabr-blocks PRIVATE PkgConfig::SOUNDTOUCH)
 # Speech Denoise and the voice model run RNNoise (ADR-0016), where the
 # distribution has it. This is the only layer that links it.
+# The Model block (ADR-0031), where the build has its host: only the host
+# links ONNX Runtime, and what this layer needs is the rings and a process.
+if(RB_BUILD_MODEL_BLOCK)
+    target_sources(reverblabr-blocks PRIVATE modelblock.cpp modelblock.h modelhostlink.cpp modelhostlink.h)
+    target_compile_definitions(reverblabr-blocks PUBLIC RB_HAVE_MODEL_BLOCK)
+    target_compile_definitions(reverblabr-blocks PRIVATE
+        RB_MODEL_HOST_INSTALLED="${KDE_INSTALL_FULL_LIBEXECDIR}/reverblabr-model-host"
+        RB_MODEL_HOST_BUILT="$<TARGET_FILE:reverblabr-model-host>"
+    )
+    target_link_libraries(reverblabr-blocks PUBLIC reverblabr-modelproto)
+endif()
 if(RB_BUILD_SPEECH_DENOISE)
     target_sources(reverblabr-blocks PRIVATE speechdenoise.cpp speechdenoise.h)
     target_compile_definitions(reverblabr-blocks PUBLIC RB_HAVE_RNNOISE)

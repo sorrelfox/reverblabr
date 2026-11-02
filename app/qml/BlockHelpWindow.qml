@@ -52,6 +52,7 @@ QQC2.ApplicationWindow {
     readonly property alias column: column
     readonly property alias heading: heading
     readonly property alias summaryLabel: summaryLabel
+    readonly property alias betaLine: betaLine
     readonly property alias sectionList: sectionList
 
     /// The widest a line of text may be: the measure, in the body's own
@@ -214,6 +215,13 @@ QQC2.ApplicationWindow {
                     text: root.page?.summary ?? BlockPresentation.description(root.typeId)
                     font: AppFonts.helpLead
                     color: AppColors.muted
+                    Layout.topMargin: AppMetrics.helpHeadingGap
+                }
+
+                BetaNote {
+                    id: betaLine
+
+                    typeId: root.typeId
                     Layout.topMargin: AppMetrics.helpHeadingGap
                 }
 

@@ -99,6 +99,9 @@ QtObject {
         EqualizerHelp {}
     }
 
+    readonly property Component model: Component {
+        ModelHelp {}
+    }
     readonly property Component firFilter: Component {
         FirFilterHelp {}
     }
@@ -240,6 +243,7 @@ QtObject {
         "advanced.dehum": help.dehum,
         "advanced.denoise": help.denoise,
         "advanced.ducking": help.ducking,
+        "effect.model": help.model,
         "advanced.firfilter": help.firFilter,
         "advanced.inputswitch": help.inputSwitch,
         "advanced.mixer": help.mixer,

@@ -54,6 +54,7 @@ BuildRequires:  pipewire-devel
 BuildRequires:  libsndfile-devel
 BuildRequires:  soxr-devel
 BuildRequires:  rnnoise-devel
+BuildRequires:  onnxruntime-devel
 BuildRequires:  taglib-devel
 BuildRequires:  soundtouch-devel
 BuildRequires:  libavformat-free-devel
@@ -125,7 +126,7 @@ and a command-line tool runs and changes them from a terminal or a script.
 # FFmpeg can use, found at run time (Cisco's openh264, which Fedora installs
 # from Cisco's repository, RPM Fusion's FFmpeg, or a graphics driver), and
 # the block says so when there is none (ADR-0027).
-%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON -DRB_BUILD_BROADCAST=ON -DRB_BUILD_LIVESTREAM=ON -DRB_BUILD_VST3=ON
+%cmake_kf6 -DBUILD_TESTING=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DRB_BUILD_HANDBOOK=ON -DRB_BUILD_BROADCAST=ON -DRB_BUILD_LIVESTREAM=ON -DRB_BUILD_VST3=ON -DRB_BUILD_MODEL_BLOCK=ON
 %cmake_build
 
 
@@ -184,6 +185,7 @@ export QT_QPA_PLATFORM=offscreen
 # The engine, and the plugin host it starts for each plugin
 %{_kf6_bindir}/reverblabrd
 %{_libexecdir}/reverblabr-plugin-host
+%{_libexecdir}/reverblabr-model-host
 %{_userunitdir}/reverblabrd.service
 %{_kf6_datadir}/dbus-1/services/io.github.reverblabr.Engine.service
 %{_kf6_datadir}/krunner/dbusplugins/io.github.reverblabr.Runner.desktop

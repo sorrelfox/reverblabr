@@ -107,6 +107,20 @@ if(NOT RNNOISE_FOUND)
 elseif(NOT RB_BUILD_SPEECH_DENOISE)
     message(STATUS "Speech Denoise will not be built: RB_BUILD_SPEECH_DENOISE is off.")
 endif()
+# **The Model block** (ADR-0031): ONNX Runtime, the distribution's, linked by
+# the block's host and nothing else. Optional, as for RNNoise: a build without
+# it has every other block and no Model in the library.
+pkg_check_modules(ONNXRUNTIME QUIET IMPORTED_TARGET libonnxruntime>=1.20)
+option(RB_BUILD_MODEL_BLOCK "Build the Model block and its host (needs ONNX Runtime 1.20)" ${ONNXRUNTIME_FOUND})
+if(RB_BUILD_MODEL_BLOCK AND NOT ONNXRUNTIME_FOUND)
+    message(FATAL_ERROR "RB_BUILD_MODEL_BLOCK is on, but ONNX Runtime 1.20 was not found (onnxruntime-devel on Fedora)")
+endif()
+add_feature_info(ModelBlock RB_BUILD_MODEL_BLOCK "the Model block, through ONNX Runtime (onnxruntime-devel on Fedora)")
+if(NOT ONNXRUNTIME_FOUND)
+    message(STATUS "The Model block will not be built: ONNX Runtime 1.20 was not found. Every other block is; see ADR-0031.")
+elseif(NOT RB_BUILD_MODEL_BLOCK)
+    message(STATUS "The Model block will not be built: RB_BUILD_MODEL_BLOCK is off.")
+endif()
 # **CLAP plugins**: the CLAP SDK's headers, the distribution's. Optional
 # for the same reason as RNNoise — Fedora packages them (clap-devel) and
 # Kubuntu 26.04 does not — and a build without them has no CLAP block and
@@ -214,6 +228,9 @@ add_subdirectory(dbus)
 add_subdirectory(engine)
 add_subdirectory(helper)
 add_subdirectory(pluginhost)
+if(RB_BUILD_MODEL_BLOCK)
+    add_subdirectory(modelhost)
+endif()
 add_subdirectory(notify)
 add_subdirectory(daemon)
 add_subdirectory(ctl)
@@ -302,6 +319,13 @@ rb_check_layering(
     FORBID qt kf
     REASON "A plugin host starts with every plugin instance: the plugin, PipeWire and the protocol, and nothing else."
 )
+if(RB_BUILD_MODEL_BLOCK)
+    rb_check_layering(
+        TARGETS reverblabr-modelproto reverblabr-model-host
+        FORBID qt kf pipewire
+        REASON "A model host runs one model and reaches the block through shared memory: ONNX Runtime and the protocol, and neither the desktop nor the audio system (ADR-0031)."
+    )
+endif()
 rb_check_layering(
     TARGETS reverblabr-helper-action
     FORBID kf qt-gui pipewire

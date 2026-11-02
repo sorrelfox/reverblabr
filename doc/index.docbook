@@ -743,6 +743,22 @@ fall between samples, and shows how hard it is working.</para>
 octave.</para>
 </sect2>
 
+<sect2 id="block-effect-model">
+<title>Model</title>
+<para>Beta: this block is still being debugged and may contain bugs. It is
+not yet fully tested.</para>
+<para>Runs the sound through a trained model from a folder you choose, in a
+process of its own, so a slow or crashing model cannot stop the session.
+Reverblabr includes no models and never downloads one. The folder's
+<filename>reverblabr-model.json</filename> says how to call a model, or the
+block recognises a streaming DeepFilterNet by its inputs.</para>
+<para>Sound only leaves this block after the model has processed it. In every
+other case the block is silent and nothing reaches the next block: when it is
+switched off, with no model, while one loads, when it cannot be loaded, when
+the model falls behind, when its process crashes, hangs or restarts, and when
+it gives back something that is not sound. The card says why.</para>
+</sect2>
+
 <sect2 id="block-effect-monoenhancer">
 <title>Mono Enhancer</title>
 <para>Gives a mono recording some width above a frequency you choose, keeps

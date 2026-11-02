@@ -159,6 +159,13 @@ struct BlockInfo {
     /// round.
     bool streamsAudio = false;
 
+    /// **Nothing but the block's own work may leave it.** A block with a
+    /// connector on both sides is passed through when it is switched off;
+    /// one that says this is silenced instead, and the fade runs to silence,
+    /// as for a source. For a block whose output is a promise about what the
+    /// sound went through: what comes out has been through it, or nothing does.
+    bool silentWhenOff = false;
+
     /// What the block can do to a peak (GainReach).
     GainReach gainReach = GainReach::Adds;
 };
