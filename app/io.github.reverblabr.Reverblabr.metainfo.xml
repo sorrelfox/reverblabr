@@ -100,7 +100,7 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
-    <release version="0.1.0" date="2026-09-29" type="development">
+    <release version="0.84.3" date="2026-11-02" type="development">
       <description>
         <p>The first version, not yet released. It has:</p>
         <ul>
