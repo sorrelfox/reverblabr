@@ -60,28 +60,8 @@ file(MAKE_DIRECTORY "${RB_BUS_HOME}/data" "${RB_BUS_HOME}/config" "${RB_BUS_HOME
 # never say so in the desktop's. Only its owner may enter it, as Qt asks.
 file(MAKE_DIRECTORY "${RB_BUS_HOME}/runtime")
 file(CHMOD "${RB_BUS_HOME}/runtime" DIRECTORY_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
-# **A PID namespace of its own, where there is one to be had.** The test
-# kills daemons by pid, and a pid gone wrong (0, -1) signals the process
-# group or every process the user owns: the desktop session. Inside the
-# namespace the test is pid 1 and sees only what it started, so such a kill
-# reaches nothing else. Where unprivileged namespaces are refused (Ubuntu's
-# AppArmor default), the test's own guard on each pid is what is left.
-set(RB_BUS_SANDBOX)
-find_program(RB_UNSHARE unshare)
-if(RB_UNSHARE)
-    set(_rb_unshare_args --user --map-current-user --pid --fork --kill-child --mount-proc)
-    execute_process(COMMAND ${RB_UNSHARE} ${_rb_unshare_args} true
-                    RESULT_VARIABLE _rb_unshare_result OUTPUT_QUIET ERROR_QUIET)
-    if(_rb_unshare_result EQUAL 0)
-        set(RB_BUS_SANDBOX ${RB_UNSHARE} ${_rb_unshare_args})
-    endif()
-endif()
-if(NOT RB_BUS_SANDBOX)
-    message(STATUS "bus.engine runs without a PID namespace of its own; unshare cannot make one here")
-endif()
-
 add_test(NAME bus.engine
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-bus-test>)
 set_tests_properties(bus.engine PROPERTIES
     TIMEOUT 180
@@ -126,13 +106,13 @@ set(_rb_reach_environment
     "HOME=${RB_BUS_HOME};XDG_DATA_HOME=${RB_BUS_HOME}/data;XDG_CONFIG_HOME=${RB_BUS_HOME}/config;XDG_STATE_HOME=${RB_BUS_HOME}/state;XDG_CACHE_HOME=${RB_BUS_HOME}/cache;XDG_RUNTIME_DIR=${RB_BUS_HOME}/runtime;PIPEWIRE_REMOTE=rb-test-no-such-socket")
 # **No bus at all**: an address with nothing behind it, and no
 # dbus-run-session.
-add_test(NAME bus.reach.nobus COMMAND ${RB_BUS_SANDBOX} $<TARGET_FILE:reverblabr-reach-test>)
+add_test(NAME bus.reach.nobus COMMAND ${RB_TEST_SANDBOX} $<TARGET_FILE:reverblabr-reach-test>)
 set_tests_properties(bus.reach.nobus PROPERTIES
     TIMEOUT 60
     ENVIRONMENT "${_rb_reach_environment};RB_REACH_BUS=nobus;DBUS_SESSION_BUS_ADDRESS=unix:path=${RB_REACH_DIR}/no-such-bus")
 foreach(_rb_reach empty refused)
     add_test(NAME bus.reach.${_rb_reach}
-             COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_REACH_DIR}/${_rb_reach}.conf
+             COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_REACH_DIR}/${_rb_reach}.conf
                      -- $<TARGET_FILE:reverblabr-reach-test>)
     set_tests_properties(bus.reach.${_rb_reach} PROPERTIES
         TIMEOUT 60
@@ -140,7 +120,7 @@ foreach(_rb_reach empty refused)
 endforeach()
 # **The daemon just built**, started by the bus bus.engine uses.
 add_test(NAME bus.reach.activated
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-reach-test>)
 set_tests_properties(bus.reach.activated PROPERTIES
     TIMEOUT 60
@@ -162,7 +142,7 @@ set(RB_BUS_NOTIFY_DATA "${CMAKE_CURRENT_BINARY_DIR}/notify-data")
 file(MAKE_DIRECTORY "${RB_BUS_NOTIFY_DATA}/knotifications6")
 configure_file("${PROJECT_SOURCE_DIR}/notify/reverblabr.notifyrc" "${RB_BUS_NOTIFY_DATA}/knotifications6/reverblabr.notifyrc" COPYONLY)
 add_test(NAME bus.notifications
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-notify-bus-test>)
 set_tests_properties(bus.notifications PROPERTIES
     TIMEOUT 120
@@ -186,7 +166,7 @@ target_compile_definitions(reverblabr-tray-bus-test PRIVATE
     RB_APP_ICON_SVG="${PROJECT_SOURCE_DIR}/app/appicon/sc-apps-io.github.reverblabr.Reverblabr.svg")
 add_dependencies(reverblabr-tray-bus-test reverblabr-fake-sni-watcher)
 add_test(NAME bus.tray
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-tray-bus-test>)
 set_tests_properties(bus.tray PROPERTIES
     TIMEOUT 120
@@ -208,7 +188,7 @@ target_compile_definitions(reverblabr-shortcuts-bus-test PRIVATE
     RB_FAKE_KGLOBALACCEL="$<TARGET_FILE:reverblabr-fake-kglobalaccel>")
 add_dependencies(reverblabr-shortcuts-bus-test reverblabr-fake-kglobalaccel)
 add_test(NAME bus.shortcuts
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-shortcuts-bus-test>)
 set_tests_properties(bus.shortcuts PROPERTIES
     TIMEOUT 120
@@ -223,7 +203,7 @@ target_link_libraries(reverblabr-autorun-bus-test PRIVATE
     reverblabr-daemon-core reverblabr-engine reverblabr-blocks Qt6::DBus Qt6::Test GTest::gtest)
 set_target_properties(reverblabr-autorun-bus-test PROPERTIES AUTOMOC ON)
 add_test(NAME bus.autorun
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-autorun-bus-test>)
 set_tests_properties(bus.autorun PROPERTIES
     TIMEOUT 120
@@ -240,7 +220,7 @@ target_link_libraries(reverblabr-timers-bus-test PRIVATE
     reverblabr-daemon-core reverblabr-engine reverblabr-blocks Qt6::DBus Qt6::Test GTest::gtest)
 set_target_properties(reverblabr-timers-bus-test PROPERTIES AUTOMOC ON)
 add_test(NAME bus.timers
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-timers-bus-test>)
 set_tests_properties(bus.timers PROPERTIES
     TIMEOUT 120
@@ -257,7 +237,7 @@ target_link_libraries(reverblabr-launch-bus-test PRIVATE Qt6::DBus GTest::gtest)
 target_compile_definitions(reverblabr-launch-bus-test PRIVATE RB_APP="$<TARGET_FILE:reverblabr>")
 add_dependencies(reverblabr-launch-bus-test reverblabr)
 add_test(NAME bus.launch
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-launch-bus-test>)
 set_tests_properties(bus.launch PROPERTIES
     TIMEOUT 400
@@ -275,7 +255,7 @@ target_link_libraries(reverblabr-krunner-bus-test PRIVATE
 target_compile_definitions(reverblabr-krunner-bus-test PRIVATE RB_DAEMON="$<TARGET_FILE:reverblabrd>")
 add_dependencies(reverblabr-krunner-bus-test reverblabrd)
 add_test(NAME bus.krunner
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-krunner-bus-test>)
 set_tests_properties(bus.krunner PROPERTIES
     TIMEOUT 120
@@ -295,7 +275,7 @@ target_compile_definitions(reverblabr-mpris-bus-test PRIVATE
     RB_FAKE_MPRIS_PLAYER="$<TARGET_FILE:reverblabr-fake-mpris-player>")
 add_dependencies(reverblabr-mpris-bus-test reverblabr-fake-mpris-player)
 add_test(NAME bus.mpris
-         COMMAND ${RB_BUS_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
+         COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-mpris-bus-test>)
 set_tests_properties(bus.mpris PROPERTIES
     TIMEOUT 120

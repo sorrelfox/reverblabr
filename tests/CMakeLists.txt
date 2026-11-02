@@ -27,6 +27,25 @@ set(RB_TEST_VST3_DIR "${CMAKE_CURRENT_BINARY_DIR}/vst3/plugins")
 if(RB_BUILD_VST3)
     add_subdirectory(vst3)
 endif()
+# **A PID namespace of its own, where there is one to be had**, for a test
+# that signals processes by pid. A pid gone wrong (0, -1) signals the process
+# group or every process the user owns: the desktop session. Inside the
+# namespace the test is pid 1 and sees only what it started, so such a kill
+# reaches nothing else. Where unprivileged namespaces are refused (Ubuntu's
+# AppArmor default), the test's own guard on each pid is what is left.
+set(RB_TEST_SANDBOX)
+find_program(RB_UNSHARE unshare)
+if(RB_UNSHARE)
+    set(_rb_unshare_args --user --map-current-user --pid --fork --kill-child --mount-proc)
+    execute_process(COMMAND ${RB_UNSHARE} ${_rb_unshare_args} true
+                    RESULT_VARIABLE _rb_unshare_result OUTPUT_QUIET ERROR_QUIET)
+    if(_rb_unshare_result EQUAL 0)
+        set(RB_TEST_SANDBOX ${RB_UNSHARE} ${_rb_unshare_args})
+    endif()
+endif()
+if(NOT RB_TEST_SANDBOX)
+    message(STATUS "Tests that signal by pid run without a PID namespace; unshare cannot make one here")
+endif()
 add_subdirectory(unit)  # GoogleTest, one executable per engine layer
 add_subdirectory(sanitizers) # checks that the sanitizers catch what they should
 add_subdirectory(qml)   # Qt Quick Test for the QML user interface

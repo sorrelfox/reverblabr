@@ -24,6 +24,7 @@
 #include "testblocks.h"
 
 #include <gtest/gtest.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <chrono>
@@ -50,6 +51,21 @@ namespace
 {
 
 namespace fs = std::filesystem;
+
+/// kill(2) for a host this test started, and nothing else. **A pid of 0 or -1
+/// is not a process**: kill(0) signals the whole process group and kill(-1)
+/// every process the user owns, which is the desktop session. hostPid() is -1
+/// whenever no host is running, and a wait that fails inside a helper does not
+/// end the test, so a host that never came up gets here. Anything but an
+/// ordinary pid of another process is a failed test, never a signal.
+[[nodiscard]] bool signalHost(int pid, int signal)
+{
+    if (pid <= 1 || pid == ::getpid()) {
+        ADD_FAILURE() << "refusing to signal pid " << pid;
+        return false;
+    }
+    return ::kill(pid, signal) == 0;
+}
 
 constexpr double kRate = 48000.0;
 constexpr std::uint32_t kHop = 480;
@@ -579,7 +595,7 @@ TEST_F(ModelBlockTest, ACycleTakesNoMemory)
         driven.block.process(context);
     }
     // And with the host gone, which is another way through.
-    ::kill(driven.block.hostPid(), SIGKILL);
+    ASSERT_TRUE(signalHost(driven.block.hostPid(), SIGKILL));
     for (int cycle = 0; cycle < 400; ++cycle) {
         const NoAllocations realTime;
         driven.block.process(context);
@@ -662,7 +678,7 @@ TEST_F(ModelBlockTest, WhileItLoadsNothingLeaves)
     Driven driven(folder.path());
     // Hold the host where it is: a load that has not ended.
     ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.hostPid() > 0; }));
-    ::kill(driven.block.hostPid(), SIGSTOP);
+    ASSERT_TRUE(signalHost(driven.block.hostPid(), SIGSTOP));
     driven.paced(sine(9600, 997.0, kRate, 0.5f), 256);
     EXPECT_NE(driven.block.state(), ModelBlock::Running);
     // If the load got as far as the rings, this is a host that stopped, and
@@ -670,7 +686,10 @@ TEST_F(ModelBlockTest, WhileItLoadsNothingLeaves)
     driven.forget();
     driven.paced(sine(9600, 997.0, kRate, 0.5f), 256);
     driven.expectSilence();
-    ::kill(driven.block.hostPid(), SIGCONT);
+    // Unless it was ended for standing still: then there is none to wake.
+    if (const int host = driven.block.hostPid(); host > 0) {
+        (void)signalHost(host, SIGCONT);
+    }
 }
 
 TEST_F(ModelBlockTest, AModelTooSlowLeavesNothingAndSaysSo)
@@ -710,7 +729,7 @@ TEST_F(ModelBlockTest, AMissedDeadlineIsSilenceAndNotTheInput)
     Driven driven(folder.path());
     driven.waitUntilRunning();
     const int host = driven.block.hostPid();
-    ::kill(host, SIGSTOP);
+    ASSERT_TRUE(signalHost(host, SIGSTOP));
     driven.forget();
     const Signal tone = sine(9600, 997.0, kRate, 1.0f);
     driven.paced(tone, 256);
@@ -720,7 +739,7 @@ TEST_F(ModelBlockTest, AMissedDeadlineIsSilenceAndNotTheInput)
     for (const float sample : driven.heard[0]) {
         ASSERT_LE(std::abs(sample), 0.5001f);
     }
-    ::kill(host, SIGCONT);
+    (void)signalHost(host, SIGCONT);
     // It comes back, by itself.
     ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::Running; }));
 }
@@ -746,7 +765,7 @@ TEST_F(ModelBlockTest, AHostThatIsKilledLeavesSilenceAndNoClick)
     driven.forget();
     const Signal before = sine(4864, 200.0, kRate, 0.5f);
     driven.lockStep(before, 256);
-    ::kill(driven.block.hostPid(), SIGKILL);
+    ASSERT_TRUE(signalHost(driven.block.hostPid(), SIGKILL));
     // The tone goes on going in, and on through the rest of what was made.
     const Signal after =
         sine(14400, 200.0, kRate, 0.5f, static_cast<float>(2.0 * std::numbers::pi * 200.0 * 4864.0 / kRate));
@@ -771,7 +790,7 @@ TEST_F(ModelBlockTest, AHostThatIsKilledIsStartedAgain)
     Driven driven(folder.path());
     driven.waitUntilRunning();
     const int first = driven.block.hostPid();
-    ::kill(first, SIGKILL);
+    ASSERT_TRUE(signalHost(first, SIGKILL));
     ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::Restarting; }));
     // Silent through the restart, once the last of the sound has gone.
     driven.forget();
@@ -793,7 +812,7 @@ TEST_F(ModelBlockTest, AHostThatKeepsCrashingIsLeftAloneAndSilentUntilAskedToTry
     Driven driven(folder.path());
     for (int crash = 0; crash < 3; ++crash) {
         ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::Running; }));
-        ::kill(driven.block.hostPid(), SIGKILL);
+        ASSERT_TRUE(signalHost(driven.block.hostPid(), SIGKILL));
         ASSERT_TRUE(driven.toneUntil([&driven] {
             return driven.block.state() == ModelBlock::Restarting || driven.block.state() == ModelBlock::Failed;
         }));
@@ -971,7 +990,7 @@ TEST_F(ModelBlockTest, AHostKilledUnderTheGraphLeavesTheNextBlockSilent)
     graph::CompiledGraph running = chain.compile(true);
     (void)chain.run(running, 200);
     const int host = chain.driven.block.hostPid();
-    ::kill(host, SIGKILL);
+    ASSERT_TRUE(signalHost(host, SIGKILL));
     Signal heard;
     // Up to the moment another host is started, when sound may come back.
     while (heard.size() < 38400 && (chain.driven.block.hostPid() == host || chain.driven.block.hostPid() == -1)) {

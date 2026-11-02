@@ -36,9 +36,13 @@ set(RB_TEST_ENVIRONMENT
 string(REPLACE ";" "\\;" RB_TEST_ENVIRONMENT_ESCAPED "${RB_TEST_ENVIRONMENT}")
 
 function(rb_add_gtest target)
-    cmake_parse_arguments(PARSE_ARGV 1 arg "" "LAYER" "SOURCES;LIBRARIES")
+    cmake_parse_arguments(PARSE_ARGV 1 arg "SANDBOX" "LAYER" "SOURCES;LIBRARIES")
     add_executable(${target} ${arg_SOURCES})
     target_link_libraries(${target} PRIVATE ${arg_LIBRARIES} GTest::gtest_main)
+    if(arg_SANDBOX AND RB_TEST_SANDBOX)
+        # For a test that signals processes by pid: see tests/CMakeLists.txt.
+        set_property(TARGET ${target} PROPERTY TEST_LAUNCHER ${RB_TEST_SANDBOX})
+    endif()
     gtest_discover_tests(${target}
         TEST_PREFIX "${arg_LAYER}."
         DISCOVERY_MODE PRE_TEST
@@ -122,6 +126,7 @@ set_target_properties(reverblabr-rt-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 if(RB_BUILD_MODEL_BLOCK)
     rb_add_gtest(reverblabr-model-test
         LAYER model
+        SANDBOX
         SOURCES
             graph/testblocks.cpp
             graph/testblocks.h
