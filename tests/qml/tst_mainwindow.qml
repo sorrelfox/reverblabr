@@ -11,6 +11,7 @@
 // something a person has to look at.
 
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtTest
 import org.kde.kirigami as Kirigami
 import io.github.reverblabr
@@ -25,6 +26,25 @@ TestCase {
     readonly property int noticeMs: 250
 
     Component {
+        id: spaceButton
+
+        QQC2.Button {
+            property int count: 0
+
+            text: "Pressed"
+            onClicked: ++count
+        }
+    }
+
+    Component {
+        id: spaceBox
+
+        QQC2.ComboBox {
+            model: ["one", "two"]
+        }
+    }
+
+    Component {
         id: mainWindow
 
         Main {}
@@ -36,6 +56,39 @@ TestCase {
         SignalSpy {
             signalName: "triggered"
         }
+    }
+
+    // **Space belongs to the control that has the keyboard.** The window's Run
+    // takes it everywhere else, and a shortcut goes first unless told not to.
+    function test_spaceOnAButtonPressesItAndNotRun() {
+        const window = createTemporaryObject(mainWindow, testCase);
+        tryVerify(() => AppShell.hasSession, 2000);
+        window.requestActivate();
+        tryVerify(() => window.active, 1000);
+        const running = AppShell.running;
+        const pressed = createTemporaryObject(spaceButton, window.contentItem);
+        pressed.forceActiveFocus();
+        tryVerify(() => pressed.activeFocus, 1000, "the button never had the keyboard");
+        keyClick(Qt.Key_Space);
+        compare(pressed.count, 1, "Space did not press the button");
+        wait(50);
+        compare(AppShell.running, running, "Space ran the session from a button");
+
+        const box = createTemporaryObject(spaceBox, window.contentItem);
+        box.forceActiveFocus();
+        tryVerify(() => box.activeFocus, 1000);
+        keyClick(Qt.Key_Space);
+        tryVerify(() => box.popup.opened, 1000, "Space did not open the box");
+        wait(50);
+        compare(AppShell.running, running, "Space ran the session from a box");
+        box.popup.close();
+
+        window.sessionCanvas.forceActiveFocus();
+        tryVerify(() => window.sessionCanvas.activeFocus, 1000);
+        keyClick(Qt.Key_Space);
+        tryVerify(() => AppShell.running !== running, 2000, "Space no longer runs the session from the canvas");
+        keyClick(Qt.Key_Space);
+        tryVerify(() => AppShell.running === running, 2000);
     }
 
     function test_createsTranslatedWindow() {

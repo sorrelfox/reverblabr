@@ -12,6 +12,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs as QtDialogs
 import QtQuick.Layouts
+import QtQuick.Templates as T
 import org.kde.kirigami as Kirigami
 import org.kde.ki18n
 
@@ -307,7 +308,10 @@ QQC2.ApplicationWindow {
             : KI18n.i18nc("@action start the session", "Run")
         icon.name: AppShell.running ? "media-playback-stop" : "media-playback-start"
         enabled: AppShell.hasSession && !AppShell.busy
-        shortcut: "Space"
+        // **A shortcut goes before the control that has the keyboard**, so on
+        // a button or a box Space would run the session instead of pressing it.
+        shortcut: root.activeFocusItem instanceof T.AbstractButton || root.activeFocusItem instanceof T.ComboBox
+            ? "" : "Space"
         onTriggered: AppShell.toggleRun()
     }
 
