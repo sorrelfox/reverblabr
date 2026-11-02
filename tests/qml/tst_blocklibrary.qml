@@ -210,6 +210,31 @@ TestCase {
                "the table knows about more blocks than this build has");
     }
 
+    // What a pointer lights up behind a heading is a bar, and the heading's
+    // words stand in the middle of it, in either appearance. The gap over a
+    // heading is outside the bar.
+    function test_aHeadingsWordsStandInTheMiddleOfItsBar_data() {
+        return [
+            { tag: "Reverblabr", mode: Appearance.ReverblabrDark },
+            { tag: "system", mode: Appearance.FollowSystem },
+        ];
+    }
+
+    function test_aHeadingsWordsStandInTheMiddleOfItsBar(data) {
+        Appearance.mode = data.mode;
+        const window = createTemporaryObject(libraryWindow, testCase);
+        waitForRendering(window.contentItem);
+        const row = testCase.rowForCategory(window.library, "sources");
+        verify(row, "the heading is there");
+        const bar = row.background;
+        verify(bar, "a heading has a bar");
+        const words = row.topPadding + row.contentItem.height / 2;
+        const middle = bar.y + bar.height / 2;
+        const off = Math.abs(words - middle);
+        Appearance.mode = SuiteAppearance;
+        verify(off <= 1, "the words are " + off + " px from the middle of the bar");
+    }
+
     function test_aBlockSetUpIsARowOfItsOwn() {
         const library = testCase.openLibrary();
         const id = "effect.autolevel?preset=voiceEvener";

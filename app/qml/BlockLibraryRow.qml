@@ -82,6 +82,13 @@ QQC2.ItemDelegate {
         when: !AppMetrics.followsSystem && row.isHeading
         value: AppMetrics.smallSpacing
     }
+    // **The space over a heading is a gap, not part of its bar**: what is
+    // drawn behind it on hover starts below that gap, so the words stand in
+    // the middle of the bar and the lines keep their rhythm.
+    Binding on topInset {
+        when: !AppMetrics.followsSystem && row.isHeading
+        value: row.topPadding - row.bottomPadding
+    }
 
     highlighted: row.ListView.isCurrentItem
 
