@@ -57,9 +57,9 @@ SPDX-License-Identifier: CC0-1.0
 
   <url type="homepage">https://github.com/sorrelfox/reverblabr</url>
   <url type="bugtracker">https://github.com/sorrelfox/reverblabr/issues</url>
-  <url type="help">https://github.com/sorrelfox/reverblabr/blob/main/docs/getting-started.md</url>
+  <url type="help">https://github.com/sorrelfox/reverblabr/blob/dev/docs/getting-started.md</url>
   <url type="vcs-browser">https://github.com/sorrelfox/reverblabr</url>
-  <url type="contribute">https://github.com/sorrelfox/reverblabr/blob/main/CONTRIBUTING.md</url>
+  <url type="contribute">https://github.com/sorrelfox/reverblabr/blob/dev/CONTRIBUTING.md</url>
 
   <launchable type="desktop-id">io.github.reverblabr.Reverblabr.desktop</launchable>
   <provides>

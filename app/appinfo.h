@@ -30,6 +30,14 @@ class AppInfo : public QObject
 
     /// The application's own record, for Kirigami's About page.
     Q_PROPERTY(KAboutData aboutData READ aboutData CONSTANT)
+    /// Where the project lives.
+    Q_PROPERTY(QUrl homepageUrl READ homepageUrl CONSTANT)
+    /// How to take part.
+    Q_PROPERTY(QUrl contributeUrl READ contributeUrl CONSTANT)
+    /// The licence the program is under, in full.
+    Q_PROPERTY(QUrl licenceUrl READ licenceUrl CONSTANT)
+    /// Its name, written out: the record's own `name` is the short form.
+    Q_PROPERTY(QString licenceName READ licenceName CONSTANT)
     /// The handbook, opened by KHelpCenter or whatever handles `help:`.
     Q_PROPERTY(QUrl handbookUrl READ handbookUrl CONSTANT)
     /// Where a bug goes, or an empty URL when this build has nowhere to
@@ -42,8 +50,19 @@ public:
     explicit AppInfo(QObject *parent = nullptr);
 
     [[nodiscard]] KAboutData aboutData() const;
+    [[nodiscard]] QUrl homepageUrl() const;
+    [[nodiscard]] QUrl contributeUrl() const;
+    [[nodiscard]] QUrl licenceUrl() const;
+    [[nodiscard]] QString licenceName() const;
     [[nodiscard]] QUrl handbookUrl() const;
     [[nodiscard]] QUrl bugReportUrl() const;
 };
+
+/// Adds what the application says of itself beyond its name: where it lives,
+/// where its bugs go, and what it is built on.
+void describeApplication(KAboutData &about);
+
+/// The name of the licence \a about is under, written out.
+[[nodiscard]] QString licenceNameOf(const KAboutData &about);
 
 } // namespace rb::ui

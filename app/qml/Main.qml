@@ -68,6 +68,9 @@ QQC2.ApplicationWindow {
     readonly property alias frameBorder: chrome.frameBorder
     readonly property alias windowMenu: chrome.windowMenu
     readonly property alias showMenuBarAction: showMenuBarAction
+    readonly property alias aboutAction: aboutAction
+    /// The About dialog, while it is open.
+    readonly property var aboutDialog: aboutLoader.item
 
     // **No frame of KWin's in the Reverblabr appearances**: the header is the
     // title bar. Fixed at start with the control style, for the same reason.
@@ -1590,16 +1593,8 @@ QQC2.ApplicationWindow {
         active: false
         onLoaded: (aboutLoader.item as Kirigami.Dialog).open()
 
-        sourceComponent: AppDialog {
-            title: KI18n.i18nc("@title:window", "About Reverblabr")
-            preferredWidth: Kirigami.Units.gridUnit * 30
-            preferredHeight: Kirigami.Units.gridUnit * 24
-            standardButtons: Kirigami.Dialog.Close
+        sourceComponent: AboutDialog {
             onClosed: aboutLoader.active = false
-
-            Kirigami.AboutItem {
-                aboutData: AppInfo.aboutData
-            }
         }
     }
 }

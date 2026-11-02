@@ -50,6 +50,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/AppColors.qml
     qml/AppFonts.qml
     qml/AppMetrics.qml
+    qml/AboutDialog.qml
     qml/AppDialog.qml
     qml/AppPromptDialog.qml
     qml/Announcer.qml

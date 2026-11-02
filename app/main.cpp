@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #include "appearance.h"
+#include "appinfo.h"
 #include "applicationicon.h"
 #include "appshell.h"
 #include "blocks/builtinblocks.h"
@@ -13,7 +14,6 @@
 #include "bus/daemonreach.h"
 #include "bus/remoteengine.h"
 #include "core/engine.h"
-#include "core/engineinfo.h"
 #include "core/logring.h"
 #include "core/mockengine.h"
 #include "desktopnotifier.h"
@@ -86,15 +86,7 @@ int main(int argc, char *argv[])
     // under org.kde. Nothing else reads the domain: the settings files are
     // named after the application.
     about.setOrganizationDomain(QByteArrayLiteral("reverblabr.github.io"));
-    // **Not KDE's tracker**, which is where KAboutData points by default
-    // and is not where this project's bugs go. The same address the
-    // translation template carries.
-    about.setBugAddress("https://github.com/sorrelfox/reverblabr/issues");
-    about.addComponent(u"PipeWire"_s,
-                       i18nc("@info", "Audio and video server"),
-                       rb::core::engineInfo().pipeWireLibrary,
-                       u"https://pipewire.org"_s,
-                       KAboutLicense::MIT);
+    rb::ui::describeApplication(about);
     KAboutData::setApplicationData(about);
     // The launcher, the task manager and the tray show the same picture; a
     // build that has not been installed shows it too.

@@ -25,6 +25,12 @@ Kirigami.Dialog {
     /// Whether the content is one list that runs to the dialog's sides.
     property bool listContent: false
 
+    // **Kept inside the window, which also settles it.** Kirigami slides a
+    // dialog in by moving `y` with its opacity, and a popup with no margins to
+    // keep to places itself again at every step: a binding loop on `y`, each
+    // time a dialog opens over the window. With margins the slide stays.
+    margins: 0
+
     property list<Binding> tokenPadding: [
         Binding {
             when: !AppMetrics.followsSystem

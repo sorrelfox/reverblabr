@@ -7,6 +7,7 @@
 
 #include "../unit/dsp/earblock.h"
 #include "appearance.h"
+#include "appinfo.h"
 #include "appshell.h"
 #include "autorunsetting.h"
 #include "core/mockengine.h"
@@ -19,6 +20,7 @@
 #include "systemdevicewriter.h"
 #include "windowstate.h"
 
+#include <KAboutData>
 #include <KLocalizedQmlContext>
 #include <KLocalizedString>
 #include <QAccessible>
@@ -617,6 +619,12 @@ public Q_SLOTS:
         // it exactly as the window does — which is the point of the facade.
         engine->rootContext()->setContextProperty(u"TestEngine"_s, m_engine.get());
         engine->rootContext()->setContextProperty(u"SuiteAppearance"_s, int(m_suiteAppearance));
+        // The application's own record, as main() makes it, without making it
+        // the record of this process.
+        KAboutData record(
+            u"reverblabr"_s, u"Reverblabr"_s, u"1.2.3"_s, u"What it does"_s, KAboutLicense::MPL_V2, u"The makers"_s);
+        ui::describeApplication(record);
+        engine->rootContext()->setContextProperty(u"ApplicationRecord"_s, QVariant::fromValue(record));
         engine->rootContext()->setContextProperty(u"TestHelper"_s, m_helper.get());
         engine->rootContext()->setContextProperty(u"TestFiles"_s, m_files.get());
         engine->rootContext()->setContextProperty(u"TestClipboard"_s, &m_clipboard);

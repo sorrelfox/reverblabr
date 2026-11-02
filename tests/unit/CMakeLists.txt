@@ -457,6 +457,7 @@ rb_add_gtest(reverblabr-app-test
     SOURCES
         app/test_allusersdevices.cpp
         app/test_appearance.cpp
+        app/test_appinfo.cpp
         app/test_applicationicon.cpp
         app/test_applicationsource.cpp
         app/test_appshell.cpp

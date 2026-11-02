@@ -2302,7 +2302,8 @@ linkend="reporting-bugs"/>.</para></listitem>
 </varlistentry>
 <varlistentry>
 <term><menuchoice><guimenu>Help</guimenu><guimenuitem>About Reverblabr</guimenuitem></menuchoice></term>
-<listitem><para>The version, the authors and the licences.</para></listitem>
+<listitem><para>The version, the licence and what the program is built on,
+with links to its website, its bug tracker and how to contribute.</para></listitem>
 </varlistentry>
 </variablelist>
 </sect1>
