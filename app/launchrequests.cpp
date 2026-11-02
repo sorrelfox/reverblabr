@@ -24,10 +24,7 @@ Q_LOGGING_CATEGORY(lcLaunch, "reverblabr.launch", QtInfoMsg)
 namespace rb::ui
 {
 
-LaunchRequests::LaunchRequests(QObject *parent)
-    : QObject(parent)
-{
-}
+LaunchRequests::LaunchRequests() = default;
 
 LaunchRequests *LaunchRequests::instance()
 {

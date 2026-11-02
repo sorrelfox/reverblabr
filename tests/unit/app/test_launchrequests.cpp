@@ -15,6 +15,8 @@
 #include <QSignalSpy>
 #include <gtest/gtest.h>
 
+#include <type_traits>
+
 using namespace rb::ui;
 using namespace Qt::StringLiterals;
 
@@ -68,7 +70,7 @@ TEST(LaunchRequestsTest, KRunnersOpenNamesTheSession)
 
 TEST(LaunchRequestsTest, EachRequestReachesTheWindowAsItsOwnSignal)
 {
-    LaunchRequests requests;
+    LaunchRequests &requests = *LaunchRequests::instance();
     QSignalSpy shown(&requests, &LaunchRequests::showRequested);
     QSignalSpy made(&requests, &LaunchRequests::newSessionRequested);
     QSignalSpy listed(&requests, &LaunchRequests::sessionsWindowRequested);
@@ -115,3 +117,9 @@ TEST(LaunchRequestsTest, MainTakesTheOptionsTheDesktopEntryUses)
 }
 
 } // namespace
+
+// **One object for main() and the window.** QML calls a default constructor
+// in preference to create(), so with one main() delivers to an object nobody
+// hears, and a QML test, which delivers through the window's own, sees nothing
+// wrong.
+static_assert(!std::is_default_constructible_v<LaunchRequests>);

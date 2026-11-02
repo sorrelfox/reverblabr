@@ -285,6 +285,45 @@ TestCase {
         }
     }
 
+    function test_aBlockAddedWithNothingSelectedJoinsAFinishedChain() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        const source = canvas.addBlockAfterSelection("source.device");
+        const output = canvas.addBlockAfterSelection("output.device");
+        canvas.clearSelection();
+        const added = canvas.addBlockAfterSelection("effect.volume");
+        tryVerify(() => SessionModel.wires().some(wire => wire.toBlock === output && wire.fromBlock === added), 2000,
+                  "the new block does not feed the Output Device");
+        const wires = SessionModel.wires();
+        verify(wires.some(wire => wire.fromBlock === source && wire.toBlock === added), "nothing feeds the new block");
+        verify(!wires.some(wire => wire.fromBlock === source && wire.toBlock === output), "the old wire stayed");
+
+        SessionModel.undo();
+        tryVerify(() => SessionModel.blockType(added) === "", 2000, "undo took a part of the add back");
+        verify(SessionModel.wires().some(wire => wire.fromBlock === source && wire.toBlock === output),
+               "undo did not put the old wire back");
+    }
+
+    function test_aBlockAddedWithNothingSelectedFollowsTheOnlyOpenEnd() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        const source = canvas.addBlockAfterSelection("source.device");
+        canvas.clearSelection();
+        const added = canvas.addBlockAfterSelection("effect.volume");
+        tryVerify(() => SessionModel.wires().some(wire => wire.fromBlock === source && wire.toBlock === added), 2000);
+    }
+
+    function test_twoLanesLeaveABlockAddedWithNothingSelectedUnwired() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        canvas.addBlockAfterSelection("source.device");
+        canvas.clearSelection();
+        canvas.addBlockAt("source.device", 500, 500);
+        canvas.clearSelection();
+        const wiresBefore = SessionModel.wireCount;
+        const added = canvas.addBlockAfterSelection("effect.volume");
+        tryVerify(() => SessionModel.blockType(added) !== "", 2000);
+        wait(50);
+        compare(SessionModel.wireCount, wiresBefore, "a guess at which lane was meant");
+    }
+
     function test_withAutomaticConnectionsOffNothingIsWiredByItself() {
         const canvas = createTemporaryObject(canvasComponent, null);
         SessionModel.setAutoConnect(false);

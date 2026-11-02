@@ -343,7 +343,8 @@ Item {
     /// Puts a block after the one that is selected, which is what clicking
     /// an entry in the library does. With nothing selected it goes to the
     /// right of everything there already, so that a session built by
-    /// clicking reads left to right.
+    /// clicking reads left to right, and joins the chain if there is only
+    /// one way to: see joinTheChain().
     function addBlockAfterSelection(typeId: string): string {
         const size = canvas.tileSize();
         const gap = size.width / 2;
@@ -401,7 +402,11 @@ Item {
                 waiting.push(entry);
                 continue;
             }
-            canvas.autoConnect(entry.added, entry.after);
+            if (entry.after === "") {
+                canvas.joinTheChain(entry.added);
+            } else {
+                canvas.autoConnect(entry.added, entry.after);
+            }
             canvas.bringIntoView(entry.added);
         }
         canvas.awaitingArrival = waiting;
@@ -1534,6 +1539,58 @@ Item {
         // Into the first lane of a block with several: the ducker's main.
         const channels = Math.min(canvas.laneChannelsOf(afterId, true), canvas.laneChannelsOf(addedId, false));
         return SessionModel.connectLanes(afterId, addedId, channels);
+    }
+
+    /// Joins a block added with nothing selected to the session, when there
+    /// is **one place it can only mean**. After the one block whose output
+    /// nothing takes; or, on a finished chain, in front of its only Output
+    /// Device, between it and the one block that feeds it. Anything else is a
+    /// guess about which lane was meant, so the block stays unwired.
+    function joinTheChain(addedId: string): bool {
+        if (!SessionModel.autoConnect) {
+            return false;
+        }
+        const wires = SessionModel.wires();
+        const others = [];
+        for (let row = 0; row < blocks.count; ++row) {
+            if (blocks.at(row).id !== addedId) {
+                others.push(blocks.at(row).id);
+            }
+        }
+        const open = others.filter(id => canvas.channelCountOf(id, true) > 0
+                                   && !wires.some(wire => wire.fromBlock === id));
+        if (open.length === 1) {
+            return canvas.autoConnect(addedId, open[0]);
+        }
+        const outputs = others.filter(id => canvas.portsAreTheAudioSystems(id, true));
+        if (open.length > 0 || outputs.length !== 1) {
+            return false;
+        }
+        return canvas.placeBefore(addedId, outputs[0], wires);
+    }
+
+    /// Puts \a addedId between \a outputId and what feeds it, when one block
+    /// does. The new wires go first, so the sound has a way through at every
+    /// step, and the engine's history keeps all of it in one Ctrl+Z.
+    function placeBefore(addedId: string, outputId: string, wires: var): bool {
+        const into = wires.filter(wire => wire.toBlock === outputId);
+        const feeder = into.length > 0 ? into[0].fromBlock : "";
+        if (feeder === "" || into.some(wire => wire.fromBlock !== feeder)
+                || canvas.channelCountOf(addedId, true) === 0
+                || canvas.laneRefusal(feeder, addedId) !== ""
+                || canvas.laneRefusal(addedId, outputId) !== "") {
+            return false;
+        }
+        const coming = Math.min(canvas.laneChannelsOf(feeder, true), canvas.laneChannelsOf(addedId, false));
+        const going = Math.min(canvas.laneChannelsOf(addedId, true), canvas.laneChannelsOf(outputId, false));
+        if (!SessionModel.connectLanes(feeder, addedId, coming)) {
+            return false;
+        }
+        if (!SessionModel.connectLanes(addedId, outputId, going)) {
+            return true; // wired in, and the old way stays open
+        }
+        SessionModel.disconnectLanes(feeder, outputId, 0, canvas.channelCountOf(outputId, false));
+        return true;
     }
 
     /// Somewhere nothing is sitting already, starting at \a wanted and

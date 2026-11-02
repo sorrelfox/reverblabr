@@ -47,8 +47,6 @@ public:
     static constexpr QLatin1StringView kSessionsOption{"sessions"};
     static constexpr QLatin1StringView kOpenSessionOption{"open-session"};
 
-    explicit LaunchRequests(QObject *parent = nullptr);
-
     [[nodiscard]] static LaunchRequests *instance();
     static LaunchRequests *create(QQmlEngine *engine, QJSEngine *scriptEngine);
 
@@ -74,6 +72,11 @@ Q_SIGNALS:
     void newSessionRequested();
     void sessionsWindowRequested();
     void openSessionRequested(const QString &sessionId);
+
+private:
+    /// **Private, or QML makes one of its own.** It prefers a constructor it
+    /// can call to create(), so what main() delivers would reach nobody.
+    LaunchRequests();
 };
 
 } // namespace rb::ui

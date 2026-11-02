@@ -131,6 +131,10 @@ bool EditHistory::continues(const EditStep &step, const EditCommand &command) co
     // or a lane with a hole in the middle. **The step is asked what started
     // it**, not what it last did, because closing a gap can take more than
     // one wire.
+    // A wire the session took off by itself, to put a new block in its place.
+    if (std::holds_alternative<Disconnect>(command)) {
+        return std::holds_alternative<AddBlock>(step.redo.front());
+    }
     if (const auto *now = std::get_if<Connect>(&command)) {
         const EditCommand &started = step.redo.front();
         if (std::holds_alternative<AddBlock>(started) || std::holds_alternative<RemoveBlock>(started)) {
@@ -168,7 +172,7 @@ void EditHistory::mergeInto(EditStep &step, const EditCommand &command, EditInve
         step.redo.push_back(command);
         return;
     }
-    if (std::holds_alternative<Connect>(command)) {
+    if (std::holds_alternative<Connect>(command) || std::holds_alternative<Disconnect>(command)) {
         // **The front of the undo side, not the end.** These commands depend
         // on each other — the wire is drawn to a block the same step added —
         // so putting the session back means taking the last one back first.

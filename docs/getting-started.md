@@ -78,7 +78,7 @@ Press **Stop** when you're done. Sessions are saved as you work, so this one wil
 
 The switch at the top left of the canvas says how a session is wired. **Session → Automatic Connections** is the same switch.
 
-- With **automatic connections**, a block you add by clicking is wired after the selected one, and taking a block out of the middle of a lane joins the lane up again behind it. It's the quick way to build a lane.
+- With **automatic connections**, a block you add by clicking is wired after the selected one. With nothing selected it joins the chain when there is only one place for it: after the one open end, or just before a single Output Device. Taking a block out of the middle of a lane joins the lane up again behind it. It's the quick way to build a lane.
 - With **manual connections**, nothing is wired for you.
 
 Either way, you can wire blocks by hand: **hold Ctrl and drag** from a block's output connector on its right edge to another block's input connector on its left edge. The connectors that would accept the wire light up while you drag. Several wires can go into one input, and they are mixed there; a ring around the connector shows that. To remove a wire, click it and press Delete.

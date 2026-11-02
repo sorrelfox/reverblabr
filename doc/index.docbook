@@ -292,7 +292,9 @@ Connections</guimenuitem></menuchoice> is the same switch.</para>
 
 <itemizedlist>
 <listitem><para>With <emphasis>automatic connections</emphasis>, a block you
-add by clicking is wired after the selected one, and taking a block out of the
+add by clicking is wired after the selected one. With nothing selected it joins
+the chain when there is only one place for it: after the one open end, or just
+before a single Output Device. Taking a block out of the
 middle of a lane joins the lane up again behind it. It is the quick way to
 build a lane.</para></listitem>
 <listitem><para>With <emphasis>manual connections</emphasis>, nothing is wired
