@@ -148,6 +148,12 @@ public:
                                              VirtualDeviceStore{VirtualDeviceScope::System}};
     std::array<QList<VirtualDevice>, 2> lists;
     std::array<std::optional<VirtualDeviceError>, 2> loadErrors;
+    /// The node name of every device these lists have held in this run, a
+    /// device deleted since included. Only these may be destroyed for having
+    /// no enabled entry: the marker says a node came from Reverblabr, not
+    /// that it came from these files. Another daemon's, or another
+    /// configuration's, devices carry the same marker.
+    std::array<QSet<QString>, 2> recorded;
 
     /// By node name: one request at a time for each.
     std::map<QString, std::unique_ptr<PendingNode>> pending;
@@ -178,6 +184,14 @@ public:
                 qCWarning(RB_PW) << "cannot read the virtual devices of" << virtualDeviceScopeName(scope) << "from"
                                  << stores[index].path() << ":" << virtualDeviceErrorName(read.error()).data();
             }
+            record(index);
+        }
+    }
+
+    void record(std::size_t index)
+    {
+        for (const VirtualDevice &device : lists[index]) {
+            recorded[index].insert(virtualDeviceNodeName(device.id));
         }
     }
 
@@ -207,6 +221,7 @@ public:
             return saved;
         }
         lists[index] = std::move(changed);
+        record(index);
         return {};
     }
 
@@ -370,15 +385,19 @@ void VirtualDeviceManager::Private::reconcile(bool full)
     }
 
     if (full) {
-        // A marked node no enabled entry accounts for — deleted, disabled,
-        // or left over from a file edited while PipeWire ran — goes, unless
-        // its scope's file could not be read.
+        // A device this list held, and that no enabled entry accounts for
+        // any more, goes: deleted, disabled, or dropped from its file during
+        // this run. **A marked node this list never held is left alone**,
+        // however empty the list: it is no proof of a stale node, since
+        // another configuration on the same PipeWire can have made it.
         for (const PwNode &node : nodes) {
             const std::optional<VirtualDeviceScope> scope = markedScope(node);
             if (!scope || loadErrors[indexOf(*scope)] || destroying.contains(node.object.id)) {
                 continue;
             }
-            if (!wanted[indexOf(*scope)].contains(node.name) && !pending.contains(node.name)) {
+            const std::size_t index = indexOf(*scope);
+            if (recorded[index].contains(node.name) && !wanted[index].contains(node.name)
+                && !pending.contains(node.name)) {
                 destroy(node);
             }
         }
@@ -528,6 +547,8 @@ void VirtualDeviceManager::setStores(VirtualDeviceStore user, VirtualDeviceStore
 {
     d->stores[indexOf(VirtualDeviceScope::User)] = std::move(user);
     d->stores[indexOf(VirtualDeviceScope::System)] = std::move(system);
+    // What the earlier files held says nothing about these.
+    d->recorded = {};
     reload();
 }
 

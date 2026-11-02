@@ -70,10 +70,15 @@ struct VirtualDeviceState {
 ///
 /// **Reconciling** — when the graph has been read, at every connection, and
 /// after every change — creates each enabled device the graph lacks, and
-/// destroys each marked node that no enabled entry in a readable file
-/// accounts for. A scope whose file cannot be read is left alone, since it
-/// may hold devices the user still wants. It never makes a second node with a
-/// name already in use. A device that something else removes is **not**
+/// destroys each node of a device its list held in this run and no enabled
+/// entry accounts for now. A scope whose file cannot be read is left alone,
+/// since it may hold devices the user still wants. **A marked node the list
+/// never held is left alone too:** the marker says Reverblabr made a node, not
+/// that this configuration did, and a second configuration on the same
+/// PipeWire must not take the first one's devices away. So a device dropped
+/// from its file while no daemon ran lingers until PipeWire restarts, which
+/// does not make it again. It never makes a second node with a name already
+/// in use. A device that something else removes is **not**
 /// made again behind the user's back: it shows as Missing until the next
 /// reconcile.
 ///

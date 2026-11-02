@@ -89,7 +89,7 @@ The original plan had one fact wrong. It said a user file with the same name as 
 - **Before creating, the engine looks for a node with that name**, because PipeWire won't refuse a duplicate.
 - **On `RegistryMirror::ready`**, both at start and after a reconnect, the engine reconciles:
   - each enabled entry with no node gets one;
-  - each marked node with no enabled entry in a file we could read is destroyed.
+  - each node of a device the list has held in this run, with no enabled entry now in a file we could read, is destroyed. A marked node the list never held stays: another configuration on the same PipeWire can have made it.
   - If a scope's file can't be read, that scope's nodes are left alone.
 - **When PipeWire restarts**, the lingering live nodes go and the drop-ins bring the same devices back under the same names.
 

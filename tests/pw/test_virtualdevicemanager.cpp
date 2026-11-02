@@ -397,10 +397,11 @@ TEST_F(VirtualDeviceManagers, AStartMakesTheEnabledDevicesTheFileHoldsAndNotTheD
     EXPECT_EQ(engine.manager().remove(everyone.id).error(), VirtualDeviceError::ReadOnlyScope);
 }
 
-TEST_F(VirtualDeviceManagers, AMarkedNodeNoFileAccountsForGoesUnlessItsFileCannotBeRead)
+TEST_F(VirtualDeviceManagers, AnEmptyListTakesAwayNoDeviceItNeverHeld)
 {
-    // A node of ours that no file holds, left behind the way a file edited
-    // by hand while PipeWire ran leaves one.
+    // Devices of another configuration on the same PipeWire: they carry the
+    // marker, and no file of this manager holds them. A second daemon started
+    // with a list of its own, even an empty one, has no claim on them.
     const auto makeStray = [](const std::string &id, const std::string &scope) {
         const CommandResult made = runCommand({"pw-cli",
                                                "create-node",
@@ -418,20 +419,129 @@ TEST_F(VirtualDeviceManagers, AMarkedNodeNoFileAccountsForGoesUnlessItsFileCanno
     ASSERT_TRUE(waitForNode(nodeNamed("reverblabr-virtual.0badf00d")).has_value());
     ASSERT_TRUE(waitForNode(nodeNamed("reverblabr-virtual.0badf00e")).has_value());
 
-    // The system file is somebody else's: nothing of that scope is touched.
-    QDir().mkpath(QFileInfo(Engine::systemFile(m_files)).path());
+    Engine engine(m_files);
+    ASSERT_TRUE(engine.waitUntilReady());
+    EXPECT_TRUE(engine.manager().devices().isEmpty());
+    const auto mine = engine.manager().create(u"Mine"_s, VirtualDeviceDirection::Output, VirtualDeviceChannels::Stereo);
+    ASSERT_TRUE(mine.has_value());
+    ASSERT_TRUE(engine.waitForDevice(mine->id));
+    engine.manager().reconcileNow();
+    engine.manager().reload();
+    ASSERT_TRUE(engine.manager().remove(mine->id).has_value());
+    ASSERT_TRUE(engine.waitForNoNode(mine->id));
+    pumpFor(std::chrono::milliseconds{300});
+
+    EXPECT_EQ(engine.nodesNamed(u"reverblabr-virtual.0badf00d"_s).size(), 1);
+    EXPECT_EQ(engine.nodesNamed(u"reverblabr-virtual.0badf00e"_s).size(), 1);
+    EXPECT_EQ(nodesInGraph(u"reverblabr-virtual.0badf00d"_s), 1u);
+    EXPECT_EQ(nodesInGraph(u"reverblabr-virtual.0badf00e"_s), 1u);
+}
+
+TEST_F(VirtualDeviceManagers, ADeviceDroppedFromItsFileDuringARunGoesAtTheReload)
+{
+    // What the helper does to the all-users file, and an edit by hand does
+    // to the user's: the entry goes, the manager is told, the node follows.
+    VirtualDevice user{u"a1b2c3e4"_s,
+                       u"Of the user"_s,
+                       VirtualDeviceDirection::Output,
+                       VirtualDeviceChannels::Stereo,
+                       true,
+                       VirtualDeviceScope::User};
+    VirtualDevice everyone = user;
+    everyone.id = u"a1b2c3e5"_s;
+    everyone.name = u"Of everyone"_s;
+    everyone.scope = VirtualDeviceScope::System;
+    const VirtualDeviceStore userStore(VirtualDeviceScope::User, Engine::userFile(m_files));
+    const VirtualDeviceStore systemStore(VirtualDeviceScope::System, Engine::systemFile(m_files));
+    ASSERT_TRUE(userStore.save({user}));
+    ASSERT_TRUE(systemStore.save({everyone}));
+
+    Engine engine(m_files);
+    ASSERT_TRUE(engine.waitUntilReady());
+    ASSERT_TRUE(engine.waitForDevice(user.id));
+    ASSERT_TRUE(engine.waitForDevice(everyone.id));
+
+    ASSERT_TRUE(userStore.save({}));
+    ASSERT_TRUE(systemStore.save({}));
+    engine.manager().reload();
+    ASSERT_TRUE(engine.waitForNoNode(user.id));
+    ASSERT_TRUE(engine.waitForNoNode(everyone.id));
+}
+
+TEST_F(VirtualDeviceManagers, ADeviceFromAnEarlierRunStillGoesWhenItIsDeletedOrDisabled)
+{
+    QString deleted;
+    QString disabled;
+    {
+        Engine engine(m_files);
+        ASSERT_TRUE(engine.waitUntilReady());
+        const auto one = engine.manager().create(u"One"_s, VirtualDeviceDirection::Output, VirtualDeviceChannels::Mono);
+        const auto two = engine.manager().create(u"Two"_s, VirtualDeviceDirection::Input, VirtualDeviceChannels::Mono);
+        ASSERT_TRUE(one.has_value());
+        ASSERT_TRUE(two.has_value());
+        ASSERT_TRUE(engine.waitForDevice(one->id));
+        ASSERT_TRUE(engine.waitForDevice(two->id));
+        deleted = one->id;
+        disabled = two->id;
+    } // the nodes linger, and the next run knows them only from the file
+
+    Engine again(m_files);
+    ASSERT_TRUE(again.waitUntilReady());
+    ASSERT_TRUE(again.waitForDevice(deleted));
+    ASSERT_TRUE(again.waitForDevice(disabled));
+    ASSERT_TRUE(again.manager().remove(deleted).has_value());
+    ASSERT_TRUE(again.manager().setEnabled(disabled, false).has_value());
+    ASSERT_TRUE(again.waitForNoNode(deleted));
+    ASSERT_TRUE(again.waitForNoNode(disabled));
+
+    // A device the file says is switched off, with its node still there.
+    VirtualDevice off{u"a1b2c3e6"_s,
+                      u"Stale"_s,
+                      VirtualDeviceDirection::Output,
+                      VirtualDeviceChannels::Stereo,
+                      false,
+                      VirtualDeviceScope::User};
+    const CommandResult made = runCommand({"pw-cli",
+                                           "create-node",
+                                           "adapter",
+                                           "{ factory.name = support.null-audio-sink node.name = "
+                                           "reverblabr-virtual.a1b2c3e6 media.class = Audio/Sink "
+                                           "object.linger = true reverblabr.virtual-device = user }"});
+    ASSERT_EQ(made.status, 0) << made.output;
+    ASSERT_TRUE(pumpUntil([&] { return again.nodesNamed(virtualDeviceNodeName(off.id)).size() == 1; }));
+    const VirtualDeviceStore store(VirtualDeviceScope::User, Engine::userFile(m_files));
+    auto list = store.load();
+    ASSERT_TRUE(list.has_value());
+    list->append(off);
+    ASSERT_TRUE(store.save(*list));
+    again.manager().reload();
+    ASSERT_TRUE(again.waitForNoNode(off.id));
+}
+
+TEST_F(VirtualDeviceManagers, AScopeWhoseFileCannotBeReadIsLeftAlone)
+{
+    VirtualDevice held{u"a1b2c3e7"_s,
+                       u"Held"_s,
+                       VirtualDeviceDirection::Output,
+                       VirtualDeviceChannels::Stereo,
+                       true,
+                       VirtualDeviceScope::System};
+    const VirtualDeviceStore systemStore(VirtualDeviceScope::System, Engine::systemFile(m_files));
+    ASSERT_TRUE(systemStore.save({held}));
+    Engine engine(m_files);
+    ASSERT_TRUE(engine.waitUntilReady());
+    ASSERT_TRUE(engine.waitForDevice(held.id));
+
+    // The list held it, so only the unreadable file keeps it: this reload
+    // would otherwise take it away.
     QFile foreign(Engine::systemFile(m_files));
     ASSERT_TRUE(foreign.open(QIODevice::WriteOnly));
     foreign.write("context.objects = [ ]\n");
     foreign.close();
-
-    Engine engine(m_files);
+    engine.manager().reload();
     EXPECT_EQ(engine.manager().scopeError(VirtualDeviceScope::System), VirtualDeviceError::NotOurs);
-    ASSERT_TRUE(engine.waitUntilReady());
-    ASSERT_TRUE(engine.waitForNoNode(u"0badf00d"_s)) << "a stray node of the user's scope is removed";
     pumpFor(std::chrono::milliseconds{300});
-    EXPECT_EQ(engine.nodesNamed(u"reverblabr-virtual.0badf00e"_s).size(), 1)
-        << "a scope whose file cannot be read is left alone";
+    EXPECT_EQ(engine.nodesNamed(virtualDeviceNodeName(held.id)).size(), 1);
 }
 
 TEST_F(VirtualDeviceManagers, ADeviceSomethingElseRemovedIsMissingUntilTheNextReload)
