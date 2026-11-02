@@ -268,6 +268,12 @@ void Presets::refresh(const QString &typeId)
     }
 }
 
+QVariantMap Presets::valuesOf(const QString &typeId, const QString &presetId) const
+{
+    const Known *known = d->find(typeId, presetId);
+    return known == nullptr ? QVariantMap{} : known->params.toVariantMap();
+}
+
 QString Presets::shownBy(const QString &typeId, const QString &marker, const QVariantMap &params) const
 {
     const QList<Known> presets = d->byType.value(typeId);

@@ -89,6 +89,10 @@ public:
     /// manager. Empty for a factory preset, which has no file.
     [[nodiscard]] Q_INVOKABLE QUrl fileOf(const QString &typeId, const QString &presetId) const;
 
+    /// The settings \a presetId of \a typeId holds, by parameter id. What it
+    /// leaves out, applying it leaves alone.
+    [[nodiscard]] Q_INVOKABLE QVariantMap valuesOf(const QString &typeId, const QString &presetId) const;
+
     Q_INVOKABLE void apply(const QString &sessionId, const QString &blockId, const QString &presetId);
     Q_INVOKABLE void
     saveAs(const QString &sessionId, const QString &blockId, const QString &name, bool replace = false);

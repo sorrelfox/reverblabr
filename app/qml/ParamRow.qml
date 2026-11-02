@@ -68,6 +68,12 @@ RowLayout {
     property var locale: Qt.locale()
     /// What a number reads as, where a panel knows better than the unit.
     property var valueText: null
+    /// What a number typed beside the slider differs from the stored one by,
+    /// where a panel offers a field in the unit people read. NaN for no field.
+    property real typedOffset: NaN
+
+    /// The field, for a test.
+    readonly property alias typedField: typed
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -296,5 +302,22 @@ RowLayout {
                 Layout.preferredWidth: Math.max(Kirigami.Units.gridUnit * 4, implicitWidth)
             }
         }
+    }
+
+    ValueField {
+        id: typed
+
+        visible: !Number.isNaN(row.typedOffset)
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 3.5
+        Layout.alignment: Qt.AlignVCenter
+        label: row.label
+        value: Number(row.effectiveValue) - row.typedOffset
+        from: row.minimum - row.typedOffset
+        to: row.maximum - row.typedOffset
+        stepSize: 1
+        pageStepSize: 3
+        decimals: 0
+        Accessible.description: row.formatted(Number(row.effectiveValue))
+        onValueEdited: number => SessionModel.setParam(row.blockId, row.paramId, number + row.typedOffset)
     }
 }

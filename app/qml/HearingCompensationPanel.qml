@@ -1340,6 +1340,7 @@ ColumnLayout {
             delegate: ParamRow {
                 required property var modelData
 
+                objectName: modelData === "Ceiling" ? "bandCeilingRow" : ""
                 readonly property string settingId: panel.throughPoints ? bands.pointParamId(panel.selected, modelData)
                                                                         : bands.paramId(panel.selected, modelData)
 
@@ -1348,6 +1349,9 @@ ColumnLayout {
                 label: panel.fieldName(modelData)
                 currentValue: panel.params[settingId]
                 valueText: modelData === "Ceiling" ? value => bands.ceilingText(value) : null
+                // Typed in dBFS, which is what the words say. No second step:
+                // this glides, and Output ceiling stands behind it.
+                typedOffset: modelData === "Ceiling" ? bands.listeningOffsetDb : NaN
                 Layout.fillWidth: true
             }
         }

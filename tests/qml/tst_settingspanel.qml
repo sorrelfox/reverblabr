@@ -328,6 +328,49 @@ TestCase {
         compare(paramRowsOf(volume).find(r => r.paramId === "gain").unitSuffix(), "");
     }
 
+    function test_aPresetThatRaisesALimitAsksOnceAndCancelLeavesIt() {
+        const panel = createTemporaryObject(shownPanel, null).panel;
+        panel.open("b1");
+        wait(50);
+        const footer = panel.presets;
+        tryVerify(() => footer.presets.length > 0, 1000);
+        const shellSession = AppShell.sessionId;
+        AppShell.sessionId = testCase.sessionId;
+        // Volume has no limit: its gain stands in for one.
+        footer.limitParams = ["gain"];
+        const half = footer.presets.find(preset => preset.id === "halfVolume");
+        verify(half, "no preset at one half");
+
+        SessionModel.setParam("b1", "gain", 0.25);
+        tryVerify(() => SessionModel.param("b1", "gain") === 0.25, 1000);
+        verify(footer.raisesALimit(half.id));
+        footer.chooser.currentIndex = footer.chooser.model.findIndex(entry => entry.id === half.id);
+        footer.choosePreset(half.id);
+        tryVerify(() => footer.raiseDialog.opened, 1000, "applying it asked nothing");
+        compare(SessionModel.param("b1", "gain"), 0.25, "it was raised before the answer");
+
+        footer.raiseDialog.close();
+        tryVerify(() => !footer.raiseDialog.visible, 1000);
+        wait(50);
+        compare(SessionModel.param("b1", "gain"), 0.25, "Cancel raised it");
+        compare(footer.chooser.currentValue, "", "the box still shows the preset refused");
+
+        footer.choosePreset(half.id);
+        tryVerify(() => footer.raiseDialog.opened, 1000);
+        for (const action of footer.raiseDialog.customFooterActions) {
+            action.trigger();
+        }
+        tryVerify(() => SessionModel.param("b1", "gain") === 0.5, 1000, "yes did not apply it");
+
+        SessionModel.setParam("b1", "gain", 0.75);
+        tryVerify(() => SessionModel.param("b1", "gain") === 0.75, 1000);
+        verify(!footer.raisesALimit(half.id));
+        footer.choosePreset(half.id);
+        verify(!footer.raiseDialog.opened, "lowering asked");
+        tryVerify(() => SessionModel.param("b1", "gain") === 0.5, 1000);
+        AppShell.sessionId = shellSession;
+    }
+
     function test_thePresetsFooterOffersTheShippedOnesAndManual() {
         const panel = createTemporaryObject(panelComponent, null);
         panel.open("b1");

@@ -699,6 +699,39 @@ TEST_F(CtlEngine, ASettingOfASessionOnlyOnDiskIsSavedAndTheSessionPutBack)
     EXPECT_EQ(paramsOf(id, u"vol"_s).value("gain"_L1).toDouble(), 0.25);
 }
 
+// **One limit by every route**: a script meets the engine's ranges and no
+// dialog. Inside them it may raise a limit; past them nothing changes.
+TEST_F(CtlEngine, TheLimitsHoldTheirRangesThroughTheTool)
+{
+    const QString id = session(u"Limits"_s);
+    ASSERT_TRUE(listener->addBlock(id, u"lift"_s, u"hearing.compensation16"_s));
+    ASSERT_TRUE(listener->addBlock(id, u"out"_s, u"output.device"_s));
+
+    struct Limit {
+        QString block;
+        QString param;
+        QString lowered;
+        QString tooHigh;
+        QString raised;
+    };
+    for (const Limit &limit : {Limit{u"lift"_s, u"limiterCeilingDb"_s, u"-12"_s, u"0"_s, u"-3"_s},
+                               Limit{u"lift"_s, u"maximumGainDb"_s, u"20"_s, u"500"_s, u"45"_s},
+                               Limit{u"out"_s, u"limitDb"_s, u"-12"_s, u"0"_s, u"-2"_s}}) {
+        SCOPED_TRACE(limit.param.toStdString());
+        ASSERT_EQ(ctl({u"set"_s, u"Limits"_s, limit.block, limit.param, limit.lowered}).exit, 0);
+        const QJsonValue before = paramsOf(id, limit.block).value(limit.param);
+
+        const ToolRun past = ctl({u"--json"_s, u"set"_s, u"Limits"_s, limit.block, limit.param, limit.tooHigh});
+        EXPECT_EQ(past.exit, 2);
+        EXPECT_EQ(past.errorCode(), u"ctl.badValue"_s);
+        EXPECT_EQ(paramsOf(id, limit.block).value(limit.param), before);
+
+        const ToolRun inside = ctl({u"set"_s, u"Limits"_s, limit.block, limit.param, limit.raised});
+        ASSERT_EQ(inside.exit, 0) << inside.err.toStdString();
+        EXPECT_EQ(paramsOf(id, limit.block).value(limit.param).toDouble(), limit.raised.toDouble());
+    }
+}
+
 TEST_F(CtlEngine, ASessionThatCannotRunIsTheEnginesOwnRefusal)
 {
     const QString id = session(u"No audio here"_s);

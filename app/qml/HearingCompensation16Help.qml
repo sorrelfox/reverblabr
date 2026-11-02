@@ -167,7 +167,7 @@ HelpPage {
         title: KI18n.i18nc("@action:button raise a limit, which asks first", "Raise...")
         covers: [KI18n.i18nc("@title:group the digital limits of a block", "Limits")]
         paragraphs: [
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Lowering a limit works at once, by dragging, with the keys or by typing. Raising one takes one more step: press Raise..., or type a higher number, and confirm it. The sound then rises slowly to the new limit, about 12 dB each second.")
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Lowering a limit works at once, by dragging, with the keys or by typing. Raising one takes one more step: press Raise..., or type a higher number, and confirm it. The sound then rises slowly to the new limit, about 12 dB each second. A preset that would raise a limit asks first as well.")
         ]
     }
 

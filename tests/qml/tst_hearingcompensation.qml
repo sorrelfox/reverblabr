@@ -542,6 +542,23 @@ TestCase {
 
     // --- the levels view ---
 
+    function test_aBandCeilingIsTypedInDbfs() {
+        testCase.clearSession();
+        const id = testCase.newBlock("left");
+        const panel = testCase.openPanel(id).panel;
+        panel.selected = 4;
+        panel.editing = "Ceiling";
+        const row = findChild(panel, "bandCeilingRow");
+        verify(row !== null, "the inspector has no ceiling row");
+        tryVerify(() => row.typedField.visible, 1000, "no field beside the ceiling's slider");
+        const offset = panel.bands.listeningOffsetDb;
+        compare(row.typedField.value, 100 - offset);
+        row.typedField.valueEdited(-15);
+        tryVerify(() => SessionModel.param(id, row.paramId) === offset - 15, 1000, "the typed value was not stored");
+        compare(row.typedField.value, -15);
+        compare(row.formatted(offset - 15), "-15 dBFS");
+    }
+
     function test_aCeilingAboveFullScaleIsSaidNotPinnedToTheTop() {
         const window = testCase.openPanel(testCase.newBlock(""));
         const panel = window.panel;

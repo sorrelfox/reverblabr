@@ -130,7 +130,30 @@ RowLayout {
         : ""
     readonly property bool isFactory: footer.shownId !== "" && Presets.isFactory(footer.typeId, footer.shownId)
 
+    /// The parameters that are limits: raising one takes a second step. A
+    /// script's change takes none, since a script is a deliberate act.
+    property var limitParams: ["maximumGainDb", "limiterCeilingDb", "limitDb"]
+
+    /// Whether applying \a presetId raises a limit of this block. What a
+    /// preset leaves out it leaves alone, so only what it holds counts.
+    function raisesALimit(presetId: string): bool {
+        const values = Presets.valuesOf(footer.typeId, presetId);
+        return footer.limitParams.some(paramId => paramId in values
+                                       && Number(values[paramId]) > Number(footer.effectiveParams[paramId]));
+    }
+
+    /// The preset chosen, once a person has said yes to what it raises.
+    function choosePreset(presetId: string) {
+        if (footer.raisesALimit(presetId)) {
+            raiseDialog.presetId = presetId;
+            raiseDialog.open();
+        } else {
+            Presets.apply(AppShell.sessionId, footer.blockId, presetId);
+        }
+    }
+
     /// The controls, for a test.
+    readonly property alias raiseDialog: raiseDialog
     readonly property alias chooser: chooser
     readonly property alias menuButton: menuButton
     readonly property alias removeButton: removeButton
@@ -224,7 +247,7 @@ RowLayout {
         // "Manual" does nothing: there is nothing to set a block to when the
         // answer is "no preset", and undo is how somebody goes back.
         onActivated: if (chooser.currentValue !== "") {
-            Presets.apply(AppShell.sessionId, footer.blockId, chooser.currentValue);
+            footer.choosePreset(chooser.currentValue);
         }
 
         SessionBound {
@@ -500,6 +523,37 @@ RowLayout {
                 }
             }
         ]
+    }
+
+    // **Asked once, here**, for all a preset raises. Cancel is the default and
+    // leaves the box on what the block still is.
+    AppPromptDialog {
+        id: raiseDialog
+
+        property string presetId: ""
+        property bool applying: false
+
+        parent: QQC2.Overlay.overlay
+        title: KI18n.i18nc("@title:window", "Apply Preset")
+        subtitle: KI18n.i18nc("@info", "This preset raises a limit of this block.")
+        standardButtons: Kirigami.Dialog.Cancel
+        customFooterActions: [
+            Kirigami.Action {
+                text: KI18n.i18nc("@action:button apply a preset, which raises a limit", "Raise and Apply")
+                onTriggered: {
+                    raiseDialog.applying = true;
+                    raiseDialog.close();
+                    Presets.apply(AppShell.sessionId, footer.blockId, raiseDialog.presetId);
+                }
+            }
+        ]
+        onOpened: {
+            raiseDialog.applying = false;
+            raiseDialog.standardButton(Kirigami.Dialog.Cancel)?.forceActiveFocus();
+        }
+        onClosed: if (!raiseDialog.applying) {
+            chooser.currentIndex = Math.max(0, chooser.model.findIndex(entry => entry.id === footer.shownId));
+        }
     }
 
     // **Saving onto a preset is refused once and offered again.** The engine
