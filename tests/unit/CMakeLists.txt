@@ -369,6 +369,7 @@ rb_add_gtest(reverblabr-engine-test
         core/test_blockcatalogue.cpp
         core/test_compressormodes.cpp
         core/test_diagnostics.cpp
+        core/test_dynamicsmigration.cpp
         core/test_editcommand.cpp
         core/test_editcommandjson.cpp
         core/test_edithistory.cpp

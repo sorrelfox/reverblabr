@@ -314,10 +314,10 @@ TestCase {
         // **A ratio is not linear.** Equal distances along its slider are
         // equal multiples, which is what the taper says and what the panel
         // has to do about it.
-        const ratio = rows.find(r => r.paramId === "ratio");
+        const ratio = rows.find(r => r.paramId === "expanderRatio");
         compare(ratio.logarithmic, true);
         compare(Math.round(ratio.fromPosition(0)), 1);
-        compare(Math.round(ratio.fromPosition(1)), 20);
+        compare(Math.round(ratio.fromPosition(1)), 50);
         // Halfway along is the geometric middle, not the arithmetic one.
         verify(ratio.fromPosition(0.5) < 10, "halfway up a ratio slider was the arithmetic middle");
 

@@ -47,27 +47,20 @@ std::vector<ParamDescriptor> Dynamics::makeDescriptors()
 {
     std::vector<ParamDescriptor> descriptors;
 
-    // --- the compressor, above ---
-    descriptors.push_back(ranged("threshold", -80.0f, 0.0f, -20.0f, ParamUnit::Decibels));
+    // --- the top of the curve ---
+    descriptors.push_back(
+        ranged("threshold", kDynamicsFloorDb, kDynamicsHighestThresholdDb, -26.0f, ParamUnit::Decibels));
+    descriptors.push_back(ranged("height", 0.0f, kDynamicsHighestHeightDb, 7.0f, ParamUnit::Decibels));
+
+    // --- the bottom of the curve ---
+    // Off by default: a ratio of 1:1 leaves the quiet end of the curve on the
+    // diagonal, which is where a general-purpose block should start.
+    descriptors.push_back(
+        ranged("expanderThreshold", kDynamicsFloorDb, kDynamicsHighestThresholdDb, -80.0f, ParamUnit::Decibels));
     // A ratio is a multiplication, so equal distances along the slider should
     // be equal multiples: 2:1 sits as far from 4:1 as 4:1 does from 8:1.
-    descriptors.push_back(ranged("ratio", 1.0f, 20.0f, 20.0f, ParamUnit::Ratio, ParamTaper::Logarithmic));
-
-    ParamDescriptor infinite;
-    infinite.id = "infiniteRatio";
-    infinite.type = ParamType::Bool;
-    infinite.defaultValue = ParamValue::ofBool(false);
-    descriptors.push_back(std::move(infinite));
-
-    descriptors.push_back(ranged("knee", 0.0f, 24.0f, 12.0f, ParamUnit::Decibels));
-
-    // --- the expander, below ---
-    // Off by default: a ratio of 1:1 and a range of nothing leave the quiet
-    // end of the curve alone, which is where a general-purpose block should
-    // start.
-    descriptors.push_back(ranged("expanderThreshold", -120.0f, -20.0f, -120.0f, ParamUnit::Decibels));
-    descriptors.push_back(ranged("expanderRatio", 1.0f, 50.0f, 1.0f, ParamUnit::Ratio, ParamTaper::Logarithmic));
-    descriptors.push_back(ranged("expanderRange", 0.0f, 80.0f, 0.0f, ParamUnit::Decibels));
+    descriptors.push_back(
+        ranged("expanderRatio", 1.0f, kDynamicsHighestRatio, 1.0f, ParamUnit::Ratio, ParamTaper::Logarithmic));
     descriptors.push_back(ranged("expanderHold", 0.0f, 500.0f, 0.0f, ParamUnit::Milliseconds));
 
     // --- the timing ---
@@ -104,16 +97,13 @@ std::unique_ptr<Block> Dynamics::make()
     return std::make_unique<Dynamics>();
 }
 
-DynamicsSettings Dynamics::settings() const noexcept RB_NONBLOCKING
+DynamicsShape Dynamics::settings() const noexcept RB_NONBLOCKING
 {
-    DynamicsSettings settings;
+    DynamicsShape settings;
     settings.thresholdDb = m_store.number(Threshold);
-    // The click past the end of the slider, not a number on it.
-    settings.ratio = m_store.number(InfiniteRatio) != 0.0f ? kInfiniteRatio : m_store.number(Ratio);
-    settings.kneeDb = m_store.number(Knee);
+    settings.heightDb = m_store.number(Height);
     settings.expanderThresholdDb = m_store.number(ExpanderThreshold);
     settings.expanderRatio = m_store.number(ExpanderRatio);
-    settings.expanderRangeDb = m_store.number(ExpanderRange);
     settings.makeupDb = m_store.number(Makeup);
     return settings;
 }

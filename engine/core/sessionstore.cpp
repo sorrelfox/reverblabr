@@ -7,6 +7,9 @@
 
 #include "core/sessionstore.h"
 
+#include "core/dynamicscurve.h"
+#include "core/dynamicsmigration.h"
+
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -107,12 +110,25 @@ bool endpointFromJson(const QJsonValue &value, QString &block, std::uint32_t &po
 
 /// Brings a file written by an older schema up to the current one.
 ///
-/// There is nothing to do yet: version 1 is the first. The hook is here so
-/// that the first migration has an obvious place to go, and so that the rule
-/// is written down — migrate on the way in, never on the way out.
+/// The rule is migrate on the way in, never on the way out.
+///
+/// - Version 2: the Dynamics Processor's curve became four points, so its
+///   blocks trade a ratio, a knee and a range for the nearest such curve.
 QJsonObject migrateToCurrent(QJsonObject json, int fromVersion)
 {
-    static_cast<void>(fromVersion);
+    if (fromVersion >= 2) {
+        return json;
+    }
+    QJsonArray blocks = json.value(kKeyBlocks).toArray();
+    for (QJsonValueRef value : blocks) {
+        QJsonObject block = value.toObject();
+        if (block.value("type"_L1).toString() != DynamicsCurve::typeId()) {
+            continue;
+        }
+        block.insert("params"_L1, dynamicsParamsFromOld(block.value("params"_L1).toObject()));
+        value = block;
+    }
+    json.insert(kKeyBlocks, blocks);
     return json;
 }
 

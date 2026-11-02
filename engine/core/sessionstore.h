@@ -26,7 +26,7 @@ namespace rb::core
 /// The schema version this build writes. A file with a lower one is migrated
 /// on the way in; a file with a higher one is refused, because this version
 /// cannot know what it would be throwing away.
-inline constexpr int kSessionSchemaVersion = 1;
+inline constexpr int kSessionSchemaVersion = 2;
 
 /// The extension session files carry.
 inline constexpr QLatin1StringView kSessionFileSuffix{".rbsession"};

@@ -38,6 +38,11 @@ class DynamicsPlot : public QObject
     Q_OBJECT
     QML_ELEMENT
 
+    /// Whether the parameters are one band of the Multiband Compressor's, a
+    /// compressor with a ratio and a knee, rather than this block's own curve
+    /// (core::DynamicsCurve::Law).
+    Q_PROPERTY(bool band READ band WRITE setBand NOTIFY curveChanged FINAL)
+
     /// The block's parameters, by id, as the session holds them.
     Q_PROPERTY(QVariantMap params READ params WRITE setParams NOTIFY paramsChanged FINAL)
 
@@ -68,14 +73,16 @@ class DynamicsPlot : public QObject
     Q_PROPERTY(int gainReductionIndex READ gainReductionIndex CONSTANT FINAL)
 
 public:
-    /// How finely the curve is sampled. Half a decibel is finer than the
-    /// knee bends over any width the block allows, so the straight line
-    /// between two samples is within a hundredth of a decibel of the curve —
-    /// far below what a plot two hundred pixels tall can show.
+    /// How finely the curve is sampled. Half a decibel is finer than any
+    /// bend the block allows, so the straight line between two samples is
+    /// within a hundredth of a decibel of the curve — far below what a plot
+    /// two hundred pixels tall can show. The corners are samples as well, so
+    /// the expander's line runs from corner to corner however steep it is.
     static constexpr qreal kSampleStepDb = 0.5;
 
     explicit DynamicsPlot(QObject *parent = nullptr);
 
+    [[nodiscard]] bool band() const;
     [[nodiscard]] QVariantMap params() const;
     [[nodiscard]] qreal plotWidth() const;
     [[nodiscard]] qreal plotHeight() const;
@@ -88,13 +95,14 @@ public:
     [[nodiscard]] int outputLevelIndex() const;
     [[nodiscard]] int gainReductionIndex() const;
 
+    void setBand(bool band);
     void setParams(const QVariantMap &params);
     void setPlotWidth(qreal width);
     void setPlotHeight(qreal height);
     void setLowestDb(qreal db);
     void setHighestDb(qreal db);
 
-    /// What a steady level comes out at, and how much is taken off on the
+    /// What is drawn for a steady level, and how much is taken off on the
     /// way. The handles and the marker read these, so they cannot sit
     /// anywhere but on the line that is drawn.
     [[nodiscard]] Q_INVOKABLE qreal outputDb(qreal inputDb) const;
@@ -109,6 +117,16 @@ public:
     /// Where an input level lands on the curve: what a handle and the live
     /// marker are placed by.
     [[nodiscard]] Q_INVOKABLE QPointF pointAt(qreal inputDb) const;
+
+    /// The four points of the Dynamics Processor's curve, bottom to top, and
+    /// what a dragged one means (core::DynamicsCurve). The panel asks for
+    /// them, so that it holds no curve of its own.
+    [[nodiscard]] Q_INVOKABLE qreal cutoffDb() const;
+    [[nodiscard]] Q_INVOKABLE qreal expanderStartDb() const;
+    [[nodiscard]] Q_INVOKABLE qreal thresholdDb() const;
+    [[nodiscard]] Q_INVOKABLE qreal endDb() const;
+    [[nodiscard]] Q_INVOKABLE qreal ratioForCutoff(qreal cutoffDb) const;
+    [[nodiscard]] Q_INVOKABLE qreal heightForEnd(qreal endDb) const;
 
 Q_SIGNALS:
     void paramsChanged();

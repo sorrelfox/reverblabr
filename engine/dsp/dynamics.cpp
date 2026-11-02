@@ -29,7 +29,85 @@ namespace
     return static_cast<float>(std::exp(-1.0 / std::max(1.0, samples)));
 }
 
+/// Where a compressor's expander starts, which nothing above it moves.
+[[nodiscard]] float expanderStartOf(const DynamicsSettings &settings) noexcept RB_NONBLOCKING
+{
+    return settings.expanderThresholdDb;
+}
+
+[[nodiscard]] float expanderStartOf(const DynamicsShape &shape) noexcept RB_NONBLOCKING
+{
+    return expanderStartDb(shape);
+}
+
+/// The Dynamics Processor's curve, before the make-up gain.
+[[nodiscard]] float shapedDb(float inputDb, const DynamicsShape &shape) noexcept RB_NONBLOCKING
+{
+    if (inputDb > shape.thresholdDb) {
+        if (shape.heightDb <= 0.0f) {
+            return shape.thresholdDb;
+        }
+        // expm1 rather than 1 - exp: just above the threshold the two nearly
+        // cancel, and a tall bend is nearly the diagonal for a long way.
+        return shape.thresholdDb - shape.heightDb * std::expm1((shape.thresholdDb - inputDb) / shape.heightDb);
+    }
+    const float start = expanderStartDb(shape);
+    if (inputDb >= start || shape.expanderRatio <= 1.0f) {
+        return inputDb;
+    }
+    return std::max(kDynamicsFloorDb, start + (inputDb - start) * shape.expanderRatio);
+}
+
 } // namespace
+
+float expanderStartDb(const DynamicsShape &shape) noexcept RB_NONBLOCKING
+{
+    return std::min(shape.expanderThresholdDb, shape.thresholdDb);
+}
+
+float dynamicsCutoffDb(const DynamicsShape &shape) noexcept RB_NONBLOCKING
+{
+    const float start = expanderStartDb(shape);
+    return start - (start - kDynamicsFloorDb) / std::max(1.0f, shape.expanderRatio);
+}
+
+float dynamicsRatioFor(float startDb, float cutoffDb) noexcept RB_NONBLOCKING
+{
+    const float rise = startDb - kDynamicsFloorDb;
+    if (rise <= 0.0f) {
+        return 1.0f;
+    }
+    // Compared before dividing, so that a foot right under the start is the
+    // steepest ratio and not a division by nothing.
+    const float run = startDb - cutoffDb;
+    if (run * kDynamicsHighestRatio <= rise) {
+        return kDynamicsHighestRatio;
+    }
+    return std::clamp(rise / run, 1.0f, kDynamicsHighestRatio);
+}
+
+float dynamicsHeightFor(float thresholdDb, float inputDb, float wantedDb) noexcept
+{
+    const double over = static_cast<double>(inputDb - thresholdDb);
+    const double wanted = static_cast<double>(wantedDb - thresholdDb);
+    const auto arrivesAt = [over](double height) { return -height * std::expm1(-over / height); };
+
+    if (over <= 0.0 || wanted <= 0.0) {
+        return 0.0f;
+    }
+    double lowest = 0.0;
+    double highest = static_cast<double>(kDynamicsHighestHeightDb);
+    if (wanted >= arrivesAt(highest)) {
+        return kDynamicsHighestHeightDb;
+    }
+    // The taller the bend the higher it arrives, so halving the range closes
+    // on the one height that fits. Forty halvings is far past a float.
+    for (int halving = 0; halving < 40; ++halving) {
+        const double middle = 0.5 * (lowest + highest);
+        (arrivesAt(middle) < wanted ? lowest : highest) = middle;
+    }
+    return static_cast<float>(highest);
+}
 
 float gainReductionDb(float inputDb, const DynamicsSettings &settings) noexcept RB_NONBLOCKING
 {
@@ -67,7 +145,20 @@ float outputDb(float inputDb, const DynamicsSettings &settings) noexcept RB_NONB
     return inputDb + gainReductionDb(inputDb, settings) + settings.makeupDb;
 }
 
-void DynamicsProcessor::prepare(double sampleRate, std::uint32_t channels)
+float gainReductionDb(float inputDb, const DynamicsShape &shape) noexcept RB_NONBLOCKING
+{
+    // **Never more than nothing**, which also leaves alone what is under the
+    // floor already: the curve has nothing to say about it.
+    return std::min(0.0f, shapedDb(inputDb, shape) - inputDb);
+}
+
+float outputDb(float inputDb, const DynamicsShape &shape) noexcept RB_NONBLOCKING
+{
+    return inputDb + gainReductionDb(inputDb, shape) + shape.makeupDb;
+}
+
+template <typename Curve>
+void BasicDynamicsProcessor<Curve>::prepare(double sampleRate, std::uint32_t channels)
 {
     m_sampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
     m_channels = channels;
@@ -77,12 +168,14 @@ void DynamicsProcessor::prepare(double sampleRate, std::uint32_t channels)
     reset();
 }
 
-void DynamicsProcessor::setSettings(const DynamicsSettings &settings) noexcept RB_NONBLOCKING
+template <typename Curve>
+void BasicDynamicsProcessor<Curve>::setSettings(const Curve &settings) noexcept RB_NONBLOCKING
 {
     m_settings = settings;
 }
 
-void DynamicsProcessor::setTiming(const DynamicsTiming &timing) noexcept RB_NONBLOCKING
+template <typename Curve>
+void BasicDynamicsProcessor<Curve>::setTiming(const DynamicsTiming &timing) noexcept RB_NONBLOCKING
 {
     if (timing == m_timing) {
         return;
@@ -91,7 +184,8 @@ void DynamicsProcessor::setTiming(const DynamicsTiming &timing) noexcept RB_NONB
     recomputeCoefficients();
 }
 
-void DynamicsProcessor::recomputeCoefficients() noexcept RB_NONBLOCKING
+template <typename Curve>
+void BasicDynamicsProcessor<Curve>::recomputeCoefficients() noexcept RB_NONBLOCKING
 {
     m_attackCoefficient = coefficientFor(m_timing.attackMs, m_sampleRate);
     m_releaseCoefficient = coefficientFor(m_timing.releaseMs, m_sampleRate);
@@ -102,7 +196,8 @@ void DynamicsProcessor::recomputeCoefficients() noexcept RB_NONBLOCKING
         std::max(1U, static_cast<std::uint32_t>(static_cast<double>(kPeakWindowMs) * 1.0e-3 * m_sampleRate));
 }
 
-void DynamicsProcessor::reset() noexcept RB_NONBLOCKING
+template <typename Curve>
+void BasicDynamicsProcessor<Curve>::reset() noexcept RB_NONBLOCKING
 {
     m_meanSquare = 0.0f;
     m_peakThisWindow = 0.0f;
@@ -117,7 +212,8 @@ void DynamicsProcessor::reset() noexcept RB_NONBLOCKING
     m_makeup.reset(m_settings.makeupDb);
 }
 
-void DynamicsProcessor::process(const AudioBlock &block, std::uint32_t frames) noexcept RB_NONBLOCKING
+template <typename Curve>
+void BasicDynamicsProcessor<Curve>::process(const AudioBlock &block, std::uint32_t frames) noexcept RB_NONBLOCKING
 {
     const std::uint32_t channels = std::min(m_channels, block.channelCount());
     // Set once a cycle; the glide is advanced a sample at a time below.
@@ -184,11 +280,12 @@ void DynamicsProcessor::process(const AudioBlock &block, std::uint32_t frames) n
 
         // The expander is held open for a while after the signal falls back,
         // or a level sitting on the threshold chatters.
-        if (levelDb >= m_settings.expanderThresholdDb) {
+        const float expanderStart = expanderStartOf(m_settings);
+        if (levelDb >= expanderStart) {
             m_hold = m_holdSamples;
         } else if (m_hold > 0) {
             --m_hold;
-            m_currentDb = std::max(m_currentDb, gainReductionDb(m_settings.expanderThresholdDb, m_settings));
+            m_currentDb = std::max(m_currentDb, gainReductionDb(expanderStart, m_settings));
         }
 
         const float gain = dbToGain(m_currentDb + m_makeup.next());
@@ -208,5 +305,8 @@ void DynamicsProcessor::process(const AudioBlock &block, std::uint32_t frames) n
         m_reductionDb = deepestReduction;
     }
 }
+
+template class BasicDynamicsProcessor<DynamicsSettings>;
+template class BasicDynamicsProcessor<DynamicsShape>;
 
 } // namespace rb::dsp

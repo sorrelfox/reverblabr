@@ -76,11 +76,6 @@ struct Setting {
     return Setting{id, dsp::ParamValue::ofFloat(value), QVariant(static_cast<double>(value))};
 }
 
-[[nodiscard]] Setting flag(const QString &id, bool value)
-{
-    return Setting{id, dsp::ParamValue::ofBool(value), QVariant(value)};
-}
-
 [[nodiscard]] QVariantMap mapOf(const std::vector<Setting> &settings)
 {
     QVariantMap params;
@@ -119,17 +114,17 @@ TEST(DynamicsPanelTest, TheDrawnLineIsTheBlocksOwnCurve)
 {
     // The criterion: the polyline the Shape is handed is the curve the block
     // applies, within a tenth of a decibel at every decibel of the range.
-    // **Half a decibel between samples** is finer than the knee bends, so
-    // the straight line the screen draws between two of them is the curve.
+    // **Half a decibel between samples** is finer than the bend, and the
+    // corners are samples themselves, so the straight line the screen draws
+    // between two of them is the curve.
     const std::vector<std::vector<Setting>> shapes{
-        {number(u"threshold"_s, -24.0f), number(u"ratio"_s, 4.0f), number(u"knee"_s, 6.0f), number(u"makeup"_s, 3.0f)},
-        {number(u"threshold"_s, -6.0f), number(u"ratio"_s, 20.0f), number(u"knee"_s, 24.0f)},
-        {number(u"threshold"_s, -40.0f), flag(u"infiniteRatio"_s, true), number(u"knee"_s, 0.0f)},
+        {number(u"threshold"_s, -24.0f), number(u"height"_s, 12.0f)},
+        {number(u"threshold"_s, -6.0f), number(u"height"_s, 40.0f)},
+        {number(u"threshold"_s, -40.0f), number(u"height"_s, 0.0f)},
         {number(u"expanderThreshold"_s, -50.0f),
          number(u"expanderRatio"_s, 3.0f),
-         number(u"expanderRange"_s, 30.0f),
          number(u"threshold"_s, -12.0f),
-         number(u"ratio"_s, 2.0f)},
+         number(u"height"_s, 6.0f)},
     };
 
     for (const std::vector<Setting> &shape : shapes) {
@@ -146,16 +141,15 @@ TEST(DynamicsPanelTest, TheDrawnLinePredictsWhatTheBlockDoesToASound)
     // worth having only if the sound follows it: the same settings go to the
     // panel and to the real block, a tone goes through the block, and what
     // comes out is read against what the panel drew.
+    constexpr float makeupDb = 3.0f;
     const std::vector<Setting> shape{
         number(u"threshold"_s, -24.0f),
-        number(u"ratio"_s, 4.0f),
-        number(u"knee"_s, 6.0f),
-        number(u"makeup"_s, 3.0f),
+        number(u"height"_s, 12.0f),
+        number(u"makeup"_s, makeupDb),
         number(u"attack"_s, 1.0f),
         number(u"release"_s, 50.0f),
         number(u"expanderThreshold"_s, -60.0f),
         number(u"expanderRatio"_s, 2.0f),
-        number(u"expanderRange"_s, 20.0f),
     };
     const std::unique_ptr<DynamicsPlot> plot = plotOf(mapOf(shape));
 
@@ -167,9 +161,67 @@ TEST(DynamicsPanelTest, TheDrawnLinePredictsWhatTheBlockDoesToASound)
         ASSERT_TRUE(runner.prepare().has_value());
         const MultiSignal out = runner.run(stereoSine(32000, dsp::dbToGain(inputDb)), CycleShape::fixed(256));
 
+        // **The make-up gain is the sound's and not the graph's**, which is
+        // the one place the two differ.
         const double measured = peakDb(settled(out[0]));
-        EXPECT_NEAR(measured, drawnOutputDb(*plot, inputDb), 0.3) << "at " << inputDb << " dBFS in";
+        EXPECT_NEAR(measured, drawnOutputDb(*plot, inputDb) + makeupDb, 0.3) << "at " << inputDb << " dBFS in";
     }
+}
+
+TEST(DynamicsPanelTest, TheMakeupMovesTheSoundAndNotTheLine)
+{
+    const std::unique_ptr<DynamicsPlot> flat = plotOf(mapOf({number(u"threshold"_s, -30.0f)}));
+    const std::unique_ptr<DynamicsPlot> lifted =
+        plotOf(mapOf({number(u"threshold"_s, -30.0f), number(u"makeup"_s, 20.0f)}));
+    EXPECT_EQ(flat->curve(), lifted->curve());
+}
+
+TEST(DynamicsPanelTest, TheLineGoesThroughItsCornersExactly)
+{
+    // A steep line is less than one sample wide: without its corners among
+    // the samples it would be drawn leaning, from somewhere else to somewhere
+    // else.
+    const std::unique_ptr<DynamicsPlot> plot =
+        plotOf(mapOf({number(u"expanderThreshold"_s, -74.3f), number(u"expanderRatio"_s, 50.0f)}));
+    const QList<QPointF> points = plot->curve();
+    for (const QPointF wanted : {QPointF(plot->xOfDb(plot->cutoffDb()), plot->yOfDb(-120.0)),
+                                 QPointF(plot->xOfDb(-74.3), plot->yOfDb(-74.3))}) {
+        const bool found = std::ranges::any_of(points, [wanted](const QPointF &point) {
+            return std::abs(point.x() - wanted.x()) < 1e-3 && std::abs(point.y() - wanted.y()) < 0.1;
+        });
+        EXPECT_TRUE(found) << "no point of the line at " << wanted.x() << ", " << wanted.y();
+    }
+}
+
+TEST(DynamicsPanelTest, TheFourPointsStandWhereTheirLinesAre)
+{
+    const std::unique_ptr<DynamicsPlot> plot = plotOf(mapOf({number(u"expanderThreshold"_s, -60.0f),
+                                                             number(u"expanderRatio"_s, 4.0f),
+                                                             number(u"threshold"_s, -20.0f),
+                                                             number(u"height"_s, 12.0f)}));
+    EXPECT_NEAR(plot->cutoffDb(), -75.0, 1e-4);
+    EXPECT_NEAR(plot->expanderStartDb(), -60.0, 1e-4);
+    EXPECT_NEAR(plot->thresholdDb(), -20.0, 1e-4);
+    EXPECT_NEAR(plot->endDb(), -8.0809, 1e-3);
+    EXPECT_NEAR(plot->outputDb(plot->cutoffDb()), -120.0, 1e-3);
+
+    // And what a dragged one means is the same arithmetic the other way.
+    EXPECT_NEAR(plot->ratioForCutoff(-75.0), 4.0, 1e-3);
+    EXPECT_NEAR(plot->heightForEnd(plot->endDb()), 12.0, 1e-2);
+}
+
+TEST(DynamicsPanelTest, ABandIsDrawnWithItsOwnLaw)
+{
+    // The Multiband Compressor's panel uses this plot for a band, and a band
+    // still has a ratio and a knee, and its make-up gain on the line.
+    DynamicsPlot plot;
+    plot.setBand(true);
+    plot.setPlotWidth(272.0);
+    plot.setPlotHeight(272.0);
+    plot.setParams(QVariantMap{{u"threshold"_s, -20.0}, {u"ratio"_s, 4.0}, {u"knee"_s, 0.0}, {u"makeup"_s, 3.0}});
+
+    EXPECT_NEAR(plot.outputDb(-40.0), -37.0, 1e-3);
+    EXPECT_NEAR(plot.outputDb(0.0), -12.0, 1e-3);
 }
 
 TEST(DynamicsPanelTest, TheMarkerMovesWithoutTheCurveBeingRebuilt)
@@ -218,7 +270,7 @@ TEST(DynamicsPanelTest, ASettingTheSessionDoesNotMentionIsTheBlocksDefault)
 
     // And reading a second block's settings leaves nothing of the first's
     // behind: a panel moved from one tile to the next draws the new block.
-    plot->setParams(mapOf({number(u"threshold"_s, -60.0f), number(u"ratio"_s, 8.0f)}));
+    plot->setParams(mapOf({number(u"threshold"_s, -60.0f), number(u"height"_s, 8.0f)}));
     plot->setParams(QVariantMap{});
     for (const float inputDb : {-30.0f, -10.0f, 0.0f}) {
         EXPECT_NEAR(plot->outputDb(inputDb), dsp::outputDb(inputDb, block.settings()), 0.001)

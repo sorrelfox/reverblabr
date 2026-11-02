@@ -362,6 +362,7 @@ ColumnLayout {
     DynamicsPlot {
         id: curve
 
+        band: true
         params: panel.curveParams
         plotWidth: plotArea.width
         plotHeight: plotArea.height

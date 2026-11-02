@@ -180,16 +180,16 @@ TestCase {
         }
         verify(row !== null, "Details has no row for the threshold");
         const slider = row.activeControl.fader;
-        const before = face.params.threshold ?? -20;
+        const before = face.params.threshold ?? -26;
 
         const from = testCase.handleCentre(window, slider);
         mousePress(window.contentItem, from.x, from.y);
         testCase.dragBy(window, from, 60, 0, 6);
         verify(slider.pressed, "the drag let go of the slider");
 
-        tryVerify(() => (face.params.threshold ?? -20) > before + 1, 500,
+        tryVerify(() => (face.params.threshold ?? -26) > before + 1, 500,
                   "the tile's curve waited for the button to come up");
-        tryVerify(() => (panel.curve.params.threshold ?? -20) > before + 1, 500,
+        tryVerify(() => (panel.curve.params.threshold ?? -26) > before + 1, 500,
                   "the panel's own curve waited for the button to come up");
 
         mouseRelease(window.contentItem, from.x + 60, from.y);

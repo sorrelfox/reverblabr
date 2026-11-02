@@ -18,6 +18,11 @@ DynamicsPlot::DynamicsPlot(QObject *parent)
 {
 }
 
+bool DynamicsPlot::band() const
+{
+    return m_curve.law() == core::DynamicsCurve::Law::Band;
+}
+
 QVariantMap DynamicsPlot::params() const
 {
     return m_params;
@@ -82,6 +87,16 @@ int DynamicsPlot::gainReductionIndex() const
     return core::DynamicsCurve::gainReductionIndex();
 }
 
+void DynamicsPlot::setBand(bool band)
+{
+    if (band == this->band()) {
+        return;
+    }
+    m_curve.setLaw(band ? core::DynamicsCurve::Law::Band : core::DynamicsCurve::Law::Dynamics);
+    static_cast<void>(m_curve.setParams(m_params));
+    rebuild();
+}
+
 void DynamicsPlot::setParams(const QVariantMap &params)
 {
     if (m_params == params) {
@@ -136,7 +151,7 @@ void DynamicsPlot::setHighestDb(qreal db)
 
 qreal DynamicsPlot::outputDb(qreal inputDb) const
 {
-    return m_curve.outputDb(inputDb);
+    return m_curve.drawnDb(inputDb);
 }
 
 qreal DynamicsPlot::gainReductionDb(qreal inputDb) const
@@ -184,6 +199,36 @@ QPointF DynamicsPlot::pointAt(qreal inputDb) const
     return QPointF(xOfDb(inputDb), yOfDb(outputDb(inputDb)));
 }
 
+qreal DynamicsPlot::cutoffDb() const
+{
+    return m_curve.cutoffDb();
+}
+
+qreal DynamicsPlot::expanderStartDb() const
+{
+    return m_curve.expanderStartDb();
+}
+
+qreal DynamicsPlot::thresholdDb() const
+{
+    return m_curve.thresholdDb();
+}
+
+qreal DynamicsPlot::endDb() const
+{
+    return m_curve.endDb();
+}
+
+qreal DynamicsPlot::ratioForCutoff(qreal cutoffDb) const
+{
+    return m_curve.ratioForCutoff(cutoffDb);
+}
+
+qreal DynamicsPlot::heightForEnd(qreal endDb) const
+{
+    return m_curve.heightForEnd(endDb);
+}
+
 void DynamicsPlot::rebuild()
 {
     m_points.clear();
@@ -192,12 +237,21 @@ void DynamicsPlot::rebuild()
     const qreal span = m_highestDb - m_lowestDb;
     if (m_plotWidth > 0.0 && m_plotHeight > 0.0 && span > 0.0) {
         const auto steps = static_cast<int>(std::ceil(span / kSampleStepDb));
-        m_points.reserve(steps + 1);
+        QList<qreal> inputs = m_curve.cornersDb();
+        inputs.reserve(inputs.size() + steps + 1);
         for (int step = 0; step <= steps; ++step) {
             // The last sample lands on the top of the range exactly,
             // whatever the step leaves over.
-            const qreal inputDb = std::min(m_lowestDb + static_cast<qreal>(step) * kSampleStepDb, m_highestDb);
-            m_points.append(pointAt(inputDb));
+            inputs.append(std::min(m_lowestDb + static_cast<qreal>(step) * kSampleStepDb, m_highestDb));
+        }
+        std::ranges::sort(inputs);
+
+        m_points.reserve(inputs.size());
+        for (const qreal inputDb : inputs) {
+            // A corner off this plot's range is a place on some other plot.
+            if (inputDb >= m_lowestDb && inputDb <= m_highestDb) {
+                m_points.append(pointAt(inputDb));
+            }
         }
     }
     Q_EMIT curveChanged();

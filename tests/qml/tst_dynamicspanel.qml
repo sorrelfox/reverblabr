@@ -6,12 +6,12 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // The Dynamics Processor's panel and face offscreen, against the mock
-// engine: that the four handles are controls a keyboard can reach and move,
-// that a drag writes the parameter the handle is named after, that Details
-// opens on to every setting the block declares, and that the presets footer
-// is drawn without pretending to work. What the curve itself draws is
-// measured in app.DynamicsPanelTest, where there is a signal to read it
-// against.
+// engine: that each of the four points moves along its one line and stops
+// where it has to, by pointer and by keyboard, that nothing dragged puts the
+// curve above the diagonal, that a drag says what it is setting and is one
+// step to take back, and that Details opens on to every setting the block
+// declares. What the curve itself draws is measured in app.DynamicsPanelTest,
+// where there is a signal to read it against.
 
 import QtQuick
 import QtQuick.Controls
@@ -103,7 +103,7 @@ TestCase {
     }
 
     function test_theDetailsAreClosedWhenThePanelOpens() {
-        // **Twelve numbers are what somebody comes back for**, not what they
+        // **Nine numbers are what somebody comes back for**, not what they
         // open the block to see.
         const panel = createTemporaryObject(panelComponent, null);
         panel.blockId = "dyn";
@@ -132,270 +132,455 @@ TestCase {
         }
     }
 
-    function test_everyHandleIsAControlThatSaysWhatItIsSetTo() {
+    // --- what the tests below do with a point ---
+
+    /// The panel in its scroll view, with these settings in the session.
+    function windowWith(settings) {
+        const window = createTemporaryObject(panelWindow, null);
+        const panel = window.panel;
+        panel.blockId = "dyn";
+        for (const id in settings) {
+            SessionModel.setParam("dyn", id, settings[id]);
+        }
+        waitForRendering(panel);
+        return window;
+    }
+
+    function pointOf(panel, id) {
+        const order = ["cutoff", "expanderThreshold", "threshold", "height"];
+        const point = panel.handles.itemAt(order.indexOf(id));
+        compare(point.modelData, id);
+        return point;
+    }
+
+    function centreOf(window, point) {
+        return point.mapToItem(window.contentItem, point.width / 2, point.height / 2);
+    }
+
+    /// Takes hold of a point and goes \a x, \a y away, and leaves the button
+    /// down.
+    function hold(window, id, x, y) {
+        const from = testCase.centreOf(window, testCase.pointOf(window.panel, id));
+        mousePress(window.contentItem, from.x, from.y);
+        for (let step = 1; step <= 6; ++step) {
+            mouseMove(window.contentItem, from.x + x * step / 6, from.y + y * step / 6);
+        }
+        return Qt.point(from.x + x, from.y + y);
+    }
+
+    function drag(window, id, x, y) {
+        const to = testCase.hold(window, id, x, y);
+        mouseRelease(window.contentItem, to.x, to.y);
+    }
+
+    /// The owner's rule, read off what is on the plot right now.
+    function verifyUnderTheDiagonal(panel, when) {
+        for (let inputDb = -120; inputDb <= 40; inputDb += 2) {
+            verify(panel.curve.outputDb(inputDb) <= inputDb + 0.001,
+                   "the curve went above the diagonal at " + inputDb + " dB " + when);
+        }
+    }
+
+    function test_everyPointIsAControlThatSaysWhatItIsSetTo() {
         // The criterion: nothing is reachable by pointer alone, and a screen
-        // reader is told which handle it is on and where it stands.
+        // reader is told which point it is on and where it stands.
         const panel = createTemporaryObject(panelComponent, null);
         panel.blockId = "dyn";
         wait(50);
 
         compare(panel.handles.count, 4);
         for (let index = 0; index < panel.handles.count; ++index) {
-            const handle = panel.handles.itemAt(index);
-            verify(handle.activeFocusOnTab, "a handle that the tab order skips");
-            verify(handle.Accessible.name.length > 0, "a handle with no name");
-            verify(handle.Accessible.name.indexOf(panel.handleValue(handle.modelData)) >= 0,
-                   "the name of " + handle.modelData + " does not say what it is set to");
+            const point = panel.handles.itemAt(index);
+            verify(point.activeFocusOnTab, "a point that the tab order skips");
+            verify(point.Accessible.name.length > 0, "a point with no name");
+            verify(point.Accessible.name.indexOf(panel.handleValue(point.modelData)) >= 0,
+                   "the name of " + point.modelData + " does not say what it is set to");
         }
     }
 
-    function test_theArrowKeysMoveAHandle() {
-        // The criterion: all handles are operable from the keyboard. **In a
+    function test_theFirstPointMovesAlongTheFloorAndSetsTheRatio() {
+        const window = testCase.windowWith({ expanderThreshold: -60 });
+        const panel = window.panel;
+        const point = testCase.pointOf(panel, "cutoff");
+        const floorY = panel.curve.yOfDb(-120);
+        fuzzyCompare(panel.curve.cutoffDb(), -120, 0.01);
+
+        // Up and to the right: only the right counts.
+        testCase.drag(window, "cutoff", 36, -80);
+        const moved = panel.curve.cutoffDb();
+        verify(moved > -120, "the point did not follow the pointer along the floor");
+        fuzzyCompare(moved, -120 + 36 * 160 / panel.curve.plotWidth, 1.5);
+        fuzzyCompare(point.at.y, floorY, 0.01);
+        // The ratio is the slope of the line from the floor to the second
+        // point: R = (E + 120) / (E - b).
+        fuzzyCompare(SessionModel.param("dyn", "expanderRatio"), (-60 + 120) / (-60 - moved), 0.02);
+        fuzzyCompare(panel.curve.outputDb(moved), -120, 0.05);
+        testCase.verifyUnderTheDiagonal(panel, "after the first point moved");
+
+        // Right past the second point it stops at the steepest there is,
+        // short of it: it can never reach it or pass it.
+        testCase.drag(window, "cutoff", 400, 0);
+        compare(SessionModel.param("dyn", "expanderRatio"), 50);
+        verify(panel.curve.cutoffDb() < -60, "the first point reached the second");
+        fuzzyCompare(point.at.y, floorY, 0.01);
+
+        // And left it stops at the corner, where the line is the diagonal.
+        testCase.drag(window, "cutoff", -400, 0);
+        compare(SessionModel.param("dyn", "expanderRatio"), 1);
+        fuzzyCompare(panel.curve.cutoffDb(), -120, 0.01);
+        fuzzyCompare(point.at.y, floorY, 0.01);
+    }
+
+    function test_theSecondPointMovesAlongTheDiagonalAndCarriesTheFirst() {
+        const window = testCase.windowWith({ expanderThreshold: -80, expanderRatio: 4 });
+        const panel = window.panel;
+        const point = testCase.pointOf(panel, "expanderThreshold");
+        fuzzyCompare(panel.curve.cutoffDb(), -90, 0.01);
+
+        // Straight sideways: it takes the nearest place on the diagonal.
+        testCase.drag(window, "expanderThreshold", 40, 0);
+        const moved = SessionModel.param("dyn", "expanderThreshold");
+        verify(moved > -80, "the point did not follow the pointer up the line");
+        fuzzyCompare(panel.curve.dbAtX(point.at.x), moved, 0.05);
+        fuzzyCompare(panel.curve.dbAtY(point.at.y), moved, 0.05);
+        // **The ratio stays, so the first point comes along.**
+        compare(SessionModel.param("dyn", "expanderRatio"), 4);
+        fuzzyCompare(panel.curve.cutoffDb(), moved - (moved + 120) / 4, 0.01);
+
+        // The third point stops it.
+        testCase.drag(window, "expanderThreshold", 400, -400);
+        fuzzyCompare(SessionModel.param("dyn", "expanderThreshold"), panel.curve.thresholdDb(), 0.01);
+        testCase.verifyUnderTheDiagonal(panel, "with the second point against the third");
+
+        // And the corner of the graph does at the other end.
+        testCase.drag(window, "expanderThreshold", -400, 400);
+        compare(SessionModel.param("dyn", "expanderThreshold"), -120);
+        testCase.verifyUnderTheDiagonal(panel, "with the second point in the corner");
+    }
+
+    function test_theThirdPointMovesAlongTheDiagonalAndCarriesTheFourth() {
+        const window = testCase.windowWith({ expanderThreshold: -80, threshold: -30, height: 20 });
+        const panel = window.panel;
+        const point = testCase.pointOf(panel, "threshold");
+        const endBefore = panel.curve.endDb();
+
+        testCase.drag(window, "threshold", 30, 30);
+        verify(SessionModel.param("dyn", "threshold") !== -30, "the point did not follow the pointer");
+        const moved = SessionModel.param("dyn", "threshold");
+        fuzzyCompare(panel.curve.dbAtX(point.at.x), moved, 0.05);
+        fuzzyCompare(panel.curve.dbAtY(point.at.y), moved, 0.05);
+
+        // The height is kept, and the fourth point has gone with it.
+        testCase.drag(window, "threshold", 60, -60);
+        compare(SessionModel.param("dyn", "height"), 20);
+        verify(panel.curve.endDb() !== endBefore, "the fourth point stayed behind");
+
+        // The top of its line is +20 dB.
+        testCase.drag(window, "threshold", 400, -400);
+        compare(SessionModel.param("dyn", "threshold"), 20);
+        compare(SessionModel.param("dyn", "height"), 20);
+        verify(panel.curve.endDb() < 40, "the fourth point reached the diagonal");
+        testCase.verifyUnderTheDiagonal(panel, "with the third point at the top");
+
+        // The second point is the bottom of it.
+        testCase.drag(window, "threshold", -400, 400);
+        compare(SessionModel.param("dyn", "threshold"), -80);
+        testCase.verifyUnderTheDiagonal(panel, "with the third point on the second");
+    }
+
+    function test_theFourthPointMovesUpTheRightEdgeAndSetsTheHeight() {
+        const window = testCase.windowWith({ threshold: -34, height: 10 });
+        const panel = window.panel;
+        const point = testCase.pointOf(panel, "height");
+        const rightX = panel.curve.xOfDb(40);
+        fuzzyCompare(point.at.x, rightX, 0.01);
+
+        // Sideways does nothing but up moves it.
+        const before = panel.curve.endDb();
+        testCase.drag(window, "height", -60, -24);
+        const moved = panel.curve.endDb();
+        verify(moved > before, "the point did not follow the pointer up the edge");
+        fuzzyCompare(moved, before + 24 * 160 / panel.curve.plotHeight, 1.0);
+        fuzzyCompare(point.at.x, rightX, 0.01);
+        fuzzyCompare(SessionModel.param("dyn", "threshold"), -34, 0.001);
+        testCase.verifyUnderTheDiagonal(panel, "after the fourth point moved");
+
+        // Down to the third and no lower: a height of nothing, a flat line.
+        testCase.drag(window, "height", 0, 400);
+        compare(SessionModel.param("dyn", "height"), 0);
+        fuzzyCompare(panel.curve.endDb(), -34, 0.01);
+        fuzzyCompare(panel.curve.outputDb(0), -34, 0.01);
+        fuzzyCompare(point.at.x, rightX, 0.01);
+
+        // Up to the most a height can be, and it stops under the diagonal.
+        testCase.drag(window, "height", 0, -400);
+        compare(SessionModel.param("dyn", "height"), 40);
+        verify(panel.curve.endDb() < 40, "the fourth point reached the top of the graph");
+        testCase.verifyUnderTheDiagonal(panel, "with the fourth point at the top");
+    }
+
+    function test_thePointOnTheEdgeCanBeTakenByItsHalfOutsideThePlot() {
+        // The bottom of the first point and the right of the fourth are
+        // outside the plot, and a press there is still a press on them.
+        const window = testCase.windowWith({ threshold: -34, height: 10, expanderThreshold: -60, expanderRatio: 2 });
+        const panel = window.panel;
+
+        const first = testCase.pointOf(panel, "cutoff");
+        const fromFirst = testCase.centreOf(window, first);
+        mousePress(window.contentItem, fromFirst.x, fromFirst.y + first.height / 2 - 2);
+        compare(panel.dragging, "cutoff");
+        mouseRelease(window.contentItem, fromFirst.x, fromFirst.y + first.height / 2 - 2);
+
+        const fourth = testCase.pointOf(panel, "height");
+        const fromFourth = testCase.centreOf(window, fourth);
+        mousePress(window.contentItem, fromFourth.x + fourth.width / 2 - 2, fromFourth.y);
+        compare(panel.dragging, "height");
+        mouseRelease(window.contentItem, fromFourth.x + fourth.width / 2 - 2, fromFourth.y);
+    }
+
+    function test_aPressTakesHoldAndMovesNothing() {
+        const window = testCase.windowWith({ threshold: -34, height: 10 });
+        const panel = window.panel;
+        const point = testCase.pointOf(panel, "threshold");
+
+        // Off to one side of the point, but within reach of it.
+        const from = testCase.centreOf(window, point);
+        mousePress(window.contentItem, from.x + 6, from.y - 3);
+        compare(panel.dragging, "threshold");
+        mouseRelease(window.contentItem, from.x + 6, from.y - 3);
+        compare(SessionModel.param("dyn", "threshold"), -34);
+    }
+
+    function test_twoPointsInOnePlaceAreToldApartByWhichWayTheyGo() {
+        // Each stops the other, so whichever a press picked could be the one
+        // that cannot move. The drag says which is meant.
+        const window = testCase.windowWith({ expanderThreshold: -40, threshold: -40, height: 10 });
+        const panel = window.panel;
+
+        const up = testCase.hold(window, "threshold", 24, -24);
+        compare(panel.dragging, "threshold");
+        mouseRelease(window.contentItem, up.x, up.y);
+        verify(SessionModel.param("dyn", "threshold") > -40, "up did not move the third point");
+        compare(SessionModel.param("dyn", "expanderThreshold"), -40);
+
+        SessionModel.setParam("dyn", "threshold", -40);
+        waitForRendering(panel);
+        const down = testCase.hold(window, "threshold", -24, 24);
+        compare(panel.dragging, "expanderThreshold");
+        mouseRelease(window.contentItem, down.x, down.y);
+        verify(SessionModel.param("dyn", "expanderThreshold") < -40, "down did not move the second point");
+        compare(SessionModel.param("dyn", "threshold"), -40);
+    }
+
+    function test_whileAPointIsHeldABoxNamesWhatItSetsAndThePointStandsOut() {
+        const window = testCase.windowWith({ expanderThreshold: -60, expanderRatio: 2 });
+        const panel = window.panel;
+
+        const expected = {
+            "cutoff": ["expanderThreshold", "expanderRatio"],
+            "expanderThreshold": ["expanderThreshold", "expanderRatio"],
+            "threshold": ["threshold", "height"],
+            "height": ["threshold", "height"]
+        };
+        for (const id in expected) {
+            const point = testCase.pointOf(panel, id);
+            verify(!point.held, id + " stood out before it was held");
+            verify(!panel.dragReadout.visible, "the readout was up before " + id + " was held");
+
+            const to = testCase.hold(window, id, 6, -6);
+            verify(point.held, id + " was not highlighted while held");
+            verify(panel.dragReadout.visible, "nothing said what " + id + " was setting");
+            compare(panel.handleReadout(id), expected[id]);
+            // **In words**: an id on the screen would be a word written for
+            // whoever wrote the block.
+            for (const paramId of expected[id]) {
+                verify(panel.paramLabel(paramId) !== paramId, paramId + " has no name");
+                verify(panel.paramValueText(paramId).length > 0, paramId + " has no value");
+            }
+
+            mouseRelease(window.contentItem, to.x, to.y);
+            compare(panel.dragging, "", "the plot kept hold of " + id);
+            verify(!point.held, id + " stayed highlighted");
+            verify(!panel.dragReadout.visible, "the readout stayed up after the drag");
+        }
+    }
+
+    function test_theBoxNeverCoversThePointOrLeavesThePlot() {
+        // Sizes from the panel's narrowest to a wide one, and a box from the
+        // size it has here to a long translation of it.
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.blockId = "dyn";
+        wait(50);
+
+        for (const plotWidth of [160, 245, 400]) {
+            const plotHeight = 250;
+            for (const box of [Qt.size(150, 36), Qt.size(150, 56)]) {
+                for (let along = 0; along <= 1; along += 0.05) {
+                    const onDiagonal = Qt.point(along * plotWidth, plotHeight * (1 - along));
+                    const places = [
+                        ["cutoff", Qt.point(along * plotWidth, plotHeight)],
+                        ["expanderThreshold", onDiagonal],
+                        ["threshold", onDiagonal],
+                        ["height", Qt.point(plotWidth, along * plotHeight)]
+                    ];
+                    for (const place of places) {
+                        const at = panel.readoutPlace(place[0], place[1], box.width, box.height, plotWidth, plotHeight);
+                        verify(at.x >= 0 && at.x + box.width <= Math.max(plotWidth, box.width) + 0.01,
+                               place[0] + " put the box off the plot across");
+                        verify(at.y >= 0 && at.y + box.height <= plotHeight + 0.01,
+                               place[0] + " put the box off the plot up and down");
+                        const insideX = place[1].x >= at.x - 2 && place[1].x <= at.x + box.width + 2;
+                        const insideY = place[1].y >= at.y - 2 && place[1].y <= at.y + box.height + 2;
+                        verify(!(insideX && insideY), "the box covers " + place[0] + " at " + along);
+                    }
+                }
+            }
+        }
+    }
+
+    function test_aDragOfAnyPointIsOneStepToTakeBack() {
+        const window = testCase.windowWith({ threshold: -34, height: 10, expanderThreshold: -70, expanderRatio: 2 });
+        const panel = window.panel;
+        tryVerify(() => SessionModel.param("dyn", "expanderRatio") === 2, 500);
+        // **Past the gesture**: an edit of one parameter that follows another
+        // of it within half a second is the same step, and the settings above
+        // are not what is being taken back.
+        wait(600);
+
+        const before = { "cutoff": ["expanderRatio", 2], "expanderThreshold": ["expanderThreshold", -70],
+                         "threshold": ["threshold", -34], "height": ["height", 10] };
+        for (const id in before) {
+            const moves = id === "height" ? [0, -30] : [30, -30];
+            testCase.drag(window, id, moves[0], moves[1]);
+            const paramId = before[id][0];
+            verify(SessionModel.param("dyn", paramId) !== before[id][1], id + " did not move");
+            verify(SessionModel.canUndo, "nothing to take back after dragging " + id);
+
+            SessionModel.undo();
+            tryVerify(() => Math.abs(SessionModel.param("dyn", paramId) - before[id][1]) < 0.0001, 500,
+                      "one undo did not take the whole drag of " + id + " back");
+        }
+    }
+
+    function test_theKeyboardMovesEveryPointAlongItsLine() {
+        // The criterion: all points are operable from the keyboard. **In a
         // window**, because a key event goes to the focused item of one.
         const panel = createTemporaryObject(panelComponent, testCase);
         panel.blockId = "dyn";
+        SessionModel.setParam("dyn", "expanderThreshold", -60);
+        SessionModel.setParam("dyn", "threshold", -20);
+        SessionModel.setParam("dyn", "height", 10);
         wait(50);
 
-        const threshold = panel.handles.itemAt(1);
-        compare(threshold.modelData, "threshold");
-        threshold.forceActiveFocus();
-        verify(threshold.activeFocus, "the handle did not take focus");
-
+        // The third: right and up go up the diagonal, left and down come
+        // back, and Shift is the fine step, for trimming rather than aiming.
+        const third = testCase.pointOf(panel, "threshold");
+        third.forceActiveFocus();
+        verify(third.activeFocus, "the point did not take focus");
         keyClick(Qt.Key_Right);
         compare(SessionModel.param("dyn", "threshold"), -18);
+        keyClick(Qt.Key_Up);
+        compare(SessionModel.param("dyn", "threshold"), -16);
         keyClick(Qt.Key_Left);
+        keyClick(Qt.Key_Down);
         compare(SessionModel.param("dyn", "threshold"), -20);
-
-        // Shift is the fine step, for trimming rather than aiming.
         keyClick(Qt.Key_Right, Qt.ShiftModifier);
         compare(SessionModel.param("dyn", "threshold"), -19.5);
+        keyClick(Qt.Key_Left, Qt.ShiftModifier);
+        compare(SessionModel.param("dyn", "height"), 10);
 
-        // And the ratio is a multiplication, so up is a multiple of what it
-        // was rather than an amount added to it.
-        const ratio = panel.handles.itemAt(3);
-        compare(ratio.modelData, "ratio");
-        SessionModel.setParam("dyn", "ratio", 4);
-        ratio.forceActiveFocus();
+        // The second, along the same line, with its ratio left alone.
+        const second = testCase.pointOf(panel, "expanderThreshold");
+        second.forceActiveFocus();
+        SessionModel.setParam("dyn", "expanderRatio", 3);
+        wait(20);
         keyClick(Qt.Key_Up);
-        verify(SessionModel.param("dyn", "ratio") > 4, "up did not steepen the ratio");
+        compare(SessionModel.param("dyn", "expanderThreshold"), -58);
+        compare(SessionModel.param("dyn", "expanderRatio"), 3);
         keyClick(Qt.Key_Down);
-        fuzzyCompare(SessionModel.param("dyn", "ratio"), 4, 0.001);
+        compare(SessionModel.param("dyn", "expanderThreshold"), -60);
+
+        // The first goes along the floor, so a press is decibels of floor.
+        const first = testCase.pointOf(panel, "cutoff");
+        first.forceActiveFocus();
+        const foot = panel.curve.cutoffDb();
+        keyClick(Qt.Key_Right);
+        fuzzyCompare(panel.curve.cutoffDb(), foot + 2, 0.01);
+        keyClick(Qt.Key_Left);
+        fuzzyCompare(panel.curve.cutoffDb(), foot, 0.01);
+        fuzzyCompare(first.at.y, panel.curve.yOfDb(-120), 0.01);
+
+        // The fourth is the height.
+        const fourth = testCase.pointOf(panel, "height");
+        fourth.forceActiveFocus();
+        keyClick(Qt.Key_Up);
+        compare(SessionModel.param("dyn", "height"), 12);
+        keyClick(Qt.Key_Down);
+        compare(SessionModel.param("dyn", "height"), 10);
+        fuzzyCompare(fourth.at.x, panel.curve.xOfDb(40), 0.01);
     }
 
-    function test_aHandleDraggedAcrossThePlotWritesItsParameter() {
-        const panel = createTemporaryObject(panelComponent, null);
-        panel.blockId = "dyn";
-        wait(50);
-
-        // Where −30 dBFS in lands on the plot, which is where somebody would
-        // let go of the compressor's threshold to put it there.
-        const at = panel.curve.pointAt(-30);
-        panel.dragTo("threshold", at.x, at.y);
-        panel.commit("threshold");
-        fuzzyCompare(SessionModel.param("dyn", "threshold"), -30, 0.5);
-        // The edit goes to the engine and comes back as a patch, and the
-        // panel reads the session rather than what it just sent.
-        // **The panel draws what it has sent.** A live edit is not news the
-        // session tells anybody about until the gesture ends, and a handle
-        // that waited for that would lag the pointer by the whole drag.
-        fuzzyCompare(panel.value("threshold"), -30, 0.5);
-
-        // The knee handle stands half a knee above the threshold, so
-        // dragging it to 6 dB above the threshold makes a knee 12 dB wide.
-        const kneeAt = panel.curve.pointAt(-24);
-        panel.dragTo("knee", kneeAt.x, kneeAt.y);
-        panel.commit("knee");
-        fuzzyCompare(SessionModel.param("dyn", "knee"), 12, 0.5);
-
-        // And nothing may be dragged past what the block allows: the
-        // pointer may leave the plot, the parameter may not leave its range.
-        const belowTheEnd = panel.curve.pointAt(-130);
-        panel.dragTo("expanderThreshold", belowTheEnd.x, belowTheEnd.y);
-        panel.commit("expanderThreshold");
-        compare(SessionModel.param("dyn", "expanderThreshold"),
-                BlockCatalogue.describeParam("effect.dynamics", "expanderThreshold").minimum);
-    }
-
-    // **The pointer, not the function behind it**. The test beside
-    // this one calls dragTo() straight, which says the arithmetic is right
-    // and nothing at all about whether a drag reaches it. It did not: the
-    // handles took focus and stayed exactly where they were.
-    function test_aHandleFollowsThePointer() {
-        const window = createTemporaryObject(panelWindow, null);
-        const panel = window.panel;
-        panel.blockId = "dyn";
-        waitForRendering(panel);
-
-        const threshold = panel.handles.itemAt(1);
-        compare(threshold.modelData, "threshold");
-        compare(SessionModel.param("dyn", "threshold"), -20);
-
-        // Across: a threshold is where the bend starts, so dragging left
-        // makes the block start working sooner.
-        const from = threshold.mapToItem(window.contentItem, threshold.width / 2, threshold.height / 2);
-        mousePress(window.contentItem, from.x, from.y);
-        mouseMove(window.contentItem, from.x - 12, from.y);
-        mouseMove(window.contentItem, from.x - 30, from.y);
-        mouseMove(window.contentItem, from.x - 48, from.y);
-        mouseRelease(window.contentItem, from.x - 48, from.y);
-
-        verify(SessionModel.param("dyn", "threshold") < -20,
-               "the handle did not follow the pointer across the plot");
-        // **And it was the handle that was grabbed.** The knee sits a few
-        // pixels from the threshold and used to take the press instead,
-        // which is what made the curve look unmovable: the wrong handle was
-        // being dragged, straight into its own limit.
-        compare(SessionModel.param("dyn", "knee"), 12, "the press landed on the knee handle");
-    }
-
-    function test_theRatioHandleFollowsThePointerUpAndDown() {
-        const window = createTemporaryObject(panelWindow, null);
-        const panel = window.panel;
-        panel.blockId = "dyn";
-        SessionModel.setParam("dyn", "ratio", 4);
-        waitForRendering(panel);
-
-        const ratio = panel.handles.itemAt(3);
-        compare(ratio.modelData, "ratio");
-
-        // Down steepens: less of what goes over the threshold comes out.
-        const from = ratio.mapToItem(window.contentItem, ratio.width / 2, ratio.height / 2);
-        mousePress(window.contentItem, from.x, from.y);
-        mouseMove(window.contentItem, from.x, from.y + 12);
-        mouseMove(window.contentItem, from.x, from.y + 30);
-        mouseMove(window.contentItem, from.x, from.y + 48);
-        mouseRelease(window.contentItem, from.x, from.y + 48);
-
-        verify(SessionModel.param("dyn", "ratio") > 4,
-               "the handle did not follow the pointer down the plot");
-    }
-
-    function test_aHandleWritesBothOfItsAxes() {
-        // **A handle is a place on the curve, and a place has two numbers.**
-        // Each handle used to answer only one of them, so half of every drag
-        // did nothing.
-        const window = createTemporaryObject(panelWindow, null);
-        const panel = window.panel;
-        panel.blockId = "dyn";
-        waitForRendering(panel);
-
-        compare(panel.handleParamList("threshold"), ["threshold", "makeup"]);
-        // The lower end of the curve: across is where the expander starts,
-        // down is how steeply it pushes what is under it away.
-        compare(panel.handleParamList("expanderThreshold"), ["expanderThreshold", "expanderRange", "expanderRatio"]);
-        // The upper end: across drags the bend with it, up and down is how
-        // steep the line past the bend is.
-        compare(panel.handleParamList("ratio"), ["threshold", "ratio"]);
-        // A knee is a width, and means one thing.
-        compare(panel.handleParamList("knee"), ["knee"]);
-
-        const threshold = panel.handles.itemAt(1);
-        const from = threshold.mapToItem(window.contentItem, threshold.width / 2, threshold.height / 2);
-        mousePress(window.contentItem, from.x, from.y);
-        mouseMove(window.contentItem, from.x - 20, from.y - 20);
-        mouseMove(window.contentItem, from.x - 40, from.y - 40);
-
-        verify(panel.dragging === "threshold",
-               "the plot lost hold of the handle: the scroll view took the drag away");
-        // **Both numbers are readable while the hand is on it**, so that
-        // somebody aiming at one of them does not have to let go and look
-        // somewhere else.
-        verify(panel.dragReadout.visible, "nothing said what the drag was setting");
-
-        mouseRelease(window.contentItem, from.x - 40, from.y - 40);
-        verify(SessionModel.param("dyn", "threshold") < -20, "across did not write the threshold");
-        verify(SessionModel.param("dyn", "makeup") > 0, "up did not write the make-up gain");
-        compare(panel.dragging, "", "the plot kept hold of the handle after the button came up");
-        verify(!panel.dragReadout.visible, "the readout stayed up after the drag");
-    }
-
-    function test_draggingTheExpanderHandleAcrossLeavesItsRatioAlone() {
-        // **A ratio is not a place on the plot.** The expander's handle
-        // rides the line where nothing is changed, whatever its ratio, so
-        // reading the ratio off the pointer would set it to nothing the
-        // moment the handle was grabbed — and a drag straight across would
-        // flatten the curve for no reason. It moves by how far the pointer
-        // has come instead.
-        const window = createTemporaryObject(panelWindow, null);
-        const panel = window.panel;
-        panel.blockId = "dyn";
-        SessionModel.setParam("dyn", "expanderThreshold", -70);
-        SessionModel.setParam("dyn", "expanderRatio", 4);
-        waitForRendering(panel);
-
-        const expander = panel.handles.itemAt(0);
-        compare(expander.modelData, "expanderThreshold");
-
-        const from = expander.mapToItem(window.contentItem, expander.width / 2, expander.height / 2);
-        mousePress(window.contentItem, from.x, from.y);
-        mouseMove(window.contentItem, from.x + 14, from.y);
-        mouseMove(window.contentItem, from.x + 28, from.y);
-        mouseRelease(window.contentItem, from.x + 28, from.y);
-
-        verify(SessionModel.param("dyn", "expanderThreshold") > -70,
-               "the expander's threshold did not follow the pointer across");
-        fuzzyCompare(SessionModel.param("dyn", "expanderRatio"), 4, 0.01,
-                     "a drag straight across changed the expander's ratio");
-        compare(SessionModel.param("dyn", "expanderRange"), 0,
-                "a drag straight across opened the expander's range");
-    }
-
-    function test_draggingTheExpanderHandleDownSteepensIt() {
-        const window = createTemporaryObject(panelWindow, null);
-        const panel = window.panel;
-        panel.blockId = "dyn";
-        SessionModel.setParam("dyn", "expanderThreshold", -70);
-        SessionModel.setParam("dyn", "expanderRatio", 4);
-        waitForRendering(panel);
-
-        const expander = panel.handles.itemAt(0);
-        const from = expander.mapToItem(window.contentItem, expander.width / 2, expander.height / 2);
-        mousePress(window.contentItem, from.x, from.y);
-        mouseMove(window.contentItem, from.x, from.y + 14);
-        mouseMove(window.contentItem, from.x, from.y + 28);
-        mouseRelease(window.contentItem, from.x, from.y + 28);
-
-        verify(SessionModel.param("dyn", "expanderRatio") > 4,
-               "pulling the expander's handle down did not steepen it");
-        // **And it opened the range**, or the curve would not have moved at
-        // all: the range is the most the expander may take off and it starts
-        // at nought.
-        verify(SessionModel.param("dyn", "expanderRange") > 0,
-               "pulling the expander's handle down bent nothing, because its range stayed shut");
-    }
-
-    function test_theKeyboardReachesBothOfAHandlesAxes() {
+    function test_theKeyboardStopsWhereThePointerDoes() {
         const panel = createTemporaryObject(panelComponent, testCase);
         panel.blockId = "dyn";
+        SessionModel.setParam("dyn", "expanderThreshold", -41);
+        SessionModel.setParam("dyn", "threshold", -40);
+        SessionModel.setParam("dyn", "height", 1);
         wait(50);
 
-        const threshold = panel.handles.itemAt(1);
-        threshold.forceActiveFocus();
-        compare(SessionModel.param("dyn", "makeup"), 0);
-
-        // Up is the handle's other parameter, so nothing on the curve is
-        // reachable by pointer alone.
+        // The second stops at the third.
+        testCase.pointOf(panel, "expanderThreshold").forceActiveFocus();
         keyClick(Qt.Key_Up);
-        compare(SessionModel.param("dyn", "makeup"), 2);
+        compare(SessionModel.param("dyn", "expanderThreshold"), -40);
+        // The third stops at the second.
+        SessionModel.setParam("dyn", "threshold", -39);
+        wait(20);
+        testCase.pointOf(panel, "threshold").forceActiveFocus();
         keyClick(Qt.Key_Down);
-        compare(SessionModel.param("dyn", "makeup"), 0);
-        // And across is still the one it is named after.
-        keyClick(Qt.Key_Right);
-        compare(SessionModel.param("dyn", "threshold"), -18);
+        compare(SessionModel.param("dyn", "threshold"), -40);
+        // The fourth stops at the third.
+        testCase.pointOf(panel, "height").forceActiveFocus();
+        keyClick(Qt.Key_Down);
+        compare(SessionModel.param("dyn", "height"), 0);
+        testCase.verifyUnderTheDiagonal(panel, "after the keys ran out");
     }
 
-    function test_puttingANumberOnTheRatioTurnsLimitingOff() {
-        // The infinite ratio is the click past the end of the slider; a
-        // handle that answered nothing while it was on would read as a
-        // handle that is broken.
+    function test_theThresholdsCannotBeTypedPastEachOther() {
         const panel = createTemporaryObject(panelComponent, null);
         panel.blockId = "dyn";
-        SessionModel.setParam("dyn", "infiniteRatio", true);
+        SessionModel.setParam("dyn", "expanderThreshold", -60);
+        SessionModel.setParam("dyn", "threshold", -20);
+        panel.detailsButton.toggle();
         wait(50);
 
-        panel.nudge("ratio", 0, -1, false);
-        compare(SessionModel.param("dyn", "infiniteRatio"), false);
-        verify(SessionModel.param("dyn", "ratio") < 20, "the ratio did not come down");
+        for (let index = 0; index < panel.detailRows.count; ++index) {
+            const row = panel.detailRows.itemAt(index);
+            if (row.paramId === "threshold") {
+                compare(row.minimum, -60);
+                compare(row.maximum, 20);
+            }
+            if (row.paramId === "expanderThreshold") {
+                compare(row.minimum, -120);
+                compare(row.maximum, -20);
+            }
+        }
+
+        // And should a session hold them the wrong way round all the same,
+        // the curve is still the curve: the second point waits at the third.
+        SessionModel.setParam("dyn", "expanderThreshold", -10);
+        wait(50);
+        fuzzyCompare(panel.curve.expanderStartDb(), -20, 0.01);
+        testCase.verifyUnderTheDiagonal(panel, "with the thresholds in the wrong order");
+    }
+
+    function test_theMakeupLeavesTheGraphAlone() {
+        const window = testCase.windowWith({ threshold: -30, height: 10 });
+        const panel = window.panel;
+        const before = panel.curve.curve;
+        SessionModel.setParam("dyn", "makeup", 30);
+        wait(50);
+        compare(panel.curve.curve, before);
+        testCase.verifyUnderTheDiagonal(panel, "with the make-up gain up");
     }
 
     function test_theFaceDrawsTheCurveAndSaysWhatIsBeingHeldBack() {

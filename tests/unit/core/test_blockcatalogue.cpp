@@ -166,11 +166,11 @@ TEST(BlockCatalogueTest, ATaperIsCarriedBecauseARatioIsNotLinear)
 
     // The names are the ones paramTaperName() and paramUnitName() already
     // give: short, stable, and the same strings the rest of the facade uses.
-    EXPECT_EQ(paramOf(dynamics, u"ratio"_s).value("taper"_L1).toString(), u"log"_s);
+    EXPECT_EQ(paramOf(dynamics, u"expanderRatio"_s).value("taper"_L1).toString(), u"log"_s);
     EXPECT_EQ(paramOf(dynamics, u"threshold"_s).value("taper"_L1).toString(), u"linear"_s);
     EXPECT_EQ(paramOf(dynamics, u"threshold"_s).value("unit"_L1).toString(), u"dB"_s);
     EXPECT_EQ(paramOf(dynamics, u"attack"_s).value("unit"_L1).toString(), u"ms"_s);
-    EXPECT_EQ(paramOf(dynamics, u"ratio"_s).value("unit"_L1).toString(), u"ratio"_s);
+    EXPECT_EQ(paramOf(dynamics, u"expanderRatio"_s).value("unit"_L1).toString(), u"ratio"_s);
 }
 
 TEST(BlockCatalogueTest, AParameterTheSessionPlanReadsSaysSoInTheCatalogue)

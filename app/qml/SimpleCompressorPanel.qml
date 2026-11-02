@@ -19,7 +19,7 @@ import org.kde.ki18n
 // **One choice, not six controls**, which is the block's whole point. A
 // person who wants to set a threshold themselves has the Dynamics block;
 // what is here is read-only, for somebody who wants to know what "Heavy"
-// actually does before choosing it, or to copy it into a Dynamics block.
+// actually does before choosing it.
 ColumnLayout {
     id: panel
 

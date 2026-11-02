@@ -5,10 +5,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// The dynamics processor. The curve is a pure function, so most of
-// what has to be true can be asked of it directly; what the processor has to
-// prove is that it follows that curve once the signal has settled, and that
-// its timing is what the controls say.
+// The dynamics processor. The curves are pure functions, so most of what has
+// to be true can be asked of them directly; what the processor has to prove
+// is that it follows a curve once the signal has settled, and that its timing
+// is what the controls say. There are two curves: the compressor's, with a
+// ratio and a knee, and the Dynamics Processor's four-point shape.
 
 #include "analysis.h"
 #include "dsp/audiobuffer.h"
@@ -18,6 +19,8 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <iostream>
@@ -486,4 +489,302 @@ TEST(DynamicsTest, ThePeakDetectorReadsATonesPeakBetweenItsSamplesToo)
                 << " dBFS; its samples reach only " << 20.0 * std::log10(lowestTop) << " dB of it";
         }
     }
+}
+
+namespace
+{
+
+[[nodiscard]] DynamicsShape shapeOf(float expanderDb, float ratio, float thresholdDb, float heightDb)
+{
+    DynamicsShape shape;
+    shape.expanderThresholdDb = expanderDb;
+    shape.expanderRatio = ratio;
+    shape.thresholdDb = thresholdDb;
+    shape.heightDb = heightDb;
+    return shape;
+}
+
+} // namespace
+
+TEST(DynamicsShapeTest, TheCurveIsTheTableWorkedOutSeparately)
+{
+    // Worked out on the side in thirty-digit arithmetic, from the words: the
+    // line under the expander threshold, the diagonal, and the bend
+    // threshold + height * (1 - exp(-over / height)).
+    struct Row {
+        float expanderDb;
+        float ratio;
+        float thresholdDb;
+        float heightDb;
+        float inputDb;
+        float outputDb;
+    };
+    constexpr std::array rows{
+        Row{-80.0f, 1.0f, -26.0f, 7.0f, -110.0f, -110.0f},   Row{-80.0f, 1.0f, -26.0f, 7.0f, -30.0f, -30.0f},
+        Row{-80.0f, 1.0f, -26.0f, 7.0f, -20.0f, -21.9706f},  Row{-80.0f, 1.0f, -26.0f, 7.0f, -10.0f, -19.7119f},
+        Row{-80.0f, 1.0f, -26.0f, 7.0f, 0.0f, -19.1706f},    Row{-80.0f, 1.0f, -26.0f, 7.0f, 40.0f, -19.0006f},
+        Row{-60.0f, 2.0f, -20.0f, 12.0f, -110.0f, -120.0f},  Row{-60.0f, 2.0f, -20.0f, 12.0f, -90.0f, -120.0f},
+        Row{-60.0f, 2.0f, -20.0f, 12.0f, -70.0f, -80.0f},    Row{-60.0f, 2.0f, -20.0f, 12.0f, -50.0f, -50.0f},
+        Row{-60.0f, 2.0f, -20.0f, 12.0f, -10.0f, -13.2152f}, Row{-60.0f, 2.0f, -20.0f, 12.0f, 0.0f, -10.2665f},
+        Row{-60.0f, 2.0f, -20.0f, 12.0f, 40.0f, -8.0809f},   Row{-74.4f, 1.7f, -28.9f, 39.69f, -110.0f, -120.0f},
+        Row{-74.4f, 1.7f, -28.9f, 39.69f, -90.0f, -100.92f}, Row{-74.4f, 1.7f, -28.9f, 39.69f, -20.0f, -20.9273f},
+        Row{-74.4f, 1.7f, -28.9f, 39.69f, 0.0f, -8.3725f},   Row{-74.4f, 1.7f, -28.9f, 39.69f, 40.0f, 3.7953f},
+        Row{-45.0f, 20.0f, 20.0f, 40.0f, -50.0f, -120.0f},   Row{-45.0f, 20.0f, 20.0f, 40.0f, -44.0f, -44.0f},
+        Row{-45.0f, 20.0f, 20.0f, 40.0f, 10.0f, 10.0f},      Row{-45.0f, 20.0f, 20.0f, 40.0f, 30.0f, 28.848f},
+        Row{-45.0f, 20.0f, 20.0f, 40.0f, 40.0f, 35.7388f},   Row{-80.0f, 1.0f, -3.0f, 0.0f, -10.0f, -10.0f},
+        Row{-80.0f, 1.0f, -3.0f, 0.0f, 0.0f, -3.0f},         Row{-80.0f, 1.0f, -3.0f, 0.0f, 40.0f, -3.0f},
+    };
+    for (const Row &row : rows) {
+        EXPECT_NEAR(outputDb(row.inputDb, shapeOf(row.expanderDb, row.ratio, row.thresholdDb, row.heightDb)),
+                    row.outputDb,
+                    0.001f)
+            << "at " << row.inputDb << " dB in, expander " << row.expanderDb << " at " << row.ratio << ", threshold "
+            << row.thresholdDb << ", height " << row.heightDb;
+    }
+}
+
+TEST(DynamicsShapeTest, TheRatioIsTheSlopeOfTheLineFromTheFloor)
+{
+    // The two figures read off the graph's own readings at E = −74.4.
+    EXPECT_NEAR(dynamicsRatioFor(-74.4f, -101.2f), 1.70f, 0.01f);
+    EXPECT_NEAR(dynamicsRatioFor(-74.4f, -108.4f), 1.34f, 0.01f);
+
+    // At the corner of the graph the line is the diagonal.
+    EXPECT_FLOAT_EQ(dynamicsRatioFor(-74.4f, -120.0f), 1.0f);
+    // And past it nothing changes.
+    EXPECT_FLOAT_EQ(dynamicsRatioFor(-74.4f, -130.0f), 1.0f);
+
+    // At the top the foot stops short of the expander threshold: nearly
+    // upright, and never a division by nothing.
+    EXPECT_FLOAT_EQ(dynamicsRatioFor(-74.4f, -74.4f), kDynamicsHighestRatio);
+    EXPECT_FLOAT_EQ(dynamicsRatioFor(-74.4f, -60.0f), kDynamicsHighestRatio);
+
+    // With the expander in the corner there is no line to be steep.
+    EXPECT_FLOAT_EQ(dynamicsRatioFor(kDynamicsFloorDb, kDynamicsFloorDb), 1.0f);
+
+    // The two ways round say the same thing.
+    for (const float ratio : {1.0f, 1.7f, 4.0f, 16.0f, 50.0f}) {
+        const DynamicsShape shape = shapeOf(-60.0f, ratio, -20.0f, 12.0f);
+        EXPECT_NEAR(dynamicsRatioFor(expanderStartDb(shape), dynamicsCutoffDb(shape)), ratio, 0.001f * ratio);
+        EXPECT_NEAR(outputDb(dynamicsCutoffDb(shape), shape), kDynamicsFloorDb, 0.01f);
+    }
+}
+
+TEST(DynamicsShapeTest, ALineComesOutAboveTheFloorAndNothingBelowIt)
+{
+    const DynamicsShape shape = shapeOf(-60.0f, 4.0f, -20.0f, 12.0f);
+    const float cutoff = dynamicsCutoffDb(shape);
+    EXPECT_FLOAT_EQ(cutoff, -75.0f);
+
+    EXPECT_NEAR(outputDb(cutoff + 1.0f, shape), -116.0f, 0.01f);
+    for (const float inputDb : {cutoff, cutoff - 1.0f, -100.0f, -119.0f}) {
+        EXPECT_FLOAT_EQ(outputDb(inputDb, shape), kDynamicsFloorDb) << "at " << inputDb << " dB in";
+    }
+    // **What is under the floor already is not raised to it.** The gain only
+    // ever goes down, so digital silence stays what it is.
+    EXPECT_FLOAT_EQ(gainReductionDb(-140.0f, shape), 0.0f);
+}
+
+TEST(DynamicsShapeTest, AHeightOfNothingIsAFlatLineAtTheThreshold)
+{
+    const DynamicsShape shape = shapeOf(-80.0f, 1.0f, -10.0f, 0.0f);
+    EXPECT_FLOAT_EQ(outputDb(-10.0f, shape), -10.0f);
+    for (const float inputDb : {-9.99f, 0.0f, 20.0f, 40.0f}) {
+        EXPECT_FLOAT_EQ(outputDb(inputDb, shape), -10.0f) << "at " << inputDb << " dB in";
+    }
+}
+
+TEST(DynamicsShapeTest, TheBendLeavesTheDiagonalWithoutACornerAndNeverComesBack)
+{
+    // A corner in the curve is a corner in the sound.
+    for (const float heightDb : {1.0f, 7.0f, 40.0f}) {
+        const DynamicsShape shape = shapeOf(-80.0f, 1.0f, -20.0f, heightDb);
+        const float step = 0.01f;
+        const float slope = (outputDb(-20.0f + 2.0f * step, shape) - outputDb(-20.0f + step, shape)) / step;
+        EXPECT_NEAR(slope, 1.0f, 0.06f / heightDb + 0.03f) << "height " << heightDb;
+    }
+
+    // And each decibel above it is worth less than the last, and is still
+    // worth something: it never turns over.
+    const DynamicsShape shape = shapeOf(-80.0f, 1.0f, -20.0f, 12.0f);
+    float before = outputDb(-20.0f, shape);
+    float rise = 1.0f;
+    for (float inputDb = -19.0f; inputDb <= 40.0f; inputDb += 1.0f) {
+        const float now = outputDb(inputDb, shape);
+        EXPECT_GE(now, before) << "at " << inputDb;
+        EXPECT_LE(now - before, rise + 1e-3f) << "at " << inputDb;
+        rise = now - before;
+        before = now;
+    }
+}
+
+TEST(DynamicsShapeTest, AHeightStaysWhatItIsAndTheCurveStaysUnderTheDiagonal)
+{
+    // At the top of the threshold's range a full height is more than there
+    // is room for. The number is kept, and the curve keeps under the line.
+    const DynamicsShape shape = shapeOf(-80.0f, 1.0f, kDynamicsHighestThresholdDb, kDynamicsHighestHeightDb);
+    const float top = outputDb(kDynamicsTopDb, shape);
+    EXPECT_LT(top, kDynamicsTopDb);
+    EXPECT_NEAR(top, 35.7388f, 0.001f);
+    EXPECT_FLOAT_EQ(shape.heightDb, kDynamicsHighestHeightDb);
+}
+
+TEST(DynamicsShapeTest, NoSettingPutsAnyOfTheCurveAboveTheDiagonal)
+{
+    // The owner's rule, across everything a session can hold: nothing rises
+    // above the main line, and the curve only ever climbs.
+    for (float expanderDb = -120.0f; expanderDb <= 20.0f; expanderDb += 14.0f) {
+        for (const float ratio : {1.0f, 1.01f, 2.0f, 8.0f, 50.0f}) {
+            for (float thresholdDb = -120.0f; thresholdDb <= 20.0f; thresholdDb += 14.0f) {
+                for (const float heightDb : {0.0f, 1.0e-4f, 0.5f, 7.0f, 25.0f, 40.0f}) {
+                    const DynamicsShape shape = shapeOf(expanderDb, ratio, thresholdDb, heightDb);
+                    float before = -200.0f;
+                    for (float inputDb = -120.0f; inputDb <= 40.0f; inputDb += 0.25f) {
+                        const float out = outputDb(inputDb, shape);
+                        ASSERT_TRUE(std::isfinite(out));
+                        ASSERT_LE(out, inputDb)
+                            << expanderDb << " " << ratio << " " << thresholdDb << " " << heightDb << " at " << inputDb;
+                        ASSERT_GE(out, kDynamicsFloorDb);
+                        ASSERT_GE(out, before - 1e-3f) << "the curve went down at " << inputDb;
+                        before = out;
+                    }
+                }
+            }
+        }
+    }
+}
+
+TEST(DynamicsShapeTest, AnExpanderThresholdAboveTheThresholdStopsThere)
+{
+    // A session may hold the two in the wrong order; the curve may not.
+    const DynamicsShape shape = shapeOf(-10.0f, 3.0f, -30.0f, 6.0f);
+    EXPECT_FLOAT_EQ(expanderStartDb(shape), -30.0f);
+    EXPECT_FLOAT_EQ(outputDb(-30.0f, shape), -30.0f);
+    EXPECT_FLOAT_EQ(outputDb(-40.0f, shape), -60.0f);
+}
+
+TEST(DynamicsShapeTest, AHeightCanBeFoundFromWhereTheCurveEnds)
+{
+    for (const float thresholdDb : {-100.0f, -34.1f, -9.0f, 0.0f, 19.0f}) {
+        for (const float heightDb : {0.25f, 1.0f, 6.52f, 19.3f, 33.0f}) {
+            const DynamicsShape shape = shapeOf(-120.0f, 1.0f, thresholdDb, heightDb);
+            EXPECT_NEAR(dynamicsHeightFor(thresholdDb, kDynamicsTopDb, outputDb(kDynamicsTopDb, shape)),
+                        heightDb,
+                        0.002f + heightDb * 0.002f)
+                << "threshold " << thresholdDb;
+        }
+    }
+    // Lower than the threshold it cannot go, and past the most a height can
+    // reach it stops there.
+    EXPECT_FLOAT_EQ(dynamicsHeightFor(-34.0f, kDynamicsTopDb, -40.0f), 0.0f);
+    EXPECT_FLOAT_EQ(dynamicsHeightFor(-34.0f, kDynamicsTopDb, 39.0f), kDynamicsHighestHeightDb);
+    EXPECT_FLOAT_EQ(dynamicsHeightFor(kDynamicsTopDb, kDynamicsTopDb, 39.0f), 0.0f);
+}
+
+TEST(DynamicsShapeTest, WhatComesOutMatchesTheCurveAtEveryLevel)
+{
+    // The criterion the whole block rests on, for this curve as well.
+    const DynamicsShape shape = shapeOf(-60.0f, 2.0f, -24.0f, 12.0f);
+    DynamicsTiming timing;
+    timing.attackMs = 1.0f;
+    timing.releaseMs = 50.0f;
+
+    for (const float inputDb : {-80.0f, -70.0f, -60.0f, -50.0f, -30.0f, -20.0f, -10.0f, 0.0f, 10.0f}) {
+        ShapedDynamicsProcessor processor;
+        processor.prepare(kRate, 2);
+        processor.setSettings(shape);
+        processor.setTiming(timing);
+
+        const auto frames = static_cast<std::uint32_t>(kRate);
+        const Signal tone = sine(frames, 1000.0, kRate, dbToGain(inputDb));
+        AudioBuffer buffer(2, 512);
+        double loudest = 0.0;
+        for (std::uint32_t at = 0; at < frames; at += 512) {
+            const std::uint32_t length = std::min<std::uint32_t>(512, frames - at);
+            for (std::uint32_t channel = 0; channel < 2; ++channel) {
+                std::copy_n(tone.begin() + at, length, buffer.channel(channel).begin());
+            }
+            processor.process(buffer.block(length), length);
+            if (at > frames * 9 / 10) {
+                for (std::uint32_t frame = 0; frame < length; ++frame) {
+                    loudest = std::max(loudest, std::fabs(static_cast<double>(buffer.channel(0)[frame])));
+                }
+            }
+        }
+        EXPECT_NEAR(20.0 * std::log10(std::max(loudest, 1e-12)), outputDb(inputDb, shape), 0.25)
+            << "a steady " << inputDb << " dBFS sine did not come out where the curve says";
+    }
+}
+
+TEST(DynamicsShapeTest, AGateHoldsOpenForAsLongAsItIsTold)
+{
+    // Steep, with its foot just under the threshold: anything under it is
+    // gone, except for as long as the hold keeps it open.
+    const DynamicsShape shape = shapeOf(-30.0f, 50.0f, 20.0f, 40.0f);
+    DynamicsTiming timing;
+    timing.attackMs = 1.0f;
+    timing.releaseMs = 20.0f;
+    timing.holdMs = 100.0f;
+
+    ShapedDynamicsProcessor processor;
+    processor.prepare(kRate, 2);
+    processor.setSettings(shape);
+    processor.setTiming(timing);
+
+    AudioBuffer buffer(2, 480);
+    const auto play = [&](float amplitude, int cycles) {
+        for (int cycle = 0; cycle < cycles; ++cycle) {
+            for (std::uint32_t channel = 0; channel < 2; ++channel) {
+                std::ranges::fill(buffer.channel(channel), amplitude);
+            }
+            processor.process(buffer.block(480), 480);
+        }
+    };
+    play(dbToGain(-20.0f), 10);
+    EXPECT_FLOAT_EQ(processor.gainReduction(), 0.0f);
+
+    play(dbToGain(-40.0f), 5); // 50 ms, inside the hold
+    EXPECT_GT(processor.gainReduction(), -1.0f) << "the gate shut during its hold";
+
+    play(dbToGain(-40.0f), 20); // 200 ms more, well past it
+    EXPECT_LT(processor.gainReduction(), -60.0f) << "the gate never shut";
+}
+
+TEST(DynamicsShapeTest, ACycleCostsLessThanHalfAPerCentOfACore)
+{
+    // Above the threshold, which is the expensive part of this curve: the
+    // bend is worked out for every sample.
+    for (const DynamicsDetector detector : {DynamicsDetector::Rms, DynamicsDetector::Peak}) {
+        DynamicsTiming timing;
+        timing.detector = detector;
+
+        ShapedDynamicsProcessor processor;
+        processor.prepare(kRate, 2);
+        processor.setSettings(shapeOf(-60.0f, 2.0f, -40.0f, 12.0f));
+        processor.setTiming(timing);
+
+        const auto frames = static_cast<std::uint32_t>(kRate * 60);
+        const Signal tone = sine(4800, 1000.0, kRate, 0.9f);
+        AudioBuffer buffer(2, 480);
+        const auto started = std::chrono::steady_clock::now();
+        for (std::uint32_t at = 0; at < frames; at += 480) {
+            for (std::uint32_t channel = 0; channel < 2; ++channel) {
+                const std::span<float> samples = buffer.channel(channel);
+                for (std::uint32_t frame = 0; frame < 480; ++frame) {
+                    samples[frame] = tone[(at + frame) % tone.size()];
+                }
+            }
+            processor.process(buffer.block(480), 480);
+        }
+        const double took = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+        const double share = took / 60.0;
+        std::cerr << "shaped dynamics (" << (detector == DynamicsDetector::Peak ? "peak" : "rms")
+                  << "): " << share * 100.0 << " % of a core\n";
+#ifdef NDEBUG
+        EXPECT_LT(share, 0.005) << "a minute of audio took " << took << " s";
+#endif
+    }
+#ifndef NDEBUG
+    GTEST_SKIP() << "the figures above are from a debug build";
+#endif
 }

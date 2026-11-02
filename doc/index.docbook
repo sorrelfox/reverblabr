@@ -187,8 +187,9 @@ gaps. Drag the slider on the Volume tile or in its settings. It stops at
 100 %, the level the sound arrived at; to make the sound louder, choose an
 <guilabel>Overdrive</guilabel> in its settings, which lets the slider go up to
 200, 300 or 400 %. In the
-Dynamics Processor's settings, drag the handles on the curve: the upper one is
-where compression starts, the lower one where the expander starts.</para>
+Dynamics Processor's settings, drag the points on the curve: the upper one on
+the diagonal is where compression starts, the lower one where the quiet end
+starts to drop away.</para>
 
 <para>Press <guibutton>Stop</guibutton> when you are done. Sessions are saved
 as you work, so this one will be there the next time you start &reverblabr;.
@@ -695,10 +696,27 @@ setting to the next.</para>
 
 <sect2 id="block-effect-dynamics">
 <title>Dynamics Processor</title>
-<para>A compressor for loud sound and an expander for quiet sound, drawn as a
-curve you edit directly. The upper handle is where compression starts, the
-lower one where the expander starts, and a dot shows where the sound is on the
-curve while you draw it.</para>
+<para>Holds loud sound back and pushes quiet sound down, along a curve you
+shape by dragging four points. The curve never goes above the dashed diagonal,
+where sound comes out as it went in, and each point moves along one line
+only.</para>
+
+<itemizedlist>
+<listitem><para>The <guilabel>Cut-off</guilabel> point runs along the bottom.
+Anything quieter than it comes out as nothing.</para></listitem>
+<listitem><para>The <guilabel>Expander threshold</guilabel> runs along the
+diagonal, and is where the quiet end starts to fall to the cut-off. The steeper
+that line, the higher the <guilabel>Expander ratio</guilabel>.</para></listitem>
+<listitem><para>The <guilabel>Compressor threshold</guilabel> runs along the
+diagonal too, up to +20 dB, and is where the curve starts to bend.</para></listitem>
+<listitem><para>The <guilabel>Height</guilabel> point runs up the right edge.
+The curve bends smoothly up to it, and the lower it is, the harder loud sound
+is held back.</para></listitem>
+</itemizedlist>
+
+<para>A dot shows where the sound is on the curve while the session runs. The
+<guilabel>Make-up gain</guilabel> changes the sound without moving the
+line.</para>
 </sect2>
 
 <sect2 id="block-effect-echo">

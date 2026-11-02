@@ -30,7 +30,7 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 | Block | What it does |
 |---|---|
 | **Volume** | Turns a lane up or down, up to 400 % with overdrive on, with a limiter that keeps it from clipping. |
-| **Dynamics Processor** | A compressor for loud sound and an expander for quiet sound, drawn as a curve you edit directly, with a dot showing where the sound is on it. |
+| **Dynamics Processor** | Holds loud sound back and pushes quiet sound down, along a curve you shape by dragging four points. The curve never goes above the dashed diagonal, and each point moves along one line only. A dot shows where the sound is on it. |
 | **Simple Compressor** | Steadies the level with one choice (Gentle, Moderate, Heavy, Voice or Broadcast) instead of six controls, and shows what that choice sets. |
 | **Multiband Compressor** | Three compressors side by side, for the lows, the middle and the highs. A loud bass doesn't pull the voice down with it, and a harsh "s" can be tamed on its own. Drag the lines between the bands to move where they meet. With every ratio at 1:1, the sound comes out as it went in. |
 | **Limiter** | Keeps a lane under a ceiling between −12 and 0 dB, including peaks that fall between samples, and shows how hard it is working. |

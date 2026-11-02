@@ -7,6 +7,9 @@
 
 #include "core/presetstore.h"
 
+#include "core/dynamicscurve.h"
+#include "core/dynamicsmigration.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -46,7 +49,14 @@ constexpr QLatin1StringView kFactoryRoot{":/io/github/reverblabr/presets/"};
     if (parsed.error != QJsonParseError::NoError || !document.isObject()) {
         return std::unexpected(PresetError::NotJson);
     }
-    return presetFromJson(document.object());
+    std::expected<Preset, PresetError> preset = presetFromJson(document.object());
+    // **A preset somebody saved before the Dynamics Processor's curve became
+    // four points** still says what they wanted from it. It has no schema
+    // that moved, so what it holds decides.
+    if (preset && preset->typeId == DynamicsCurve::typeId() && holdsOldDynamicsParams(preset->params)) {
+        preset->params = dynamicsParamsFromOld(preset->params);
+    }
+    return preset;
 }
 
 } // namespace

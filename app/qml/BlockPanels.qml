@@ -153,10 +153,10 @@ QtObject {
         SpeechDenoisePanel {}
     }
 
-    /// The Dynamics panel: a transfer curve with handles on it, which is a
-    /// shape rather than a list of settings — and the four handles are four
-    /// of the twelve parameters, so a generated row per parameter would say
-    /// the same things twice.
+    /// The Dynamics panel: a transfer curve with four points on it, which is
+    /// a shape rather than a list of settings — and the points are four of
+    /// the nine parameters, so a generated row per parameter would say the
+    /// same things twice.
     readonly property Component dynamics: Component {
         DynamicsPanel {}
     }

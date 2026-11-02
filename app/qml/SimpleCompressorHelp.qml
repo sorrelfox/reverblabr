@@ -65,7 +65,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Simple Compressor block, one of the mode's numbers", "Follows: what it listens to. Average (RMS) follows how loud the sound feels, and is what Gentle and Moderate use. Peaks follows every sudden loud moment, and is what the firmer modes use.")
         ]
         closing: [
-            KI18n.i18nc("@info help page of the Simple Compressor block", "To set these numbers yourself, use the Dynamics Processor block: the same numbers there sound the same as the mode here.")
+            KI18n.i18nc("@info help page of the Simple Compressor block", "To shape the curve yourself, use the Dynamics Processor block.")
         ]
     }
 

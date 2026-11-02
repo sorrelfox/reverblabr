@@ -34,6 +34,8 @@ add_library(reverblabr-engine STATIC
     diagnostics.h
     dynamicscurve.cpp
     dynamicscurve.h
+    dynamicsmigration.cpp
+    dynamicsmigration.h
     equalizercurve.cpp
     equalizercurve.h
     editcommand.cpp

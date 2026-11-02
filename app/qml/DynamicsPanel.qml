@@ -14,25 +14,32 @@ import QtQuick.Shapes
 import org.kde.kirigami as Kirigami
 import org.kde.ki18n
 
-// The Dynamics Processor's panel: the curve, the handles that shape it, and
-// everything else as a number underneath.
+// The Dynamics Processor's panel: the curve, the four points that shape it,
+// and everything else as a number underneath.
+//
+// **The dashed diagonal is the main line.** The curve is never above it. Each
+// point moves along one line only: the first along the floor, the second and
+// the third along the diagonal, the fourth up the right edge. What a point can
+// do is therefore what its line allows, and there is nothing to drag it into.
 //
 // **The curve is the control.** What this block does to a level is a shape,
 // and a shape is read and aimed at far faster than five numbers that add up
-// to it. Four handles carry the four things that bend the line — where the
-// expander starts, where the compressor starts, how wide the bend is and how
-// steep it gets — and every other setting is a row under Details, which is
-// closed when the panel opens because it is not what the block is about.
+// to it. Every other setting is a row under Details, which is closed when the
+// panel opens because it is not what the block is about.
 //
 // **The line is the engine's line.** It is sampled from the same function
-// the block follows sample by sample (DynamicsPlot), so what is drawn and
-// what is heard cannot drift apart. Nothing here works a gain out for
-// itself.
+// the block follows sample by sample (DynamicsPlot), and where the points
+// stand and what moving one means comes from the same place. Nothing here
+// works a gain out for itself.
 //
-// **Nothing is reachable by pointer alone.** Each handle is a control in the
-// tab order whose name reads its value, and the arrow keys move it: 2 dB a
-// press, or half a decibel with Shift. A curve that could only be dragged
-// would be a block somebody could not use at all.
+// **The make-up gain is not on the graph.** It moves the sound and not the
+// curve, so the line stays on the diagonal whatever it is set to, and the
+// In / out reading is where it shows.
+//
+// **Nothing is reachable by pointer alone.** Each point is a control in the
+// tab order whose name reads its value, and the arrow keys move it along its
+// line: 2 dB a press, or half a decibel with Shift. A curve that could only
+// be dragged would be a block somebody could not use at all.
 ColumnLayout {
     id: panel
 
@@ -46,16 +53,20 @@ ColumnLayout {
     /// second window, a preset — is the curve that is drawn.
     readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(panel.blockId) : ({})
 
-    /// The handle a drag has hold of, or empty when nothing is being
-    /// dragged. **The plot owns the gesture, not the handle**: the
-    /// handles sit a few pixels apart — the knee is half a knee from the
-    /// threshold, and nothing stops them landing on top of each other — so
-    /// a press on one of them was as likely to be taken by its neighbour,
-    /// which then ran into its own limit and looked like a curve that could
-    /// not be dragged at all. One grab over the whole plot picks the
+    /// The point a drag has hold of, or empty when nothing is being dragged.
+    /// **The plot owns the gesture, not the point**: nothing stops two points
+    /// landing on top of each other, so a press on one of them was as likely
+    /// to be taken by its neighbour. One grab over the whole plot picks the
     /// nearest, and keeps it for the rest of the gesture, so what is under
     /// the pointer when the button goes down is what moves.
     property string dragging: ""
+    /// How far from the point's middle the button went down. **A press takes
+    /// hold and does not move anything**, so a point within reach does not
+    /// jump to the pointer.
+    property point dragOffset: Qt.point(0, 0)
+    /// The second and the third point stand in one place, each stopped by
+    /// the other, so the direction of the drag says which one is meant.
+    property bool dragChoosing: false
 
     /// What this panel has sent that the session has not told it about yet.
     /// **A dragged value reaches params() once a tick** (SessionModel), up
@@ -80,19 +91,11 @@ ColumnLayout {
     readonly property real outputLevelDb: panel.published(curve.outputLevelIndex, curve.lowestDb)
     readonly property real reductionDb: panel.published(curve.gainReductionIndex, 0)
 
-    /// How far above the threshold the ratio handle sits. Far enough that
-    /// the knee has finished and the straight part has started, whatever
-    /// width the knee is set to, and near enough to stay on the plot.
-    readonly property real ratioHandleOffsetDb: 28
-
     /// What an arrow key is worth. **Two decibels, and half of one with
     /// Shift**: a threshold is aimed at in whole decibels and trimmed in
     /// halves.
     readonly property real stepDb: 2
     readonly property real fineStepDb: 0.5
-    /// A ratio is a multiplication, so a key press is a multiple rather than
-    /// an amount: 4:1 is as far from 2:1 as 8:1 is from 4:1.
-    readonly property real ratioStepFactor: 1.6
 
     /// How much reduction fills the bar beside the meter. Anything past it
     /// is the bar full, which is what "a lot" looks like.
@@ -101,6 +104,11 @@ ColumnLayout {
     /// The tint the block's category carries, which is what the curve is
     /// drawn in wherever it appears.
     readonly property color tint: AppColors.categoryTint(BlockPresentation.category(panel.typeId))
+
+    /// How far beyond the plot a press still counts. The first point stands
+    /// on the bottom edge and the fourth on the right one, so half of each is
+    /// outside it.
+    readonly property real edgeReach: Kirigami.Units.gridUnit * 0.75
 
     /// The parts themselves, so that a test drives what a person drives.
     readonly property alias curve: curve
@@ -166,139 +174,90 @@ ColumnLayout {
         SessionModel.commitParam(panel.blockId, paramId);
     }
 
-    // --- where each handle sits, and what moving it means ---
+    // --- where each point stands, and what moving it means ---
 
-    /// The input level a handle stands at. Everything else about its
-    /// position follows from the curve, so a handle cannot be anywhere but
-    /// on the line it edits.
-    function handleInputDb(handleId: string): real {
+    /// Where a point stands on the plot. Every number comes from the curve
+    /// itself, so a point cannot be anywhere but on the line it edits.
+    function handlePoint(handleId: string): point {
         switch (handleId) {
-        case "expanderThreshold":
-            return panel.value("expanderThreshold");
-        case "threshold":
-            return panel.value("threshold");
-        case "knee":
-            // The top of the knee: the point where the bend finishes and the
-            // straight, compressed part begins.
-            return panel.value("threshold") + panel.value("knee") / 2;
-        case "ratio":
-            return Math.min(panel.value("threshold") + panel.ratioHandleOffsetDb, panel.curve.highestDb - 10);
+        case "cutoff":
+            return Qt.point(curve.xOfDb(curve.cutoffDb()), curve.yOfDb(curve.lowestDb));
+        case "expanderThreshold": {
+            const start = curve.expanderStartDb();
+            return Qt.point(curve.xOfDb(start), curve.yOfDb(start));
         }
-        return 0;
+        case "threshold": {
+            const threshold = curve.thresholdDb();
+            return Qt.point(curve.xOfDb(threshold), curve.yOfDb(threshold));
+        }
+        case "height":
+            return Qt.point(curve.xOfDb(curve.highestDb), curve.yOfDb(curve.endDb()));
+        }
+        return Qt.point(0, 0);
     }
 
-    /// What the ratio is when its handle is at \a outputDb. Above the knee
-    /// the curve is `threshold + (input − threshold) / ratio + makeup`, so
-    /// the height of the handle says what the ratio is; dragging it down
-    /// steepens the curve.
-    function ratioAt(outputDb: real): real {
-        const threshold = panel.value("threshold");
-        const above = panel.handleInputDb("ratio") - threshold;
-        const over = outputDb - threshold - panel.value("makeup");
-        if (above <= 0 || over <= 0) {
-            return panel.descriptor("ratio").maximum ?? 20;
-        }
-        return above / over;
+    /// The one parameter a point writes. **One each**, so a drag is one
+    /// value changing and one step to take back.
+    function handleParam(handleId: string): string {
+        return handleId === "cutoff" ? "expanderRatio" : handleId;
     }
 
-    /// **Putting a number on the ratio is turning limiting off.** The
-    /// infinite ratio is the click past the end of the slider, so a curve
-    /// flattened by it would not answer the handle at all, which reads as a
-    /// handle that is broken.
-    function stopLimiting() {
-        if (panel.settings.infiniteRatio === true) {
-            SessionModel.setParam(panel.blockId, "infiniteRatio", false);
+    /// The two numbers read out while a point is held: the pair its part of
+    /// the curve is made of.
+    function handleReadout(handleId: string): var {
+        if (handleId === "cutoff" || handleId === "expanderThreshold") {
+            return ["expanderThreshold", "expanderRatio"];
         }
+        return ["threshold", "height"];
     }
 
-    /// Which parameters a handle writes, across and up.
-    ///
-    /// **A handle is a place on the curve, and a place has two numbers.**
-    /// Where the expander starts and how steeply it pushes down are the two
-    /// things about its corner; where the compressor starts and how high the
-    /// line sits afterwards are the two about its. Each was a separate
-    /// control before, and the handle answered only one of them, so half of
-    /// every drag did nothing.
-    ///
-    /// The other two handles have one axis and mean it: the knee is a width
-    /// measured across, and the ratio is the steepness of a line whose place
-    /// across follows the threshold.
-    function handleParams(handleId: string): var {
+    /// Puts a point at \a db along its own line, which is the only number a
+    /// point has. **The second and the third stop at each other**, and the
+    /// other two ask the curve what that place means.
+    function place(handleId: string, db: real, live: bool) {
         switch (handleId) {
+        case "cutoff":
+            panel.edit("expanderRatio", curve.ratioForCutoff(db), live);
+            break;
         case "expanderThreshold":
-            // **The lower one rides the line where nothing is changed**, so
-            // across is where the expander starts and down is how far the
-            // quiet end falls away — which takes both the range, the most it
-            // may take off, and the ratio, how steeply it gets there.
-            return {across: "expanderThreshold", up: "expanderRange", also: "expanderRatio"};
+            panel.edit("expanderThreshold", Math.min(db, curve.thresholdDb()), live);
+            break;
         case "threshold":
-            return {across: "threshold", up: "makeup"};
-        case "knee":
-            return {across: "knee", up: ""};
-        case "ratio":
-            // **The upper one is the far end of the compressed part.**
-            // Across drags the bend with it; up and down is how steep the
-            // line past the bend is, which is what the ratio says.
-            return {across: "threshold", up: "ratio"};
+            panel.edit("threshold", Math.max(db, curve.expanderStartDb()), live);
+            break;
+        case "height":
+            panel.edit("height", curve.heightForEnd(db), live);
+            break;
         }
-        return {across: "", up: ""};
     }
 
-    /// Every parameter a handle writes, for the readout and for committing.
-    function handleParamList(handleId: string): var {
-        const pair = panel.handleParams(handleId);
-        return [pair.across, pair.up, pair.also ?? ""].filter(id => id !== "");
+    /// How far along its line a point at \a x, \a y on the plot is. A point
+    /// on the diagonal takes the nearest place on it, whichever way the
+    /// pointer has wandered off.
+    function alongLine(handleId: string, x: real, y: real): real {
+        switch (handleId) {
+        case "cutoff":
+            return curve.dbAtX(x);
+        case "height":
+            return curve.dbAtY(y);
+        }
+        return (curve.dbAtX(x) + curve.dbAtY(y)) / 2;
     }
 
-    /// Where the drag began, and what the expander's ratio was then.
-    ///
-    /// **A ratio is not a place on the plot.** The other axes are: the
-    /// threshold handle really sits at the threshold, and the end of the
-    /// compressed part really sits where the ratio puts it, so those can be
-    /// read straight off the pointer. The expander's handle rides the line
-    /// where nothing is changed, whatever its ratio — so reading its ratio
-    /// off the pointer would set it to nothing the moment the handle was
-    /// grabbed, and dragging it sideways would flatten the curve for no
-    /// reason. It moves by how far the pointer has come instead.
-    property real dragFromY: 0
-    property real dragFromRatio: 1
-    property real dragFromRange: 0
-    property real dragFromOutputDb: 0
-
-    /// How much of a drag down doubles the expander's ratio. A whole grid
-    /// unit for a doubling: far enough that the number does not run away
-    /// under the hand, near enough that the range is crossed in one gesture.
-    readonly property real expanderRatioPerPixel: Kirigami.Units.gridUnit
-
-    function expanderRatioAfter(y: real): real {
-        const moved = (y - panel.dragFromY) / panel.expanderRatioPerPixel;
-        return panel.dragFromRatio * Math.pow(2, moved);
-    }
-
-    /// How far down the expander is allowed to pull, after the handle has
-    /// been dragged to \a outputDb.
-    ///
-    /// **A ratio on its own bends nothing.** The range is the most the
-    /// expander may take off, and it starts at nought — so however steep
-    /// the ratio, the curve stays where it is until the range is opened.
-    /// Pulling the handle down is asking for the quiet end to fall away, so
-    /// it opens the range by as many decibels as it was pulled.
-    function expanderRangeAfter(outputDb: real): real {
-        return panel.dragFromRange + (panel.dragFromOutputDb - outputDb);
-    }
-
-    /// The handle nearest \a x, \a y in the plot's own coordinates, or
-    /// empty when the press was nowhere near one. **Nearest within reach
-    /// rather than under the pointer**, for the same reason the canvas's
-    /// ports work that way: a dot is a thing to aim at, not a thing to hit.
+    /// The point nearest \a x, \a y in the plot's own coordinates, or empty
+    /// when the press was nowhere near one. **Nearest within reach rather
+    /// than under the pointer**, for the same reason the canvas's ports work
+    /// that way: a dot is a thing to aim at, not a thing to hit. On a tie the
+    /// upper point wins, because where the first two meet in the corner only
+    /// the second can move.
     function handleNear(x: real, y: real, reach: real): string {
         let nearest = reach;
         let best = "";
         for (let index = 0; index < handleRepeater.count; ++index) {
             const id = handleRepeater.model[index];
-            const at = panel.curve.pointAt(panel.handleInputDb(id));
+            const at = panel.handlePoint(id);
             const distance = Math.hypot(at.x - x, at.y - y);
-            if (distance < nearest) {
+            if (distance <= nearest) {
                 nearest = distance;
                 best = id;
             }
@@ -309,143 +268,168 @@ ColumnLayout {
     /// A press on the plot takes hold of whatever is nearest.
     function beginDrag(x: real, y: real): bool {
         panel.dragging = panel.handleNear(x, y, Kirigami.Units.gridUnit * 1.5);
-        panel.dragFromY = y;
-        panel.dragFromRatio = panel.value("expanderRatio");
-        panel.dragFromRange = panel.value("expanderRange");
-        panel.dragFromOutputDb = panel.curve.dbAtY(y);
-        return panel.dragging !== "";
+        if (panel.dragging === "") {
+            return false;
+        }
+        const at = panel.handlePoint(panel.dragging);
+        panel.dragOffset = Qt.point(x - at.x, y - at.y);
+        panel.dragChoosing = panel.dragging === "threshold" && curve.thresholdDb() - curve.expanderStartDb() < 0.01;
+        return true;
     }
 
-    /// The button came up: the last value of every parameter the handle
-    /// writes arrives, and the whole drag is one thing to take back.
+    /// The pointer moved, with the button down.
+    function moveDrag(x: real, y: real) {
+        const pointX = x - panel.dragOffset.x;
+        const pointY = y - panel.dragOffset.y;
+        if (panel.dragChoosing) {
+            const db = panel.alongLine("threshold", pointX, pointY);
+            if (db < curve.thresholdDb()) {
+                panel.dragging = "expanderThreshold";
+            }
+            panel.dragChoosing = false;
+        }
+        panel.dragTo(panel.dragging, pointX, pointY);
+    }
+
+    /// The button came up: the last value arrives, and the whole drag is one
+    /// thing to take back.
     function endDrag() {
-        for (const paramId of panel.handleParamList(panel.dragging)) {
-            panel.commit(paramId);
+        if (panel.dragging !== "") {
+            panel.commit(panel.handleParam(panel.dragging));
         }
         panel.dragging = "";
+        panel.dragChoosing = false;
     }
 
-    /// A handle dragged to a point on the plot.
+    /// A point dragged to a place on the plot. Only its own line counts: the
+    /// rest of where the pointer went is not a thing a point can do.
     function dragTo(handleId: string, x: real, y: real) {
-        const inputDb = panel.curve.dbAtX(x);
-        const outputDb = panel.curve.dbAtY(y);
+        panel.place(handleId, panel.alongLine(handleId, x, y), true);
+    }
+
+    /// A point moved by the keyboard, up its line for +1 and down for -1.
+    /// **One press is one edit**: a key is a settled value rather than a
+    /// gesture, so it is sent as it is pressed and every press can be taken
+    /// back on its own.
+    function nudge(handleId: string, direction: int, fine: bool) {
+        const step = direction * (fine ? panel.fineStepDb : panel.stepDb);
         switch (handleId) {
+        case "cutoff":
+            panel.place(handleId, curve.cutoffDb() + step, false);
+            break;
         case "expanderThreshold":
-            panel.edit("expanderThreshold", inputDb, true);
-            panel.edit("expanderRatio", panel.expanderRatioAfter(y), true);
-            panel.edit("expanderRange", panel.expanderRangeAfter(outputDb), true);
+            panel.place(handleId, curve.expanderStartDb() + step, false);
             break;
         case "threshold":
-            panel.edit("threshold", inputDb, true);
-            // Up lifts the line after the bend, which is the make-up gain:
-            // how far the corner sits above where it would be without one.
-            panel.edit("makeup", outputDb - inputDb, true);
+            panel.place(handleId, curve.thresholdDb() + step, false);
             break;
-        case "knee":
-            // The handle stands half a knee above the threshold, so the
-            // width is twice the distance it was dragged to.
-            panel.edit("knee", (inputDb - panel.value("threshold")) * 2, true);
-            break;
-        case "ratio":
-            panel.stopLimiting();
-            // Across drags the bend; up and down is how steep the line past
-            // it is. The handle stands a fixed distance above the threshold,
-            // so it comes along with it.
-            panel.edit("threshold", inputDb - panel.ratioHandleOffsetDb, true);
-            panel.edit("ratio", panel.ratioAt(outputDb), true);
+        case "height":
+            panel.edit("height", panel.value("height") + step, false);
             break;
         }
     }
 
-    /// A handle moved by the keyboard. **One press is one edit**: a key is
-    /// a settled value rather than a gesture, so it is sent as it is pressed
-    /// and every press can be taken back on its own.
-    function nudge(handleId: string, across: int, up: int, fine: bool) {
-        const step = fine ? panel.fineStepDb : panel.stepDb;
-        if (handleId === "ratio" && up !== 0) {
-            panel.stopLimiting();
-            // Up steepens: a bigger ratio holds more back.
-            panel.edit("ratio", panel.value("ratio") * Math.pow(panel.ratioStepFactor, up * step * 0.25), false);
-            return;
-        }
-        const pair = panel.handleParams(handleId);
-        // **Up is the handle's other parameter**, where it has one: the
-        // keyboard reaches everything the pointer does, which is what keeps
-        // the curve usable without one.
-        if (up !== 0) {
-            if (pair.up === "") {
-                return;
+    /// Where the box beside a held point goes, for a box and a plot of these
+    /// sizes.
+    ///
+    /// - The line leaves the first point at 45 degrees or steeper, so far
+    ///   enough along the floor it has climbed past the box. Without the room
+    ///   for that, up and to the left of the point is free.
+    /// - The curve comes into the fourth from below, so above it is free.
+    /// - To the right of a point on the diagonal and under it is free, and
+    ///   so is its left, above the diagonal, when it stands too far right.
+    ///   On a plot too narrow for either, under it does, moved along to fit.
+    function readoutPlace(handleId: string, at: point, boxWidth: real, boxHeight: real,
+                          plotWidth: real, plotHeight: real): point {
+        const gap = Kirigami.Units.gridUnit * 1.25;
+        const widest = Math.max(0, plotWidth - boxWidth);
+        const within = (x, y) => Qt.point(Math.max(0, Math.min(widest, x)),
+                                          Math.max(0, Math.min(plotHeight - boxHeight, y)));
+        switch (handleId) {
+        case "cutoff": {
+            const along = gap * 2;
+            if (at.x + along + boxWidth <= plotWidth) {
+                return within(at.x + along, plotHeight - boxHeight);
             }
-            if (pair.up === "expanderRatio") {
-                panel.edit("expanderRatio", panel.value("expanderRatio") * Math.pow(panel.ratioStepFactor,
-                                                                                   up * step * 0.25), false);
-                return;
-            }
-            panel.edit(pair.up, panel.value(pair.up) + up * step, false);
-            return;
+            return within(at.x - boxWidth, at.y - gap - boxHeight);
         }
-        if (across === 0 || pair.across === "") {
-            return;
+        case "height":
+            return within(at.x - boxWidth, at.y - gap - boxHeight >= 0 ? at.y - gap - boxHeight : at.y + gap);
         }
-        // **The handle ids are the parameter ids**, so a handle writes the
-        // parameter it is named after. The knee handle reads its width
-        // rather than its place, so that is what a key press changes.
-        panel.edit(pair.across, panel.value(pair.across) + across * step, false);
+        if (at.x + gap + boxWidth <= plotWidth && at.y + gap + boxHeight <= plotHeight) {
+            return within(at.x + gap, at.y + gap);
+        }
+        if (at.x - gap - boxWidth >= 0) {
+            return within(at.x - gap - boxWidth, at.y - boxHeight / 2);
+        }
+        return within(at.x + gap, at.y + gap <= plotHeight - boxHeight ? at.y + gap : at.y - gap - boxHeight);
+    }
+
+    /// A parameter's row under Details. **The two thresholds stop at each
+    /// other there as well**, so a value typed in cannot put them in the
+    /// wrong order on the graph.
+    function boundedDescriptor(descriptor: var): var {
+        if (descriptor.id === "threshold") {
+            return Object.assign({}, descriptor, {minimum: panel.value("expanderThreshold")});
+        }
+        if (descriptor.id === "expanderThreshold") {
+            return Object.assign({}, descriptor, {maximum: panel.value("threshold")});
+        }
+        return descriptor;
     }
 
     // --- the words ---
 
     function handleName(handleId: string): string {
         switch (handleId) {
+        case "cutoff":
+            return KI18n.i18nc("@label:slider a point on the transfer curve: anything quieter comes out as nothing",
+                               "Cut-off");
         case "expanderThreshold":
-            return KI18n.i18nc("@label:slider a handle on the transfer curve", "Expander threshold");
+            return KI18n.i18nc("@label:slider a point on the transfer curve", "Expander threshold");
         case "threshold":
-            return KI18n.i18nc("@label:slider a handle on the transfer curve", "Compressor threshold");
-        case "knee":
-            return KI18n.i18nc("@label:slider a handle on the transfer curve", "Knee width");
-        case "ratio":
-            return KI18n.i18nc("@label:slider a handle on the transfer curve", "Ratio above the threshold");
+            return KI18n.i18nc("@label:slider a point on the transfer curve", "Compressor threshold");
+        case "height":
+            return KI18n.i18nc("@label:slider a point on the transfer curve: how high the curve can rise",
+                               "Height");
         }
         return "";
     }
 
-    /// What a handle is set to, said as a person would say it.
+    /// What a point is set to, said as a person would say it.
     function handleValue(handleId: string): string {
-        if (handleId === "ratio") {
-            if (panel.settings.infiniteRatio === true) {
-                return KI18n.i18nc("@info a ratio with no number: nothing gets past the threshold", "limiting");
-            }
-            return KI18n.i18nc("@info how much of what goes over the threshold comes out", "%1 to 1",
-                               Number(panel.value("ratio")).toLocaleString(panel.locale, 'f', 1));
-        }
-        if (handleId === "knee") {
-            return KI18n.i18nc("@info how wide the bend around the threshold is", "%1 decibels wide",
-                               Number(panel.value("knee")).toLocaleString(panel.locale, 'f', 0));
+        let db = 0;
+        switch (handleId) {
+        case "cutoff":
+            db = curve.tessellations >= 0 ? curve.cutoffDb() : 0;
+            break;
+        case "expanderThreshold":
+            db = curve.tessellations >= 0 ? curve.expanderStartDb() : 0;
+            break;
+        default:
+            db = panel.value(handleId);
         }
         return KI18n.i18nc("@info a level in decibels", "%1 decibels",
-                           Number(panel.value(handleId)).toLocaleString(panel.locale, 'f', 0));
+                           Number(db).toLocaleString(panel.locale, 'f', 0));
     }
 
-    /// The name a handle is read out under: what it is, what it is set to,
+    /// The name a point is read out under: what it is, what it is set to,
     /// and that the arrow keys work on it. **Somebody who cannot see the
     /// curve has to be told all three.**
     function handleAccessibleName(handleId: string): string {
-        return KI18n.i18nc("@label:slider a curve handle, its value, and how to move it", "%1, %2. Arrow keys adjust.",
+        return KI18n.i18nc("@label:slider a curve point, its value, and how to move it", "%1, %2. Arrow keys adjust.",
                            panel.handleName(handleId), panel.handleValue(handleId));
     }
 
     /// One parameter's value, said the way a person would say it. **Not
-    /// the same as handleValue()**, which answers for a whole handle; while
-    /// a handle is being dragged both of its parameters are read out, and
-    /// each has to say what it is in its own units.
+    /// the same as handleValue()**, which answers for a whole point; while
+    /// a point is being dragged two numbers are read out, and each has to
+    /// say what it is in its own units.
     function paramValueText(paramId: string): string {
-        if (paramId === "ratio" || paramId === "expanderRatio") {
-            return KI18n.i18nc("@info how much of what goes over the threshold comes out", "%1 to 1",
-                               Number(panel.value(paramId)).toLocaleString(panel.locale, 'f', 1));
-        }
-        if (paramId === "knee") {
-            return KI18n.i18nc("@info how wide the bend around the threshold is", "%1 decibels wide",
-                               Number(panel.value(paramId)).toLocaleString(panel.locale, 'f', 0));
+        if (paramId === "expanderRatio") {
+            const ratio = panel.value(paramId);
+            return KI18n.i18nc("@info how steeply the quiet end falls away", "%1 to 1",
+                               Number(ratio).toLocaleString(panel.locale, 'f', ratio < 10 ? 2 : 1));
         }
         return panel.formatDb(panel.value(paramId));
     }
@@ -456,20 +440,13 @@ ColumnLayout {
     function paramLabel(paramId: string): string {
         switch (paramId) {
         case "threshold":
-            return KI18n.i18nc("@label where the compressor starts working", "Threshold");
-        case "ratio":
-            return KI18n.i18nc("@label how much of what goes over the threshold comes out", "Ratio");
-        case "infiniteRatio":
-            return KI18n.i18nc("@label:checkbox a ratio of infinity: nothing gets past the threshold",
-                               "Limit at the threshold");
-        case "knee":
-            return KI18n.i18nc("@label how wide the bend around the threshold is", "Knee");
+            return KI18n.i18nc("@label where the curve starts bending away from the diagonal", "Threshold");
+        case "height":
+            return KI18n.i18nc("@label how high the curve can rise above the threshold", "Height");
         case "expanderThreshold":
             return KI18n.i18nc("@label where the expander starts working", "Expander threshold");
         case "expanderRatio":
             return KI18n.i18nc("@label how steeply the quiet end is pushed down", "Expander ratio");
-        case "expanderRange":
-            return KI18n.i18nc("@label the most the expander may take off", "Expander range");
         case "expanderHold":
             return KI18n.i18nc("@label how long the expander stays open", "Expander hold");
         case "attack":
@@ -547,11 +524,10 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 14
             Layout.minimumHeight: Kirigami.Units.gridUnit * 8
-            // **The curve is not clamped, the plot is clipped.** A line bent
-            // right off the bottom by an expander is what that setting does;
-            // flattening it against the edge would draw something the block
-            // does not do.
-            clip: true
+            // **Not clipped, and in front of what is beside it.** The curve
+            // stays inside the graph by itself, and two of the points stand
+            // on its edges, half outside it.
+            z: 1
 
             Rectangle {
                 anchors.fill: parent
@@ -658,13 +634,12 @@ ColumnLayout {
                 color: AppColors.liveMark
             }
 
-            // --- the four handles ---
+            // --- the four points ---
             Repeater {
                 id: handleRepeater
 
-                // **The four things that bend the line**, named by the
-                // parameters they write.
-                model: ["expanderThreshold", "threshold", "knee", "ratio"]
+                // Bottom to top, which is the tab order as well.
+                model: ["cutoff", "expanderThreshold", "threshold", "height"]
 
                 delegate: Item {
                     id: handle
@@ -673,8 +648,10 @@ ColumnLayout {
 
                     /// Where it stands on the curve.
                     readonly property point at: curve.tessellations >= 0
-                        ? curve.pointAt(panel.handleInputDb(handle.modelData))
+                        ? panel.handlePoint(handle.modelData)
                         : Qt.point(0, 0)
+                    /// Whether a drag has hold of it.
+                    readonly property bool held: panel.dragging === handle.modelData
 
                     x: handle.at.x - width / 2
                     y: handle.at.y - height / 2
@@ -688,71 +665,78 @@ ColumnLayout {
                     Accessible.focusable: true
                     Accessible.name: panel.handleAccessibleName(handle.modelData)
 
+                    // What is held stands out from the three that are not.
                     Rectangle {
                         anchors.centerIn: parent
-                        width: Kirigami.Units.gridUnit * 0.65
+                        width: handle.held ? Kirigami.Units.gridUnit * 2 : parent.width
                         height: width
+                        visible: handle.held || handle.activeFocus
                         radius: width / 2
-                        color: handle.modelData === "expanderThreshold" ? AppColors.okMark
-                             : handle.modelData === "knee" ? AppColors.muted : panel.tint
-                        border.color: AppColors.well
-                        border.width: 2
-                    }
-
-                    // The focus ring, drawn over the curve so that it can be
-                    // seen against it.
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: handle.activeFocus
-                        color: "transparent"
-                        radius: width / 2
+                        color: handle.held ? Qt.rgba(AppColors.accent.r, AppColors.accent.g, AppColors.accent.b, 0.2)
+                                           : "transparent"
                         border.color: AppColors.accentMark
                         border.width: 2
                     }
 
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: Kirigami.Units.gridUnit * (handle.held ? 0.8 : 0.65)
+                        height: width
+                        radius: width / 2
+                        color: handle.held ? AppColors.accentMark
+                             : handle.modelData === "cutoff" || handle.modelData === "expanderThreshold"
+                             ? AppColors.okMark : panel.tint
+                        border.color: AppColors.well
+                        border.width: 2
+                    }
+
                     QQC2.ToolTip.text: panel.handleAccessibleName(handle.modelData)
-                    QQC2.ToolTip.visible: handleHover.hovered
+                    QQC2.ToolTip.visible: handleHover.hovered && !handle.held
                     QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
 
-                    // **Hovering is the handle's; dragging is the plot's.**
+                    // **Hovering is the point's; dragging is the plot's.**
                     // A pointer area of its own here is what let the wrong
-                    // handle take a press.
+                    // point take a press.
                     HoverHandler {
                         id: handleHover
 
-                        cursorShape: Qt.SizeAllCursor
+                        // The way this point can go.
+                        cursorShape: handle.modelData === "cutoff" ? Qt.SizeHorCursor
+                                   : handle.modelData === "height" ? Qt.SizeVerCursor : Qt.SizeBDiagCursor
                     }
 
+                    // **Every arrow goes along the point's one line**: right
+                    // and up towards the loud end, left and down away from it.
                     Keys.onLeftPressed: event => {
-                        panel.nudge(handle.modelData, -1, 0, event.modifiers & Qt.ShiftModifier);
+                        panel.nudge(handle.modelData, -1, event.modifiers & Qt.ShiftModifier);
                         event.accepted = true;
                     }
                     Keys.onRightPressed: event => {
-                        panel.nudge(handle.modelData, 1, 0, event.modifiers & Qt.ShiftModifier);
+                        panel.nudge(handle.modelData, 1, event.modifiers & Qt.ShiftModifier);
                         event.accepted = true;
                     }
                     Keys.onUpPressed: event => {
-                        panel.nudge(handle.modelData, 0, 1, event.modifiers & Qt.ShiftModifier);
+                        panel.nudge(handle.modelData, 1, event.modifiers & Qt.ShiftModifier);
                         event.accepted = true;
                     }
                     Keys.onDownPressed: event => {
-                        panel.nudge(handle.modelData, 0, -1, event.modifiers & Qt.ShiftModifier);
+                        panel.nudge(handle.modelData, -1, event.modifiers & Qt.ShiftModifier);
                         event.accepted = true;
                     }
                 }
             }
 
-            // --- what the handle being dragged is setting ---
+            // --- what the point being dragged is setting ---
             //
-            // **Both numbers, while the hand is on it.** A handle carries
-            // two parameters and a drag changes both, so a person aiming at
-            // one of them has to be able to read where it has got to
-            // without letting go and looking somewhere else.
+            // **Both numbers, while the hand is on it.** Each end of the
+            // curve is two numbers, so a person aiming at one of them has to
+            // be able to read where it has got to without letting go and
+            // looking somewhere else.
             Item {
                 id: readout
 
                 readonly property point at: panel.dragging !== "" && curve.tessellations >= 0
-                    ? curve.pointAt(panel.handleInputDb(panel.dragging))
+                    ? panel.handlePoint(panel.dragging)
                     : Qt.point(0, 0)
 
                 visible: panel.dragging !== ""
@@ -781,15 +765,15 @@ ColumnLayout {
                 Rectangle {
                     id: readoutBox
 
-                    // Beside the handle, and flipped to its other side when
-                    // there is no room: a readout that ran off the plot
-                    // would be a readout nobody could read.
-                    readonly property bool toTheLeft: readout.at.x + width + Kirigami.Units.gridUnit > plotArea.width
+                    // **Beside the point, on the side the curve is not**: a
+                    // box over the line would hide what is being aimed at,
+                    // and a box running off the plot could not be read.
+                    readonly property point place: curve.tessellations >= 0
+                        ? panel.readoutPlace(panel.dragging, readout.at, width, height, plotArea.width, plotArea.height)
+                        : Qt.point(0, 0)
 
-                    x: readoutBox.toTheLeft
-                        ? Math.max(0, readout.at.x - width - Kirigami.Units.smallSpacing)
-                        : readout.at.x + Kirigami.Units.smallSpacing
-                    y: Math.max(0, Math.min(plotArea.height - height, readout.at.y - height / 2))
+                    x: readoutBox.place.x
+                    y: readoutBox.place.y
                     width: readoutRows.width + Kirigami.Units.smallSpacing * 2
                     height: readoutRows.height + Kirigami.Units.smallSpacing * 2
                     radius: Kirigami.Units.smallSpacing
@@ -804,7 +788,7 @@ ColumnLayout {
                         spacing: 0
 
                         Repeater {
-                            model: panel.dragging !== "" ? panel.handleParamList(panel.dragging) : []
+                            model: panel.dragging !== "" ? panel.handleReadout(panel.dragging) : []
 
                             delegate: Row {
                                 required property string modelData
@@ -830,7 +814,7 @@ ColumnLayout {
 
             // --- the one grab, over the whole plot ---
             //
-            // **It picks the handle and then keeps it.** Whatever the
+            // **It picks the point and then keeps it.** Whatever the
             // pointer is nearest when the button goes down is what moves
             // until it comes up again, so a handle cannot be lost to its
             // neighbour halfway through a drag, and the pointer is read in
@@ -840,8 +824,9 @@ ColumnLayout {
                 id: plotGrab
 
                 anchors.fill: parent
-                // Under the handles, so their hover and their tooltips
-                // still work, and over everything else on the plot.
+                anchors.margins: -panel.edgeReach
+                // Under the points, so their hover and their tooltips still
+                // work, and over everything else on the plot.
                 z: -1
                 acceptedButtons: Qt.LeftButton
                 // **The gesture is ours once it has begun.** The settings
@@ -853,7 +838,7 @@ ColumnLayout {
                 preventStealing: true
 
                 onPressed: mouse => {
-                    if (!panel.beginDrag(mouse.x, mouse.y)) {
+                    if (!panel.beginDrag(mouse.x + plotGrab.x, mouse.y + plotGrab.y)) {
                         mouse.accepted = false;
                         return;
                     }
@@ -862,12 +847,11 @@ ColumnLayout {
                             handleRepeater.itemAt(index).forceActiveFocus();
                         }
                     }
-                    panel.dragTo(panel.dragging, mouse.x, mouse.y);
                 }
 
                 onPositionChanged: mouse => {
                     if (panel.dragging !== "") {
-                        panel.dragTo(panel.dragging, mouse.x, mouse.y);
+                        panel.moveDrag(mouse.x + plotGrab.x, mouse.y + plotGrab.y);
                     }
                 }
 
@@ -1038,7 +1022,7 @@ ColumnLayout {
     QQC2.AbstractButton {
         id: detailsToggle
 
-        /// **Closed when the panel opens.** Twelve numbers are what somebody
+        /// **Closed when the panel opens.** Nine numbers are what somebody
         /// comes back for, not what they open the block to see.
         checkable: true
         checked: false
@@ -1100,7 +1084,7 @@ ColumnLayout {
                 visible: modelData.hidden !== true
 
                 blockId: panel.blockId
-                descriptor: modelData
+                descriptor: panel.boundedDescriptor(modelData)
                 label: panel.paramLabel(modelData.id)
                 currentValue: panel.settings[modelData.id]
                 locale: panel.locale

@@ -23,6 +23,8 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <string>
+#include <vector>
 
 using namespace rb;
 using namespace rb::blocks;
@@ -63,19 +65,21 @@ TEST(DynamicsBlockTest, TheControlsAreTheCurve)
     // One definition, read by the editor and by the sound alike.
     Dynamics block;
     ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(-24.0f)).has_value());
-    ASSERT_TRUE(block.setParam("ratio", ParamValue::ofFloat(4.0f)).has_value());
-    ASSERT_TRUE(block.setParam("knee", ParamValue::ofFloat(6.0f)).has_value());
+    ASSERT_TRUE(block.setParam("height", ParamValue::ofFloat(9.0f)).has_value());
+    ASSERT_TRUE(block.setParam("expanderThreshold", ParamValue::ofFloat(-50.0f)).has_value());
+    ASSERT_TRUE(block.setParam("expanderRatio", ParamValue::ofFloat(2.0f)).has_value());
     ASSERT_TRUE(block.setParam("makeup", ParamValue::ofFloat(3.0f)).has_value());
     ASSERT_TRUE(block.setParam("attack", ParamValue::ofFloat(1.0f)).has_value());
     ASSERT_TRUE(block.setParam("release", ParamValue::ofFloat(50.0f)).has_value());
 
-    const DynamicsSettings settings = block.settings();
+    const DynamicsShape settings = block.settings();
     EXPECT_FLOAT_EQ(settings.thresholdDb, -24.0f);
-    EXPECT_FLOAT_EQ(settings.ratio, 4.0f);
-    EXPECT_FLOAT_EQ(settings.kneeDb, 6.0f);
+    EXPECT_FLOAT_EQ(settings.heightDb, 9.0f);
+    EXPECT_FLOAT_EQ(settings.expanderThresholdDb, -50.0f);
+    EXPECT_FLOAT_EQ(settings.expanderRatio, 2.0f);
     EXPECT_FLOAT_EQ(settings.makeupDb, 3.0f);
 
-    for (const float inputDb : {-40.0f, -30.0f, -24.0f, -18.0f, -12.0f, -6.0f}) {
+    for (const float inputDb : {-60.0f, -50.0f, -40.0f, -30.0f, -24.0f, -18.0f, -12.0f, -6.0f}) {
         Dynamics tone;
         ASSERT_TRUE(tone.loadState(block.saveState()).has_value());
         const MultiSignal input = stereoSine(32000, 1000.0, dbToGain(inputDb));
@@ -85,30 +89,39 @@ TEST(DynamicsBlockTest, TheControlsAreTheCurve)
     }
 }
 
-TEST(DynamicsBlockTest, TheRatioClicksPastTheEndOfItsSliderToInfinity)
+TEST(DynamicsBlockTest, AHeightOfNothingHoldsEverythingAtTheThreshold)
 {
-    // There is no place on a slider that runs to 20:1 for a ratio of
-    // infinity, so it is the click past the end rather than a number on it.
+    // Which is what hard limiting is: nothing comes out above the third
+    // point, however loud it goes in.
     Dynamics block;
     ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(-20.0f)).has_value());
-    ASSERT_TRUE(block.setParam("knee", ParamValue::ofFloat(0.0f)).has_value());
-    ASSERT_TRUE(block.setParam("ratio", ParamValue::ofFloat(2.0f)).has_value());
-    EXPECT_FLOAT_EQ(block.settings().ratio, 2.0f);
+    ASSERT_TRUE(block.setParam("height", ParamValue::ofFloat(0.0f)).has_value());
 
-    ASSERT_TRUE(block.setParam("infiniteRatio", ParamValue::ofBool(true)).has_value());
-    EXPECT_FLOAT_EQ(block.settings().ratio, kInfiniteRatio);
-    // The number under it is kept, so turning infinity off again gives back
-    // the ratio that was there rather than a default.
-    EXPECT_FLOAT_EQ(*block.param("ratio").asFloat(), 2.0f);
-
-    // Everything above the threshold comes out at the threshold: 6 dB over
-    // and 20 dB over both land on −20 dBFS.
     for (const float inputDb : {-14.0f, 0.0f}) {
         Dynamics tone;
         ASSERT_TRUE(tone.loadState(block.saveState()).has_value());
         const MultiSignal out = through(tone, stereoSine(32000, 1000.0, dbToGain(inputDb)));
         EXPECT_NEAR(peakDb(settled(out[0])), -20.0, 0.2) << "at " << inputDb << " dBFS in";
     }
+}
+
+TEST(DynamicsBlockTest, AHighExpanderRatioIsAGate)
+{
+    // Under the expander threshold the sound is gone, and over it the sound
+    // is left alone.
+    Dynamics block;
+    ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(20.0f)).has_value());
+    ASSERT_TRUE(block.setParam("height", ParamValue::ofFloat(40.0f)).has_value());
+    ASSERT_TRUE(block.setParam("expanderThreshold", ParamValue::ofFloat(-45.0f)).has_value());
+    ASSERT_TRUE(block.setParam("expanderRatio", ParamValue::ofFloat(20.0f)).has_value());
+
+    Dynamics open;
+    ASSERT_TRUE(open.loadState(block.saveState()).has_value());
+    EXPECT_NEAR(peakDb(settled(through(open, stereoSine(32000, 1000.0, dbToGain(-30.0f)))[0])), -30.0, 0.1);
+
+    Dynamics shut;
+    ASSERT_TRUE(shut.loadState(block.saveState()).has_value());
+    EXPECT_LT(peakDb(settled(through(shut, stereoSine(32000, 1000.0, dbToGain(-60.0f)))[0])), -115.0);
 }
 
 TEST(DynamicsBlockTest, TheTimingControlsReachTheDetector)
@@ -136,8 +149,7 @@ TEST(DynamicsBlockTest, BothSidesGetTheSameGain)
     // by exactly as much as the loud one.
     Dynamics block;
     ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(-30.0f)).has_value());
-    ASSERT_TRUE(block.setParam("ratio", ParamValue::ofFloat(8.0f)).has_value());
-    ASSERT_TRUE(block.setParam("knee", ParamValue::ofFloat(0.0f)).has_value());
+    ASSERT_TRUE(block.setParam("height", ParamValue::ofFloat(4.0f)).has_value());
 
     MultiSignal input;
     input.push_back(sine(32000, 1000.0, kTestSampleRate, dbToGain(-6.0f)));
@@ -153,8 +165,7 @@ TEST(DynamicsBlockTest, ItPublishesWhatTheLiveMarkerNeeds)
 {
     Dynamics block;
     ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(-30.0f)).has_value());
-    ASSERT_TRUE(block.setParam("ratio", ParamValue::ofFloat(4.0f)).has_value());
-    ASSERT_TRUE(block.setParam("knee", ParamValue::ofFloat(0.0f)).has_value());
+    ASSERT_TRUE(block.setParam("height", ParamValue::ofFloat(10.0f)).has_value());
 
     rt::BlockMeter meter;
     BlockRunner runner(block, 2, 2);
@@ -184,7 +195,6 @@ TEST(DynamicsBlockTest, ChangingTheMakeupDoesNotStepTheSignal)
     // jump. It has a glide of its own.
     Dynamics block;
     ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(0.0f)).has_value());
-    ASSERT_TRUE(block.setParam("knee", ParamValue::ofFloat(0.0f)).has_value());
 
     BlockRunner runner(block, 2, 2);
     ASSERT_TRUE(runner.prepare().has_value());
@@ -224,7 +234,9 @@ TEST(DynamicsBlockTest, ItSoundsTheSameWhateverTheQuantum)
             // Working hard, so that anything kept per cycle rather than per
             // sample would show up rather than sit under the threshold.
             EXPECT_TRUE(block->setParam("threshold", ParamValue::ofFloat(-30.0f)).has_value());
-            EXPECT_TRUE(block->setParam("ratio", ParamValue::ofFloat(10.0f)).has_value());
+            EXPECT_TRUE(block->setParam("height", ParamValue::ofFloat(6.0f)).has_value());
+            EXPECT_TRUE(block->setParam("expanderThreshold", ParamValue::ofFloat(-40.0f)).has_value());
+            EXPECT_TRUE(block->setParam("expanderRatio", ParamValue::ofFloat(4.0f)).has_value());
             EXPECT_TRUE(block->setParam("attack", ParamValue::ofFloat(0.5f)).has_value());
             EXPECT_TRUE(block->setParam("release", ParamValue::ofFloat(80.0f)).has_value());
             return std::unique_ptr<Block>(std::move(block));
@@ -238,12 +250,9 @@ TEST(DynamicsBlockTest, WhatWasSetIsWhatComesBack)
 {
     Dynamics block;
     ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(-33.0f)).has_value());
-    ASSERT_TRUE(block.setParam("ratio", ParamValue::ofFloat(6.5f)).has_value());
-    ASSERT_TRUE(block.setParam("infiniteRatio", ParamValue::ofBool(true)).has_value());
-    ASSERT_TRUE(block.setParam("knee", ParamValue::ofFloat(18.0f)).has_value());
+    ASSERT_TRUE(block.setParam("height", ParamValue::ofFloat(18.0f)).has_value());
     ASSERT_TRUE(block.setParam("expanderThreshold", ParamValue::ofFloat(-55.0f)).has_value());
     ASSERT_TRUE(block.setParam("expanderRatio", ParamValue::ofFloat(4.0f)).has_value());
-    ASSERT_TRUE(block.setParam("expanderRange", ParamValue::ofFloat(24.0f)).has_value());
     ASSERT_TRUE(block.setParam("expanderHold", ParamValue::ofFloat(120.0f)).has_value());
     ASSERT_TRUE(block.setParam("attack", ParamValue::ofFloat(5.0f)).has_value());
     ASSERT_TRUE(block.setParam("release", ParamValue::ofFloat(600.0f)).has_value());
@@ -253,12 +262,9 @@ TEST(DynamicsBlockTest, WhatWasSetIsWhatComesBack)
     Dynamics opened;
     ASSERT_TRUE(opened.loadState(block.saveState()).has_value());
     EXPECT_FLOAT_EQ(*opened.param("threshold").asFloat(), -33.0f);
-    EXPECT_FLOAT_EQ(*opened.param("ratio").asFloat(), 6.5f);
-    EXPECT_TRUE(*opened.param("infiniteRatio").asBool());
-    EXPECT_FLOAT_EQ(*opened.param("knee").asFloat(), 18.0f);
+    EXPECT_FLOAT_EQ(*opened.param("height").asFloat(), 18.0f);
     EXPECT_FLOAT_EQ(*opened.param("expanderThreshold").asFloat(), -55.0f);
     EXPECT_FLOAT_EQ(*opened.param("expanderRatio").asFloat(), 4.0f);
-    EXPECT_FLOAT_EQ(*opened.param("expanderRange").asFloat(), 24.0f);
     EXPECT_FLOAT_EQ(*opened.param("expanderHold").asFloat(), 120.0f);
     EXPECT_FLOAT_EQ(*opened.param("attack").asFloat(), 5.0f);
     EXPECT_FLOAT_EQ(*opened.param("release").asFloat(), 600.0f);
@@ -267,7 +273,9 @@ TEST(DynamicsBlockTest, WhatWasSetIsWhatComesBack)
 
     // The ends of the ranges are the ends: a value past one is refused
     // rather than taken quietly.
-    EXPECT_FALSE(block.setParam("threshold", ParamValue::ofFloat(6.0f)).has_value());
+    EXPECT_FALSE(block.setParam("threshold", ParamValue::ofFloat(21.0f)).has_value());
+    EXPECT_FALSE(block.setParam("height", ParamValue::ofFloat(41.0f)).has_value());
+    EXPECT_FALSE(block.setParam("expanderRatio", ParamValue::ofFloat(51.0f)).has_value());
     EXPECT_FALSE(block.setParam("attack", ParamValue::ofFloat(0.0f)).has_value());
     EXPECT_FALSE(block.setParam("release", ParamValue::ofFloat(4000.0f)).has_value());
 }
@@ -277,25 +285,21 @@ TEST(DynamicsBlockTest, TheDefaultsAreTheFactoryPreset)
     // The "Default" preset is what the block is when it is made, so there is
     // nothing to load to get it.
     const Dynamics block;
-    const DynamicsSettings settings = block.settings();
+    const DynamicsShape settings = block.settings();
     const DynamicsTiming timing = block.timing();
 
-    EXPECT_FLOAT_EQ(settings.thresholdDb, -20.0f);
-    EXPECT_FLOAT_EQ(settings.ratio, 20.0f);
-    EXPECT_FLOAT_EQ(settings.kneeDb, 12.0f);
+    EXPECT_FLOAT_EQ(settings.thresholdDb, -26.0f);
+    EXPECT_FLOAT_EQ(settings.heightDb, 7.0f);
     EXPECT_FLOAT_EQ(settings.makeupDb, 0.0f);
     EXPECT_FLOAT_EQ(timing.attackMs, 1.0f);
     EXPECT_FLOAT_EQ(timing.releaseMs, 50.0f);
     EXPECT_EQ(timing.detector, DynamicsDetector::Peak);
 
-    // The expander is off: a ratio of 1:1 and a range of nothing leave the
-    // quiet end of the curve exactly as it arrived.
+    // The expander is off: a ratio of 1:1 leaves the quiet end of the curve
+    // exactly as it arrived, all the way down to the threshold.
+    EXPECT_FLOAT_EQ(settings.expanderThresholdDb, -80.0f);
     EXPECT_FLOAT_EQ(settings.expanderRatio, 1.0f);
-    EXPECT_FLOAT_EQ(settings.expanderRangeDb, 0.0f);
-    // Below where the wide knee starts, which is half of it under the
-    // threshold: −26 dBFS. Anything above that is the compressor beginning
-    // gently, which is the point of a wide knee.
-    for (const float inputDb : {-80.0f, -60.0f, -40.0f, -30.0f}) {
+    for (const float inputDb : {-110.0f, -80.0f, -60.0f, -40.0f, -30.0f, -26.0f}) {
         EXPECT_FLOAT_EQ(gainReductionDb(inputDb, settings), 0.0f) << "at " << inputDb << " dBFS in";
     }
 
@@ -312,7 +316,6 @@ TEST(DynamicsBlockTest, ARunTouchesTheAllocatorNotAtAll)
     ASSERT_TRUE(block.setParam("threshold", ParamValue::ofFloat(-30.0f)).has_value());
     ASSERT_TRUE(block.setParam("expanderThreshold", ParamValue::ofFloat(-45.0f)).has_value());
     ASSERT_TRUE(block.setParam("expanderRatio", ParamValue::ofFloat(4.0f)).has_value());
-    ASSERT_TRUE(block.setParam("expanderRange", ParamValue::ofFloat(30.0f)).has_value());
     ASSERT_TRUE(block.setParam("expanderHold", ParamValue::ofFloat(100.0f)).has_value());
     ASSERT_TRUE(block.setParam("detector", ParamValue::ofEnum("rms")).has_value());
 
@@ -326,4 +329,23 @@ TEST(DynamicsBlockTest, ARunTouchesTheAllocatorNotAtAll)
     const MultiSignal out = runner.runWatchingForAllocations(input, CycleShape::random(1, 512, 3), allocations);
     EXPECT_EQ(allocations, 0U);
     EXPECT_EQ(out[0].size(), input[0].size());
+}
+
+TEST(DynamicsBlockTest, TheThingsTheFourPointsReplacedAreGone)
+{
+    const Dynamics block;
+    std::vector<std::string> ids;
+    for (const ParamDescriptor &descriptor : block.params()) {
+        ids.push_back(descriptor.id);
+    }
+    EXPECT_EQ(ids,
+              (std::vector<std::string>{"threshold",
+                                        "height",
+                                        "expanderThreshold",
+                                        "expanderRatio",
+                                        "expanderHold",
+                                        "attack",
+                                        "release",
+                                        "makeup",
+                                        "detector"}));
 }

@@ -23,7 +23,7 @@ import org.kde.ki18n
 // somebody glancing across a canvas wants to know.
 //
 // **A tile is glanced at, so it shows the loud end.** The panel's plot runs
-// the whole way down to −120 dB because a handle has to be reachable there;
+// the whole way down to −120 dB because a point has to be reachable there;
 // a tile has room for the part where a person's sound actually is.
 Item {
     id: face

@@ -19,11 +19,11 @@
 namespace rb::blocks
 {
 
-/// A dynamics processor: a compressor above, an expander below, and a curve
-/// a person can see and drag.
+/// A dynamics processor: a curve that a person can see and drag, which holds
+/// loud sound back at the top and pushes quiet sound down at the bottom.
 ///
 /// **The controls are the curve.** Everything that decides the shape goes
-/// into dsp::DynamicsSettings and through dsp::outputDb(), which is the same
+/// into dsp::DynamicsShape and through dsp::outputDb(), which is the same
 /// function the curve editor draws with. There is one definition of what
 /// this block does to a level, so what is on the screen and what is in the
 /// sound cannot drift apart.
@@ -32,7 +32,7 @@ namespace rb::blocks
 /// decide how long the sound takes to get to the curve, and are kept apart
 /// from it for that reason.
 ///
-/// **Nothing is smoothed but the makeup.** A threshold or a ratio that
+/// **Nothing is smoothed but the makeup.** A threshold or a height that
 /// changes mid-drag changes where the signal is heading, and the attack and
 /// the release take it there at the speed they are set to — which is what
 /// they are for. The makeup gain is added after all of that, so it has a
@@ -57,15 +57,9 @@ public:
 
     enum Param : std::uint32_t {
         Threshold = 0,
-        Ratio,
-        /// **The top of the ratio slider, not a number on it.** A ratio of
-        /// infinity is a limiter, and there is no place on a slider that
-        /// runs to 20:1 to put it; this is the click past the end.
-        InfiniteRatio,
-        Knee,
+        Height,
         ExpanderThreshold,
         ExpanderRatio,
-        ExpanderRange,
         ExpanderHold,
         Attack,
         Release,
@@ -101,7 +95,7 @@ public:
     /// The curve the controls currently describe. **What the editor draws**,
     /// and what a test can put through dsp::outputDb() to find out what the
     /// block is going to do to a level.
-    [[nodiscard]] dsp::DynamicsSettings settings() const noexcept RB_NONBLOCKING;
+    [[nodiscard]] dsp::DynamicsShape settings() const noexcept RB_NONBLOCKING;
 
     /// How the sound gets to that curve.
     [[nodiscard]] dsp::DynamicsTiming timing() const noexcept RB_NONBLOCKING;
@@ -129,7 +123,7 @@ private:
     dsp::BlockInfo m_info;
     std::vector<dsp::ParamDescriptor> m_descriptors;
     dsp::ParamStore m_store;
-    dsp::DynamicsProcessor m_processor;
+    dsp::ShapedDynamicsProcessor m_processor;
     rt::BlockMeter *m_meter = nullptr;
 };
 

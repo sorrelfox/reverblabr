@@ -17,6 +17,8 @@
 #include <optional>
 #include <utility>
 
+using namespace Qt::StringLiterals;
+
 namespace rb::core
 {
 
@@ -28,7 +30,10 @@ public:
     /// audio thread, and doing it a second time here is how a panel starts
     /// drawing something the sound does not do.
     blocks::Dynamics block;
-    dsp::DynamicsSettings settings = block.settings();
+    dsp::DynamicsShape shape = block.settings();
+
+    Law law = Law::Dynamics;
+    dsp::DynamicsSettings band;
 };
 
 DynamicsCurve::DynamicsCurve()
@@ -59,8 +64,34 @@ int DynamicsCurve::gainReductionIndex()
     return static_cast<int>(blocks::Dynamics::kGainReductionValue);
 }
 
+void DynamicsCurve::setLaw(Law law)
+{
+    d->law = law;
+}
+
+DynamicsCurve::Law DynamicsCurve::law() const
+{
+    return d->law;
+}
+
 bool DynamicsCurve::setParams(const QVariantMap &params)
 {
+    if (d->law == Law::Band) {
+        const auto number = [&params](const QString &id, float fallback) {
+            return static_cast<float>(params.value(id, static_cast<double>(fallback)).toDouble());
+        };
+        dsp::DynamicsSettings band;
+        band.thresholdDb = number(u"threshold"_s, band.thresholdDb);
+        band.ratio = number(u"ratio"_s, band.ratio);
+        band.kneeDb = number(u"knee"_s, band.kneeDb);
+        band.makeupDb = number(u"makeup"_s, band.makeupDb);
+        if (band == d->band) {
+            return false;
+        }
+        d->band = band;
+        return true;
+    }
+
     // Everything back to its defaults first: a panel that opened a second
     // block would otherwise be drawing the first one's settings wherever the
     // new session says nothing.
@@ -85,22 +116,69 @@ bool DynamicsCurve::setParams(const QVariantMap &params)
         static_cast<void>(applied);
     }
 
-    const dsp::DynamicsSettings settings = d->block.settings();
-    if (settings == d->settings) {
+    const dsp::DynamicsShape shape = d->block.settings();
+    if (shape == d->shape) {
         return false;
     }
-    d->settings = settings;
+    d->shape = shape;
     return true;
 }
 
 double DynamicsCurve::outputDb(double inputDb) const
 {
-    return static_cast<double>(dsp::outputDb(static_cast<float>(inputDb), d->settings));
+    const auto input = static_cast<float>(inputDb);
+    return static_cast<double>(d->law == Law::Band ? dsp::outputDb(input, d->band) : dsp::outputDb(input, d->shape));
+}
+
+double DynamicsCurve::drawnDb(double inputDb) const
+{
+    return d->law == Law::Band ? outputDb(inputDb) : inputDb + gainReductionDb(inputDb);
 }
 
 double DynamicsCurve::gainReductionDb(double inputDb) const
 {
-    return static_cast<double>(dsp::gainReductionDb(static_cast<float>(inputDb), d->settings));
+    const auto input = static_cast<float>(inputDb);
+    return static_cast<double>(d->law == Law::Band ? dsp::gainReductionDb(input, d->band)
+                                                   : dsp::gainReductionDb(input, d->shape));
+}
+
+double DynamicsCurve::cutoffDb() const
+{
+    return static_cast<double>(dsp::dynamicsCutoffDb(d->shape));
+}
+
+double DynamicsCurve::expanderStartDb() const
+{
+    return static_cast<double>(dsp::expanderStartDb(d->shape));
+}
+
+double DynamicsCurve::thresholdDb() const
+{
+    return static_cast<double>(d->shape.thresholdDb);
+}
+
+double DynamicsCurve::endDb() const
+{
+    return drawnDb(static_cast<double>(dsp::kDynamicsTopDb));
+}
+
+double DynamicsCurve::ratioForCutoff(double cutoffDb) const
+{
+    return static_cast<double>(dsp::dynamicsRatioFor(dsp::expanderStartDb(d->shape), static_cast<float>(cutoffDb)));
+}
+
+double DynamicsCurve::heightForEnd(double endDb) const
+{
+    return static_cast<double>(
+        dsp::dynamicsHeightFor(d->shape.thresholdDb, dsp::kDynamicsTopDb, static_cast<float>(endDb)));
+}
+
+QList<double> DynamicsCurve::cornersDb() const
+{
+    if (d->law == Law::Band) {
+        return {};
+    }
+    return {cutoffDb(), expanderStartDb(), thresholdDb()};
 }
 
 } // namespace rb::core

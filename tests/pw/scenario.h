@@ -63,14 +63,13 @@ using namespace rb::core;
 
 /// Settings for the Dynamics block with every part of the curve named, so
 /// that a test says which curve it is judging rather than inheriting the
-/// block's defaults — which are a hard limiter at −20 dB and would say
-/// little about anything.
-[[nodiscard]] inline QJsonObject dynamicsSettings(double thresholdDb, double ratio)
+/// block's defaults — which hold everything back firmly and would say little
+/// about anything.
+[[nodiscard]] inline QJsonObject dynamicsSettings(double thresholdDb, double heightDb)
 {
     return QJsonObject{
         {"threshold"_L1, thresholdDb},
-        {"ratio"_L1, ratio},
-        {"knee"_L1, 0.0},
+        {"height"_L1, heightDb},
         {"makeup"_L1, 0.0},
         {"attack"_L1, 1.0},
         {"release"_L1, 100.0},
