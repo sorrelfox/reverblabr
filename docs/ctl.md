@@ -28,7 +28,7 @@ The first call starts the engine if it is installed and not running. It needs Qt
 | `stop SESSION` | stops it; one not running is left as it is |
 | `split SESSION [RECORDER]` | ends the file each Recorder of a running session is writing, or the named one's, and starts the next with no gap |
 | `switch SESSION [SWITCH] A\|B` | turns an Input Switch to A or B; the switch may be left out when the session has only one |
-| `set SESSION BLOCK SETTING VALUE` | changes one setting, as one step the window can undo |
+| `set SESSION BLOCK SETTING VALUE` | changes one setting, as one step the window can undo; a negative number can be written as it is |
 | `timers list [SESSION]` | every session's timers, or one's, a line each: when it runs, for how long, when it next starts its session, and its id in brackets |
 | `timer-fire [--scheduled] TIMER` | does now what the timer does when its time comes: opens its session if it is only on disk, starts it, and has the engine stop it once the timer's duration is over. A session already running is left as it is, and the answer says so. `--scheduled` is how the timer's systemd unit runs it: then a fire more than two minutes after the timer's time, as after the computer slept through it, is refused with `timer.late` |
 

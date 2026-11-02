@@ -81,7 +81,11 @@ void write(std::FILE *stream, const QString &text)
     bool optionsEnded = false;
     for (qsizetype index = 1; index < arguments.size(); ++index) {
         const QString &argument = arguments.at(index);
-        if (optionsEnded || !argument.startsWith(u'-') || argument == "-"_L1) {
+        // **A negative number is a value**, as most settings in decibels are,
+        // and no option looks like one.
+        bool number = false;
+        (void)argument.toDouble(&number);
+        if (optionsEnded || !argument.startsWith(u'-') || argument == "-"_L1 || number) {
             positional.append(argument);
             continue;
         }
