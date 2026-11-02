@@ -218,7 +218,8 @@ ParamValueMap ParamStore::save() const
 {
     ParamValueMap state;
     for (std::size_t index = 0; index < m_descriptors.size(); ++index) {
-        if (m_descriptors[index].flags.readOnly) {
+        // A press is no setting: the state is what a session file holds.
+        if (m_descriptors[index].flags.readOnly || m_descriptors[index].flags.momentary) {
             continue;
         }
         state.emplace(m_descriptors[index].id, value(static_cast<std::uint32_t>(index)));
@@ -233,8 +234,8 @@ std::expected<void, BlockError> ParamStore::load(const ParamValueMap &state)
     resetToDefaults();
     for (std::size_t index = 0; index < m_descriptors.size(); ++index) {
         const ParamDescriptor &descriptor = m_descriptors[index];
-        if (descriptor.flags.readOnly) {
-            continue; // a block output is telemetry, never restored
+        if (descriptor.flags.readOnly || descriptor.flags.momentary) {
+            continue; // a block output is telemetry, a press was once: never restored
         }
         const ParamValueMap::const_iterator saved = state.find(descriptor.id);
         if (saved == state.end()) {

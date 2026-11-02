@@ -25,6 +25,9 @@
 #include "sessionharness.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QDirIterator>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -96,6 +99,24 @@ namespace
 } // namespace
 
 using EngineThroughTheFacade = SessionTest;
+
+namespace
+{
+
+/// Whether any file under \a sessions has \a word in it.
+[[nodiscard]] bool savedHolds(const QTemporaryDir &sessions, const QByteArray &word)
+{
+    QDirIterator files(sessions.path(), QDir::Files, QDirIterator::Subdirectories);
+    while (files.hasNext()) {
+        QFile file(files.next());
+        if (file.open(QIODevice::ReadOnly) && file.readAll().contains(word)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
 
 TEST_F(EngineThroughTheFacade, MakesASessionRunsItAndTheSoundComesOut)
 {
@@ -375,6 +396,34 @@ TEST_F(EngineThroughTheFacade, APressOfAButtonIsNoEdit)
     engine.setParam(id, u"mix"_s, u"lowerDb"_s, u"[1.5]"_s);
     EXPECT_EQ(undoState.count(), told + 1) << "the setting beside it is an edit as ever";
     engine.stop(id);
+
+    engine.saveSession(id);
+    ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+    EXPECT_TRUE(savedHolds(sessions, "lowerDb"));
+    EXPECT_FALSE(savedHolds(sessions, "matchLevels")) << "a reading reached the file";
+}
+
+TEST_F(EngineThroughTheFacade, APressOnAStoppedSessionLeavesNoTrace)
+{
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    dsp::BlockRegistry registry = testRegistry();
+    ASSERT_TRUE(registry.add(std::string{blocks::OneEarMix::kTypeId}, &blocks::OneEarMix::make).has_value());
+    Engine engine(registry, SessionStore{sessions.path()});
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    QSignalSpy undoState(&engine, &EngineFacade::undoStateChanged);
+    QSignalSpy errors(&engine, &EngineFacade::error);
+
+    engine.createSession(u"Stopped"_s);
+    const QString id = opened.back().at(0).toString();
+    engine.applyEdit(id, addBlockEdit(u"mix"_s, blocks::OneEarMix::kTypeId));
+    const int told = undoState.count();
+    engine.setParam(id, u"mix"_s, u"matchLevels"_s, u"[true]"_s);
+    EXPECT_EQ(undoState.count(), told) << "a reading took a step in undo";
+
+    engine.saveSession(id);
+    ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+    EXPECT_FALSE(savedHolds(sessions, "matchLevels")) << "a reading reached the file";
 }
 
 TEST_F(EngineThroughTheFacade, UndoIsHeardWhileTheSessionIsRunning)

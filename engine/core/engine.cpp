@@ -60,6 +60,7 @@
 #include <QTimer>
 #include <QUuid>
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <optional>
@@ -123,6 +124,8 @@ public:
     SessionStore store;
     /// Where presets live: the ones that ship and the person's own.
     PresetStore presets;
+    /// By block type, the parameters that are presses: see isMomentary().
+    QHash<QString, QSet<QString>> momentaryParams;
     pw::Connection connection;
     pw::RegistryMirror mirror{connection};
     pw::InventoryWatcher inventoryWatch{mirror};
@@ -420,6 +423,29 @@ public:
         }
         session.state = QString(state);
         Q_EMIT q->stateChanged(session.session.id.toString(QUuid::WithoutBraces), session.state);
+    }
+
+    /// Whether a parameter of a block of a session with no runtime is a press.
+    /// Asked for every value of a drag, so each type's answer is kept.
+    [[nodiscard]] bool isMomentary(const Session &session, const QString &blockId, const QString &paramId)
+    {
+        const auto block = std::ranges::find(session.blocks, blockId, &BlockInstance::id);
+        if (block == session.blocks.end()) {
+            return false;
+        }
+        auto presses = momentaryParams.find(block->type);
+        if (presses == momentaryParams.end()) {
+            QSet<QString> found;
+            if (const auto made = registry.create(block->type.toStdString()); made) {
+                for (const dsp::ParamDescriptor &descriptor : (*made)->params()) {
+                    if (descriptor.flags.momentary) {
+                        found.insert(QString::fromStdString(descriptor.id));
+                    }
+                }
+            }
+            presses = momentaryParams.insert(block->type, found);
+        }
+        return presses->contains(paramId);
     }
 
     /// Puts what the blocks now hold back into the session, so that saving
@@ -1218,7 +1244,8 @@ void Engine::setParam(const QString &sessionId,
     // The session remembers it, so that saving writes it, and so does the
     // history: a knob is undone like anything else, and a whole drag of one
     // comes back in a single step. A press of a button is none of that.
-    const bool momentary = session->runtime && session->runtime->isMomentary(blockId, paramId);
+    const bool momentary = session->runtime ? session->runtime->isMomentary(blockId, paramId)
+                                            : d->isMomentary(session->session, blockId, paramId);
     for (BlockInstance &block : session->session.blocks) {
         if (block.id == blockId && !momentary) {
             const QJsonValue previous = block.params.value(paramId);

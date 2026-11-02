@@ -81,6 +81,35 @@ std::vector<ParamDescriptor> everyType()
 
 } // namespace
 
+// **A press reaches neither the file nor the next block**: what the state
+// holds is what a session writes.
+TEST(ParamStore, APressIsNoPartOfTheState)
+{
+    ParamDescriptor level;
+    level.id = "level";
+    level.type = ParamType::Float;
+    level.minimum = ParamValue::ofFloat(0.0f);
+    level.maximum = ParamValue::ofFloat(1.0f);
+    level.defaultValue = ParamValue::ofFloat(0.5f);
+    ParamDescriptor press;
+    press.id = "press";
+    press.type = ParamType::Bool;
+    press.defaultValue = ParamValue::ofBool(false);
+    press.flags.momentary = true;
+    const std::vector<ParamDescriptor> descriptors{level, press};
+
+    ParamStore store{descriptors};
+    ASSERT_TRUE(store.set("press", ParamValue::ofBool(true)).has_value());
+    ParamValueMap state = store.save();
+    EXPECT_TRUE(state.contains("level"));
+    EXPECT_FALSE(state.contains("press"));
+
+    state.emplace("press", ParamValue::ofBool(true)); // as an older file holds it
+    ParamStore opened{descriptors};
+    ASSERT_TRUE(opened.load(state).has_value());
+    EXPECT_EQ(opened.value("press"), ParamValue::ofBool(false));
+}
+
 TEST(ParamStore, ItsOwnDescriptorsCheckOut)
 {
     const std::vector<ParamDescriptor> descriptors = everyType();
