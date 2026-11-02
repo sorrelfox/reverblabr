@@ -182,7 +182,9 @@ TEST_F(TimerRunnerTest, AScheduledFireLongAfterTheTimersTimeIsRefused)
     QJsonObject due = timer(u"due"_s, 60);
     due.insert("time"_L1, QTime(now.hour(), now.minute()).toString(u"HH:mm"_s));
     QJsonObject past = timer(u"past"_s, 60);
-    past.insert("time"_L1, QTime(now.hour(), now.minute()).addSecs(-3600).toString(u"HH:mm"_s));
+    // Three hours, so that a time the clocks jump over, which falls after the
+    // jump, still ends up long before now.
+    past.insert("time"_L1, QTime(now.hour(), now.minute()).addSecs(-3 * 3600).toString(u"HH:mm"_s));
     engine.applyEdit(session, setTimer(due));
     engine.applyEdit(session, setTimer(past));
 

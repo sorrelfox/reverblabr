@@ -9,6 +9,7 @@
 
 #include <QJsonDocument>
 #include <QStringList>
+#include <QTimeZone>
 #include <QUuid>
 
 #include <algorithm>
@@ -273,12 +274,55 @@ QString onCalendar(const Timer &timer)
     return calendarDays(days) + u" *-*-* "_s + time;
 }
 
+namespace
+{
+
+/// A clock time on a date, in local time, the first or the last time it comes
+/// round. **The hour the clocks go back holds each of its times twice**, and
+/// a plain QDateTime names only one of them; a time the clocks jump over
+/// falls after the jump, either way.
+[[nodiscard]] QDateTime localOccurrence(const QDate &date, const QTime &time, bool last)
+{
+    const QDateTime when(date,
+                         time,
+                         QTimeZone(QTimeZone::LocalTime),
+                         last ? QDateTime::TransitionResolution::PreferAfter
+                              : QDateTime::TransitionResolution::PreferBefore);
+    if (when.time() == time) {
+        return when;
+    }
+    return QDateTime(date, time, QTimeZone(QTimeZone::LocalTime), QDateTime::TransitionResolution::PreferAfter);
+}
+
+/// The first time \a time comes round on \a date after \a local, if it does.
+[[nodiscard]] std::optional<QDateTime> firstAfter(const QDate &date, const QTime &time, const QDateTime &local)
+{
+    for (const bool last : {false, true}) {
+        if (const QDateTime when = localOccurrence(date, time, last); when > local) {
+            return when;
+        }
+    }
+    return std::nullopt;
+}
+
+/// The last time \a time comes round on \a date at or before \a local, if it does.
+[[nodiscard]] std::optional<QDateTime> lastUpTo(const QDate &date, const QTime &time, const QDateTime &local)
+{
+    for (const bool last : {true, false}) {
+        if (const QDateTime when = localOccurrence(date, time, last); when <= local) {
+            return when;
+        }
+    }
+    return std::nullopt;
+}
+
+} // namespace
+
 std::optional<QDateTime> nextRun(const Timer &timer, const QDateTime &after)
 {
     const QDateTime local = after.toLocalTime();
     if (timer.repeat == TimerRepeat::Once) {
-        const QDateTime at(timer.date, timer.time);
-        return at > local ? std::optional<QDateTime>(at) : std::nullopt;
+        return firstAfter(timer.date, timer.time, local);
     }
     const std::uint8_t days = daysOf(timer);
     if (days == 0) {
@@ -291,8 +335,7 @@ std::optional<QDateTime> nextRun(const Timer &timer, const QDateTime &after)
         if ((days & (1U << (date.dayOfWeek() - 1))) == 0) {
             continue;
         }
-        const QDateTime at(date, timer.time);
-        if (at > local) {
+        if (const std::optional<QDateTime> at = firstAfter(date, timer.time, local)) {
             return at;
         }
     }
@@ -303,8 +346,7 @@ std::optional<QDateTime> previousRun(const Timer &timer, const QDateTime &at)
 {
     const QDateTime local = at.toLocalTime();
     if (timer.repeat == TimerRepeat::Once) {
-        const QDateTime when(timer.date, timer.time);
-        return when <= local ? std::optional<QDateTime>(when) : std::nullopt;
+        return lastUpTo(timer.date, timer.time, local);
     }
     const std::uint8_t days = daysOf(timer);
     if (days == 0) {
@@ -316,8 +358,7 @@ std::optional<QDateTime> previousRun(const Timer &timer, const QDateTime &at)
         if ((days & (1U << (date.dayOfWeek() - 1))) == 0) {
             continue;
         }
-        const QDateTime when(date, timer.time);
-        if (when <= local) {
+        if (const std::optional<QDateTime> when = lastUpTo(date, timer.time, local)) {
             return when;
         }
     }

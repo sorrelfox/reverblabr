@@ -13,8 +13,13 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QTimeZone>
 #include <gtest/gtest.h>
 
+#include <cstdlib>
+#include <ctime>
+#include <optional>
+#include <string>
 #include <vector>
 
 using namespace rb::core;
@@ -31,6 +36,45 @@ Timer at(TimerRepeat repeat, QTime time, std::uint8_t days = 0)
     timer.time = time;
     timer.days = days;
     return timer;
+}
+
+/// Local time for one test, whatever the machine's. A rule written out, not a
+/// zone's name, so that it needs no zone files: a bare container has none.
+class LocalZone
+{
+public:
+    explicit LocalZone(const char *rule)
+    {
+        if (const char *was = std::getenv("TZ"); was != nullptr) {
+            m_was = was;
+        }
+        setenv("TZ", rule, 1);
+        tzset();
+    }
+
+    ~LocalZone()
+    {
+        if (m_was) {
+            setenv("TZ", m_was->c_str(), 1);
+        } else {
+            unsetenv("TZ");
+        }
+        tzset();
+    }
+
+    LocalZone(const LocalZone &) = delete;
+    LocalZone &operator=(const LocalZone &) = delete;
+
+private:
+    std::optional<std::string> m_was;
+};
+
+constexpr const char *kEasternRule = "EST5EDT,M3.2.0,M11.1.0";
+
+/// A time in November 2026, given in UTC, seen in local time.
+QDateTime utc(int day, int hour, int minute)
+{
+    return QDateTime(QDate(2026, 11, day), QTime(hour, minute), QTimeZone::UTC).toLocalTime();
 }
 
 /// A mask from day numbers, Monday 1 to Sunday 7, as QDate counts them.
@@ -274,6 +318,47 @@ TEST(Timers, ThePreviousRunIsTheLastTimeAtOrBeforeNowThatTheRuleAllows)
     EXPECT_FALSE(previousRun(once, now).has_value()) << "still to come";
     once.time = QTime(11, 30);
     EXPECT_EQ(previousRun(once, now), QDateTime(QDate(2026, 11, 4), QTime(11, 30)));
+}
+
+// **The hour the clocks go back comes twice**, and 01:30 is on time in both.
+// Read against the first alone, a fire at the second looks an hour late and
+// is refused.
+TEST(Timers, BothPassesOfTheRepeatedHourAreOnTime)
+{
+    const LocalZone zone(kEasternRule);
+    const Timer timer = at(TimerRepeat::Daily, QTime(1, 30));
+    const QDateTime first = utc(1, 5, 30); // 01:30 EDT
+    const QDateTime second = utc(1, 6, 30); // 01:30 EST
+    ASSERT_EQ(first.time(), QTime(1, 30));
+    ASSERT_EQ(second.time(), QTime(1, 30));
+    ASSERT_EQ(first.secsTo(second), 3600);
+
+    EXPECT_EQ(previousRun(timer, first), first);
+    EXPECT_EQ(previousRun(timer, second), second);
+    EXPECT_EQ(previousRun(timer, utc(1, 5, 45)), first) << "the second has not come yet";
+    EXPECT_EQ(previousRun(timer, utc(1, 7, 0)), second);
+
+    EXPECT_EQ(nextRun(timer, utc(1, 5, 0)), first);
+    EXPECT_EQ(nextRun(timer, first), second) << "the same clock time, an hour on";
+    EXPECT_EQ(nextRun(timer, utc(1, 6, 0)), second);
+
+    Timer once = at(TimerRepeat::Once, QTime(1, 30));
+    once.date = QDate(2026, 11, 1);
+    EXPECT_EQ(previousRun(once, second), second);
+    EXPECT_EQ(nextRun(once, first), second);
+}
+
+// A time the clocks jump over is not lost: it falls just after the jump.
+TEST(Timers, ATimeTheClocksJumpOverFallsAfterTheJump)
+{
+    const LocalZone zone(kEasternRule);
+    const Timer timer = at(TimerRepeat::Daily, QTime(2, 30));
+    const QDateTime beforeJump(QDate(2026, 3, 8), QTime(6, 0), QTimeZone::UTC); // 01:00 EST
+    const QDateTime afterJump(QDate(2026, 3, 8), QTime(8, 0), QTimeZone::UTC); // 04:00 EDT
+    const QDateTime fell(QDate(2026, 3, 8), QTime(7, 30), QTimeZone::UTC); // 03:30 EDT
+
+    EXPECT_EQ(nextRun(timer, beforeJump), fell);
+    EXPECT_EQ(previousRun(timer, afterJump), fell);
 }
 
 TEST(Timers, AnIdAnotherSessionHasIsTaken)
