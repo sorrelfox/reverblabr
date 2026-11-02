@@ -186,7 +186,13 @@ bool MeterHub::tick()
         BlockLevels &into = d->blocks[index];
         const QString id = QString::fromUtf8(from.id);
         if (into.id != id) {
-            d->byId.remove(into.id);
+            // **Only if the name still points here.** When a block leaves,
+            // the ones after it move up a place, so a lower place has already
+            // claimed the name this one was holding.
+            const auto named = d->byId.constFind(into.id);
+            if (named != d->byId.constEnd() && *named == index) {
+                d->byId.erase(named);
+            }
             into = BlockLevels{};
             into.id = id;
             d->heldAt[index] = {};

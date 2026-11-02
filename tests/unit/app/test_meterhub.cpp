@@ -294,6 +294,71 @@ TEST(MeterHubTest, ABlockThatIsReplacedDoesNotInheritTheMeterOfTheOneBefore)
     EXPECT_FLOAT_EQ(hub.block(u"b9"_s)->holdDb[0], dsp::kSilenceDb) << "it started at the level of the block before it";
 }
 
+// **Every block after the one that left moves up a place**, and the first of
+// them used to lose its name to the place it had just left: its meter stayed
+// empty and its state dot said nothing was passing, however loud the sound,
+// until the session stopped.
+TEST(MeterHubTest, TheBlockAfterOneThatLeavesKeepsItsLevels)
+{
+    Publisher published;
+    published.block(0, "source").peak[0] = 0.5f;
+    published.block(1, "leaving").peak[0] = 0.5f;
+    published.block(2, "meter").peak[0] = 0.5f;
+    published.block(3, "plugin").peak[0] = 0.5f;
+    published.publish();
+
+    MeterHub hub;
+    Hand hand;
+    hub.setClock(hand.clock());
+    hub.watch(&published.slot());
+    ASSERT_TRUE(hub.tick());
+
+    published.clearBlocks();
+    published.block(0, "source").peak[0] = 0.5f;
+    published.block(1, "meter").peak[0] = 0.25f;
+    published.block(2, "plugin").peak[0] = 0.125f;
+    published.publish();
+    hand.wind(16);
+    ASSERT_TRUE(hub.tick());
+
+    EXPECT_EQ(hub.block(u"leaving"_s), nullptr);
+    ASSERT_NE(hub.block(u"meter"_s), nullptr) << "the block after the one that left has no levels";
+    EXPECT_NEAR(hub.block(u"meter"_s)->peakDb[0], dsp::gainToDb(0.25f), 0.01f);
+    ASSERT_NE(hub.block(u"plugin"_s), nullptr);
+    EXPECT_NEAR(hub.block(u"plugin"_s)->peakDb[0], dsp::gainToDb(0.125f), 0.01f);
+}
+
+// The same from the other side: two blocks trading places in one snapshot,
+// and one added in the place of one that left.
+TEST(MeterHubTest, BlocksThatChangePlacesAreStillFoundByName)
+{
+    Publisher published;
+    published.block(0, "one").peak[0] = 0.5f;
+    published.block(1, "two").peak[0] = 0.25f;
+    published.block(2, "three").peak[0] = 0.125f;
+    published.publish();
+
+    MeterHub hub;
+    Hand hand;
+    hub.setClock(hand.clock());
+    hub.watch(&published.slot());
+    ASSERT_TRUE(hub.tick());
+
+    published.clearBlocks();
+    published.block(0, "three").peak[0] = 0.125f;
+    published.block(1, "new").peak[0] = 0.5f;
+    published.block(2, "one").peak[0] = 0.5f;
+    published.publish();
+    hand.wind(16);
+    ASSERT_TRUE(hub.tick());
+
+    EXPECT_EQ(hub.block(u"two"_s), nullptr);
+    for (const QString &id : {u"one"_s, u"three"_s, u"new"_s}) {
+        ASSERT_NE(hub.block(id), nullptr) << id.toStdString();
+        EXPECT_EQ(hub.block(id)->id, id);
+    }
+}
+
 TEST(MeterHubTest, TheStatusBarFiguresComeThrough)
 {
     Publisher published;

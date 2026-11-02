@@ -15,9 +15,11 @@
 // through the session's segments and hosts in the same cycle, a cycle late,
 // or not at all, and at what gain.
 
+#include "blocks/applicationsource.h"
 #include "blocks/builtinblocks.h"
 #include "blocks/inputdevice.h"
 #include "blocks/outputdevice.h"
+#include "blocks/peakrmsmeter.h"
 #include "blocks/pluginblock.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
@@ -25,6 +27,7 @@
 #include "core/presetstore.h"
 #include "core/sessionruntime.h"
 #include "core/sessionstore.h"
+#include "core/telemetry.h"
 #include "dsp/blockregistry.h"
 #include "plugin/formats.h"
 #include "pw/pluginhostprocess.h"
@@ -37,6 +40,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <gtest/gtest.h>
 #include <pipewire/filter.h>
@@ -47,6 +51,7 @@
 #include <csignal>
 #include <cstdio>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -490,6 +495,147 @@ protected:
 };
 
 } // namespace
+
+namespace
+{
+
+/// A session on an engine, edited as the interface edits it, one command at
+/// a time, and read as the interface reads it, from the telemetry slot.
+class EditedSession
+{
+public:
+    explicit EditedSession(const dsp::BlockRegistry &registry)
+        : m_engine(registry, SessionStore{m_files.path()})
+    {
+        m_engine.connectToPipeWire();
+    }
+
+    [[nodiscard]] bool open()
+    {
+        QSignalSpy opened(&m_engine, &EngineFacade::sessionOpened);
+        if (!m_pump.pumpUntil([this] { return m_engine.isConnected(); })) {
+            return false;
+        }
+        m_engine.createSession(u"Edited"_s);
+        m_id = opened.back().at(0).toString();
+        return true;
+    }
+
+    void add(const QString &id, std::string_view type, const QJsonObject &params = {})
+    {
+        BlockInstance block;
+        block.id = id;
+        block.type = typeOf(type);
+        block.params = params;
+        AddBlock command;
+        command.block = block;
+        edit(editCommandToJson(command));
+    }
+
+    void wire(const QString &from, const QString &to)
+    {
+        for (std::uint32_t channel = 0; channel < 2; ++channel) {
+            Wire made;
+            made.fromBlock = from;
+            made.fromPort = channel;
+            made.toBlock = to;
+            made.toPort = channel;
+            edit(editCommandToJson(Connect{made, -1}));
+        }
+    }
+
+    void start()
+    {
+        m_engine.start(m_id);
+    }
+
+    void stop()
+    {
+        m_engine.stop(m_id);
+    }
+
+    /// Whether \a id shows sound in what the interface reads.
+    [[nodiscard]] bool showsSound(const QString &id) const
+    {
+        const core::TelemetrySlot *slot = m_engine.telemetryOf(m_id);
+        if (slot == nullptr) {
+            return false;
+        }
+        const core::TelemetrySnapshot snapshot = slot->load();
+        for (std::uint32_t index = 0; index < snapshot.blockCount; ++index) {
+            if (id == QString::fromUtf8(static_cast<const char *>(snapshot.blocks[index].id))) {
+                return snapshot.blocks[index].active;
+            }
+        }
+        return false;
+    }
+
+    [[nodiscard]] bool awaitSound(const QString &id)
+    {
+        return m_pump.pumpUntil([&] { return showsSound(id); });
+    }
+
+    [[nodiscard]] std::size_t nodeCount() const
+    {
+        const SessionRuntime *runtime = m_engine.runtimeOf(m_id);
+        return runtime == nullptr ? 0 : runtime->nodes().size();
+    }
+
+private:
+    void edit(const QJsonObject &command)
+    {
+        m_engine.applyEdit(m_id, QString::fromUtf8(QJsonDocument(command).toJson(QJsonDocument::Compact)));
+    }
+
+    QTemporaryDir m_files;
+    Engine m_engine;
+    Waiter m_pump;
+    QString m_id;
+};
+
+/// An application's sound into a meter, and on into \a next when there is
+/// one, running; then a second meter added and wired from the first.
+void addAMeterBeside(EditedSession &session, const std::function<void()> &addNext)
+{
+    ASSERT_TRUE(session.open());
+    session.add(u"app"_s,
+                blocks::ApplicationSource::kTypeId,
+                QJsonObject{{"binary"_L1, u"liveadd"_s}, {"outputMode"_L1, u"any"_s}});
+    session.add(u"first"_s, blocks::PeakRmsMeter::kTypeId);
+    session.wire(u"app"_s, u"first"_s);
+    addNext();
+    session.start();
+    ASSERT_TRUE(session.awaitSound(u"first"_s)) << "the first meter never heard the application";
+
+    session.add(u"second"_s, blocks::PeakRmsMeter::kTypeId);
+    session.wire(u"first"_s, u"second"_s);
+    EXPECT_TRUE(session.awaitSound(u"second"_s)) << "the meter added while it ran stayed empty";
+    EXPECT_TRUE(session.showsSound(u"first"_s));
+}
+
+} // namespace
+
+// **The whole path of a meter dropped into a session that is playing**: the
+// edit, the graph, the block's own meter and what the interface reads.
+TEST_F(PluginSessions, AMeterAddedBesideAPluginWhileItRunsHearsWhatItIsWiredTo)
+{
+    FakeApp app(appOptions("LiveAdd", "liveadd"));
+    EditedSession session(m_registry);
+    addAMeterBeside(session, [&session] {
+        session.add(u"p"_s, blocks::PluginBlock::kTypeId, QJsonObject{{"gain"_L1, 1.0}});
+        session.wire(u"first"_s, u"p"_s);
+    });
+    session.stop();
+}
+
+TEST_F(PluginSessions, AMeterAddedToASessionWithNoPluginWhileItRunsHearsWhatItIsWiredTo)
+{
+    FakeApp app(appOptions("LiveAdd", "liveadd"));
+    EditedSession session(m_registry);
+    addAMeterBeside(session, [] { });
+    EXPECT_EQ(session.nodeCount(), 1U);
+    session.stop();
+}
 
 TEST_F(PluginSessions, APluginBetweenTwoDevicesIsHeardInTheSameCycleAtEveryQuantum)
 {
