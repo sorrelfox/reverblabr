@@ -243,9 +243,10 @@ void VoiceGauge::process(ProcessContext &context) noexcept RB_NONBLOCKING
     const std::span<float> outLeft = context.output.channel(kLeft);
     const std::span<float> outRight = stereoOut ? context.output.channel(kRight) : outLeft;
     for (std::uint32_t frame = 0; frame < context.frames; ++frame) {
-        // Both read before either is written: the buffers can be shared.
-        const float left = inLeft[frame];
-        const float right = inRight[frame];
+        // Both read before either is written: the buffers can be shared. A port
+        // with no wire has no samples at all, and reads as silence.
+        const float left = frame < inLeft.size() ? inLeft[frame] : 0.0f;
+        const float right = frame < inRight.size() ? inRight[frame] : 0.0f;
         outLeft[frame] = left;
         outRight[frame] = right;
         // The louder side and not the fold: two sides in antiphase fold to

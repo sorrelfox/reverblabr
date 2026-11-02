@@ -138,6 +138,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_firfilter.cpp
         blocks/test_frequencylowering.cpp
         blocks/test_gainreach.cpp
+        blocks/test_unconnectedinput.cpp
         blocks/test_frequencyraising.cpp
         blocks/test_highpassfilter.cpp
         blocks/test_inputdevice.cpp
