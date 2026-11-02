@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 
 namespace rb::ui
 {
@@ -55,15 +56,33 @@ QList<QPointF> DynamicsPlot::curve() const
 
 QList<QPointF> DynamicsPlot::filled() const
 {
-    if (m_points.isEmpty()) {
+    // **Only what stands above the bottom of the plot encloses anything.**
+    // The expander's floor is the bottom of the panel's plot, so the line can
+    // lie along that edge for its whole low end, and on a plot with a shorter
+    // range it runs under it. An outline closed along that edge would go back
+    // over itself or cross itself, and the curve renderer loses the whole
+    // fill for a shape like that, at ratios scattered all over the range.
+    const auto above =
+        std::ranges::find_if(m_points, [this](const QPointF &point) { return point.y() < m_plotHeight; });
+    if (above == m_points.cend()) {
         return {};
     }
-    // The same line, brought down to the bottom of the plot at both ends, so
-    // that the tint under the curve is the area the curve encloses rather
-    // than a second shape that could disagree with it.
-    QList<QPointF> closed = m_points;
+
+    // The same line from there, brought down to the bottom of the plot at both
+    // ends, so that the tint under the curve is the area the curve encloses
+    // rather than a second shape that could disagree with it.
+    QList<QPointF> closed;
+    closed.reserve(std::distance(above, m_points.cend()) + 2);
+    if (above == m_points.cbegin()) {
+        closed.append(QPointF(above->x(), m_plotHeight));
+    } else {
+        // Where the segment that comes up through the bottom crosses it.
+        const QPointF below = *std::prev(above);
+        const qreal along = (below.y() - m_plotHeight) / (below.y() - above->y());
+        closed.append(QPointF(below.x() + along * (above->x() - below.x()), m_plotHeight));
+    }
+    std::copy(above, m_points.cend(), std::back_inserter(closed));
     closed.append(QPointF(m_points.constLast().x(), m_plotHeight));
-    closed.append(QPointF(m_points.constFirst().x(), m_plotHeight));
     return closed;
 }
 
@@ -245,6 +264,10 @@ void DynamicsPlot::rebuild()
             inputs.append(std::min(m_lowestDb + static_cast<qreal>(step) * kSampleStepDb, m_highestDb));
         }
         std::ranges::sort(inputs);
+        // A corner can land on a sample, and one point twice is a line of no
+        // length for the renderer to work around.
+        const auto repeated = std::ranges::unique(inputs);
+        inputs.erase(repeated.begin(), repeated.end());
 
         m_points.reserve(inputs.size());
         for (const qreal inputDb : inputs) {

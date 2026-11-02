@@ -108,6 +108,92 @@ void applyTo(blocks::Dynamics &block, const std::vector<Setting> &settings)
     return Signal(signal.begin() + static_cast<Signal::difference_type>(24000), signal.end());
 }
 
+/// Which way \a c lies from the line through \a a and \a b, and how far.
+[[nodiscard]] double turnOf(QPointF a, QPointF b, QPointF c)
+{
+    return (b.x() - a.x()) * (c.y() - a.y()) - (c.x() - a.x()) * (b.y() - a.y());
+}
+
+/// Whether \a point, on the line through \a a and \a b, is between them.
+[[nodiscard]] bool isBetween(QPointF point, QPointF a, QPointF b)
+{
+    return point.x() >= std::min(a.x(), b.x()) && point.x() <= std::max(a.x(), b.x())
+        && point.y() >= std::min(a.y(), b.y()) && point.y() <= std::max(a.y(), b.y());
+}
+
+/// Whether two straight edges meet anywhere, ends included.
+[[nodiscard]] bool edgesMeet(QPointF a, QPointF b, QPointF c, QPointF d)
+{
+    const double first = turnOf(a, b, c);
+    const double second = turnOf(a, b, d);
+    const double third = turnOf(c, d, a);
+    const double fourth = turnOf(c, d, b);
+    if (((first > 0.0) != (second > 0.0)) && ((third > 0.0) != (fourth > 0.0))) {
+        return true;
+    }
+    return (first == 0.0 && isBetween(c, a, b)) || (second == 0.0 && isBetween(d, a, b))
+        || (third == 0.0 && isBetween(a, c, d)) || (fourth == 0.0 && isBetween(b, c, d));
+}
+
+/// **A shape the renderer can fill:** no point twice, no edge going back along
+/// the one before it, and no edge meeting any but its two neighbours.
+[[nodiscard]] bool isSimple(const QList<QPointF> &outline)
+{
+    const qsizetype count = outline.size();
+    const auto at = [&outline, count](qsizetype index) { return outline[index % count]; };
+    for (qsizetype edge = 0; edge < count; ++edge) {
+        const QPointF a = at(edge);
+        const QPointF b = at(edge + 1);
+        const QPointF c = at(edge + 2);
+        if (a == b) {
+            return false;
+        }
+        const QPointF out = b - a;
+        const QPointF back = c - b;
+        if (turnOf(a, b, c) == 0.0 && out.x() * back.x() + out.y() * back.y() < 0.0) {
+            return false;
+        }
+        for (qsizetype other = edge + 2; other < count; ++other) {
+            const bool neighbours = edge == 0 && other == count - 1;
+            if (!neighbours && edgesMeet(a, b, at(other), at(other + 1))) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+/// The area \a outline encloses.
+[[nodiscard]] double areaOf(const QList<QPointF> &outline)
+{
+    double twice = 0.0;
+    for (qsizetype index = 0; index < outline.size(); ++index) {
+        const QPointF from = outline[index];
+        const QPointF to = outline[(index + 1) % outline.size()];
+        twice += from.x() * to.y() - to.x() * from.y();
+    }
+    return std::abs(twice) / 2.0;
+}
+
+/// The area between \a line and the bottom of a plot \a height tall, not
+/// counting what is under that bottom.
+[[nodiscard]] double areaUnder(const QList<QPointF> &line, double height)
+{
+    double area = 0.0;
+    for (qsizetype index = 0; index + 1 < line.size(); ++index) {
+        const double left = height - line[index].y();
+        const double right = height - line[index + 1].y();
+        const double width = line[index + 1].x() - line[index].x();
+        if (left > 0.0 && right > 0.0) {
+            area += width * (left + right) / 2.0;
+        } else if (left > 0.0 || right > 0.0) {
+            const double tall = std::max(left, right);
+            area += width * tall / (tall - std::min(left, right)) * tall / 2.0;
+        }
+    }
+    return area;
+}
+
 } // namespace
 
 TEST(DynamicsPanelTest, TheDrawnLineIsTheBlocksOwnCurve)
@@ -306,4 +392,66 @@ TEST(DynamicsPanelTest, DecibelsAndThePlotAreEachOthersOpposite)
     // every transfer curve is drawn.
     EXPECT_LT(plot->xOfDb(-120.0), plot->xOfDb(0.0));
     EXPECT_GT(plot->yOfDb(-120.0), plot->yOfDb(0.0));
+}
+
+TEST(DynamicsPanelTest, TheTintIsOneCleanShapeAtEveryRatio)
+{
+    // **The renderer fills all of a shape or none of it.** An outline that
+    // went back along itself lost the whole tint at about a third of the
+    // ratios, scattered, so the slider is walked from end to end. On the
+    // panel's range the floor is the bottom of the plot and the line lies
+    // along it; on the tile's the line runs under the bottom. A start of
+    // -119.5 puts a corner on a sample, which would be one point twice.
+    struct Range {
+        qreal lowest;
+        qreal highest;
+    };
+    constexpr qreal kWidth = 206.0;
+    constexpr qreal kHeight = 240.0;
+    constexpr int kSteps = 60;
+    for (const Range range : {Range{-120.0, 40.0}, Range{-60.0, 0.0}}) {
+        for (const double start : {-119.5, -100.4, -60.0, -30.0}) {
+            for (int step = 0; step <= kSteps; ++step) {
+                const double ratio = std::pow(double{dsp::kDynamicsHighestRatio}, double(step) / kSteps);
+                DynamicsPlot plot;
+                plot.setLowestDb(range.lowest);
+                plot.setHighestDb(range.highest);
+                plot.setPlotWidth(kWidth);
+                plot.setPlotHeight(kHeight);
+                plot.setParams(
+                    QVariantMap{{u"threshold"_s, -20.0}, {u"expanderThreshold"_s, start}, {u"expanderRatio"_s, ratio}});
+                const QList<QPointF> outline = plot.filled();
+                ASSERT_GE(outline.size(), 3) << "start " << start << " ratio " << ratio;
+                ASSERT_TRUE(isSimple(outline)) << "from " << range.lowest << " start " << start << " ratio " << ratio;
+                EXPECT_NEAR(areaOf(outline), areaUnder(plot.curve(), kHeight), 1e-6)
+                    << "from " << range.lowest << " start " << start << " ratio " << ratio;
+            }
+        }
+    }
+}
+
+TEST(DynamicsPanelTest, TheTintStandsOnTheBottomWhereverTheLineBegins)
+{
+    // With makeup a band's line starts above the bottom, and the tint comes
+    // down to it at both ends.
+    DynamicsPlot raised;
+    raised.setBand(true);
+    raised.setPlotWidth(272.0);
+    raised.setPlotHeight(272.0);
+    raised.setParams(QVariantMap{{u"threshold"_s, -20.0}, {u"ratio"_s, 4.0}, {u"knee"_s, 0.0}, {u"makeup"_s, 12.0}});
+    const QList<QPointF> outline = raised.filled();
+    ASSERT_GE(outline.size(), 3);
+    EXPECT_TRUE(isSimple(outline));
+    EXPECT_NEAR(areaOf(outline), areaUnder(raised.curve(), 272.0), 1e-6);
+    EXPECT_EQ(outline.constFirst(), QPointF(0.0, 272.0));
+    EXPECT_EQ(outline.constLast(), QPointF(272.0, 272.0));
+
+    // A line wholly under the plot encloses nothing.
+    DynamicsPlot under;
+    under.setLowestDb(30.0);
+    under.setHighestDb(40.0);
+    under.setPlotWidth(272.0);
+    under.setPlotHeight(272.0);
+    under.setParams(QVariantMap{{u"threshold"_s, -20.0}});
+    EXPECT_TRUE(under.filled().isEmpty());
 }

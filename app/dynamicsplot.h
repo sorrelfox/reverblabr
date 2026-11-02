@@ -58,7 +58,8 @@ class DynamicsPlot : public QObject
 
     /// The curve itself, as points on the plot.
     Q_PROPERTY(QList<QPointF> curve READ curve NOTIFY curveChanged FINAL)
-    /// The same line, closed along the bottom, for the tint under it.
+    /// The part of the line above the bottom of the plot, closed along that
+    /// bottom, for the tint under it. Always a simple shape, or nothing.
     Q_PROPERTY(QList<QPointF> filled READ filled NOTIFY curveChanged FINAL)
 
     /// How many times the polyline has been worked out since this plot was
