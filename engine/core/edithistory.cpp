@@ -131,9 +131,16 @@ bool EditHistory::continues(const EditStep &step, const EditCommand &command) co
     // or a lane with a hole in the middle. **The step is asked what started
     // it**, not what it last did, because closing a gap can take more than
     // one wire.
-    // A wire the session took off by itself, to put a new block in its place.
-    if (std::holds_alternative<Disconnect>(command)) {
-        return std::holds_alternative<AddBlock>(step.redo.front());
+    // A wire the session took off by itself, because a block this step added
+    // has just been wired to the same input in its place. Nothing else that
+    // comes soon after an add is part of it.
+    if (const auto *now = std::get_if<Disconnect>(&command)) {
+        const auto *added = std::get_if<AddBlock>(&step.redo.front());
+        return added != nullptr && std::ranges::any_of(step.redo, [&](const EditCommand &done) {
+                   const auto *wire = std::get_if<Connect>(&done);
+                   return wire != nullptr && wire->wire.fromBlock == added->block.id
+                       && wire->wire.toBlock == now->wire.toBlock;
+               });
     }
     if (const auto *now = std::get_if<Connect>(&command)) {
         const EditCommand &started = step.redo.front();

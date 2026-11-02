@@ -379,6 +379,44 @@ TEST(EditHistoryTest, ABlockAndTheWiresAutomaticModeDrewWithItAreOneStep)
     EXPECT_EQ(session.wires.size(), before.wires.size() + 2);
 }
 
+TEST(EditHistoryTest, AWireTheNewBlockReplacedIsOneStepWithIt)
+{
+    Session session = rb::test::fullSession();
+    ASSERT_FALSE(session.wires.isEmpty());
+    const Wire replaced = session.wires.back();
+    const Session before = session;
+    EditHistory history;
+    Hand hand;
+    history.setClock(hand.clock());
+
+    ASSERT_TRUE(doIt(session, history, AddBlock{block(u"b4"_s, QPointF{600.0, 120.0})}));
+    hand.wind(1);
+    ASSERT_TRUE(doIt(session, history, Connect{Wire{replaced.fromBlock, 5, u"b4"_s, 0}}));
+    hand.wind(1);
+    ASSERT_TRUE(doIt(session, history, Connect{Wire{u"b4"_s, 0, replaced.toBlock, 5}}));
+    hand.wind(1);
+    ASSERT_TRUE(doIt(session, history, Disconnect{replaced}));
+    EXPECT_EQ(history.undoSize(), 1U);
+
+    ASSERT_TRUE(undoOne(session, history));
+    EXPECT_TRUE(sameModel(session, before));
+}
+
+TEST(EditHistoryTest, AnotherWireTakenOffSoonAfterAnAddIsAStepOfItsOwn)
+{
+    Session session = rb::test::fullSession();
+    ASSERT_FALSE(session.wires.isEmpty());
+    const Wire other = session.wires.back();
+    EditHistory history;
+    Hand hand;
+    history.setClock(hand.clock());
+
+    ASSERT_TRUE(doIt(session, history, AddBlock{block(u"b4"_s, QPointF{600.0, 120.0})}));
+    hand.wind(1);
+    ASSERT_TRUE(doIt(session, history, Disconnect{other}));
+    EXPECT_EQ(history.undoSize(), 2U);
+}
+
 TEST(EditHistoryTest, ARemovedBlockAndTheWireDrawnAroundItAreOneStep)
 {
     // Taking a block out of the middle of a lane wires its neighbours
