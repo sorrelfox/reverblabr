@@ -1162,12 +1162,147 @@ TestCase {
         const canvas = createTemporaryObject(canvasComponent, null);
         const before = canvas.toSession(300, 200);
 
-        canvas.setZoom(1.75, 300, 200);
+        canvas.setZoom(1.7, 300, 200);
 
         const after = canvas.toSession(300, 200);
         verify(Math.abs(after.x - before.x) < 0.001, "the same place in the session is still there");
         verify(Math.abs(after.y - before.y) < 0.001, "and at the same height");
-        compare(canvas.zoom, 1.75);
+        compare(canvas.zoom, 1.7);
+    }
+
+    // **The zoom moves in tens**, however it is moved, so 100 % can always be
+    // reached again. The levels are compared exactly: 1.1 and not nearly.
+
+    /// A canvas that a wheel and a press can reach.
+    function shownZoomCanvas(): var {
+        const canvas = createTemporaryObject(shownCanvas, testCase).canvas;
+        waitForRendering(canvas);
+        return canvas;
+    }
+
+    function test_aStepIsTenPerCent() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        canvas.zoomIn();
+        compare(canvas.zoom, 1.1);
+        canvas.zoomIn();
+        compare(canvas.zoom, 1.2);
+        canvas.zoomOut();
+        canvas.zoomOut();
+        canvas.zoomOut();
+        compare(canvas.zoom, 0.9);
+    }
+
+    function test_everyLevelIsAWholeTenAllTheWay() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        const levels = [];
+        for (let i = 0; i < 20; ++i) {
+            canvas.zoomOut();
+        }
+        compare(canvas.zoom, 0.5);
+        for (let i = 0; i < 20; ++i) {
+            levels.push(canvas.zoom);
+            canvas.zoomIn();
+        }
+        compare(canvas.zoom, 2);
+        for (const level of levels) {
+            compare(level, Math.round(level * 10) / 10, `${level} is not a whole ten`);
+        }
+        compare(new Set(levels).size, 16, "from 50 % to 200 % is sixteen levels");
+    }
+
+    function test_steppingOutAndBackComesBackExactly() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        for (let i = 0; i < 7; ++i) {
+            canvas.zoomIn();
+        }
+        for (let i = 0; i < 7; ++i) {
+            canvas.zoomOut();
+        }
+        compare(canvas.zoom, 1);
+    }
+
+    function test_aZoomAskedForLandsOnAStep_data() {
+        return [{ tag: "just over", wanted: 1.02, level: 1 },
+                { tag: "just under", wanted: 0.98, level: 1 },
+                { tag: "between", wanted: 1.26, level: 1.3 },
+                { tag: "past the top", wanted: 9, level: 2 },
+                { tag: "past the bottom", wanted: 0.1, level: 0.5 }];
+    }
+
+    function test_aZoomAskedForLandsOnAStep(data) {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        canvas.setZoom(data.wanted, 100, 100);
+        compare(canvas.zoom, data.level);
+    }
+
+    function test_aNotchOfTheWheelIsOneStep() {
+        const canvas = testCase.shownZoomCanvas();
+        mouseWheel(canvas, canvas.width - 40, 40, 0, 120, Qt.NoButton, Qt.ControlModifier);
+        compare(canvas.zoom, 1.1);
+        mouseWheel(canvas, canvas.width - 40, 40, 0, -120, Qt.NoButton, Qt.ControlModifier);
+        compare(canvas.zoom, 1);
+    }
+
+    function test_aFineWheelAddsUpToOneStep() {
+        // What gave 102 % and 98 %: a wheel or a touchpad that reports a
+        // notch in pieces, each of which used to zoom by a little.
+        const canvas = testCase.shownZoomCanvas();
+        const x = canvas.width - 40;
+        mouseWheel(canvas, x, 40, 0, 40, Qt.NoButton, Qt.ControlModifier);
+        compare(canvas.zoom, 1, "a third of a notch is not a step");
+        mouseWheel(canvas, x, 40, 0, 40, Qt.NoButton, Qt.ControlModifier);
+        compare(canvas.zoom, 1, "nor are two thirds");
+        mouseWheel(canvas, x, 40, 0, 40, Qt.NoButton, Qt.ControlModifier);
+        compare(canvas.zoom, 1.1, "the third piece makes the notch");
+    }
+
+    function test_turningTheWheelBackStartsAfresh() {
+        const canvas = testCase.shownZoomCanvas();
+        const x = canvas.width - 40;
+        mouseWheel(canvas, x, 40, 0, 100, Qt.NoButton, Qt.ControlModifier);
+        mouseWheel(canvas, x, 40, 0, -40, Qt.NoButton, Qt.ControlModifier);
+        mouseWheel(canvas, x, 40, 0, 40, Qt.NoButton, Qt.ControlModifier);
+        compare(canvas.zoom, 1, "what was turned one way does not count towards the other");
+    }
+
+    function test_aFastWheelTakesAsManyStepsAsItTurned() {
+        const canvas = testCase.shownZoomCanvas();
+        mouseWheel(canvas, canvas.width - 40, 40, 0, 360, Qt.NoButton, Qt.ControlModifier);
+        compare(canvas.zoom, 1.3);
+    }
+
+    function test_theWheelZoomsAtThePointer() {
+        const canvas = testCase.shownZoomCanvas();
+        const x = canvas.width - 40;
+        const before = canvas.toSession(x, 40);
+        mouseWheel(canvas, x, 40, 0, 120, Qt.NoButton, Qt.ControlModifier);
+        const after = canvas.toSession(x, 40);
+        verify(Math.abs(after.x - before.x) < 0.001, "what was under the pointer moved sideways");
+        verify(Math.abs(after.y - before.y) < 0.001, "what was under the pointer moved up or down");
+    }
+
+    function test_thePercentageGoesBackToAHundred() {
+        const canvas = testCase.shownZoomCanvas();
+        const button = canvas.zoomResetButton;
+        verify(button, "the percentage is a control");
+        canvas.zoomIn();
+        canvas.zoomIn();
+        tryCompare(button, "text", "120 %");
+        const middle = canvas.toSession(canvas.width / 2, canvas.height / 2);
+        mouseClick(button);
+        compare(canvas.zoom, 1);
+        tryCompare(button, "text", "100 %");
+        const after = canvas.toSession(canvas.width / 2, canvas.height / 2);
+        verify(Math.abs(after.x - middle.x) < 0.001, "the view jumped sideways");
+        verify(Math.abs(after.y - middle.y) < 0.001, "the view jumped up or down");
+    }
+
+    function test_thePercentageIsSaidAndCanBeReached() {
+        const canvas = createTemporaryObject(canvasComponent, null);
+        const button = canvas.zoomResetButton;
+        verify(button, "the percentage is a control");
+        verify(button.Accessible.description !== "", "a screen reader is not told what it does");
+        compare(button.focusPolicy & Qt.TabFocus, Qt.TabFocus, "Tab passes it by");
     }
 
     function test_fitPutsTheWholeSessionOnTheScreen() {
@@ -1188,6 +1323,7 @@ TestCase {
         verify(top + bounds.height * canvas.zoom <= canvas.height, "nor off the bottom");
         verify(canvas.zoom >= canvas.minimumZoom && canvas.zoom <= canvas.maximumZoom,
                "and it stayed inside the zoom range");
+        compare(canvas.zoom, Math.round(canvas.zoom * 10) / 10, "and on a whole ten, rounded down so that it fits");
     }
 
     function test_anEmptySessionFitsToActualSize() {

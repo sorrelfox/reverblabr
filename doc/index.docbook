@@ -275,11 +275,13 @@ in it, then a description.</para>
 controls, like the Volume slider. To take a block out, select it and press
 &Del;.</para>
 
-<para>The canvas zooms with
+<para>The canvas zooms in steps of 10 %, from 50 % to 200 %, with
 <menuchoice><guimenu>View</guimenu><guimenuitem>Zoom In</guimenuitem></menuchoice>
-and <guimenuitem>Zoom Out</guimenuitem>; <guimenuitem>Actual Size</guimenuitem>
-(<keycombo action="simul">&Ctrl;<keycap>0</keycap></keycombo>) goes back to
-100 %, and <guimenuitem>Fit to Window</guimenuitem> (<keycombo
+and <guimenuitem>Zoom Out</guimenuitem>, or with the mouse wheel while holding
+&Ctrl;. Clicking the percentage in the corner of the canvas goes back to 100 %
+and stays where you are; <guimenuitem>Actual Size</guimenuitem>
+(<keycombo action="simul">&Ctrl;<keycap>0</keycap></keycombo>) also goes back
+to the start of the session, and <guimenuitem>Fit to Window</guimenuitem> (<keycombo
 action="simul">&Ctrl;<keycap>9</keycap></keycombo>) shows the whole
 session.</para>
 </sect2>

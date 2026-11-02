@@ -44,7 +44,13 @@ Item {
     /// fits on a screen; twice is where somebody checks what a tile reads.
     readonly property real minimumZoom: 0.5
     readonly property real maximumZoom: 2.0
+    /// What one step moves the zoom by, in per cent. **Every level is a whole
+    /// number of these**, however it was reached, so that 100 % is always a
+    /// whole number of steps away.
+    readonly property int zoomStepPercent: 10
     property real zoom: 1.0
+    /// The percentage, which is also the way back to 100 %.
+    readonly property alias zoomResetButton: zoomReset
 
     /// Where the session's origin sits in the viewport, in viewport pixels.
     property real originX: 0
@@ -124,7 +130,7 @@ Item {
     /// the thing somebody is looking at has to stay under the pointer or
     /// they have to find it again afterwards.
     function setZoom(wanted: real, atX: real, atY: real) {
-        const next = Math.max(canvas.minimumZoom, Math.min(canvas.maximumZoom, wanted));
+        const next = canvas.zoomLevel(wanted);
         if (next === canvas.zoom) {
             return;
         }
@@ -134,12 +140,30 @@ Item {
         canvas.originY = atY - anchor.y * next;
     }
 
+    /// The level nearest to \a wanted, inside the range. Worked out in
+    /// whole steps, so that the same level is always exactly the same number.
+    function zoomLevel(wanted: real): real {
+        const steps = Math.round(wanted * 100 / canvas.zoomStepPercent);
+        return Math.max(canvas.minimumZoom, Math.min(canvas.maximumZoom, steps * canvas.zoomStepPercent / 100));
+    }
+
+    /// Moves the zoom by \a steps, around (\a atX, \a atY).
+    function stepZoom(steps: int, atX: real, atY: real) {
+        canvas.setZoom(canvas.zoom + steps * canvas.zoomStepPercent / 100, atX, atY);
+    }
+
     function zoomIn() {
-        canvas.setZoom(canvas.zoom * 1.25, canvas.width / 2, canvas.height / 2);
+        canvas.stepZoom(1, canvas.width / 2, canvas.height / 2);
     }
 
     function zoomOut() {
-        canvas.setZoom(canvas.zoom / 1.25, canvas.width / 2, canvas.height / 2);
+        canvas.stepZoom(-1, canvas.width / 2, canvas.height / 2);
+    }
+
+    /// A hundred per cent around the middle of the view, so what is being
+    /// looked at stays there. Actual Size also goes back to the origin.
+    function resetZoom() {
+        canvas.setZoom(1, canvas.width / 2, canvas.height / 2);
     }
 
     /// A hundred per cent, with the session's origin back where it started.
@@ -161,7 +185,8 @@ Item {
         const margin = Kirigami.Units.gridUnit * 2;
         const wanted = Math.min((canvas.width - margin * 2) / bounds.width,
                                 (canvas.height - margin * 2) / bounds.height);
-        canvas.zoom = Math.max(canvas.minimumZoom, Math.min(canvas.maximumZoom, wanted));
+        // A step down rather than the nearest, so that it still fits.
+        canvas.zoom = canvas.zoomLevel(Math.floor(wanted * 100 / canvas.zoomStepPercent) * canvas.zoomStepPercent / 100);
         canvas.originX = (canvas.width - bounds.width * canvas.zoom) / 2 - bounds.x * canvas.zoom;
         canvas.originY = (canvas.height - bounds.height * canvas.zoom) / 2 - bounds.y * canvas.zoom;
     }
@@ -1686,6 +1711,8 @@ Item {
 
         property point origin: Qt.point(0, 0)
         property bool panning: false
+        /// How much of a notch the wheel has turned towards the next step.
+        property real zoomTurn: 0
         property bool banding: false
 
         onPressed: mouse => {
@@ -1752,10 +1779,17 @@ Item {
 
         onWheel: wheel => {
             if ((wheel.modifiers & Qt.ControlModifier) !== 0) {
-                // A notch is 15 degrees, which Qt reports as 120 eighths of
-                // a degree; anything finer comes from a touchpad and should
-                // zoom by proportionally less.
-                canvas.setZoom(canvas.zoom * Math.pow(1.25, wheel.angleDelta.y / 120), wheel.x, wheel.y);
+                // **A notch is a step.** A notch is 15 degrees, which Qt
+                // reports as 120 eighths of a degree. A touchpad or a fine
+                // wheel reports it in pieces, which are kept until they come
+                // to a notch; turning the other way starts afresh.
+                const turned = wheel.angleDelta.y;
+                background.zoomTurn = (background.zoomTurn * turned > 0 ? background.zoomTurn : 0) + turned;
+                const steps = Math.trunc(background.zoomTurn / 120);
+                if (steps !== 0) {
+                    background.zoomTurn -= steps * 120;
+                    canvas.stepZoom(steps, wheel.x, wheel.y);
+                }
                 return;
             }
             canvas.originX += wheel.pixelDelta.x !== 0 ? wheel.pixelDelta.x : wheel.angleDelta.x / 8;
@@ -2233,16 +2267,31 @@ Item {
                 }
             }
 
-            QQC2.Label {
+            // The level, and a press on it is the way back to 100 %, as the
+            // prototype has it.
+            QQC2.ToolButton {
+                id: zoomReset
+
                 anchors.verticalCenter: parent.verticalCenter
-                width: AppMetrics.followsSystem
-                    ? Math.max(Kirigami.Units.gridUnit * 3, implicitWidth)
-                    : Math.max(AppMetrics.zoomLabelWidth, implicitWidth + AppMetrics.mediumSpacing * 2)
-                horizontalAlignment: Text.AlignHCenter
+                horizontalPadding: AppMetrics.followsSystem ? Kirigami.Units.smallSpacing : AppMetrics.mediumSpacing
                 font: AppFonts.mono
-                color: AppColors.muted
                 text: KI18n.i18nc("@info:status how far the canvas is zoomed in", "%1 %",
                                   Math.round(canvas.zoom * 100))
+                Accessible.description: zoomReset.QQC2.ToolTip.text
+                QQC2.ToolTip.text: KI18n.i18nc("@info:tooltip", "Reset zoom to 100 %")
+                QQC2.ToolTip.visible: zoomReset.hovered
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                onClicked: canvas.resetZoom()
+
+                // The same height as the buttons either side of it.
+                Binding on implicitHeight {
+                    when: !AppMetrics.followsSystem
+                    value: AppMetrics.smallControlHeight
+                }
+                Binding on implicitWidth {
+                    when: !AppMetrics.followsSystem
+                    value: Math.max(AppMetrics.zoomLabelWidth, zoomReset.implicitContentWidth + AppMetrics.mediumSpacing * 2)
+                }
             }
 
             QQC2.ToolButton {
