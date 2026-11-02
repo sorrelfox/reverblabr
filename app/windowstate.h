@@ -76,6 +76,9 @@ public:
     /// where a panel was left on this screen is something the application
     /// noticed, like the window's size, and not part of what the session
     /// does. Written as it changes; empty forgets the session's entry.
+    ///
+    /// A panel left outside the main window also has `outside`, and `screen`,
+    /// `left` and `top` for where on the desktop (ADR-0032).
     [[nodiscard]] Q_INVOKABLE QVariantList detachedPanels(const QString &sessionId) const;
     Q_INVOKABLE void setDetachedPanels(const QString &sessionId, const QVariantList &panels);
 

@@ -241,6 +241,8 @@ QQC2.ApplicationWindow {
     }
 
     Component.onCompleted: {
+        root.shortcutActions = Array.from(root.contentData).filter(
+            object => object instanceof T.Action && object.shortcut !== undefined);
         Meters.watch(AppShell.sessionId);
         // **The launch is a resumption.** Whatever was open comes back,
         // stopped, and in the order it sat in; with nothing remembered this
@@ -302,6 +304,11 @@ QQC2.ApplicationWindow {
     //
     // A menu item and the button beside it are the same action, so they
     // cannot disagree about whether it is enabled or what it is called.
+
+    /// The actions with a shortcut. **A settings panel outside the window
+    /// keeps them** (ADR-0032), and the list is read from what is here so
+    /// that a new one cannot be left out of it, once the window is complete.
+    property var shortcutActions: []
 
     QQC2.Action {
         id: runAction
@@ -1364,6 +1371,7 @@ QQC2.ApplicationWindow {
                         id: sessionCanvas
 
                         anchors.fill: parent
+                        windowActions: root.shortcutActions
                     }
                 ]
             }

@@ -39,6 +39,7 @@ set_source_files_properties(qml/AutoLevelHistory.qml PROPERTIES QT_QML_SINGLETON
 # The one file that imports a module a desktop may not have: loaded by name,
 # so nothing may check or compile it ahead of time (ADR-0030).
 set_source_files_properties(qml/FloatingLayerWindow.qml PROPERTIES QT_QML_SKIP_QMLLINT TRUE QT_QML_SKIP_CACHEGEN TRUE)
+set_source_files_properties(qml/PanelLayerWindow.qml PROPERTIES QT_QML_SKIP_QMLLINT TRUE QT_QML_SKIP_CACHEGEN TRUE)
 # Which window a floating surface gets on this desktop.
 set_source_files_properties(qml/FloatingWindows.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The words for every built-in block's choices.
@@ -202,6 +203,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/OutputDeviceHelp.qml
     qml/OutputDevicePanel.qml
     qml/PanHelp.qml
+    qml/PanelLayerWindow.qml
+    qml/PanelWindow.qml
     qml/ParamFormat.qml
     qml/ParamRow.qml
     qml/ParametricEqBands.qml
@@ -339,6 +342,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ResizeGrips.qml
     qml/WindowButton.qml
     qml/WindowChrome.qml
+    qml/WindowOriginProbe.qml
     qml/WindowTitleBar.qml
     # The virtual devices' own window, from the title bar's button,
     # and its lists.
@@ -574,6 +578,8 @@ target_sources(reverblabr-ui PRIVATE
     windowframe.h
     windowstate.cpp
     windowstate.h
+    windowwatch.cpp
+    windowwatch.h
     virtualdevicefilter.cpp
     virtualdevicefilter.h
     virtualdevices.cpp

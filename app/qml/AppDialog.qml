@@ -22,6 +22,11 @@ import org.kde.kirigami as Kirigami
 Kirigami.Dialog {
     id: dialog
 
+    // **The window it opens over takes the keyboard.** A panel outside the
+    // main window opens its dialogs on that window (ADR-0032), with the
+    // keyboard still in the panel's own.
+    onAboutToShow: dialog.parent?.Window.window?.requestActivate()
+
     /// Whether the content is one list that runs to the dialog's sides.
     property bool listContent: false
 

@@ -15,6 +15,11 @@ import org.kde.kirigami as Kirigami
 Kirigami.PromptDialog {
     id: dialog
 
+    // **The window it opens over takes the keyboard.** A panel outside the
+    // main window opens its dialogs on that window (ADR-0032), with the
+    // keyboard still in the panel's own.
+    onAboutToShow: dialog.parent?.Window.window?.requestActivate()
+
     // Kirigami's own is its large spacing, which the token is while
     // following the system.
     contentPadding: AppMetrics.dialogPadding

@@ -96,4 +96,14 @@ QtObject {
     /// it the card says so.
     readonly property bool keepsOnTop: windows.layer !== null && windows.layer.status === Component.Ready
     readonly property Component window: windows.keepsOnTop ? windows.layer : windows.plain
+
+    /// The window a settings panel gets outside the main window (ADR-0032),
+    /// chosen the same way.
+    readonly property Component panelLayer: Qt.platform.pluginName === "wayland"
+        ? Qt.createComponent("PanelLayerWindow.qml") : null
+    readonly property Component panelPlain: Component {
+        PanelWindow {}
+    }
+    readonly property Component panelWindow: windows.panelLayer !== null && windows.panelLayer.status === Component.Ready
+        ? windows.panelLayer : windows.panelPlain
 }

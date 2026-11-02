@@ -12,9 +12,10 @@ import org.kde.layershell as LayerShell
 // placed by its margins from the top left of the screen, taking no focus and
 // reserving no space.
 //
-// **The one file that names the module**, which a desktop may not have. It is
-// left out of qmllint and of the compiled cache, and loaded by name
-// (FloatingWindows), so that its absence costs a fallback and not a build.
+// **One of the two files that name the module**, with PanelLayerWindow, as a
+// desktop may not have it. Each is left out of qmllint and of the compiled
+// cache, and loaded by name (FloatingWindows), so that its absence costs a
+// fallback and not a build.
 FloatingWindow {
     id: surface
 

@@ -62,6 +62,19 @@ The widget costs nothing while nothing runs: it reads the levels only while its 
 
 If the widget starts while a session is already recording, when you add it or when Plasma starts, it shows the red dot from that session's next recording on. The widget needs an installed Reverblabr; with no background engine installed, its list says so.
 
+## Settings outside the window
+
+A block's settings can leave the main window, to keep a meter or a few controls in view beside another program or on another screen. They look and work as they do on the canvas.
+
+- **Pull them off their block** with the window button at the top of the settings, as for keeping them on the canvas. Then **drag the header past the edge of the canvas**, or press the button beside the pin.
+- **Drag them by the header** anywhere on the desktop, across screens too. They stay above other windows, except a program in full screen.
+- **Bring them back** with the same button, or by dropping them on the canvas with all of the card over it. The pin puts them back beside their block, and **×** closes them.
+- **Everything works out there.** Meters move, and the keyboard works once you click the settings: type in a field, press Ctrl+Z to undo, Del to remove the selected block. The dialogs they open appear on the main window.
+- **They go with the main window.** Closing or minimising it hides them, and they come back with it. They stay up while you use another program. Closing the block's settings, deleting the block or changing to another session takes them away.
+- **Reverblabr remembers** which settings are outside and where, for each session, and puts them back the next time it opens that session. If the screen they were on is gone, they come back on the main window's.
+
+This needs `layer-shell-qt`, which comes with Plasma. On a Wayland desktop without it the button still works, but the desktop decides where the settings go and they don't come back to the same place, and dragging past the edge does nothing. On X11 they stay above the main window only.
+
 ## Global shortcuts
 
 Reverblabr's shortcuts work while the window is in the background or hidden in the tray. They start out with no keys assigned, so nothing clashes with your desktop's own shortcuts. Set the keys you want in **System Settings → Keyboard → Shortcuts**, under **Reverblabr**.

@@ -72,11 +72,31 @@ Primitives.ShadowedRectangle {
     /// one is.
     property bool detached: false
 
+    /// Whether the panel is outside the main window, in a window of its own
+    /// (ADR-0032). **Nothing about the card changes**; only the control that
+    /// takes it out says it can bring it back.
+    property bool outside: false
+    /// Where it is then, from the top left of the work area of the screen
+    /// called `outsideScreen`. The canvas's arithmetic, like the rest of a
+    /// detached panel's place.
+    property real outsideLeft: 0
+    property real outsideTop: 0
+    property string outsideScreen: ""
+
     /// The detach control was pressed. The canvas decides what that means
     /// and where the panel ends up.
     signal detachToggled()
+    /// The control that takes a detached panel out of the main window, or
+    /// brings it back, was pressed.
+    signal outsideToggled()
+    /// The header of a detached panel was pressed, which may be a drag
+    /// starting.
+    signal dragStarted()
     /// The header was dragged, in the panel's own parent's coordinates.
     signal draggedBy(real dx, real dy)
+    /// The same drag with the pointer at \a scene in the window, which may
+    /// be outside it, holding the card by \a grab.
+    signal draggedTo(point scene, point grab)
     /// A drag of the header ended, which is when where it was left is worth
     /// writing down.
     signal dragFinished()
@@ -95,6 +115,7 @@ Primitives.ShadowedRectangle {
     /// presses.
     readonly property alias closeButton: closeButton
     readonly property alias detachButton: detachButton
+    readonly property alias outsideButton: outsideButton
     /// The header's own pointer area: a double-click on the name renames,
     /// and once the panel is detached a drag moves it.
     readonly property alias headerGrab: headerGrab
@@ -254,6 +275,7 @@ Primitives.ShadowedRectangle {
                     panel.pressedOn();
                     if (panel.detached) {
                         headerGrab.cursorShape = Qt.ClosedHandCursor;
+                        panel.dragStarted();
                     }
                 }
                 onReleased: {
@@ -277,6 +299,8 @@ Primitives.ShadowedRectangle {
                     if (!panel.detached || (mouse.buttons & Qt.LeftButton) === 0) {
                         return;
                     }
+                    panel.draggedTo(headerGrab.mapToItem(null, mouse.x, mouse.y),
+                                    headerGrab.mapToItem(panel, headerGrab.origin.x, headerGrab.origin.y));
                     panel.draggedBy(mouse.x - headerGrab.origin.x, mouse.y - headerGrab.origin.y);
                 }
             }
@@ -327,9 +351,23 @@ Primitives.ShadowedRectangle {
                     // The block's own name, so that clearing the field shows
                     // what clearing it will leave behind.
                     placeholderText: BlockPresentation.name(panel.typeId)
+                    // **Only a field that can be seen says anything.** Hidden,
+                    // it has been answered, by Return or by Escape, and losing
+                    // the keyboard is not a second answer: it would write
+                    // back what Escape turned down.
                     onEditingFinished: {
-                        SessionModel.renameBlock(panel.blockId, text);
-                        visible = false;
+                        if (visible) {
+                            SessionModel.renameBlock(panel.blockId, text);
+                            visible = false;
+                        }
+                    }
+                    // **A hidden field keeps the keyboard unless it is taken
+                    // from it**, and would go on answering Ctrl+Z with its own
+                    // text, unseen, in place of the window's undo.
+                    onVisibleChanged: {
+                        if (!visible && activeFocus) {
+                            panel.forceActiveFocus();
+                        }
                     }
                     Keys.onEscapePressed: visible = false
                 }
@@ -366,6 +404,37 @@ Primitives.ShadowedRectangle {
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                     onClicked: panel.detachToggled()
+
+                    // The prototype's 26-pixel square; the desktop style's
+                    // own size while following the system.
+                    Binding on implicitWidth {
+                        when: !AppMetrics.followsSystem
+                        value: AppMetrics.mediumControlHeight
+                    }
+                    Binding on implicitHeight {
+                        when: !AppMetrics.followsSystem
+                        value: AppMetrics.mediumControlHeight
+                    }
+                }
+
+                // **The way out of the main window, and back.** Dragging past
+                // the canvas's edge does the same, where the desktop lets a
+                // window place itself; this works on every desktop.
+                QQC2.ToolButton {
+                    id: outsideButton
+
+                    visible: panel.detached
+                    icon.name: panel.outside ? "window-restore" : "window-duplicate"
+                    display: QQC2.AbstractButton.IconOnly
+                    Accessible.name: panel.outside
+                        ? KI18n.i18nc("@action:button put a panel that is outside back inside the main window",
+                                      "Move into the main window")
+                        : KI18n.i18nc("@action:button take a detached panel outside the main window",
+                                      "Move outside the main window")
+                    QQC2.ToolTip.text: Accessible.name
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    onClicked: panel.outsideToggled()
 
                     // The prototype's 26-pixel square; the desktop style's
                     // own size while following the system.

@@ -357,6 +357,16 @@ instant.</para>
 the block into a window of their own, which stays where you put it while you
 work on other blocks; the pin button puts it back.</para>
 
+<para>Settings pulled off their block can also leave the main window, to keep
+them in view beside another program or on another screen. Drag them by the
+header past the edge of the canvas, or press the button beside the pin. They
+look and work the same out there: meters move, and after a click on them the
+keyboard works, with
+<keycombo action="simul">&Ctrl;<keycap>Z</keycap></keycombo> to undo. The same
+button brings them back, and so does dropping them on the canvas. They hide
+when the main window is closed or minimised and come back with it, and
+Reverblabr remembers which are outside and where, for each session.</para>
+
 <para>The row at the bottom of a block's settings holds its presets. Some
 blocks come with presets, and <menuchoice><guimenu>⋮</guimenu><guimenuitem>Save
 as Preset…</guimenuitem></menuchoice> keeps your own.

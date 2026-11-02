@@ -555,7 +555,9 @@ Item {
     // of them is in the zoom transform.
 
     /// One row per detached panel: `panelBlock`, `px`, `py`, and `order`,
-    /// which says which is on top.
+    /// which says which is on top. A panel outside the main window also has
+    /// `outsideWindow`, and `screenName`, `placeLeft` and `placeTop` for where
+    /// (ADR-0032).
     ListModel {
         id: detachedModel
     }
@@ -568,6 +570,205 @@ Item {
     /// Panels remembered for this session whose blocks have not arrived
     /// yet: the session's blocks come a moment after the session does.
     property var pendingDetached: []
+
+    // --- panels outside the main window (ADR-0032) ---
+
+    /// The main window's actions, which also work with the keyboard in a
+    /// panel outside it. Main says which they are.
+    property var windowActions: []
+    /// Where a panel's dialogs open, wherever the panel is.
+    readonly property Item mainOverlay: QQC2.Overlay.overlay
+    /// Whether panels outside are up: while the main window can be seen.
+    readonly property bool mainWindowShowing: mainWatch.showing
+    /// The block whose panel is being carried out on the pointer, if any, and
+    /// where on the card the pointer holds it.
+    property string carriedBlock: ""
+    property point carriedBy: Qt.point(0, 0)
+    /// The block waiting for the probe, to go outside where it is now.
+    property string leavingBlock: ""
+    /// Whether a panel's window can put itself under the pointer. **Not a
+    /// plain window on Wayland**, which goes where the desktop says, so there
+    /// the header's button is the way out and a drag stays on the canvas.
+    property bool panelsPlaceThemselves: Qt.platform.pluginName !== "wayland"
+        || FloatingWindows.panelWindow === FloatingWindows.panelLayer
+
+    WindowWatch {
+        id: mainWatch
+
+        window: canvas.Window.window
+        onPointerMoved: position => canvas.carryTo(position)
+        onPointerReleased: canvas.endCarrying()
+    }
+
+    WindowOriginProbe {
+        id: originProbe
+
+        window: canvas.Window.window
+        onMeasured: canvas.finishLeaving()
+    }
+
+    /// The main window's watch and its probe, for a test.
+    readonly property alias mainWatch: mainWatch
+    readonly property alias originProbe: originProbe
+
+    /// The screen called \a name, or the main window's, as a screen can be
+    /// unplugged between one run and the next.
+    function screenForOutside(name: string): var {
+        return FloatingWindows.screenNamed(name) ?? canvas.Window.window?.screen ?? FloatingWindows.screens[0] ?? null;
+    }
+
+    /// \a left and \a top kept on the desktop for a card (\a width, \a height)
+    /// placed on the screen called \a name. **On the desktop, not on that
+    /// screen**: a surface placed from one screen can be carried to the next.
+    function keepOnDesktop(left: real, top: real, width: real, height: real, name: string): point {
+        const home = canvas.screenForOutside(name);
+        if (!home) {
+            return Qt.point(left, top);
+        }
+        let right = 0;
+        let bottom = 0;
+        let leftmost = 0;
+        let topmost = 0;
+        for (const screen of FloatingWindows.screens) {
+            leftmost = Math.min(leftmost, screen.virtualX - home.virtualX);
+            topmost = Math.min(topmost, screen.virtualY - home.virtualY);
+            right = Math.max(right, screen.virtualX - home.virtualX + screen.width);
+            bottom = Math.max(bottom, screen.virtualY - home.virtualY + screen.height);
+        }
+        return Qt.point(Math.max(leftmost, Math.min(right - width, left)),
+                        Math.max(topmost, Math.min(bottom - height, top)));
+    }
+
+    /// Takes the panel of \a blockId outside the main window, to where it
+    /// sits now. **Where that is has to be asked for**, so it goes when the
+    /// answer comes. A desktop that does not say puts it where it likes.
+    function moveOutside(blockId: string) {
+        const index = canvas.detachedIndexOf(blockId);
+        if (index >= 0 && !detachedModel.get(index).outsideWindow) {
+            canvas.leavingBlock = blockId;
+            originProbe.measure();
+        }
+    }
+
+    function finishLeaving() {
+        const blockId = canvas.leavingBlock;
+        canvas.leavingBlock = "";
+        const index = canvas.detachedIndexOf(blockId);
+        if (index < 0) {
+            return;
+        }
+        const panel = detachedRepeater.itemAt(index) as SettingsPanel;
+        const scene = canvas.mapToItem(null, panel.x, panel.y);
+        canvas.putOutside(blockId, originProbe.origin.x + scene.x, originProbe.origin.y + scene.y);
+        canvas.saveDetached();
+    }
+
+    function putOutside(blockId: string, left: real, top: real) {
+        const index = canvas.detachedIndexOf(blockId);
+        if (index >= 0) {
+            const name = canvas.Window.window?.screen?.name ?? "";
+            detachedModel.set(index, { screenName: name, placeLeft: left, placeTop: top, outsideWindow: true });
+        }
+    }
+
+    /// Brings the panel of \a blockId back inside the main window, to where
+    /// it was left there.
+    function moveInside(blockId: string) {
+        const index = canvas.detachedIndexOf(blockId);
+        if (index < 0 || !detachedModel.get(index).outsideWindow) {
+            return;
+        }
+        (detachedRepeater.itemAt(index) as SettingsPanel).surface?.watch.releasePopups();
+        detachedModel.setProperty(index, "outsideWindow", false);
+        canvas.saveDetached();
+    }
+
+    /// A panel outside was dragged by (\a dx, \a dy).
+    function moveOutsidePanel(blockId: string, dx: real, dy: real) {
+        const index = canvas.detachedIndexOf(blockId);
+        if (index < 0) {
+            return;
+        }
+        const row = detachedModel.get(index);
+        const panel = detachedRepeater.itemAt(index) as SettingsPanel;
+        const kept = canvas.keepOnDesktop(row.placeLeft + dx, row.placeTop + dy, panel.width, panel.height, row.screenName);
+        detachedModel.set(index, { placeLeft: kept.x, placeTop: kept.y });
+    }
+
+    /// A detached panel's header is being dragged with the pointer at \a scene
+    /// in the window. **The pointer leaving the canvas takes the panel out**,
+    /// where the desktop has said where the window is.
+    function dragDetachedTo(index: int, scene: point, grab: point) {
+        const row = detachedModel.get(index);
+        if (row.outsideWindow || canvas.carriedBlock !== "" || !canvas.panelsPlaceThemselves || !originProbe.known) {
+            return;
+        }
+        const at = canvas.mapFromItem(null, scene.x, scene.y);
+        if (at.x >= 0 && at.y >= 0 && at.x < canvas.width && at.y < canvas.height) {
+            return;
+        }
+        canvas.carriedBlock = row.panelBlock;
+        canvas.carriedBy = grab;
+        mainWatch.followsPointer = true;
+        // **Not while this drag is being delivered**: moving the item to
+        // another window takes the press away from the area that is handling
+        // it. From here on the window's own events say where the pointer is.
+        Qt.callLater(canvas.carryOut, row.panelBlock, scene);
+    }
+
+    function carryOut(blockId: string, scene: point) {
+        if (canvas.carriedBlock === blockId) {
+            canvas.putOutside(blockId,
+                              originProbe.origin.x + scene.x - canvas.carriedBy.x,
+                              originProbe.origin.y + scene.y - canvas.carriedBy.y);
+        }
+    }
+
+    /// The pointer carrying a panel is at \a scene in the main window.
+    function carryTo(scene: point) {
+        const index = canvas.detachedIndexOf(canvas.carriedBlock);
+        if (index < 0 || !detachedModel.get(index).outsideWindow) {
+            return;
+        }
+        const row = detachedModel.get(index);
+        const panel = detachedRepeater.itemAt(index) as SettingsPanel;
+        const kept = canvas.keepOnDesktop(originProbe.origin.x + scene.x - canvas.carriedBy.x,
+                                          originProbe.origin.y + scene.y - canvas.carriedBy.y,
+                                          panel.width, panel.height, row.screenName);
+        detachedModel.set(index, { placeLeft: kept.x, placeTop: kept.y });
+    }
+
+    function endCarrying() {
+        const blockId = canvas.carriedBlock;
+        mainWatch.followsPointer = false;
+        canvas.carriedBlock = "";
+        canvas.settleOutside(blockId);
+    }
+
+    /// A drag of a panel outside ended. **Dropped over the canvas, it is back
+    /// inside**, where it was dropped, when the desktop has said where the
+    /// main window is. All of the card has to be over it: part of it over the
+    /// edge is a panel being kept at the side.
+    function settleOutside(blockId: string) {
+        const index = canvas.detachedIndexOf(blockId);
+        if (index < 0 || !detachedModel.get(index).outsideWindow) {
+            canvas.saveDetached();
+            return;
+        }
+        const row = detachedModel.get(index);
+        const panel = detachedRepeater.itemAt(index) as SettingsPanel;
+        const corner = canvas.mapToItem(null, 0, 0);
+        const x = row.placeLeft - originProbe.origin.x - corner.x;
+        const y = row.placeTop - originProbe.origin.y - corner.y;
+        const sameScreen = row.screenName === (canvas.Window.window?.screen?.name ?? "");
+        if (originProbe.known && sameScreen && !panel.surface.movesByDesktop && x >= 0 && y >= 0
+            && x + panel.width <= canvas.width && y + panel.height <= canvas.height) {
+            detachedModel.set(index, { px: x, py: y });
+            Qt.callLater(canvas.moveInside, blockId);
+        } else {
+            canvas.saveDetached();
+        }
+    }
 
     function detachedIndexOf(blockId: string): int {
         for (let index = 0; index < detachedModel.count; ++index) {
@@ -629,7 +830,11 @@ Item {
             panelBlock: blockId,
             px: canvas.clampSettingsX(settingsPanel.x + nudge),
             py: canvas.clampSettingsY(settingsPanel.y - nudge),
-            order: ++canvas.detachedOrder
+            order: ++canvas.detachedOrder,
+            outsideWindow: false,
+            screenName: "",
+            placeLeft: 0,
+            placeTop: 0
         });
         settingsPanel.close();
         canvas.saveDetached();
@@ -664,6 +869,15 @@ Item {
     /// as the pointer went.
     function dragDetachedBy(index: int, dx: real, dy: real, width: real, height: real) {
         const row = detachedModel.get(index);
+        if (row.outsideWindow) {
+            // **The header goes on hearing a press it took on the canvas**,
+            // measured from a card that is no longer there. While a panel is
+            // carried out, only the window's own pointer says where it is.
+            if (canvas.carriedBlock === "") {
+                (detachedRepeater.itemAt(index) as SettingsPanel).surface?.follow(dx, dy);
+            }
+            return;
+        }
         detachedModel.setProperty(index, "px", canvas.clampPanelX(row.px + dx, width));
         detachedModel.setProperty(index, "py", canvas.clampPanelY(row.py + dy, height));
     }
@@ -676,7 +890,11 @@ Item {
         const panels = [];
         for (let index = 0; index < detachedModel.count; ++index) {
             const row = detachedModel.get(index);
-            panels.push({ blockId: row.panelBlock, x: row.px, y: row.py });
+            const panel = { blockId: row.panelBlock, x: row.px, y: row.py };
+            if (row.outsideWindow) {
+                Object.assign(panel, { outside: true, screen: row.screenName, left: row.placeLeft, top: row.placeTop });
+            }
+            panels.push(panel);
         }
         for (const entry of canvas.pendingDetached) {
             panels.push(entry);
@@ -704,8 +922,15 @@ Item {
                 continue;
             }
             if (canvas.detachedIndexOf(entry.blockId) < 0) {
+                // A place out of reach, with the screens as they are today,
+                // is brought back to where a person can get hold of it.
+                const name = entry.screen ?? "";
+                const room = Kirigami.Units.gridUnit * 6;
+                const kept = canvas.keepOnDesktop(entry.left ?? 0, entry.top ?? 0, room, room, name);
                 detachedModel.append({ panelBlock: entry.blockId, px: entry.x, py: entry.y,
-                                       order: ++canvas.detachedOrder });
+                                       order: ++canvas.detachedOrder, outsideWindow: entry.outside === true,
+                                       screenName: FloatingWindows.screenNamed(name) ? name : "",
+                                       placeLeft: kept.x, placeTop: kept.y });
             }
         }
         // **A session that has arrived and does not have the block any more
@@ -2012,20 +2237,60 @@ Item {
             required property real px
             required property real py
             required property int order
+            required property bool outsideWindow
+            required property string screenName
+            required property real placeLeft
+            required property real placeTop
 
             blockId: floating.panelBlock
             detached: true
+            outside: floating.outsideWindow
+            outsideLeft: floating.placeLeft
+            outsideTop: floating.placeTop
+            outsideScreen: floating.screenName
             z: 4 + floating.order
-            maximumHeight: canvas.height - canvas.settingsMargin * 2
-        maximumWidth: canvas.width - canvas.settingsMargin * 2
-            x: canvas.clampPanelX(floating.px, floating.width)
-            y: canvas.clampPanelY(floating.py, floating.height)
+            // **The same item, wherever it is** (ADR-0032). Moving it keeps
+            // what is typed in it and how far it is scrolled.
+            parent: floating.surface !== null ? floating.surface.holder : canvas
+            maximumHeight: floating.outside
+                ? (floating.surface?.placedOn?.height ?? canvas.height) - canvas.settingsMargin * 2
+                : canvas.height - canvas.settingsMargin * 2
+            maximumWidth: floating.outside
+                ? (floating.surface?.placedOn?.width ?? canvas.width) - canvas.settingsMargin * 2
+                : canvas.width - canvas.settingsMargin * 2
+            x: floating.surface?.inset ?? canvas.clampPanelX(floating.px, floating.width)
+            y: floating.surface?.inset ?? canvas.clampPanelY(floating.py, floating.height)
 
             onPressedOn: canvas.raiseDetached(floating.index)
             onDetachToggled: canvas.attachSettings(floating.panelBlock)
+            onOutsideToggled: floating.outside ? canvas.moveInside(floating.panelBlock)
+                                               : canvas.moveOutside(floating.panelBlock)
+            onDragStarted: {
+                if (floating.surface?.movesByDesktop) {
+                    floating.surface.startSystemMove();
+                } else {
+                    originProbe.measure();
+                }
+            }
+            onDraggedTo: (scene, grab) => canvas.dragDetachedTo(floating.index, scene, grab)
             onDraggedBy: (dx, dy) => canvas.dragDetachedBy(floating.index, dx, dy, floating.width, floating.height)
-            onDragFinished: canvas.saveDetached()
+            onDragFinished: floating.outside ? canvas.settleOutside(floating.panelBlock) : canvas.saveDetached()
             onClosed: canvas.closeDetached(floating.panelBlock)
+
+            /// Its window while it is outside the main window, or null.
+            readonly property PanelWindow surface: host.item as PanelWindow
+
+            readonly property Loader host: Loader {
+                id: host
+
+                active: floating.outsideWindow
+                sourceComponent: FloatingWindows.panelWindow
+                onLoaded: {
+                    (host.item as PanelWindow).canvas = canvas;
+                    (host.item as PanelWindow).panel = floating;
+                    (host.item as PanelWindow).ready = true;
+                }
+            }
         }
     }
 

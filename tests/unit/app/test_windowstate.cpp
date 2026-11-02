@@ -10,6 +10,7 @@
 
 #include "windowstate.h"
 
+#include <KConfigGroup>
 #include <QTemporaryDir>
 #include <gtest/gtest.h>
 
@@ -38,6 +39,11 @@ public:
 
     StateFile(const StateFile &) = delete;
     StateFile &operator=(const StateFile &) = delete;
+
+    [[nodiscard]] KSharedConfig::Ptr config() const
+    {
+        return m_config;
+    }
 
 private:
     QTemporaryDir m_directory;
@@ -105,6 +111,45 @@ TEST(WindowStateTest, DetachedPanelsAreRememberedPerSession)
     // None left is nothing remembered.
     state.setDetachedPanels(u"one"_s, {});
     EXPECT_TRUE(ui::WindowState{}.detachedPanels(u"one"_s).isEmpty());
+}
+
+TEST(WindowStateTest, APanelOutsideKeepsItsPlaceOnTheDesktop)
+{
+    const StateFile file;
+    ui::WindowState state;
+    state.setDetachedPanels(u"one"_s,
+                            {QVariantMap{{u"blockId"_s, u"b1"_s},
+                                         {u"x"_s, 10.0},
+                                         {u"y"_s, 20.0},
+                                         {u"outside"_s, true},
+                                         {u"screen"_s, u"DP-2"_s},
+                                         {u"left"_s, -300.0},
+                                         {u"top"_s, 400.5}},
+                             QVariantMap{{u"blockId"_s, u"b2"_s}, {u"x"_s, 30.0}, {u"y"_s, 40.0}}});
+
+    const QVariantList panels = ui::WindowState{}.detachedPanels(u"one"_s);
+    ASSERT_EQ(panels.size(), 2);
+    const QVariantMap outside = panels.at(0).toMap();
+    EXPECT_TRUE(outside.value(u"outside"_s).toBool());
+    EXPECT_EQ(outside.value(u"screen"_s).toString(), u"DP-2"_s);
+    EXPECT_DOUBLE_EQ(outside.value(u"left"_s).toDouble(), -300.0) << "a place left of the screen is a real one";
+    EXPECT_DOUBLE_EQ(outside.value(u"top"_s).toDouble(), 400.5);
+    EXPECT_DOUBLE_EQ(outside.value(u"x"_s).toDouble(), 10.0) << "the way back lost its place";
+    EXPECT_FALSE(panels.at(1).toMap().contains(u"outside"_s)) << "a panel inside was remembered as outside";
+}
+
+TEST(WindowStateTest, APanelOutsideWithNoPlaceStaysInside)
+{
+    // The file is a person's to edit. Without a place the panel is still
+    // somewhere: where it was inside.
+    const StateFile file;
+    KConfigGroup group(file.config(), u"DetachedPanels"_s);
+    group.writeEntry(u"one"_s, uR"([{"blockId":"b1","x":1,"y":2,"outside":true,"screen":"DP-1"}])"_s);
+    group.sync();
+
+    const QVariantList panels = ui::WindowState{}.detachedPanels(u"one"_s);
+    ASSERT_EQ(panels.size(), 1);
+    EXPECT_FALSE(panels.at(0).toMap().contains(u"outside"_s));
 }
 
 TEST(WindowStateTest, TheMenuBarIsUpUnderKWinsTitleBarAndBehindAButtonUnderOurs)

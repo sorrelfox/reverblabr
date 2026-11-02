@@ -129,9 +129,19 @@ QVariantList WindowState::detachedPanels(const QString &sessionId) const
         if (blockId.isEmpty() || !panel.value("x"_L1).isDouble() || !panel.value("y"_L1).isDouble()) {
             continue;
         }
-        panels.append(QVariantMap{{u"blockId"_s, blockId},
-                                  {u"x"_s, panel.value("x"_L1).toDouble()},
-                                  {u"y"_s, panel.value("y"_L1).toDouble()}});
+        QVariantMap kept{{u"blockId"_s, blockId},
+                         {u"x"_s, panel.value("x"_L1).toDouble()},
+                         {u"y"_s, panel.value("y"_L1).toDouble()}};
+        // A panel left outside the main window, and where on the desktop. A
+        // place that makes no sense leaves the panel where it was inside.
+        if (panel.value("outside"_L1).toBool() && panel.value("left"_L1).isDouble()
+            && panel.value("top"_L1).isDouble()) {
+            kept.insert(u"outside"_s, true);
+            kept.insert(u"screen"_s, panel.value("screen"_L1).toString());
+            kept.insert(u"left"_s, panel.value("left"_L1).toDouble());
+            kept.insert(u"top"_s, panel.value("top"_L1).toDouble());
+        }
+        panels.append(kept);
     }
     return panels;
 }
@@ -149,9 +159,16 @@ void WindowState::setDetachedPanels(const QString &sessionId, const QVariantList
         QJsonArray written;
         for (const QVariant &entry : panels) {
             const QVariantMap panel = entry.toMap();
-            written.append(QJsonObject{{"blockId"_L1, panel.value(u"blockId"_s).toString()},
-                                       {"x"_L1, panel.value(u"x"_s).toDouble()},
-                                       {"y"_L1, panel.value(u"y"_s).toDouble()}});
+            QJsonObject entryWritten{{"blockId"_L1, panel.value(u"blockId"_s).toString()},
+                                     {"x"_L1, panel.value(u"x"_s).toDouble()},
+                                     {"y"_L1, panel.value(u"y"_s).toDouble()}};
+            if (panel.value(u"outside"_s).toBool()) {
+                entryWritten.insert("outside"_L1, true);
+                entryWritten.insert("screen"_L1, panel.value(u"screen"_s).toString());
+                entryWritten.insert("left"_L1, panel.value(u"left"_s).toDouble());
+                entryWritten.insert("top"_L1, panel.value(u"top"_s).toDouble());
+            }
+            written.append(entryWritten);
         }
         state.writeEntry(sessionId, QString::fromUtf8(QJsonDocument(written).toJson(QJsonDocument::Compact)));
     }
