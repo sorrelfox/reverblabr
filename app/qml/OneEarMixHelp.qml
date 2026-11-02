@@ -21,7 +21,7 @@ HelpPage {
         paragraphs: [
             KI18n.i18nc("@info help page of the One Ear Mix block", "Without it, what is panned to the other side is lost to the ear you use. A plain mono mix, such as Mono in the Channels block, drops a sound panned to one side by 6 dB, and cancels sound that is out of phase between the sides."),
             KI18n.i18nc("@info help page of the One Ear Mix block", "One Ear Mix first shifts the two sides a quarter of a cycle apart, then adds them. A sound panned to one side comes through 3 dB lower, and sound out of phase between the sides doesn't cancel the way it does in a plain mono mix."),
-            KI18n.i18nc("@info help page of the One Ear Mix block", "When you pick an ear, the sound on that side goes on playing and what was on the other side comes in over about five seconds. It does the same when the session starts and when the block is switched back on.")
+            KI18n.i18nc("@info help page of the One Ear Mix block", "When you pick an ear, the sound on that side goes on playing and what was on the other side comes in over about five seconds. It does the same when the session starts, when the block is switched back on, and when the sound reaches a new output, such as a headset plugged in.")
         ]
     }
 

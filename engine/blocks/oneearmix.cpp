@@ -106,6 +106,16 @@ std::vector<ParamDescriptor> OneEarMix::makeDescriptors()
     match.flags.inPresets = false;
     match.flags.momentary = true;
     descriptors.push_back(std::move(match));
+
+    ParamDescriptor output;
+    output.id = "newOutput";
+    output.type = ParamType::Bool;
+    output.defaultValue = ParamValue::ofBool(false);
+    output.flags.hidden = true;
+    output.flags.inPresets = false;
+    output.flags.momentary = true;
+    output.flags.pressedByNewOutput = true;
+    descriptors.push_back(std::move(output));
     return descriptors;
 }
 
@@ -281,6 +291,11 @@ void OneEarMix::applyParam(std::uint32_t index, float value) noexcept RB_NONBLOC
 {
     if (index == MatchLevels) {
         m_readingAsked = true;
+        return;
+    }
+    if (index == NewOutput) {
+        m_weights[kLeftFromRight].restartRise();
+        m_weights[kRightFromLeft].restartRise();
         return;
     }
     m_store.applyNumber(index, value);

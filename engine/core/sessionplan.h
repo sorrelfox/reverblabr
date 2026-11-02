@@ -145,6 +145,16 @@ struct OutputTarget {
 /// processes on somebody's session bus.
 [[nodiscard]] QStringList urlsToOpen(const Session &session);
 
+/// **The blocks a new output has come within reach of**, between two states
+/// of a session. An output is new to a block when its device is there now and
+/// the block was not playing to that device through that Output Device block
+/// before: a device plugged in or back, the default moving, another device
+/// chosen, a new block, a new wire. A device that went is nothing new.
+[[nodiscard]] QSet<QString> blocksReachingANewOutput(const QList<Wire> &wiresBefore,
+                                                     const QList<OutputTarget> &outputsBefore,
+                                                     const QList<Wire> &wiresNow,
+                                                     const QList<OutputTarget> &outputsNow);
+
 /// Everything the session should be linked to, both ways.
 struct SessionPlan {
     QList<CaptureTarget> sources;

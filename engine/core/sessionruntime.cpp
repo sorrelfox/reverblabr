@@ -363,6 +363,9 @@ public:
     /// worked out again: an application starting is a node, a client, two
     /// ports and a link within a few milliseconds.
     QTimer replan;
+    /// The wires and the outputs tellNewOutputs() last compared with.
+    QList<Wire> toldWires;
+    QList<OutputTarget> toldOutputs;
     /// Looks at the nodes for one that has given way to keep the data loop
     /// alive. The node has done the giving way itself, in the cycle;
     /// all that is left here is to say so, and a tenth of a second is soon
@@ -465,6 +468,44 @@ public:
     [[nodiscard]] SessionPlan planFor(const Session &wanted) const
     {
         return sessionPlan(wanted, mirror.nodes(), mirror.ports(), mirror.links(), mirror.defaults());
+    }
+
+    /// Tells each block that wants to know that a new output came within its
+    /// reach since the last time this ran. **Only once the new graph runs**:
+    /// the slot a queued value names belongs to it. The output's first
+    /// samples go out in the same few cycles, far below any level heard.
+    void tellNewOutputs()
+    {
+        const QSet<QString> reaching = blocksReachingANewOutput(toldWires, toldOutputs, session.wires, plan.outputs);
+        rememberOutputs();
+        if (reaching.isEmpty()) {
+            return;
+        }
+        for (std::size_t slot = 0; slot < instances.size(); ++slot) {
+            const Instance &instance = instances[slot];
+            if (!reaching.contains(instance.id)) {
+                continue;
+            }
+            const std::span<const dsp::ParamDescriptor> params = instance.block->params();
+            for (std::size_t index = 0; index < params.size(); ++index) {
+                if (!params[index].flags.pressedByNewOutput) {
+                    continue;
+                }
+                if (pw::SessionNode *node = nodeOfBlock(instance.id); node != nullptr) {
+                    pw::ParamChange change;
+                    change.target = static_cast<std::uint32_t>(slot);
+                    change.index = static_cast<std::uint32_t>(index);
+                    change.value = 1.0f;
+                    (void)node->queueParam(change);
+                }
+            }
+        }
+    }
+
+    void rememberOutputs()
+    {
+        toldWires = session.wires;
+        toldOutputs = plan.outputs;
     }
 
     /// Keeps the description of every device \a made finds there, for when
@@ -2003,6 +2044,7 @@ SessionRuntime::SessionRuntime(pw::Connection &connection,
             (void)update(d->session);
         } else {
             d->publishLinks();
+            d->tellNewOutputs();
         }
         for (const PlanNotice &notice : notices) {
             d->tell(notice);
@@ -2057,6 +2099,7 @@ std::expected<void, RuntimeError> SessionRuntime::start(const Session &session)
     d->keep(*built);
 
     d->session = session;
+    d->rememberOutputs(); // a start reaches every block as a start
     d->running = true;
     d->lostSaid = false;
     d->publishLinks();
@@ -2199,6 +2242,7 @@ std::expected<void, RuntimeError> SessionRuntime::update(const Session &session)
     d->pendingToggles.clear();
 
     d->session = session;
+    d->tellNewOutputs();
     // The ports the links end on may have just changed, so what is wanted is
     // said again.
     d->publishLinks();

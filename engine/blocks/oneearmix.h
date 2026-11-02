@@ -38,7 +38,9 @@ namespace rb::blocks
 /// it exists: a weight that falls takes kFallMs, and a weight that rises moves
 /// at kRiseDbPerSecond, from kRiseFromDb when it starts from nothing. A side
 /// that was not in an ear therefore arrives over nearly five seconds, and it
-/// does the same at a session's start and when the block is switched on.
+/// does the same at a session's start, when the block is switched on, and
+/// when a new output comes within its reach, which the runtime tells it
+/// through the momentary parameter NewOutput.
 ///
 /// **It can raise a peak**, by several dB and by 17.2 dB at the very worst,
 /// though it adds no power. So it reports GainReach::Adds and a limit belongs
@@ -81,6 +83,7 @@ public:
         Hear, ///< fold, mono.
         LowerDb, ///< What the fold is turned down by.
         MatchLevels, ///< A press: starts a reading.
+        NewOutput, ///< A press by the runtime: the arrival starts again.
     };
 
     /// One weight of the matrix, and the law it moves by.

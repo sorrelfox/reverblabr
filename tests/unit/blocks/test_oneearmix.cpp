@@ -402,6 +402,30 @@ TEST(OneEarMix, AStartAndASwitchOnBringTheOtherSideInToo)
     EXPECT_NEAR(block.weights()[2], floor, 1e-6f);
 }
 
+TEST(OneEarMix, ANewOutputBringsTheFarSideInAgain)
+{
+    OneEarMix block;
+    ASSERT_TRUE(block.prepare(spec()).has_value());
+    set(block, "sendTo", "left");
+    runSilence(block, kSettled);
+    const float k = QuadratureFold::kFoldGain;
+    ASSERT_EQ(block.weights()[1], k);
+
+    block.applyParam(OneEarMix::NewOutput, 1.0f);
+    const float floor = dbToGain(OneEarMix::kRiseFromDb);
+    EXPECT_NEAR(block.weights()[1], floor, 1e-6f);
+    EXPECT_EQ(block.weights()[0], k) << "the near side goes on playing";
+    runSilence(block, kSecond);
+    EXPECT_NEAR(gainToDb(block.weights()[1]), OneEarMix::kRiseFromDb + OneEarMix::kRiseDbPerSecond, 0.1f);
+    runSilence(block, kSettled);
+    EXPECT_EQ(block.weights()[1], k);
+
+    OneEarMix plain;
+    ASSERT_TRUE(plain.prepare(spec()).has_value());
+    plain.applyParam(OneEarMix::NewOutput, 1.0f);
+    EXPECT_EQ(plain.weights(), (std::array{1.0f, 0.0f, 0.0f, 1.0f})) << "nothing to bring in";
+}
+
 TEST(OneEarMix, SwitchingOnWithNothingToBringInChangesNothing)
 {
     OneEarMix block;
@@ -623,7 +647,9 @@ TEST(OneEarMix, TheReadingIsAPressAndNoSetting)
     EXPECT_TRUE(match.flags.hidden);
     EXPECT_FALSE(match.flags.inPresets);
     for (std::size_t index = 0; index < params.size(); ++index) {
-        EXPECT_EQ(params[index].flags.momentary, index == OneEarMix::MatchLevels) << params[index].id;
+        EXPECT_EQ(params[index].flags.momentary, index == OneEarMix::MatchLevels || index == OneEarMix::NewOutput)
+            << params[index].id;
+        EXPECT_EQ(params[index].flags.pressedByNewOutput, index == OneEarMix::NewOutput) << params[index].id;
     }
 }
 

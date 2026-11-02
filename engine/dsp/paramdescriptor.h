@@ -77,6 +77,12 @@ struct ParamFlags {
     /// queue, so what the value is does not matter. The session does not hold
     /// it, so it reaches neither the file nor undo, and marks nothing unsaved.
     bool momentary = false;
+    /// **A press the runtime makes itself** (with \ref momentary) when a new
+    /// output comes within this block's reach: a device that appeared, the
+    /// default output moving, a block or a wire. So a block that must bring
+    /// sound in gently learns of an output that may stand many blocks on,
+    /// and nothing new is needed on the audio thread.
+    bool pressedByNewOutput = false;
 };
 
 /// Everything about one parameter that the DSP, the generic settings panel,

@@ -115,6 +115,77 @@ void givePorts(const pw::PwNode &node,
 
 } // namespace
 
+namespace
+{
+
+[[nodiscard]] OutputTarget playingTo(const QString &blockId, const QString &device, bool present = true)
+{
+    OutputTarget target;
+    target.blockId = blockId;
+    target.deviceName = device;
+    target.devicePresent = present;
+    return target;
+}
+
+[[nodiscard]] Wire link(const QString &from, const QString &to)
+{
+    Wire wire;
+    wire.fromBlock = from;
+    wire.toBlock = to;
+    return wire;
+}
+
+const QList<Wire> kChain{link(u"src"_s, u"mix"_s), link(u"mix"_s, u"gain"_s), link(u"gain"_s, u"out"_s)};
+const QSet<QString> kWholeChain{u"src"_s, u"mix"_s, u"gain"_s, u"out"_s};
+
+} // namespace
+
+TEST(NewOutputTest, NothingChangedIsNothingNew)
+{
+    const QList<OutputTarget> outputs{playingTo(u"out"_s, u"speakers"_s)};
+    EXPECT_TRUE(blocksReachingANewOutput(kChain, outputs, kChain, outputs).isEmpty());
+}
+
+TEST(NewOutputTest, ADeviceThatComesReachesEveryBlockBeforeIt)
+{
+    const QList<OutputTarget> gone{playingTo(u"out"_s, u"headset"_s, false)};
+    const QList<OutputTarget> back{playingTo(u"out"_s, u"headset"_s)};
+    EXPECT_EQ(blocksReachingANewOutput(kChain, gone, kChain, back), kWholeChain);
+    EXPECT_TRUE(blocksReachingANewOutput(kChain, back, kChain, gone).isEmpty()) << "one that goes is nothing new";
+}
+
+TEST(NewOutputTest, TheDefaultMovingOrAnotherChoiceIsANewDevice)
+{
+    const QList<OutputTarget> before{playingTo(u"out"_s, u"speakers"_s)};
+    const QList<OutputTarget> now{playingTo(u"out"_s, u"headset"_s)};
+    EXPECT_EQ(blocksReachingANewOutput(kChain, before, kChain, now), kWholeChain);
+}
+
+TEST(NewOutputTest, ANewBlockReachesOnlyWhatFeedsIt)
+{
+    QList<Wire> wires = kChain;
+    wires.append(link(u"mix"_s, u"second"_s));
+    const QList<OutputTarget> before{playingTo(u"out"_s, u"speakers"_s)};
+    const QList<OutputTarget> now{playingTo(u"out"_s, u"speakers"_s), playingTo(u"second"_s, u"headset"_s)};
+    EXPECT_EQ(blocksReachingANewOutput(kChain, before, wires, now), (QSet<QString>{u"src"_s, u"mix"_s, u"second"_s}));
+}
+
+TEST(NewOutputTest, ABlockNewlyWiredToAnOldOutputIsNewToIt)
+{
+    QList<Wire> wires = kChain;
+    wires.append(link(u"other"_s, u"gain"_s));
+    const QList<OutputTarget> outputs{playingTo(u"out"_s, u"speakers"_s)};
+    EXPECT_EQ(blocksReachingANewOutput(kChain, outputs, wires, outputs), QSet<QString>{u"other"_s});
+}
+
+TEST(NewOutputTest, ALoopInTheWiresEnds)
+{
+    QList<Wire> wires = kChain;
+    wires.append(link(u"gain"_s, u"mix"_s));
+    const QList<OutputTarget> now{playingTo(u"out"_s, u"speakers"_s)};
+    EXPECT_EQ(blocksReachingANewOutput(wires, {}, wires, now), kWholeChain);
+}
+
 TEST(CapturePlanTest, TheBinaryIsWhatIsMatchedOnWhenThereIsOne)
 {
     // All three fields are stored so that a session found the application

@@ -17,6 +17,7 @@
 #include "blocks/applicationsource.h"
 #include "blocks/builtinblocks.h"
 #include "blocks/inputdevice.h"
+#include "blocks/oneearmix.h"
 #include "blocks/outputdevice.h"
 #include "blocks/peakrmsmeter.h"
 #include "blocks/volume.h"
@@ -499,6 +500,70 @@ TEST_F(Devices, ADeviceThatGoesAwayComesBackToTheSameSession)
 
     runtime.stop();
     (void)runCommand({"pactl", "unload-module", std::to_string(again)});
+}
+
+// **A block that brings a side in gently hears of a new output**, however far
+// on it stands: the device comes, or another Output Device is wired up.
+TEST_F(Devices, ANewOutputBringsOneEarMixsFarSideInAgain)
+{
+    Pump engine;
+    ASSERT_TRUE(engine.waitUntilReady());
+    const dsp::BlockRegistry registry = deviceRegistry();
+    SessionRuntime runtime(engine.connection(), engine.mirror(), registry);
+
+    Session session = deviceSession(u"mixapp"_s, u"default"_s);
+    BlockInstance mix = block(u"mix"_s, blocks::OneEarMix::kTypeId);
+    mix.params = QJsonObject{{"sendTo"_L1, u"left"_s}};
+    session.blocks.append(mix);
+    session.blocks.append(block(u"gain"_s, blocks::Volume::kTypeId));
+    wireUp(session, u"src"_s, u"mix"_s);
+    wireUp(session, u"mix"_s, u"gain"_s);
+    wireUp(session, u"gain"_s, u"out"_s);
+    ASSERT_TRUE(runtime.start(session).has_value());
+    const auto state = [&] { return published(runtime, u"mix"_s, blocks::OneEarMix::kStateValue); };
+    const auto settled = [&] {
+        return engine.pumpUntil([&] { return state() == blocks::OneEarMix::kSettled; }, std::chrono::seconds{8});
+    };
+    ASSERT_TRUE(engine.pumpUntil([&] { return state() == blocks::OneEarMix::kArriving; }))
+        << "the start did not arrive";
+    ASSERT_TRUE(settled());
+
+    // The default moves to a device of the same shape, a headset plugged in:
+    // no ports and no block change, so nothing but the plan shows it.
+    {
+        const NullDevice device("rbtest.device.ear");
+        ASSERT_TRUE(device.loaded());
+        ASSERT_TRUE(engine.pumpUntil([&] { return engine.mirror().nodeNamed(u"rbtest.device.ear"_s).has_value(); }));
+        const std::uint32_t headset = engine.mirror().nodeNamed(u"rbtest.device.ear"_s)->object.id;
+        engine.pump(std::chrono::milliseconds{200});
+        ASSERT_EQ(state(), blocks::OneEarMix::kSettled) << "a device nobody plays to is no output";
+        (void)runCommand({"wpctl", "set-default", std::to_string(headset)});
+        EXPECT_TRUE(engine.pumpUntil([&] { return state() == blocks::OneEarMix::kArriving; }))
+            << "the far side stayed at full weight on the new device";
+        ASSERT_TRUE(settled());
+
+        // Nothing new: an edit elsewhere in the session starts nothing.
+        Session edited = session;
+        edited.notes = u"a note"_s;
+        ASSERT_TRUE(runtime.update(edited).has_value());
+        engine.pump(std::chrono::milliseconds{200});
+        EXPECT_EQ(state(), blocks::OneEarMix::kSettled);
+
+        // A second output on the chain.
+        BlockInstance out = block(u"out2"_s, blocks::OutputDevice::kTypeId);
+        out.params = QJsonObject{{"device"_L1, QString::fromLatin1(kStereoSink)}};
+        session.blocks.append(out);
+        for (std::uint32_t channel = 0; channel < 2; ++channel) {
+            session.wires.append(Wire{u"gain"_s, channel, u"out2"_s, channel});
+        }
+        ASSERT_TRUE(runtime.update(session).has_value());
+        EXPECT_TRUE(engine.pumpUntil([&] { return state() == blocks::OneEarMix::kArriving; }))
+            << "the far side stayed at full weight on the new block";
+        runtime.stop();
+        const std::optional<pw::PwNode> stereo = engine.mirror().nodeNamed(QString::fromLatin1(kStereoSink));
+        ASSERT_TRUE(stereo.has_value());
+        (void)runCommand({"wpctl", "set-default", std::to_string(stereo->object.id)});
+    }
 }
 
 TEST_F(Devices, TwoOutputBlocksPlayToTwoDevicesAtOnce)

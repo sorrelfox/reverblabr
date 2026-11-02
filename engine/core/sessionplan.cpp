@@ -557,6 +557,50 @@ QList<OutputTarget> outputPlan(const Session &session,
     return plan;
 }
 
+namespace
+{
+
+/// \a blockId and every block that feeds it, however far back.
+[[nodiscard]] QSet<QString> feeding(const QString &blockId, const QList<Wire> &wires)
+{
+    QSet<QString> reached{blockId};
+    QStringList waiting{blockId};
+    while (!waiting.isEmpty()) {
+        const QString next = waiting.takeLast();
+        for (const Wire &wire : wires) {
+            if (wire.toBlock == next && !reached.contains(wire.fromBlock)) {
+                reached.insert(wire.fromBlock);
+                waiting.append(wire.fromBlock);
+            }
+        }
+    }
+    return reached;
+}
+
+} // namespace
+
+QSet<QString> blocksReachingANewOutput(const QList<Wire> &wiresBefore,
+                                       const QList<OutputTarget> &outputsBefore,
+                                       const QList<Wire> &wiresNow,
+                                       const QList<OutputTarget> &outputsNow)
+{
+    QSet<QString> reaching;
+    for (const OutputTarget &output : outputsNow) {
+        if (!output.devicePresent) {
+            continue;
+        }
+        QSet<QString> fresh = feeding(output.blockId, wiresNow);
+        const bool sameDevice = std::ranges::any_of(outputsBefore, [&output](const OutputTarget &before) {
+            return before.blockId == output.blockId && before.deviceName == output.deviceName && before.devicePresent;
+        });
+        if (sameDevice) {
+            fresh.subtract(feeding(output.blockId, wiresBefore));
+        }
+        reaching.unite(fresh);
+    }
+    return reaching;
+}
+
 QList<pw::DesiredLink> outputLinks(const QList<OutputTarget> &targets, const pw::SessionNode &node)
 {
     return outputLinks(targets, [&node](const QString &) { return &node; });
