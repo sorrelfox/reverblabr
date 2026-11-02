@@ -542,6 +542,18 @@ TestCase {
 
     // --- the levels view ---
 
+    // A word with nowhere to break, as a long name or a translation can be,
+    // stays on the card.
+    function test_theNotesUnderTheGraphBreakALongWord() {
+        const id = testCase.newBlock("");
+        const panel = testCase.openPanel(id).panel;
+        panel.view = "levels";
+        const note = panel.levelsNote;
+        note.text = "x".repeat(800);
+        tryVerify(() => note.width > 0 && note.lineCount > 1, 1000,
+                  "the note ran past the card: " + note.lineCount + " lines, " + note.width);
+    }
+
     function test_aBandCeilingIsTypedInDbfs() {
         testCase.clearSession();
         const id = testCase.newBlock("left");

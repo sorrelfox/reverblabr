@@ -41,7 +41,7 @@ RowLayout {
         id: words
 
         Layout.fillWidth: true
-        wrapMode: Text.WordWrap
+        wrapMode: Text.Wrap
         color: AppColors.muted
         font: AppFonts.small
     }

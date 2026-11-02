@@ -1066,7 +1066,7 @@ ColumnLayout {
 
         Layout.fillWidth: true
         visible: panel.soundBehindGains
-        wrapMode: Text.WordWrap
+        wrapMode: Text.Wrap
         font: AppFonts.small
         color: AppColors.muted
         text: KI18n.i18nc("@info under the gain view of a block, while the sound is drawn behind the curves",
@@ -1079,7 +1079,7 @@ ColumnLayout {
 
         Layout.fillWidth: true
         visible: panel.view === "levels"
-        wrapMode: Text.WordWrap
+        wrapMode: Text.Wrap
         font: AppFonts.small
         color: AppColors.muted
         text: [KI18n.i18nc("@info under the levels view of a block",
