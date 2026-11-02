@@ -5,11 +5,11 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Hearing
 
-One of the things I want Reverblabr to do well is help people who hear part of the sound poorly: someone who can't hear the high frequencies any more, who has a dip somewhere in the middle, or whose two ears hear differently. The blocks in the **Hearing** group of the library are for that. They work on one ear at a time, so each ear can be set up for the way it hears, and they can work from an audiogram if you have one.
+The blocks in the **Hearing** group of the library shape sound one ear at a time. They lift quiet sound band by band, in the high frequencies or anywhere else, hold each band under a limit you set, and move sound from one range to another. Each ear has settings of its own, so the two can differ, and they can start from an audiogram if you have one.
 
 Please keep two things in mind:
 
-- **Reverblabr is not a medical device.** It shapes sound for listening and measures nothing about anybody's health. It doesn't replace an audiologist or a hearing aid. If your hearing has changed, have it checked.
+- **Reverblabr is not a medical device.** It shapes sound for listening and measures nothing about anybody's health. It doesn't replace an audiologist, or earpieces that shape the sound themselves. If your hearing has changed, see a doctor.
 - **Be careful with loud sound.** These blocks can add a lot of gain. Start with the volume low, especially with headphones, raise it slowly, and leave the **Output ceiling** in place.
 
 ## Before you add a Hearing block
