@@ -199,6 +199,9 @@ QtObject {
         ReverbHelp {}
     }
 
+    readonly property Component voiceCompressor: Component {
+        VoiceCompressorHelp {}
+    }
     readonly property Component simpleCompressor: Component {
         SimpleCompressorHelp {}
     }
@@ -268,6 +271,7 @@ QtObject {
         "meter.voicegauge": help.voiceGauge,
         "meter.soundside": help.soundSide,
         "effect.nightlevel": help.nightLevel,
+        "effect.voicecompressor": help.voiceCompressor,
         "effect.voiceforward": help.voiceForward,
         "meter.peakrms": help.peakRms,
         "meter.vu": help.vu,

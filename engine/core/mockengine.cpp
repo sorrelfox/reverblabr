@@ -28,6 +28,7 @@
 #include "blocks/speechnow.h"
 #include "blocks/sync.h"
 #include "blocks/timeshift.h"
+#include "blocks/voicecompressor.h"
 #include "blocks/voiceforward.h"
 #include "blocks/voicegauge.h"
 #include "blocks/vumeter.h"
@@ -597,6 +598,23 @@ public:
                 for (qsizetype value = 0; value < fake.size() && value < qsizetype(rt::kMaxMeterValues); ++value) {
                     into.values[value] = fake.at(value).toFloat();
                 }
+            }
+            // Unless a test has said otherwise, the level is the made-up one
+            // and the curve its own, as for a steady tone.
+            if (running && block.type == asText(blocks::VoiceCompressor::kTypeId)
+                && session.blockValues.value(block.id).isEmpty()) {
+                const float level = dsp::gainToDb(peak);
+                const auto gate = static_cast<float>(
+                    block.params.value("gate"_L1).toDouble(static_cast<double>(blocks::VoiceCompressor::kGateOffDb)));
+                const float gated = blocks::VoiceCompressor::gateDb(level, gate);
+                into.values[blocks::VoiceCompressor::kGatedValue] = -gated;
+                into.values[blocks::VoiceCompressor::kCompressedValue] = -blocks::VoiceCompressor::compressorDb(
+                    level + gated,
+                    static_cast<float>(
+                        block.params.value("compression"_L1)
+                            .toDouble(static_cast<double>(blocks::VoiceCompressor::kDefaultCompressionDb))));
+                into.values[blocks::VoiceCompressor::kLimitedValue] = 0.0f;
+                into.values[blocks::VoiceCompressor::kInputValue] = level;
             }
             if (running && block.type == asText(blocks::Limiter::kTypeId)) {
                 into.values[blocks::Limiter::kGainReductionValue] = limiterReduction(block, peak);

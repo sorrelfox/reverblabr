@@ -212,6 +212,11 @@ QtObject {
         DuckingFace {}
     }
 
+    /// The Voice Compressor face: what it takes off now, and what it is doing.
+    readonly property Component voiceCompressor: Component {
+        VoiceCompressorFace {}
+    }
+
     /// The Simple Compressor face: the mode, and how hard it works.
     readonly property Component simpleCompressor: Component {
         SimpleCompressorFace {}
@@ -302,6 +307,7 @@ QtObject {
         "meter.voicegauge": faces.voiceGauge,
         "meter.soundside": faces.soundSide,
         "effect.nightlevel": faces.nightLevel,
+        "effect.voicecompressor": faces.voiceCompressor,
         "effect.voiceforward": faces.voiceForward,
         "output.device": faces.outputDevice,
         "source.application": faces.applicationSource,

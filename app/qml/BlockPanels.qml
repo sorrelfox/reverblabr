@@ -214,6 +214,11 @@ QtObject {
         DuckingPanel {}
     }
 
+    /// The Voice Compressor panel: three controls, its curve and its meters.
+    readonly property Component voiceCompressor: Component {
+        VoiceCompressorPanel {}
+    }
+
     /// The Simple Compressor panel: one list of modes, what the chosen
     /// one is for, and the numbers it sets, to read.
     readonly property Component simpleCompressor: Component {
@@ -330,6 +335,7 @@ QtObject {
         "meter.voicegauge": panels.voiceGauge,
         "meter.soundside": panels.soundSide,
         "effect.nightlevel": panels.nightLevel,
+        "effect.voicecompressor": panels.voiceCompressor,
         "effect.voiceforward": panels.voiceForward,
         "output.device": panels.outputDevice,
         "source.application": panels.applicationSource,

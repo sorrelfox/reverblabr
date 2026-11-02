@@ -188,6 +188,13 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "Swaps, mutes or folds the two channels — one side to both, a fold to mono, a polarity flip — "
                   "and fades from one arrangement to the next.")},
+    Entry{"effect.voicecompressor",
+          "effects",
+          kli18nc("@item block name", "Voice Compressor"),
+          kli18nc("@info block description", "Holds a voice steady with three controls: compression, gate, ceiling"),
+          kli18nc("@info:tooltip block description",
+                  "Evens out a voice with one Compression control that makes up the level by itself, a gentle gate for "
+                  "the quiet between words, and a limiter at the ceiling you set.")},
     Entry{"effect.dynamics",
           "effects",
           kli18nc("@item block name", "Dynamics Processor"),

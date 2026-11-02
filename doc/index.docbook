@@ -778,6 +778,17 @@ the original.</para></listitem>
 lane.</para>
 </sect2>
 
+<sect2 id="block-effect-voicecompressor">
+<title>Voice Compressor</title>
+<para>Holds a voice steady with three controls. Lower
+<guilabel>Compression</guilabel> to take more off the loud parts: the rest of
+the sound comes up by itself. Raise <guilabel>Gate</guilabel> to lower the quiet
+between words. <guilabel>Ceiling</guilabel> is the highest level that can leave
+the block, and the whole sound moves with it. Near the top of its range it also
+drives the limiter harder. The tile shows what compression and the gate take off
+together. Attack and release are set for you.</para>
+</sect2>
+
 <sect2 id="block-effect-simplecompressor">
 <title>Simple Compressor</title>
 <para>Steadies the level with one choice (<guilabel>Gentle</guilabel>,

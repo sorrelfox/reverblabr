@@ -282,6 +282,12 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SoundSideState.qml
     qml/SoundSideStrip.qml
     qml/SoundSideWords.qml
+    qml/VoiceCompressorFace.qml
+    qml/VoiceCompressorGraph.qml
+    qml/VoiceCompressorHelp.qml
+    qml/VoiceCompressorPanel.qml
+    qml/VoiceCompressorState.qml
+    qml/VoiceCompressorWords.qml
     qml/VoiceForwardFace.qml
     qml/VoiceForwardHelp.qml
     qml/VoiceForwardPanel.qml
@@ -375,6 +381,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/meter.voicegauge.svg
     icons/meter.soundside.svg
     icons/effect.nightlevel.svg
+    icons/effect.voicecompressor.svg
     icons/effect.voiceforward.svg
     icons/meter.vu.svg
     icons/output.broadcast.svg

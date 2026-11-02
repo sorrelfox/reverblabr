@@ -139,6 +139,10 @@ qt_add_resources(reverblabr-engine "reverblabr-factory-presets"
         ../presets/effect.nightlevel/10-light.json
         ../presets/effect.nightlevel/20-night.json
         ../presets/effect.nightlevel/30-strong.json
+        ../presets/effect.voicecompressor/10-soft-voice.json
+        ../presets/effect.voicecompressor/20-speech.json
+        ../presets/effect.voicecompressor/30-strong-voice.json
+        ../presets/effect.voicecompressor/40-singing.json
         ../presets/effect.voiceforward/10-music-stays.json
         ../presets/effect.voiceforward/20-voices-first.json
         ../presets/effect.equalizer10/010-flat.json

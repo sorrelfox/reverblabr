@@ -518,6 +518,7 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
 | Pitch Shift | `effect.pitchshift` |
 | Night Level | `effect.nightlevel` |
 | Voice Forward | `effect.voiceforward` |
+| Voice Compressor | `effect.voicecompressor` |
 | Auto Level | `effect.autolevel` (the library's Voice Evener row is `effect.autolevel?preset=voiceEvener`, no type of its own) |
 | Balance | `effect.balance` |
 | Channels | `effect.channels` |

@@ -57,6 +57,7 @@
 #include "blocks/sync.h"
 #include "blocks/systemaudio.h"
 #include "blocks/timeshift.h"
+#include "blocks/voicecompressor.h"
 #include "blocks/voiceforward.h"
 #include "blocks/voicegauge.h"
 #include "blocks/volume.h"
@@ -95,6 +96,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{ParametricEq::kTypeId}, &ParametricEq::make).has_value()
         && registry.add(std::string{Equalizer10::kTypeId}, &Equalizer10::make).has_value()
         && registry.add(std::string{SimpleCompressor::kTypeId}, &SimpleCompressor::make).has_value()
+        && registry.add(std::string{VoiceCompressor::kTypeId}, &VoiceCompressor::make).has_value()
         && registry.add(std::string{Limiter::kTypeId}, &Limiter::make).has_value()
         && registry.add(std::string{LowPassFilter::kTypeId}, &LowPassFilter::make).has_value()
         && registry.add(std::string{Sync::kTypeId}, &Sync::make).has_value()

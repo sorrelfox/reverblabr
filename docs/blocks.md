@@ -42,6 +42,7 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 | **Echo** | Repeats the sound from a millisecond to two seconds later, each repeat quieter and duller than the one before, mixed in behind the original. |
 | **Reverb** | Puts the sound in a room. See [below](#reverb). |
 | **Pitch Shift** | Moves the pitch up or down by up to an octave in semitones, and a little further with cents, without making the sound faster or slower. See [below](#pitch-shift). |
+| **Voice Compressor** | Holds a voice steady with three controls. Compression evens it out and makes up the level by itself, a gentle gate lowers the quiet between words, and a limiter stands at the ceiling you set. Delays the sound by about 2 ms. |
 | **Night Level** | Finds the level of speech in what is playing, leaves sound near it alone, and brings louder and quieter sounds part of the way towards it. Until it hears speech it changes nothing. It presses music too, so turn it off for music. |
 | **Voice Forward** | Finds what is alike on both sides of a stereo sound and turns the rest down with one control, less between voices. At 0 dB or switched off the sound passes unchanged. It can't tell a voice from centred music, and a voice off to one side goes down with the rest. About 23 ms of delay. |
 | **Balance** | Turns the left or the right side of a stereo lane down against the other, all the way to silence. |

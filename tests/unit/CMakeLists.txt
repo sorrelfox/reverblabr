@@ -167,6 +167,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_voicegauge.cpp
         blocks/test_soundside.cpp
         blocks/test_nightlevel.cpp
+        blocks/test_voicecompressor.cpp
         blocks/test_voiceforward.cpp
         blocks/test_voicemodel.cpp
         blocks/test_vumeter.cpp

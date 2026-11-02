@@ -1,0 +1,9 @@
+{
+    "schema": 1,
+    "type": "effect.voicecompressor",
+    "params": {
+        "compression": -20.0,
+        "gate": -60.0,
+        "ceiling": -6.0
+    }
+}
