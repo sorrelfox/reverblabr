@@ -98,10 +98,16 @@ public:
     /// together. It would be a click, so it glides.
     static constexpr float kCompressionGlideMs = 50.0f;
 
-    /// What the block publishes (rt::BlockMeter): the most the compressor, the
-    /// gate and the limiter took off in the cycle, each as a positive number of
-    /// dB, and the level coming in, in dBFS. The first two added are the
-    /// total the tile shows.
+    /// How long the deepest total stays published. **Longer than the gap
+    /// between two meter frames**, or a peak between them is seen by nobody;
+    /// the four slots are taken, so the hold is on the reading itself.
+    static constexpr float kReadingHoldMs = 120.0f;
+
+    /// What the block publishes (rt::BlockMeter): what the compressor and the
+    /// gate took off at the deepest total of the last kReadingHoldMs, what the
+    /// limiter took off in the cycle, each as a positive number of dB, and the
+    /// level coming in, in dBFS. The first two added are the total the tile
+    /// shows.
     static constexpr std::size_t kCompressedValue = 0;
     static constexpr std::size_t kGatedValue = 1;
     static constexpr std::size_t kLimitedValue = 2;
@@ -188,9 +194,11 @@ private:
     /// The make-up as Compression and the Ceiling stand, kept while they do.
     float m_makeupDb = 0.0f;
 
-    /// The deepest of the cycle, for the meter.
-    float m_deepestCompressedDb = 0.0f;
-    float m_deepestGatedDb = 0.0f;
+    /// The deepest total held for the meter, and the samples left of it.
+    float m_heldCompressedDb = 0.0f;
+    float m_heldGatedDb = 0.0f;
+    std::uint32_t m_heldFor = 0;
+    std::uint32_t m_holdSamples = 0;
 };
 
 } // namespace rb::blocks

@@ -55,8 +55,8 @@ QtObject {
     property real mostDb: 0
 
     /// **Noted as the reading moves**, not on the tick: the quick release is gone
-    /// well inside a quarter of a second. It sees what the meter frames show,
-    /// so a peak that lies wholly between two frames can still be missed.
+    /// well inside a quarter of a second. The block holds a peak for longer than
+    /// the gap between two meter frames, so no peak falls between them.
     onTotalDbChanged: reading.mostDb = Math.max(reading.mostDb, reading.totalDb)
 
     function resetMost() {

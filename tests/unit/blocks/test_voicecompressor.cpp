@@ -625,6 +625,28 @@ TEST(VoiceCompressor, ItPublishesWhatItDidAtEveryQuantum)
     }
 }
 
+// **A meter reads the slots every so often**: what fell between two reads
+// must still be there at the next one, whatever the quantum.
+TEST(VoiceCompressor, APeakBetweenTwoMeterFramesIsStillThereAtTheNext)
+{
+    for (const std::uint32_t quantum : {1U, 64U, 1024U}) {
+        SCOPED_TRACE(quantum);
+        Rig rig({-24.0f, -24.0f, kOff});
+        const auto play = [&](std::size_t ms, float levelDb) {
+            const Signal sound = tone(ms * kMilli, levelDb);
+            (void)rig.runner->run({sound, sound}, CycleShape::fixed(quantum));
+        };
+        play(1000, -60.0f);
+        play(30, -6.0f);
+        const float peak = rig.meter.value(VoiceCompressor::kCompressedValue);
+        ASSERT_GT(peak, 3.0f);
+        play(static_cast<std::size_t>(VoiceCompressor::kReadingHoldMs * 0.9f), -60.0f);
+        EXPECT_GE(rig.meter.value(VoiceCompressor::kCompressedValue), peak) << "gone before the next frame";
+        play(800, -60.0f);
+        EXPECT_LT(rig.meter.value(VoiceCompressor::kCompressedValue), peak * 0.5f) << "held for ever";
+    }
+}
+
 TEST(VoiceCompressor, ALimiterCatchIsPublishedHoweverShort)
 {
     Rig rig({-36.0f, -3.0f, kOff});

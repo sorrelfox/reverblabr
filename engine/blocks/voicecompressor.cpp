@@ -171,6 +171,7 @@ std::expected<void, BlockError> VoiceCompressor::prepare(const PrepareSpec &spec
     m_gateOpensCoefficient = exponentialDecayCoefficient(kGateOpensMs, rate);
     m_gateClosesCoefficient = exponentialDecayCoefficient(kGateClosesMs, rate);
     m_gateHoldSamples = static_cast<std::uint32_t>(std::lround(static_cast<double>(kGateHoldsMs) * 1.0e-3 * rate));
+    m_holdSamples = static_cast<std::uint32_t>(std::lround(static_cast<double>(kReadingHoldMs) * 1.0e-3 * rate));
     reset();
     return {};
 }
@@ -211,8 +212,14 @@ float VoiceCompressor::gainFor(std::span<const float, 2> samples) noexcept RB_NO
     m_slowDb = chase(m_slowDb, target, m_slowAttackCoefficient, m_slowReleaseCoefficient);
     const float compressed = std::min(m_quickDb, m_slowDb);
 
-    m_deepestCompressedDb = std::min(m_deepestCompressedDb, compressed);
-    m_deepestGatedDb = std::min(m_deepestGatedDb, m_gateDb);
+    // The two together, from one sample, so that their sum is a real total.
+    if (compressed + m_gateDb <= m_heldCompressedDb + m_heldGatedDb || m_heldFor == 0) {
+        m_heldCompressedDb = compressed;
+        m_heldGatedDb = m_gateDb;
+        m_heldFor = m_holdSamples;
+    } else {
+        --m_heldFor;
+    }
     return dbToGain(m_gateDb + compressed + m_makeupDb + ceiling);
 }
 
@@ -223,8 +230,6 @@ void VoiceCompressor::process(ProcessContext &context) noexcept RB_NONBLOCKING
     const float ceiling = m_store.number(Ceiling);
     m_ceiling.setTarget(ceiling);
     m_limiter.setCeilingGain(dbToGain(ceiling));
-    m_deepestCompressedDb = 0.0f;
-    m_deepestGatedDb = 0.0f;
 
     const std::uint32_t channels = std::min(context.output.channelCount(), context.input.channelCount());
     for (std::uint32_t frame = 0; frame < context.frames; ++frame) {
@@ -256,8 +261,8 @@ void VoiceCompressor::publish() noexcept RB_NONBLOCKING
     if (m_meter == nullptr) {
         return;
     }
-    m_meter->publish(kCompressedValue, -m_deepestCompressedDb);
-    m_meter->publish(kGatedValue, -m_deepestGatedDb);
+    m_meter->publish(kCompressedValue, -m_heldCompressedDb);
+    m_meter->publish(kGatedValue, -m_heldGatedDb);
     m_meter->publish(kLimitedValue, -gainToDb(m_limiter.lowestGain()));
     m_meter->publish(kInputValue, m_levelDb);
 }
@@ -278,8 +283,9 @@ void VoiceCompressor::reset() noexcept RB_NONBLOCKING
     m_gateDb = 0.0f;
     m_gateHold = 0;
     m_makeupDb = makeupDb(compression, ceiling);
-    m_deepestCompressedDb = 0.0f;
-    m_deepestGatedDb = 0.0f;
+    m_heldCompressedDb = 0.0f;
+    m_heldGatedDb = 0.0f;
+    m_heldFor = 0;
 }
 
 void VoiceCompressor::applyParam(std::uint32_t index, float value) noexcept RB_NONBLOCKING
