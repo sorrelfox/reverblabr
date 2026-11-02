@@ -40,7 +40,15 @@ enum class Refusal : std::uint32_t {
     NeedsConfiguration = 14, ///< A model whose family is unknown, with no configuration.
     RateNotUsable = 15, ///< No resampler for this pair of rates.
     CycleTooLong = 16, ///< The session's cycle is longer than the spare time allows.
+    NoContentModel = 17, ///< A voice with no content encoder beside it.
+    NoPitchModel = 18, ///< A voice with no pitch estimator beside it.
+    NoVoiceModel = 19, ///< The shared models with no voice beside them.
+    ContentDoesNotFit = 20, ///< The content encoder gives another size of features than the voice takes.
 };
+
+/// The highest Refusal there is: a number from the host's memory above it is
+/// no reason. Moves with the list above.
+inline constexpr Refusal kLastRefusal = Refusal::ContentDoesNotFit;
 
 /// **A model's family**: what knows how to call it (ADR-0031). A number for
 /// the same reason as Refusal.
@@ -49,7 +57,7 @@ enum class Family : std::uint32_t {
     Configured = 1, ///< Described by reverblabr-model.json.
     DeepFilterNetStream = 2, ///< DeepFilterNet as one streaming graph.
     Cleanup = 3, ///< Another cleanup family, not built yet.
-    VoiceConversion = 4, ///< Not built yet.
+    VoiceConversion = 4, ///< A voice, a content encoder and a pitch estimator.
     Speech = 5, ///< Speech through a language model, not built yet.
 };
 
@@ -66,6 +74,44 @@ struct Constant {
     float value = 0.0f;
 };
 
+/// **The three graphs of a voice conversion folder**, and what each one's
+/// inputs and outputs are called: the exports do not agree on the names.
+struct VoiceSet {
+    /// The content encoder: sound in, what is being said out.
+    std::string contentFile;
+    std::string contentInput;
+    /// An input that says which samples count, for the exports that have one.
+    std::string contentMask;
+    std::string contentOutput;
+    /// The size of one frame of its features.
+    std::uint32_t contentBands = 0;
+
+    /// The pitch estimator: a spectrum in, how likely each pitch is out.
+    std::string pitchFile;
+    std::string pitchInput;
+    std::string pitchOutput;
+
+    /// The voice itself, in Description::modelFile, whose output is
+    /// Description::output.
+    std::string features;
+    std::string lengths;
+    std::string pitch;
+    std::string pitchHz;
+    std::string speaker;
+    /// Empty for an export that makes its own noise.
+    std::string noise;
+
+    /// What the voice makes of one frame: samples at Description::sampleRate.
+    std::uint32_t samplesPerFrame = 0;
+    /// How many frames of the window the voice is given.
+    std::uint32_t voiceFrames = 0;
+    /// How many frames at the end of what it makes are left out: the last
+    /// ones are the least sure, with nothing after them.
+    std::uint32_t tailFrames = 0;
+    /// How long two runs' sound overlap, at Description::sampleRate.
+    std::uint32_t crossfade = 0;
+};
+
 /// **What a folder holds and how to call it.** Bounded by the time it is
 /// made, whatever the folder said.
 struct Description {
@@ -74,21 +120,43 @@ struct Description {
     /// File names inside the folder, never a path.
     std::string modelFile;
     std::string licenceFile;
+    /// The rate of what the model makes.
     std::uint32_t sampleRate = 0;
+    /// The rate of what it takes, when that is another one: zero says the
+    /// same. frameSize and hopSize are in this rate.
+    std::uint32_t inputRate = 0;
     std::uint32_t channels = 0;
     std::uint32_t frameSize = 0;
     std::uint32_t hopSize = 0;
-    /// The model's own look-ahead, at its rate.
+    /// What a hop makes, at sampleRate, when that differs from hopSize: zero
+    /// says the same.
+    std::uint32_t outputHop = 0;
+    /// The model's own look-ahead, at sampleRate.
     std::uint32_t latencySamples = 0;
+    /// A run so long that the block's latency has to hold it, on top of the
+    /// spare time. Not part of what the host drops.
+    std::uint32_t runMs = 0;
     std::uint32_t threads = 1;
     std::string input;
     std::string output;
     std::vector<StatePair> state;
     std::vector<Constant> constants;
+    /// For Family::VoiceConversion.
+    VoiceSet voice;
 
     [[nodiscard]] bool usable() const noexcept
     {
         return refusal == Refusal::None;
+    }
+
+    [[nodiscard]] std::uint32_t rateIn() const noexcept
+    {
+        return inputRate != 0 ? inputRate : sampleRate;
+    }
+
+    [[nodiscard]] std::uint32_t hopOut() const noexcept
+    {
+        return outputHop != 0 ? outputHop : hopSize;
     }
 };
 

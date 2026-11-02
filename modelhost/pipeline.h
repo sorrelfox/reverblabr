@@ -9,7 +9,7 @@
 
 #include "model/description.h"
 #include "model/shared.h"
-#include "onnxrunner.h"
+#include "runner.h"
 
 #include <atomic>
 #include <cstdint>
@@ -31,6 +31,6 @@ struct PipelineOptions {
 [[nodiscard]] int runPipeline(model::SharedRings &rings,
                               const model::Description &description,
                               const PipelineOptions &options,
-                              OnnxRunner &runner);
+                              ModelRunner &runner);
 
 } // namespace rb::modelhost

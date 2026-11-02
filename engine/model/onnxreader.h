@@ -27,6 +27,10 @@ struct OnnxPort {
 struct OnnxSummary {
     std::vector<OnnxPort> inputs;
     std::vector<OnnxPort> outputs;
+    /// How many samples one step of the graph's input becomes, going by the
+    /// strides of its transposed convolutions: 1 with none of them. A file
+    /// says nothing of its sample rate, and this is how a voice's shows.
+    std::uint64_t upsampling = 1;
 };
 
 enum class OnnxFault : std::uint8_t {

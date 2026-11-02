@@ -751,7 +751,15 @@ not yet fully tested.</para>
 process of its own, so a slow or crashing model cannot stop the session.
 Reverblabr includes no models and never downloads one. The folder's
 <filename>reverblabr-model.json</filename> says how to call a model, or the
-block recognises a streaming DeepFilterNet by its inputs.</para>
+block recognises a streaming DeepFilterNet or a voice conversion model by
+its inputs.</para>
+<para>A voice conversion model is three ONNX files in one folder: the voice, a
+content encoder and a pitch estimator. If one is missing, the card says which.
+<guilabel>Pitch shift</guilabel> moves the voice up or down, up to 24 semitones
+either way, while it runs. A voice takes far more than a cleanup model: its
+delay is about 390 milliseconds, which is too long to hear yourself speak
+through it, and it needs about two processor cores. Use only voices you have
+the right to use.</para>
 <para>Sound only leaves this block after the model has processed it. In every
 other case the block is silent and nothing reaches the next block: when it is
 switched off, with no model, while one loads, when it cannot be loaded, when

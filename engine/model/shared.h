@@ -20,7 +20,7 @@ namespace rb::model
 /// "RMDL", and the layout's version: a host that finds anything else in the
 /// memory it was handed refuses to run rather than misread it.
 inline constexpr std::uint32_t kSharedMagic = 0x4C444D52;
-inline constexpr std::uint32_t kProtocolVersion = 1;
+inline constexpr std::uint32_t kProtocolVersion = 2;
 /// A session's lane: every Model block has two channels each way.
 inline constexpr std::uint32_t kRingChannels = 2;
 
@@ -56,6 +56,9 @@ struct SharedHeader {
     alignas(64) std::atomic<std::uint64_t> written{0};
     /// Moved on when the signal path is cut: the host starts clean.
     std::atomic<std::uint32_t> resetEpoch{0};
+    /// How far a voice is moved, in cents. Read before each run, and only
+    /// by a family that has a pitch to move.
+    std::atomic<std::int32_t> pitchCents{0};
 
     /// **Written by the host.** Output frames in [wetFrom, wetEnd) hold the
     /// model's answer to the input frames of the same number.

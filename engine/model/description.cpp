@@ -49,11 +49,16 @@ std::string describeAsText(const Description &description)
     line("family", static_cast<std::uint32_t>(description.family));
     line("modelFile", description.modelFile);
     line("licenceFile", description.licenceFile);
+    line("contentFile", description.voice.contentFile);
+    line("pitchFile", description.voice.pitchFile);
     line("sampleRate", description.sampleRate);
+    line("inputRate", description.inputRate);
     line("channels", description.channels);
     line("frameSize", description.frameSize);
     line("hopSize", description.hopSize);
+    line("outputHop", description.outputHop);
     line("latencySamples", description.latencySamples);
+    line("runMs", description.runMs);
     return text;
 }
 
@@ -84,16 +89,26 @@ Description parseDescriptionText(std::string_view text)
             description.modelFile = value;
         } else if (key == "licenceFile") {
             description.licenceFile = value;
+        } else if (key == "contentFile") {
+            description.voice.contentFile = value;
+        } else if (key == "pitchFile") {
+            description.voice.pitchFile = value;
         } else if (key == "sampleRate") {
             description.sampleRate = number<std::uint32_t>(value);
+        } else if (key == "inputRate") {
+            description.inputRate = number<std::uint32_t>(value);
         } else if (key == "channels") {
             description.channels = number<std::uint32_t>(value);
         } else if (key == "frameSize") {
             description.frameSize = number<std::uint32_t>(value);
         } else if (key == "hopSize") {
             description.hopSize = number<std::uint32_t>(value);
+        } else if (key == "outputHop") {
+            description.outputHop = number<std::uint32_t>(value);
         } else if (key == "latencySamples") {
             description.latencySamples = number<std::uint32_t>(value);
+        } else if (key == "runMs") {
+            description.runMs = number<std::uint32_t>(value);
         }
     }
     if (!saidRefusal) {
@@ -107,18 +122,19 @@ std::optional<Timing> timingFor(const Description &description, std::uint32_t se
     if (!description.usable() || sessionRate == 0 || description.sampleRate == 0 || description.hopSize == 0) {
         return std::nullopt;
     }
-    const std::uint32_t modelRate = description.sampleRate;
-    if (!Resampler::supported(sessionRate, modelRate) || !Resampler::supported(modelRate, sessionRate)) {
+    const std::uint32_t rateOut = description.sampleRate;
+    const std::uint32_t rateIn = description.rateIn();
+    if (!Resampler::supported(sessionRate, rateIn) || !Resampler::supported(rateOut, sessionRate)) {
         return std::nullopt;
     }
     const double session = sessionRate;
-    const double model = modelRate;
-    const double seconds = Resampler::delaySeconds(sessionRate, modelRate)
-        + Resampler::delaySeconds(modelRate, sessionRate) + description.latencySamples / model;
+    const double seconds = Resampler::delaySeconds(sessionRate, rateIn) + Resampler::delaySeconds(rateOut, sessionRate)
+        + description.latencySamples / static_cast<double>(rateOut);
     Timing timing;
-    timing.hopFrames = static_cast<std::uint32_t>(std::ceil(description.hopSize * session / model));
+    timing.hopFrames = static_cast<std::uint32_t>(std::ceil(description.hopSize * session / rateIn));
     timing.pathDelay = static_cast<std::uint32_t>(std::lround(seconds * session));
-    timing.latency = timing.hopFrames + timing.pathDelay + spareFrames;
+    timing.latency = timing.hopFrames + timing.pathDelay + spareFrames
+        + static_cast<std::uint32_t>(std::lround(description.runMs * session / 1000.0));
     return timing;
 }
 

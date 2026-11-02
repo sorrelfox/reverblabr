@@ -47,7 +47,7 @@ public:
     Path(model::SharedRings &rings,
          const model::Description &description,
          const PipelineOptions &options,
-         OnnxRunner &runner)
+         ModelRunner &runner)
         : m_rings(rings)
         , m_description(description)
         , m_options(options)
@@ -55,17 +55,17 @@ public:
         , m_lanes(options.downmix && description.channels == 1 ? 1 : model::kRingChannels)
         , m_stereo(description.channels == 2)
         , m_pathDelay(model::timingFor(description, options.sessionRate, 0)->pathDelay)
-        , m_hopSeconds(static_cast<double>(description.hopSize) / description.sampleRate)
+        , m_hopSeconds(static_cast<double>(description.hopSize) / description.rateIn())
     {
         for (std::size_t lane = 0; lane < m_lanes; ++lane) {
-            m_down[lane].prepare(options.sessionRate, description.sampleRate);
+            m_down[lane].prepare(options.sessionRate, description.rateIn());
             m_up[lane].prepare(description.sampleRate, options.sessionRate);
         }
         for (std::vector<float> &history : m_history) {
             history.assign(description.frameSize, 0.0f);
         }
         m_input.resize(std::size_t{description.channels} * description.frameSize);
-        m_output.resize(std::size_t{description.channels} * description.hopSize);
+        m_output.resize(std::size_t{description.channels} * description.hopOut());
     }
 
     /// Starts the stream again from frame \a start.
@@ -165,6 +165,8 @@ private:
             std::copy_n(m_atModelRate[lane].begin(), hop, history.end() - hop);
             m_atModelRate[lane].erase(m_atModelRate[lane].begin(), m_atModelRate[lane].begin() + hop);
         }
+        m_runner.setPitchShift(static_cast<float>(m_rings.header().pitchCents.load(std::memory_order_relaxed)));
+        const std::uint32_t out = m_description.hopOut();
         const Clock::time_point before = Clock::now();
         if (m_stereo) {
             std::copy(m_history[0].begin(), m_history[0].end(), m_input.begin());
@@ -173,8 +175,8 @@ private:
                 return false;
             }
             silenceIfNotSound();
-            m_up[0].process(std::span<const float>{m_output}.first(hop), m_atSessionRate[0]);
-            m_up[1].process(std::span<const float>{m_output}.subspan(hop, hop), m_atSessionRate[1]);
+            m_up[0].process(std::span<const float>{m_output}.first(out), m_atSessionRate[0]);
+            m_up[1].process(std::span<const float>{m_output}.subspan(out, out), m_atSessionRate[1]);
         } else {
             for (std::size_t lane = 0; lane < m_lanes; ++lane) {
                 if (!m_runner.run(lane, m_history[lane], m_output)) {
@@ -225,7 +227,7 @@ private:
     model::SharedRings &m_rings;
     const model::Description &m_description;
     const PipelineOptions &m_options;
-    OnnxRunner &m_runner;
+    ModelRunner &m_runner;
     std::size_t m_lanes;
     bool m_stereo;
     std::uint32_t m_pathDelay;
@@ -250,7 +252,7 @@ private:
 int runPipeline(model::SharedRings &rings,
                 const model::Description &description,
                 const PipelineOptions &options,
-                OnnxRunner &runner)
+                ModelRunner &runner)
 {
     ::prctl(PR_SET_TIMERSLACK, kTimerSlackNanoseconds);
     Path path(rings, description, options, runner);

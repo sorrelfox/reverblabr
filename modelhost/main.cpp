@@ -19,6 +19,7 @@
 #include "model/shared.h"
 #include "onnxrunner.h"
 #include "pipeline.h"
+#include "voiceconverter.h"
 
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -27,6 +28,7 @@
 #include <charconv>
 #include <cstdio>
 #include <exception>
+#include <memory>
 #include <new>
 #include <optional>
 #include <string>
@@ -164,34 +166,43 @@ int run(const Options &options)
     if (!timing || timing->hopFrames + timing->pathDelay > options.latency) {
         refuse(rings, model::Refusal::RateNotUsable);
     }
-    const std::size_t streams = description.channels == 2 || options.downmix ? 1 : model::kRingChannels;
-    modelhost::OnnxRunner runner(options.folder, description, streams);
-    if (runner.refusal() != model::Refusal::None) {
-        refuse(rings, runner.refusal());
+    // **A voice is one voice**: a person speaks once, and a run costs too
+    // much to make twice for two sides that hold the same thing.
+    const bool voice = description.family == model::Family::VoiceConversion;
+    const bool downmix = options.downmix || voice;
+    const std::size_t streams = description.channels == 2 || downmix ? 1 : model::kRingChannels;
+    std::unique_ptr<modelhost::ModelRunner> runner;
+    if (voice) {
+        runner = std::make_unique<modelhost::VoiceConverter>(options.folder, description);
+    } else {
+        runner = std::make_unique<modelhost::OnnxRunner>(options.folder, description, streams);
     }
-    rings.header().device.store(static_cast<std::uint32_t>(runner.device()), std::memory_order_relaxed);
+    if (runner->refusal() != model::Refusal::None) {
+        refuse(rings, runner->refusal());
+    }
+    rings.header().device.store(static_cast<std::uint32_t>(runner->device()), std::memory_order_relaxed);
 
     // **A run on silence first**: the shapes it gives back are checked
     // before any sound depends on them, and a runtime's lazy allocations are
     // out of the way.
     std::vector<float> silence(std::size_t{description.channels} * description.frameSize, 0.0f);
-    std::vector<float> answer(std::size_t{description.channels} * description.hopSize, 0.0f);
+    std::vector<float> answer(std::size_t{description.channels} * description.hopOut(), 0.0f);
     try {
         for (std::size_t stream = 0; stream < streams; ++stream) {
-            if (!runner.run(stream, silence, answer)) {
+            if (!runner->run(stream, silence, answer)) {
                 refuse(rings, model::Refusal::WrongShape);
             }
         }
     } catch (const std::exception &) {
         refuse(rings, model::Refusal::RuntimeRefused);
     }
-    runner.clearState();
+    runner->clearState();
 
     modelhost::PipelineOptions pipeline;
     pipeline.sessionRate = options.rate;
     pipeline.latency = options.latency;
-    pipeline.downmix = options.downmix;
-    return modelhost::runPipeline(rings, description, pipeline, runner);
+    pipeline.downmix = downmix;
+    return modelhost::runPipeline(rings, description, pipeline, *runner);
 }
 
 } // namespace

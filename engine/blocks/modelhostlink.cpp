@@ -312,7 +312,7 @@ void ModelHostLink::run(const std::stop_token &stop)
         if (ended == Ended::Refused) {
             // Always the same answer for the same folder: nothing to retry.
             const std::uint32_t reason = header.reason.load(std::memory_order_acquire);
-            const bool known = reason > 0 && reason <= static_cast<std::uint32_t>(model::Refusal::CycleTooLong);
+            const bool known = reason > 0 && reason <= static_cast<std::uint32_t>(model::kLastRefusal);
             m_failure.store(known ? static_cast<model::Refusal>(reason) : model::Refusal::RuntimeRefused,
                             std::memory_order_relaxed);
             m_restarting.store(false, std::memory_order_relaxed);

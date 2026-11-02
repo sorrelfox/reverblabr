@@ -21,6 +21,9 @@ add_library(reverblabr-modelproto STATIC
     resampler.h
     shared.cpp
     shared.h
+    voice.cpp
+    voice.h
 )
 target_include_directories(reverblabr-modelproto PUBLIC ${PROJECT_SOURCE_DIR}/engine)
+target_link_libraries(reverblabr-modelproto PUBLIC reverblabr-dsp)
 set_target_properties(reverblabr-modelproto PROPERTIES AUTOMOC OFF AUTORCC OFF)

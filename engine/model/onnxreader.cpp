@@ -31,6 +31,8 @@ constexpr std::size_t kMostPorts = 4096;
 constexpr std::size_t kMostDims = 32;
 /// The IR versions the format has had, with room for those to come.
 constexpr std::uint64_t kNewestIr = 64;
+/// More upsampling than any graph of sound has: past this it stops counting.
+constexpr std::uint64_t kMostUpsampling = 1ULL << 20;
 
 // The field numbers of the format's messages this reader looks at.
 constexpr std::uint32_t kModelIrVersion = 1;
@@ -39,9 +41,12 @@ constexpr std::uint32_t kGraphNode = 1;
 constexpr std::uint32_t kGraphInitializer = 5;
 constexpr std::uint32_t kGraphInput = 11;
 constexpr std::uint32_t kGraphOutput = 12;
+constexpr std::uint32_t kNodeOperation = 4;
 constexpr std::uint32_t kNodeAttribute = 5;
+constexpr std::uint32_t kAttributeName = 1;
 constexpr std::uint32_t kAttributeTensor = 5;
 constexpr std::uint32_t kAttributeGraph = 6;
+constexpr std::uint32_t kAttributeInts = 8;
 constexpr std::uint32_t kAttributeTensors = 10;
 constexpr std::uint32_t kAttributeGraphs = 11;
 constexpr std::uint32_t kTensorName = 8;
@@ -297,21 +302,35 @@ void walkTensor(std::span<const std::byte> bytes, Walk &walk, std::string *name)
 
 void walkGraph(std::span<const std::byte> bytes, Walk &walk, OnnxSummary *summary, int depth);
 
-/// A node's attributes, for what can hold a tensor or a graph of its own.
-void walkNode(std::span<const std::byte> bytes, Walk &walk, int depth)
+/// A node's attributes, for what can hold a tensor or a graph of its own,
+/// and for the stride of a transposed convolution, which goes into
+/// \a upsampling when the node is in the top graph.
+void walkNode(std::span<const std::byte> bytes, Walk &walk, int depth, std::uint64_t *upsampling)
 {
+    bool transposed = false;
+    std::uint64_t stride = 1;
     Wire node(bytes);
     while (node.more()) {
         std::uint32_t type = 0;
-        if (node.field(type) != kNodeAttribute || type != kWireBytes) {
+        const std::uint32_t field = node.field(type);
+        if (field == kNodeOperation && type == kWireBytes) {
+            transposed = textOf(node.bytes()) == "ConvTranspose";
+            continue;
+        }
+        if (field != kNodeAttribute || type != kWireBytes) {
             node.skip(type);
             continue;
         }
         Wire attribute(node.bytes());
+        bool strides = false;
         while (attribute.more()) {
             std::uint32_t kind = 0;
             const std::uint32_t number = attribute.field(kind);
-            if ((number == kAttributeTensor || number == kAttributeTensors) && kind == kWireBytes) {
+            if (number == kAttributeName && kind == kWireBytes) {
+                strides = textOf(attribute.bytes()) == "strides";
+            } else if (number == kAttributeInts && strides && kind == kWireVarint) {
+                stride = std::clamp<std::uint64_t>(attribute.varint(), 1, kMostUpsampling);
+            } else if ((number == kAttributeTensor || number == kAttributeTensors) && kind == kWireBytes) {
                 walkTensor(attribute.bytes(), walk, nullptr);
             } else if ((number == kAttributeGraph || number == kAttributeGraphs) && kind == kWireBytes) {
                 walkGraph(attribute.bytes(), walk, nullptr, depth + 1);
@@ -322,6 +341,9 @@ void walkNode(std::span<const std::byte> bytes, Walk &walk, int depth)
         walk.faulty = walk.faulty || attribute.faulty();
     }
     walk.faulty = walk.faulty || node.faulty();
+    if (transposed && upsampling != nullptr) {
+        *upsampling = std::min(*upsampling * stride, kMostUpsampling);
+    }
 }
 
 void walkGraph(std::span<const std::byte> bytes, Walk &walk, OnnxSummary *summary, int depth)
@@ -338,7 +360,7 @@ void walkGraph(std::span<const std::byte> bytes, Walk &walk, OnnxSummary *summar
         if (type != kWireBytes) {
             graph.skip(type);
         } else if (number == kGraphNode) {
-            walkNode(graph.bytes(), walk, depth);
+            walkNode(graph.bytes(), walk, depth, summary != nullptr ? &summary->upsampling : nullptr);
         } else if (number == kGraphInitializer) {
             std::string name;
             walkTensor(graph.bytes(), walk, &name);

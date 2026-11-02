@@ -62,6 +62,8 @@ public:
     static constexpr double kShownSeconds = 2.0;
     /// The loudest sample let out: +12 dB, a guard against a model gone wild.
     static constexpr float kHighestSample = 4.0f;
+    /// How far a voice can be moved, either way.
+    static constexpr int kMostSemitones = 24;
 
     /// What the block publishes (rt::BlockMeter).
     static constexpr std::size_t kStateValue = 0;
@@ -88,6 +90,7 @@ public:
         Spare, ///< How much time a run is given, on top of a hop.
         Mono, ///< What a mono model does with a stereo lane.
         Retry, ///< A press: start the host again after a failure.
+        Semitones, ///< How far a voice is moved, read by the families that have a pitch.
     };
 
     ModelBlock();

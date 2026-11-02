@@ -38,6 +38,8 @@ QtObject {
     readonly property int badOutput: 6
     /// The refusal that says the session's cycle is too long for the spare time.
     readonly property int cycleTooLong: 16
+    /// model::Family's voice conversion, which has settings of its own.
+    readonly property int voiceFamily: 4
 
     readonly property var params: SessionModel.paramRevision >= 0 ? SessionModel.params(reading.blockId) : ({})
     /// The folder as the session holds it.
@@ -160,6 +162,14 @@ QtObject {
             return KI18n.i18nc("@info why a Model block's folder cannot be used", "This model is of an unknown kind. Add a reverblabr-model.json to its folder to describe it.");
         case 15:
             return KI18n.i18nc("@info why a Model block's model cannot be run", "The model's sample rate cannot be converted from the session's.");
+        case 17:
+            return KI18n.i18nc("@info why a Model block's folder cannot be used", "This voice also needs a content encoder in the same folder: an ONNX file such as vec-768-layer-12.onnx.");
+        case 18:
+            return KI18n.i18nc("@info why a Model block's folder cannot be used", "This voice also needs a pitch estimator in the same folder: an ONNX file such as rmvpe.onnx.");
+        case 19:
+            return KI18n.i18nc("@info why a Model block's folder cannot be used", "This folder has a content encoder or a pitch estimator, but no voice. Add the voice as an ONNX file. A .pth file is never opened.");
+        case 20:
+            return KI18n.i18nc("@info why a Model block's folder cannot be used", "The content encoder in this folder was made for another kind of voice. This voice needs the encoder it was trained with.");
         }
         return KI18n.i18nc("@info why a Model block's model cannot be run", "The model will not run.");
     }

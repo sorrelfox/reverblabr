@@ -47,6 +47,7 @@ A memfd holds a header and four rings, input and output for two channels. Each v
 | `load`, `device`, `badRuns` | host | a run's time as a share of the sound it makes, what ran it, and how many runs gave back what is not sound |
 | `beat` | host | moves on every turn of the host's loop |
 | `resetEpoch` | block | the signal path was cut, so start clean |
+| `pitchCents` | block | how far a voice is moved, read before each run |
 
 **Frame numbers tie it together.** Output frame `n` is the model's answer to input frame `n`, so a late or skipped frame is a gap in a count and never a shifted sound.
 
@@ -61,12 +62,13 @@ A memfd holds a header and four rings, input and output for two channels. Each v
 The block's latency is fixed when it is prepared and is the same at every quantum:
 
 ```
-latency = one hop + what the path delays + spare time
+latency = one hop + what the path delays + spare time + a long run's share
 ```
 
 - **One hop** is what has to arrive before a run can start, at the session's rate.
 - **What the path delays** is the model's own look-ahead (from the family or the configuration) and the delay of the resamplers, if the model's rate is not the session's. The host drops that many samples from the front of its output, so output frame `n` lines up with input frame `n`.
 - **Spare time** is the setting, 20, 50, 100 or 250 ms, 50 by default. It has to cover one cycle or one run, whichever is longer, and the fade below. A cycle of 2048 samples fits in the default at 48 kHz.
+- **A long run's share** is for a family whose run takes far longer than any cycle, so the spare time keeps its meaning. A voice holds 120 ms. Every other family holds nothing.
 
 The value is reported as `BlockInfo::latencySamples`, so compensation lines it up like any other block's. A folder decides the hop, and a block has to know its latency in `prepare()` while a model can take a minute to load. So the block asks the host once, when the folder is set: `reverblabr-model-host --inspect <folder>`. That reads the description files and the head of the model, and it loads nothing. `preparedShape()` follows from the answer, so a new folder or setting gives a fresh block and a new graph (ADR-0022).
 
@@ -117,7 +119,7 @@ Otherwise the folder is refused, with the reason named: nothing to load, a file 
 | DeepFilterNet, one streaming graph | cleanup | inputs `input_frame`, `states`, `atten_lim_db` | 1 |
 | GTCRN streaming | cleanup | inputs `mix`, `conv_cache`, `tra_cache`, `inter_cache` | later; needs a short-time transform in the adapter |
 | DeepFilterNet, three graphs | cleanup | `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx` | later; needs the band features in the adapter |
-| RVC export | voice conversion | inputs `phone`, `phone_lengths`, `pitch`, `pitchf`, `ds`, `rnd` | 2 |
+| RVC export | voice conversion | inputs `phone` or `feats`, `pitch`, `pitchf`, with a content encoder and a pitch estimator beside it | 2 |
 | Speech chain | speech through a language model | a `*.gguf` language model, a speech to text model and a voice | 3 |
 
 A family that is recognised and not built yet is refused with its own reason, so a person learns what the folder is and that this version cannot run it.
@@ -144,11 +146,23 @@ A family that is recognised and not built yet is refused with its own reason, so
 
 `file`, `sampleRate`, `channels`, `frameSize`, `input` and `output` are required. A run takes `frameSize` samples and gives back `hopSize` or `frameSize` samples, of which the last `hopSize` are used. `state` pairs are filled with zeros, then each run's output feeds the next run's input. `constants` are numbers for inputs that do not change. A stereo model is told `channels: 2`. A mono model on a stereo lane runs twice, once for each side, or once on the two sides mixed, which is the Mono setting.
 
+A voice's configuration has `"family": "voiceConversion"`, the `file`, `contentModel` and `pitchModel`, and may add `sampleRate`, `threads` and `licence`. It chooses among the files of a folder and gives a rate the graph does not show. It cannot make a voice of something else: the three files are still read and held to what they are.
+
 ### The four jobs, by stage
 
 **Stage 1, built now.** The block, the host, the folder, the card and the tile, the configured family and the one cleanup family that can be tested here. ONNX through ONNX Runtime.
 
-**Stage 2, voice conversion.** The same host and rings. The adapter runs a content encoder and a pitch tracker, then the converter, in overlapping windows, so a run is long and the spare time grows with it. A voice is a folder with its own licence. A panel for choosing the pitch shift comes with it.
+**Stage 2, voice conversion, built.** The same host and rings, and a family with three graphs.
+
+- **A folder holds three ONNX files, told apart by their ports**, because names differ from export to export: the voice, a content encoder (sound in, features 256 or 768 wide out) and a pitch estimator (128 bands of a spectrum in, how likely each of 360 pitches is out). The encoder has to give the size the voice takes. A file missing, or an encoder that does not fit, is a refusal of its own that says which. Several voices can share the other two, through links if wanted.
+- **Sound goes in at 16 kHz and comes out at the voice's rate**, so a description has a rate in and a rate out, and a hop for each.
+- **Each run hears 1 s, gives the voice the last 400 ms, and keeps 160 ms.** The content and pitch models need the past. The voice costs the most by far and needs less of it. The last 20 ms are left out, as they have nothing after them.
+- **Runs join without a seam.** Frames fall on one grid from run to run, the voice's noise moves on with the sound, so two runs make nearly the same sound where they overlap, and 20 ms of crossfade covers the rest. The voice's own delay comes to 60 ms, measured.
+- **A voice is one voice:** it always runs once, on the two sides mixed, and both sides play it. The card leaves out the Mono setting for it.
+- **The pitch shift**, up to 24 semitones either way, moves the pitch the estimator heard. It is read before each run, so a change needs no new host. A voice trained with no pitch is recognised and refused.
+- **The rule holds for all three graphs.** One that gives what is not a number or too little, or is too slow, is silence and a word on the card, whichever of the three it was.
+
+Measured on a Ryzen 9 9950X3D2 at 48 kHz, on four threads a graph, with an RVC v2 voice at 40 kHz, ContentVec at 768 and RMVPE: the reported delay was 391.4 ms and the sound lined up at 390 ms, and in a release build a run took 57 % of the time it had, 1.9 of a core. No person has listened to it yet.
 
 **Stage 3, speech through a language model.** Whisper, a language model and a voice are three engines (whisper.cpp, llama.cpp and Piper, all packaged in Fedora). The chain cannot be real time: the output is seconds late and is not a changed version of the input, so it is not lined up with anything and the block does not report it as latency. It needs a card of its own, a separate host mode, and GGUF through those libraries. The panel offers none of this until then.
 
@@ -187,6 +201,7 @@ The block ships marked as a beta. The mark is one flag on the block's row in the
 - The host polls. A running Model block costs about a thousand wake-ups a second in its host, even in silence.
 - Inspecting a folder blocks the engine thread for as long as the short process takes, a few milliseconds usually and five seconds at most. A session with such a block takes that much longer to open.
 - A model at the edge of what the machine can do is heard as gaps. That is the rule working, and the card says so.
+- A voice's delay is about 390 ms with the default spare time, too long to hear oneself speak through. It suits a call or a recording, not a person listening to their own voice live. It takes about two cores of a fast desktop, and a slower machine may not keep up.
 - Sessions with this block do not open in a build without it, as with any block a build lacks.
 
 ## Alternatives considered
@@ -198,4 +213,5 @@ The block ships marked as a beta. The mark is one flag on the block's row in the
 - **Latency that follows the quantum.** Shorter at small quanta, but every path around the block would be worked out again when the quantum moves, and the output would depend on how the input was cut.
 - **Knowing the hop only once the model has loaded.** It would need a latency that changes seconds after a session starts. The inspection costs little and gives the same answer sooner.
 - **Reading the folder in the window.** It would put a parser for untrusted files in the window's process, and the panel would disagree with the block about what the folder is. The window runs the same `--inspect`.
+- **A shorter hop for a voice.** A run costs about the same however little it adds, as the three graphs still hear their whole windows. With the same window, a hop of 100 ms took 72 % of its time and one of 160 ms took 52 %, so 60 ms less delay would cost about two fifths more of the machine. It may be worth a setting once people have used this.
 - **soxr for the rates.** It is already a dependency, but its streaming delay moves at the start of a stream, and the host needs an exact number. A small polyphase resampler of ours has one.

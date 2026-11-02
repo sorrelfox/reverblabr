@@ -17,6 +17,7 @@
 #include "dsp/audiobuffer.h"
 #include "graph/compiledgraph.h"
 #include "model/recognise.h"
+#include "model/voice.h"
 #include "offlinerunner.h"
 #include "onnxbytes.h"
 #include "rt/meter.h"
@@ -35,8 +36,11 @@
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <numbers>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -1066,4 +1070,427 @@ TEST_F(ModelBlockTest, ACleanupFamilyRunsOnARealModel)
     const double reduced = 10.0 * std::log10(through / in);
     std::cout << "noise alone comes out " << reduced << " dB\n";
     EXPECT_LT(reduced, -10.0);
+}
+
+// **Voice conversion**: three graphs for one sound. Written by hand and tiny,
+// with the inputs and outputs of the real ones, so the whole path runs here
+// and every way one of the three can let the others down is tried. The rule
+// is the block's and holds for them all: nothing but the voice's answer.
+
+namespace
+{
+
+/// A folder that holds all a voice needs.
+class VoiceFolder : public Folder
+{
+public:
+    explicit VoiceFolder(const TinyVoice &voice = {},
+                         TinyFault content = TinyFault::None,
+                         TinyFault pitch = TinyFault::None,
+                         std::int64_t likeliest = kLikeliest)
+    {
+        write("voice.onnx", tinyVoice(voice));
+        write("encoder.onnx", tinyContentEncoder(content));
+        write("estimator.onnx", tinyPitchEstimator(likeliest, pitch));
+    }
+
+    /// The pitch estimator's answer, in Hz.
+    static constexpr std::int64_t kLikeliest = 150;
+    static constexpr double kPitchHz = 179.3;
+};
+
+/// A sound slow enough to come through a voice whose frames are 20 ms long.
+[[nodiscard]] Signal slowWave(std::size_t frames)
+{
+    return sine(frames, 7.0, kRate, 0.5f);
+}
+
+/// The lag at which \a out best matches \a in, near \a around.
+[[nodiscard]] std::ptrdiff_t bestLagNear(const Signal &out, const Signal &in, std::size_t around, std::size_t from)
+{
+    std::ptrdiff_t bestLag = 0;
+    double least = std::numeric_limits<double>::max();
+    const auto reach = static_cast<std::ptrdiff_t>(2400);
+    for (std::ptrdiff_t lag = -reach; lag <= reach; lag += 8) {
+        double difference = 0.0;
+        for (std::size_t n = from; n + around + 2 * 2400 < out.size() && n < in.size(); n += 16) {
+            const auto at = static_cast<std::size_t>(static_cast<std::ptrdiff_t>(n + around) + lag);
+            const double gap = out[at] - in[n];
+            difference += gap * gap;
+        }
+        if (difference < least) {
+            least = difference;
+            bestLag = lag;
+        }
+    }
+    return bestLag;
+}
+
+/// The mean of \a signal over its last \a frames.
+[[nodiscard]] double lastMean(const Signal &signal, std::size_t frames)
+{
+    double sum = 0.0;
+    for (std::size_t index = signal.size() - frames; index < signal.size(); ++index) {
+        sum += signal[index];
+    }
+    return sum / static_cast<double>(frames);
+}
+
+/// What the kernel has counted of \a pid's time, in seconds.
+[[nodiscard]] double cpuSeconds(int pid)
+{
+    std::ifstream file(std::format("/proc/{}/stat", pid));
+    std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::istringstream fields(text.substr(text.rfind(')') + 2));
+    std::string field;
+    long user = 0;
+    long system = 0;
+    for (int index = 3; index <= 15 && fields >> field; ++index) {
+        if (index == 14) {
+            user = std::stol(field);
+        } else if (index == 15) {
+            system = std::stol(field);
+        }
+    }
+    return static_cast<double>(user + system) / static_cast<double>(::sysconf(_SC_CLK_TCK));
+}
+
+class VoiceLatency : public ModelBlockTest, public ::testing::WithParamInterface<std::uint32_t>
+{
+};
+
+class OneOfTheThree : public ModelBlockTest, public ::testing::WithParamInterface<int>
+{
+protected:
+    /// A folder with \a fault in the graph this run is about.
+    [[nodiscard]] static std::unique_ptr<VoiceFolder> folderWith(TinyFault fault)
+    {
+        TinyVoice voice;
+        voice.fault = GetParam() == 0 ? fault : TinyFault::None;
+        return std::make_unique<VoiceFolder>(
+            voice, GetParam() == 1 ? fault : TinyFault::None, GetParam() == 2 ? fault : TinyFault::None);
+    }
+};
+
+} // namespace
+
+TEST_F(ModelBlockTest, AVoiceRunsAndBothSidesPlayIt)
+{
+    VoiceFolder folder;
+    Driven driven(folder.path());
+    EXPECT_EQ(driven.block.state(), ModelBlock::Loading) << driven.block.detail();
+    driven.waitUntilRunning();
+    EXPECT_EQ(driven.block.detail(), static_cast<std::uint32_t>(model::Device::Cpu));
+    driven.forget();
+    const Signal left = slowWave(48000);
+    const Signal right(48000, 0.0f);
+    for (std::size_t at = 0; at + 256 <= left.size(); at += 256) {
+        driven.cycle(std::span<const float>{left}.subspan(at, 256), std::span<const float>{right}.subspan(at, 256));
+        driven.waitForHost();
+    }
+    ASSERT_EQ(driven.heard[0].size(), driven.heard[1].size());
+    EXPECT_EQ(driven.heard[0], driven.heard[1]) << "one voice, on both sides";
+    const float loudest = std::ranges::max(driven.heard[0], {}, [](float sample) { return std::abs(sample); });
+    EXPECT_NEAR(std::abs(loudest), 0.25f, 0.03f) << "the two sides mixed";
+}
+
+TEST_F(ModelBlockTest, AVoiceRunsInASessionAtAnotherRate)
+{
+    VoiceFolder folder;
+    Driven driven(folder.path(), 44100.0);
+    EXPECT_EQ(driven.block.state(), ModelBlock::Loading) << driven.block.detail();
+    driven.waitUntilRunning();
+    driven.forget();
+    driven.lockStep(slowWave(44100), 256);
+    const float loudest = std::ranges::max(driven.heard[0], {}, [](float sample) { return std::abs(sample); });
+    EXPECT_NEAR(std::abs(loudest), 0.5f, 0.05f) << "down to the voice's rate and back, unchanged";
+}
+
+TEST_F(ModelBlockTest, AVoicesDelayHoldsARunAsWellAsItsOwnPath)
+{
+    VoiceFolder folder;
+    Driven driven(folder.path());
+    const model::Description found = model::recognise(folder.path());
+    const std::optional<model::Timing> timing = model::timingFor(found, 48000, kSpare);
+    ASSERT_TRUE(timing.has_value());
+    EXPECT_EQ(driven.block.info().latencySamples, timing->latency);
+    EXPECT_GT(timing->latency, timing->hopFrames + timing->pathDelay + kSpare) << "a run has time of its own";
+}
+
+TEST_P(VoiceLatency, TheVoiceIsAsLateAsReported)
+{
+    VoiceFolder folder;
+    Driven driven(folder.path());
+    driven.waitUntilRunning();
+    const std::uint32_t latency = driven.block.info().latencySamples;
+    driven.lockStep(silence(latency + 8192), GetParam());
+    driven.forget();
+    const Signal wave = slowWave(96000);
+    driven.lockStep(wave, GetParam());
+    // The two sides are the same here, so the mix is the wave. The voice
+    // holds a value for 20 ms, which is half that late against a smooth wave.
+    const std::ptrdiff_t lag = bestLagNear(driven.heard[0], wave, latency, 4800);
+    EXPECT_LE(std::abs(lag), 480) << "off by " << lag;
+}
+
+INSTANTIATE_TEST_SUITE_P(Quanta, VoiceLatency, ::testing::Values(64U, 256U, 2048U));
+
+TEST_F(ModelBlockTest, HowTheSoundIsCutChangesNothingInAVoice)
+{
+    VoiceFolder folder;
+    InvarianceOptions options;
+    options.inputChannels = 2;
+    options.outputChannels = 2;
+    options.maxBlockFrames = 2048;
+    const InvarianceReport report = checkBlockSizeInvariance(
+        [&folder] { return std::make_unique<LockStepBlock>(folder.path()); }, spread(slowWave(96000), 2), options);
+    EXPECT_TRUE(report.passed) << report.summary;
+}
+
+TEST_F(ModelBlockTest, APitchShiftMovesTheVoiceWhileItRuns)
+{
+    TinyVoice voice;
+    voice.sayThePitch = true;
+    VoiceFolder folder(voice);
+    Driven driven(folder.path());
+    driven.waitUntilRunning();
+    const int host = driven.block.hostPid();
+    const std::uint32_t shape = driven.block.preparedShape();
+    const Signal tone = slowWave(48000);
+
+    driven.lockStep(tone, 256);
+    EXPECT_NEAR(lastMean(driven.heard[0], 1024), VoiceFolder::kPitchHz / 1000.0, 0.01);
+
+    ASSERT_TRUE(driven.block.setParam("semitones", ParamValue::ofInt(12)).has_value());
+    driven.block.applyParam(ModelBlock::Semitones, 12.0f);
+    driven.forget();
+    driven.lockStep(tone, 256);
+    EXPECT_NEAR(lastMean(driven.heard[0], 1024), 2.0 * VoiceFolder::kPitchHz / 1000.0, 0.02);
+
+    driven.block.applyParam(ModelBlock::Semitones, -12.0f);
+    driven.forget();
+    driven.lockStep(tone, 256);
+    EXPECT_NEAR(lastMean(driven.heard[0], 1024), 0.5 * VoiceFolder::kPitchHz / 1000.0, 0.01);
+
+    EXPECT_EQ(driven.block.hostPid(), host) << "no new process for a new pitch";
+    EXPECT_EQ(driven.block.preparedShape(), shape) << "and no new graph";
+}
+
+TEST_F(ModelBlockTest, TheOtherExportRunsAsWell)
+{
+    TinyVoice voice;
+    voice.otherNames = true;
+    Folder folder;
+    folder.write("voice.onnx", tinyVoice(voice));
+    folder.write("encoder.onnx", tinyMaskedContentEncoder());
+    folder.write("estimator.onnx", tinyPitchEstimator(VoiceFolder::kLikeliest));
+    Driven driven(folder.path());
+    driven.waitUntilRunning();
+    driven.forget();
+    driven.lockStep(slowWave(48000), 256);
+    EXPECT_GT(std::ranges::max(driven.heard[0]), 0.1f);
+}
+
+TEST_F(ModelBlockTest, AVoiceInAFolderChosenUnderTheHomeRuns)
+{
+    // A folder chooser gives a path, and the session keeps it as ~/...: the
+    // words the block, the panel and the host each have to turn back.
+    VoiceFolder folder;
+    const fs::path path{folder.path()};
+    const char *const before = std::getenv("HOME");
+    const std::string kept = before == nullptr ? std::string{} : before;
+    ::setenv("HOME", path.parent_path().c_str(), 1);
+    {
+        Driven driven("~/" + path.filename().string());
+        EXPECT_EQ(driven.block.state(), ModelBlock::Loading) << driven.block.detail();
+        driven.waitUntilRunning();
+        EXPECT_GT(driven.block.info().latencySamples, 0U);
+        driven.forget();
+        driven.lockStep(slowWave(48000), 256);
+        EXPECT_GT(std::ranges::max(driven.heard[0]), 0.1f);
+    }
+    ::setenv("HOME", kept.c_str(), 1);
+}
+
+TEST_F(ModelBlockTest, ASessionFromBeforeVoicesLoadsAsItWas)
+{
+    Folder folder;
+    folder.hold(gainModel(0.5f, kHop));
+    ModelBlock block;
+    ParamValueMap saved;
+    saved.emplace("folder", ParamValue::ofString(folder.path()));
+    saved.emplace("spareTime", ParamValue::ofEnum("100ms"));
+    saved.emplace("monoMode", ParamValue::ofEnum("downmix"));
+    ASSERT_TRUE(block.loadState(saved).has_value());
+    EXPECT_EQ(block.param("semitones").asInt(), std::int64_t{0});
+    EXPECT_EQ(block.param("spareTime").text(), "100ms");
+    EXPECT_EQ(block.param("monoMode").text(), "downmix");
+    EXPECT_EQ(block.param("folder").text(), folder.path());
+}
+
+TEST_F(ModelBlockTest, TheSemitonesAreSavedAndHeldToTheirRange)
+{
+    VoiceFolder folder;
+    ModelBlock block;
+    ASSERT_TRUE(block.setParam("folder", ParamValue::ofString(folder.path())).has_value());
+    ASSERT_TRUE(block.setParam("semitones", ParamValue::ofInt(-7)).has_value());
+    ModelBlock again;
+    ASSERT_TRUE(again.loadState(block.saveState()).has_value());
+    EXPECT_EQ(again.param("semitones").asInt(), std::int64_t{-7});
+    EXPECT_FALSE(block.setParam("semitones", ParamValue::ofInt(ModelBlock::kMostSemitones + 1)).has_value());
+}
+
+TEST_F(ModelBlockTest, AVoiceWithAFileMissingLeavesNothingAndSaysWhich)
+{
+    struct Case {
+        std::string gone;
+        model::Refusal said;
+    };
+    for (const Case &missing : {Case{"encoder.onnx", model::Refusal::NoContentModel},
+                                Case{"estimator.onnx", model::Refusal::NoPitchModel},
+                                Case{"voice.onnx", model::Refusal::NoVoiceModel}}) {
+        VoiceFolder folder;
+        fs::remove(fs::path(folder.path()) / missing.gone);
+        Driven driven(folder.path());
+        EXPECT_EQ(driven.block.state(), ModelBlock::Failed) << missing.gone;
+        EXPECT_EQ(driven.block.detail(), static_cast<std::uint32_t>(missing.said)) << missing.gone;
+        EXPECT_EQ(driven.block.info().latencySamples, 0U);
+        const Signal tone = sine(4800, 997.0, kRate, 0.5f);
+        driven.paced(tone, 256);
+        driven.expectSilence();
+    }
+}
+
+TEST_F(ModelBlockTest, AFileThatGoesAfterTheFolderWasReadLeavesNothing)
+{
+    VoiceFolder folder;
+    Driven driven("");
+    ASSERT_TRUE(driven.block.setParam("folder", ParamValue::ofString(folder.path())).has_value());
+    fs::remove(fs::path(folder.path()) / "estimator.onnx");
+    ASSERT_TRUE(driven.block.prepare(driven.spec).has_value());
+    ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::Failed; }));
+    EXPECT_EQ(driven.block.detail(), static_cast<std::uint32_t>(model::Refusal::NoPitchModel));
+    driven.expectSilence();
+}
+
+TEST_P(OneOfTheThree, WhatItGivesThatIsNotANumberIsSilence)
+{
+    const std::unique_ptr<VoiceFolder> folder = folderWith(TinyFault::NotSound);
+    Driven driven(folder->path());
+    ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::BadOutput; }))
+        << "state " << static_cast<int>(driven.block.state()) << " detail " << driven.block.detail();
+    driven.forget();
+    driven.paced(sine(9600, 997.0, kRate, 0.5f), 256);
+    driven.expectSilence();
+    EXPECT_EQ(driven.block.state(), ModelBlock::BadOutput);
+}
+
+TEST_P(OneOfTheThree, GivingTooLittleIsARefusalAndSilence)
+{
+    const std::unique_ptr<VoiceFolder> folder = folderWith(TinyFault::TooLittle);
+    Driven driven(folder->path());
+    ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::Failed; }))
+        << "state " << static_cast<int>(driven.block.state());
+    EXPECT_EQ(driven.block.detail(), static_cast<std::uint32_t>(model::Refusal::WrongShape));
+    driven.expectSilence();
+}
+
+TEST_P(OneOfTheThree, TakingTooLongIsSilenceAndSaysSo)
+{
+    const std::unique_ptr<VoiceFolder> folder = folderWith(TinyFault::Slow);
+    Driven driven(folder->path());
+    ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::CannotKeepUp; }, 60s))
+        << "state " << static_cast<int>(driven.block.state());
+    driven.forget();
+    ASSERT_TRUE(driven.toneUntil([&driven] { return driven.meter.value(ModelBlock::kLoadValue) > 100.0f; }, 60s))
+        << "the load says why";
+    driven.expectSilence();
+    EXPECT_EQ(driven.block.state(), ModelBlock::CannotKeepUp);
+}
+
+INSTANTIATE_TEST_SUITE_P(TheVoiceTheEncoderAndTheEstimator, OneOfTheThree, ::testing::Values(0, 1, 2));
+
+TEST_F(ModelBlockTest, AVoiceHostThatIsKilledLeavesSilenceAndComesBack)
+{
+    VoiceFolder folder;
+    Driven driven(folder.path());
+    driven.waitUntilRunning();
+    driven.lockStep(slowWave(24000), 256);
+    const int host = driven.block.hostPid();
+    ASSERT_GT(host, 0);
+    ASSERT_TRUE(signalHost(host, SIGKILL));
+    driven.forget();
+    const Signal tone = sine(19200, 997.0, kRate, 1.0f);
+    driven.paced(tone, 256);
+    driven.expectSilence(kAfterFade);
+    ASSERT_TRUE(driven.toneUntil([&driven] { return driven.block.state() == ModelBlock::Running; }));
+    EXPECT_NE(driven.block.hostPid(), host);
+}
+
+TEST_F(ModelBlockTest, AVoiceRunsOnARealModel)
+{
+    const char *const folder = std::getenv("REVERBLABR_TEST_VOICE_MODEL");
+    if (folder == nullptr) {
+        GTEST_SKIP() << "no model at hand";
+    }
+    Driven driven(folder);
+    ASSERT_EQ(driven.block.state(), ModelBlock::Loading) << driven.block.detail();
+    driven.waitUntilRunning();
+    const int host = driven.block.hostPid();
+    driven.forget();
+
+    // Harmonics on a pitch that never stands still, in syllables.
+    constexpr std::size_t kFrames = 480000;
+    Signal voice(kFrames);
+    double phase = 0.0;
+    for (std::size_t n = 0; n < kFrames; ++n) {
+        const double t = static_cast<double>(n) / kRate;
+        const double envelope = std::pow(std::sin(2.0 * std::numbers::pi * 1.5 * t), 2.0);
+        phase += 2.0 * std::numbers::pi * (160.0 + 40.0 * std::sin(2.0 * std::numbers::pi * 1.7 * t)) / kRate;
+        double sum = 0.0;
+        for (int harmonic = 1; harmonic <= 20; ++harmonic) {
+            sum += std::sin(phase * harmonic) / harmonic;
+        }
+        voice[n] = static_cast<float>(0.15 * envelope * sum);
+    }
+
+    const double before = cpuSeconds(host);
+    driven.paced(voice, 256);
+    const double used = cpuSeconds(host) - before;
+    const double seconds = static_cast<double>(kFrames) / kRate;
+    const std::uint32_t latency = driven.block.info().latencySamples;
+    EXPECT_EQ(driven.block.state(), ModelBlock::Running);
+
+    // How late the syllables are: the voice's waves are its own, and only
+    // the loudness can be lined up with what went in.
+    const auto envelopeOf = [](const Signal &signal) {
+        Signal envelope;
+        for (std::size_t at = 0; at + 480 <= signal.size(); at += 480) {
+            double sum = 0.0;
+            for (std::size_t n = at; n < at + 480; ++n) {
+                sum += static_cast<double>(signal[n]) * signal[n];
+            }
+            envelope.push_back(static_cast<float>(std::sqrt(sum / 480.0)));
+        }
+        return envelope;
+    };
+    const Signal in = envelopeOf(voice);
+    const Signal out = envelopeOf(driven.heard[0]);
+    int bestLag = 0;
+    double best = -1.0;
+    for (int lag = 0; lag < 80; ++lag) {
+        double sum = 0.0;
+        for (std::size_t n = 100; n + 200 < in.size(); ++n) {
+            sum += static_cast<double>(out[n + static_cast<std::size_t>(lag)]) * in[n];
+        }
+        if (sum > best) {
+            best = sum;
+            bestLag = lag;
+        }
+    }
+    const double lateMs = bestLag * 10.0;
+    const double reportedMs = latency * 1000.0 / kRate;
+    std::cout << "reported delay " << reportedMs << " ms, the syllables line up at " << lateMs << " ms; time used "
+              << driven.meter.value(ModelBlock::kLoadValue) << " %, " << used / seconds << " of a core\n";
+    EXPECT_NEAR(lateMs, reportedMs, 30.0);
 }

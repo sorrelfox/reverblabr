@@ -15,7 +15,7 @@ import org.kde.ki18n
 // presentation table's flag.
 HelpPage {
     typeId: "effect.model"
-    summary: KI18n.i18nc("@info help page of the Model block", "Sends the sound through a trained model from a folder you choose, and plays what the model makes of it: for example with the noise taken out.")
+    summary: KI18n.i18nc("@info help page of the Model block", "Sends the sound through a trained model from a folder you choose, and plays what the model makes of it: for example with the noise taken out, or spoken in another voice.")
 
     HelpSection {
         title: BlockHelp.aboutTitle
@@ -40,9 +40,23 @@ HelpPage {
         ]
         paragraphs: [
             KI18n.i18nc("@info help page of the Model block", "Choose Folder… picks the folder that holds the model. The line under it says what kind of model it found, or why it cannot use the folder. Remove Folder stops using it."),
-            KI18n.i18nc("@info help page of the Model block", "This version runs a streaming DeepFilterNet model, for noise cleanup, and any ONNX model whose folder has a file called reverblabr-model.json that says how to call it. The Model section of the blocks guide lists what that file holds."),
+            KI18n.i18nc("@info help page of the Model block", "This version runs a streaming DeepFilterNet model, for noise cleanup, a voice conversion model, and any ONNX model whose folder has a file called reverblabr-model.json that says how to call it. The Model section of the blocks guide lists what that file holds."),
+            KI18n.i18nc("@info help page of the Model block", "A voice conversion model is three ONNX files in one folder: the voice, a content encoder that hears what is said, and a pitch estimator that hears how high it is. The last two are the same for many voices, and the card says which one is missing."),
             KI18n.i18nc("@info help page of the Model block", "If the folder has a licence file, the card names it and Open Licence shows it. If it has none, the card says so."),
             KI18n.i18nc("@info help page of the Model block", "Files that can run code when they are opened, such as .pt, .pth, .ckpt and .pkl, are never opened. Use an ONNX version of the model.")
+        ]
+    }
+
+    HelpSection {
+        setting: true
+        title: KI18n.i18nc("@label:spinbox how far a voice is moved up or down, in semitones", "Pitch shift")
+        covers: [
+            KI18n.i18nc("@title:group the settings of a voice in a Model block", "Voice")
+        ]
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Model block", "Shown for a voice. How many semitones higher or lower the voice speaks than you do, from 24 down to 24 up. A voice sounds most like itself near its own pitch, so a man using a woman's voice may want about 12 up, and the other way round about 12 down. The change takes effect within a moment and the sound does not stop."),
+            KI18n.i18nc("@info help page of the Model block", "A voice always runs once, on the two sides mixed, and both sides play it."),
+            KI18n.i18nc("@info help page of the Model block", "Use only voices you have the right to use.")
         ]
     }
 
@@ -54,6 +68,7 @@ HelpPage {
         ]
         paragraphs: [
             KI18n.i18nc("@info help page of the Model block", "How much time the model is given, from 20 to 250 thousandths of a second. A new block starts at 50. It is part of the delay: less is a shorter delay, and more gives a slow model room. Reverblabr keeps the other lanes in step with that delay."),
+            KI18n.i18nc("@info help page of the Model block", "A voice takes far longer than a cleanup model, so its delay holds time for that as well, and Delay on the card says what the whole of it comes to, usually about 0.4 seconds."),
             KI18n.i18nc("@info help page of the Model block", "If the block says it cannot keep up, choose a longer time. If the model's Time used is above 100 %, it is too slow for this computer at any setting.")
         ]
     }
@@ -84,6 +99,7 @@ HelpPage {
         title: BlockHelp.whenTitle
         points: [
             KI18n.i18nc("@info help page of the Model block", "You have a noise cleanup model, and want it on your microphone or on a call."),
+            KI18n.i18nc("@info help page of the Model block", "You have a voice conversion model, and want to speak in that voice. The delay is too long to hear yourself comfortably while you talk."),
             KI18n.i18nc("@info help page of the Model block", "You have an ONNX model that takes sound and gives sound, and want to hear it live.")
         ]
     }

@@ -7,8 +7,6 @@
 
 #include "onnxrunner.h"
 
-#include <onnxruntime_cxx_api.h>
-
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -48,6 +46,32 @@ constexpr std::int64_t kMostStateElements = 1 << 25;
 
 } // namespace
 
+Ort::SessionOptions sessionOptions(std::uint32_t threads, model::Device &device)
+{
+    Ort::SessionOptions options;
+    options.SetIntraOpNumThreads(static_cast<int>(threads));
+    options.SetInterOpNumThreads(1);
+    options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+    // Waiting by spinning would burn a core between runs, on a machine
+    // that has real-time work to do.
+    options.AddConfigEntry("session.intra_op.allow_spinning", "0");
+    options.AddConfigEntry("session.inter_op.allow_spinning", "0");
+    const std::vector<std::string> available = Ort::GetAvailableProviders();
+    for (const std::string_view wanted : kGpuProviders) {
+        if (std::ranges::find(available, wanted) == available.end()) {
+            continue;
+        }
+        try {
+            options.AppendExecutionProvider(std::string{wanted});
+            device = model::Device::Gpu;
+            break;
+        } catch (const Ort::Exception &) {
+            // CPU it is, or the next one.
+        }
+    }
+    return options;
+}
+
 struct OnnxRunner::Private {
     model::Description description;
     Ort::Env env{ORT_LOGGING_LEVEL_FATAL, "reverblabr-model-host"};
@@ -64,32 +88,6 @@ struct OnnxRunner::Private {
     std::vector<std::vector<std::vector<float>>> states;
     std::vector<const char *> inputNames;
     std::vector<const char *> outputNames;
-
-    [[nodiscard]] Ort::SessionOptions options()
-    {
-        Ort::SessionOptions options;
-        options.SetIntraOpNumThreads(static_cast<int>(description.threads));
-        options.SetInterOpNumThreads(1);
-        options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
-        // Waiting by spinning would burn a core between runs, on a machine
-        // that has real-time work to do.
-        options.AddConfigEntry("session.intra_op.allow_spinning", "0");
-        options.AddConfigEntry("session.inter_op.allow_spinning", "0");
-        const std::vector<std::string> available = Ort::GetAvailableProviders();
-        for (const std::string_view wanted : kGpuProviders) {
-            if (std::ranges::find(available, wanted) == available.end()) {
-                continue;
-            }
-            try {
-                options.AppendExecutionProvider(std::string{wanted});
-                device = model::Device::Gpu;
-                break;
-            } catch (const Ort::Exception &) {
-                // CPU it is, or the next one.
-            }
-        }
-        return options;
-    }
 
     /// The input's shape for what the model declares, or nothing.
     [[nodiscard]] std::optional<std::vector<std::int64_t>> audioShape(const std::vector<std::int64_t> &declared) const
@@ -204,7 +202,7 @@ OnnxRunner::OnnxRunner(const std::string &folder, const model::Description &desc
     d->description = description;
     try {
         const std::string path = folder + "/" + description.modelFile;
-        Ort::SessionOptions options = d->options();
+        Ort::SessionOptions options = sessionOptions(description.threads, d->device);
         d->session.emplace(d->env, path.c_str(), options);
         d->describeInputs();
         if (d->refusal == model::Refusal::None) {

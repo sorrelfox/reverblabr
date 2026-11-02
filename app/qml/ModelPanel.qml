@@ -42,12 +42,19 @@ ColumnLayout {
     readonly property alias tryAgainButton: tryAgainAction
     readonly property alias descriptionLabel: descriptionText
     readonly property alias refusalLabel: refusalText
+    readonly property alias voiceFilesLabel: voiceFilesText
     readonly property alias licenceLabel: licenceText
     readonly property alias openLicenceButton: openLicenceAction
+    readonly property alias pitchRow: pitchShift
+    readonly property alias monoRow: monoRow
     readonly property alias folderDialog: folderDialog
 
     /// How many times Try Again was pressed: a press is a new number.
     property int presses: 0
+    /// Whether the folder holds a voice that can run: it has a setting of
+    /// its own, and takes no choice of how to treat the two sides.
+    readonly property bool voice: !folderReader.busy && folderReader.refusal === 0
+        && folderReader.family === reading.voiceFamily
 
     spacing: AppMetrics.panelRowGap
 
@@ -224,6 +231,19 @@ ColumnLayout {
         }
 
         QQC2.Label {
+            id: voiceFilesText
+
+            visible: panel.voice
+            text: KI18n.i18nc("@info the two files a voice uses beside its own, 'Content encoder: a.onnx. Pitch estimator: b.onnx.'",
+                              "Content encoder: %1. Pitch estimator: %2.",
+                              folderReader.contentFile, folderReader.pitchFile)
+            color: AppColors.muted
+            font: AppFonts.small
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
+        QQC2.Label {
             id: refusalText
 
             visible: reading.folder !== "" && !folderReader.busy && folderReader.refusal !== 0
@@ -268,6 +288,28 @@ ColumnLayout {
         }
     }
 
+    // --- a voice's own setting ---
+    CollapsibleSection {
+        visible: panel.voice
+        title: KI18n.i18nc("@title:group the settings of a voice in a Model block", "Voice")
+        expanded: true
+
+        ParamRow {
+            id: pitchShift
+
+            Layout.fillWidth: true
+            blockId: panel.blockId
+            descriptor: BlockCatalogue.ready ? BlockCatalogue.describeParam("effect.model", "semitones") : ({})
+            currentValue: panel.params.semitones
+            label: KI18n.i18nc("@label:spinbox how far a voice is moved up or down, in semitones", "Pitch shift")
+        }
+
+        InfoLine {
+            text: KI18n.i18nc("@info what the pitch shift of a Model block means",
+                              "How many semitones higher or lower the voice speaks than you do. Twelve is an octave; try that when the voice is much higher or lower than yours.")
+        }
+    }
+
     // --- what it may take ---
     CollapsibleSection {
         title: KI18n.i18nc("@title:group how a Model block runs its model", "Running")
@@ -282,7 +324,10 @@ ColumnLayout {
         }
 
         ParamRow {
+            id: monoRow
+
             Layout.fillWidth: true
+            visible: !panel.voice
             blockId: panel.blockId
             descriptor: BlockCatalogue.ready ? BlockCatalogue.describeParam("effect.model", "monoMode") : ({})
             currentValue: panel.params.monoMode

@@ -266,8 +266,11 @@ TestCase {
 
     function test_aRefusedFolderSaysWhy_data() {
         const reasons = [];
-        for (let reason = 1; reason <= 15; ++reason) {
-            reasons.push({ tag: "reason " + reason, refusal: reason });
+        for (let reason = 1; reason <= 20; ++reason) {
+            // 16 is about the session's cycle, and no folder gives it.
+            if (reason !== 16) {
+                reasons.push({ tag: "reason " + reason, refusal: reason });
+            }
         }
         return reasons;
     }
@@ -288,6 +291,38 @@ TestCase {
         testCase.answered(panel, "refusal=8\nfamily=4\n");
         compare(panel.descriptionLabel.text, "Voice conversion");
         compare(panel.refusalLabel.text, "This kind of model is recognised, but this version cannot run it yet.");
+    }
+
+    function test_aVoiceNamesItsFilesAndHasItsOwnSetting() {
+        testCase.needTheBlock();
+        SessionModel.setParam("m", "folder", "/somewhere/voice");
+        const panel = testCase.panelFor();
+        testCase.answered(panel, "refusal=0\nfamily=4\nmodelFile=voice.onnx\ncontentFile=encoder.onnx\npitchFile=estimator.onnx\nsampleRate=40000\nchannels=1\nhopSize=2560\n");
+        compare(panel.descriptionLabel.text, "Voice conversion, voice.onnx, 40,000 Hz, 1 channel");
+        compare(panel.voiceFilesLabel.text, "Content encoder: encoder.onnx. Pitch estimator: estimator.onnx.");
+        verify(panel.voiceFilesLabel.visible);
+        verify(panel.pitchRow.visible);
+        verify(!panel.monoRow.visible, "a voice always runs once, on the two sides mixed");
+    }
+
+    function test_aModelThatIsNoVoiceHasNoVoiceSetting() {
+        testCase.needTheBlock();
+        SessionModel.setParam("m", "folder", "/somewhere/voice");
+        const panel = testCase.panelFor();
+        testCase.answered(panel, "refusal=0\nfamily=2\nmodelFile=denoiser.onnx\nsampleRate=48000\nchannels=1\nhopSize=480\n");
+        verify(!panel.voiceFilesLabel.visible);
+        verify(!panel.pitchRow.visible);
+        verify(panel.monoRow.visible);
+    }
+
+    function test_aVoiceThatCannotRunHasNoVoiceSetting() {
+        testCase.needTheBlock();
+        SessionModel.setParam("m", "folder", "/somewhere/voice");
+        const panel = testCase.panelFor();
+        testCase.answered(panel, "refusal=18\nfamily=4\n");
+        verify(panel.refusalLabel.visible);
+        verify(!panel.voiceFilesLabel.visible);
+        verify(!panel.pitchRow.visible);
     }
 
     function test_tryAgainPressesOnce() {

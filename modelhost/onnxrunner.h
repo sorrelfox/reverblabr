@@ -9,8 +9,12 @@
 
 #include "model/description.h"
 #include "model/shared.h"
+#include "runner.h"
+
+#include <onnxruntime_cxx_api.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string>
@@ -19,32 +23,26 @@
 namespace rb::modelhost
 {
 
+/// **How every graph here is opened**: \a threads of its own and no spinning,
+/// and a GPU when the runtime offers one. \a device says what it got. Nothing
+/// is ever registered, so a graph holds only what the runtime ships.
+[[nodiscard]] Ort::SessionOptions sessionOptions(std::uint32_t threads, model::Device &device);
+
 /// **One model, called through ONNX Runtime** (ADR-0031), for one or more
-/// independent streams, each with its own state. All of what is called "a
-/// family" in the design comes down to a Description, for the families built
-/// so far.
-class OnnxRunner
+/// independent streams, each with its own state. The families that are one
+/// graph with one sound in and one out come down to a Description.
+class OnnxRunner final : public ModelRunner
 {
 public:
     /// Loads the model. \a streams is how many runs a frame takes. The
     /// refusal says why it will not run; None when it will.
     OnnxRunner(const std::string &folder, const model::Description &description, std::size_t streams);
-    ~OnnxRunner();
+    ~OnnxRunner() override;
 
-    OnnxRunner(const OnnxRunner &) = delete;
-    OnnxRunner &operator=(const OnnxRunner &) = delete;
-
-    [[nodiscard]] model::Refusal refusal() const noexcept;
-    [[nodiscard]] model::Device device() const noexcept;
-
-    /// One run of \a stream: frameSize samples of each of the model's
-    /// channels in \a input, one channel after the other; hopSize of each
-    /// into \a output, the same way. False when the model broke its promise
-    /// about what it gives back.
-    [[nodiscard]] bool run(std::size_t stream, std::span<const float> input, std::span<float> output);
-
-    /// Puts every state back to zeros.
-    void clearState();
+    [[nodiscard]] model::Refusal refusal() const noexcept override;
+    [[nodiscard]] model::Device device() const noexcept override;
+    [[nodiscard]] bool run(std::size_t stream, std::span<const float> input, std::span<float> output) override;
+    void clearState() override;
 
 private:
     struct Private;

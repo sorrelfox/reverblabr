@@ -83,6 +83,16 @@ std::vector<ParamDescriptor> ModelBlock::makeDescriptors()
     retry.flags.hidden = true;
     retry.flags.inPresets = false;
     descriptors.push_back(std::move(retry));
+
+    // Read before each of the model's runs, so a change needs no new host.
+    ParamDescriptor semitones;
+    semitones.id = "semitones";
+    semitones.type = ParamType::Int;
+    semitones.minimum = ParamValue::ofInt(-kMostSemitones);
+    semitones.maximum = ParamValue::ofInt(kMostSemitones);
+    semitones.defaultValue = ParamValue::ofInt(0);
+    semitones.unit = ParamUnit::Semitones;
+    descriptors.push_back(std::move(semitones));
     return descriptors;
 }
 
@@ -149,8 +159,10 @@ std::uint32_t ModelBlock::preparedShape() const
     hash = mixed(hash, static_cast<std::uint32_t>(m_description.refusal));
     hash = mixed(hash, m_description.modelFile);
     hash = mixed(hash, m_description.sampleRate);
+    hash = mixed(hash, m_description.rateIn());
     hash = mixed(hash, m_description.hopSize);
     hash = mixed(hash, m_description.latencySamples);
+    hash = mixed(hash, m_description.runMs);
     hash = mixed(hash, static_cast<std::uint32_t>(m_store.number(Spare)));
     hash = mixed(hash, static_cast<std::uint32_t>(m_store.number(Mono)));
     // Zero says "nothing to prepare for", which a folder never does.
@@ -250,6 +262,8 @@ void ModelBlock::process(ProcessContext &context) noexcept RB_NONBLOCKING
     }
     m_written = first + frames;
     model::SharedHeader &header = m_rings->header();
+    header.pitchCents.store(static_cast<std::int32_t>(std::lround(m_store.number(Semitones) * 100.0f)),
+                            std::memory_order_relaxed);
     header.written.store(m_written, std::memory_order_release);
 
     // What the host says is believed only as far as it can be true.

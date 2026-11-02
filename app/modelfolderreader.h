@@ -36,6 +36,9 @@ class ModelFolderReader : public QObject
     Q_PROPERTY(int family READ family NOTIFY changed)
     Q_PROPERTY(QString modelFile READ modelFile NOTIFY changed)
     Q_PROPERTY(QString licenceFile READ licenceFile NOTIFY changed)
+    /// The two files a voice takes beside its own.
+    Q_PROPERTY(QString contentFile READ contentFile NOTIFY changed)
+    Q_PROPERTY(QString pitchFile READ pitchFile NOTIFY changed)
     Q_PROPERTY(int sampleRate READ sampleRate NOTIFY changed)
     Q_PROPERTY(int channels READ channels NOTIFY changed)
     Q_PROPERTY(int hopSize READ hopSize NOTIFY changed)
@@ -51,6 +54,8 @@ public:
     [[nodiscard]] int family() const;
     [[nodiscard]] QString modelFile() const;
     [[nodiscard]] QString licenceFile() const;
+    [[nodiscard]] QString contentFile() const;
+    [[nodiscard]] QString pitchFile() const;
     [[nodiscard]] int sampleRate() const;
     [[nodiscard]] int channels() const;
     [[nodiscard]] int hopSize() const;

@@ -60,14 +60,15 @@ Runs the sound through a trained model from a folder you choose, and plays what 
 
 **Spare time** (20, 50, 100 or 250 ms) is the time a run may take, and is part of the delay, which is one hop of the model plus what its own processing needs plus this. It is the same at every quantum, and the other lanes are kept in step with it. The default of 50 ms covers quanta up to 2048 at 48 kHz.
 
-**Mono models** run once a side, or once on the two sides mixed.
+**Mono models** run once a side, or once on the two sides mixed. A voice always runs once on the two sides mixed, and the card leaves this setting out for it.
 
-A folder is recognised by its `reverblabr-model.json`, or by the inputs of its ONNX file. This version runs:
+A folder is recognised by its `reverblabr-model.json`, or by the inputs of its ONNX files. This version runs:
 
 - a streaming DeepFilterNet export, known by its inputs `input_frame`, `states` and `atten_lim_db`, for noise cleanup at 48 kHz;
+- an RVC-style voice conversion set of three ONNX files, described below;
 - any ONNX model described by a `reverblabr-model.json`.
 
-Voice conversion, speech through a language model and GGUF files are recognised and not run yet, and the card says so. Files that can run code when opened (`.pt`, `.pth`, `.ckpt`, `.pkl`) are never opened.
+Speech through a language model and GGUF files are recognised and not run yet, and the card says so. Files that can run code when opened (`.pt`, `.pth`, `.ckpt`, `.pkl`) are never opened.
 
 ```json
 {
@@ -88,6 +89,35 @@ Voice conversion, speech through a language model and GGUF files are recognised 
 ```
 
 `file`, `sampleRate`, `channels`, `frameSize`, `input` and `output` are required. Inputs and outputs are 32-bit floats, of shape `[frames]`, `[channels, frames]` or `[1, channels, frames]`. A run takes `frameSize` samples and gives back `frameSize` or `hopSize`, of which the last `hopSize` are used. `latencySamples` is how late the model's answer is, at its own rate. Each `state` pair starts at zeros and carries a run's output to the next run's input. `constants` are inputs that hold one number. See [ADR-0031](adr/0031-model-block.md).
+
+**A voice** is three ONNX files in one folder, told apart by their inputs and outputs and not by their names:
+
+- the voice itself, an RVC-style export, known by its inputs `phone` or `feats`, `pitch` and `pitchf`;
+- a content encoder, which hears what is being said, such as `vec-768-layer-12.onnx`. It has to give the size of features the voice takes, 256 or 768;
+- a pitch estimator, which hears how high it is, such as `rmvpe.onnx`.
+
+If one is missing or does not fit, the card says which. Voices share the other two, and a link to a shared file works. Use only voices you have the right to use.
+
+**Pitch shift** moves the voice up or down, up to 24 semitones either way, and can be changed while it runs. A voice runs once on the two sides mixed, and both sides play it.
+
+A voice takes far more than a cleanup model. Each run hears a second of sound and adds 160 ms, and its delay is about 390 ms with the default spare time, which is too long to hear yourself speak through it. The card's Delay is the true figure. An RVC v2 voice at 40 kHz took about two cores of a Ryzen 9 9950X3D2, and was done in 57 % of the time it had; a slower machine may need the Spare time raised, or may not keep up at all, and the card then says so.
+
+A folder with more than one voice, or a voice whose rate its file does not show, needs a `reverblabr-model.json` to say which is which:
+
+```json
+{
+  "format": 1,
+  "family": "voiceConversion",
+  "file": "voice.onnx",
+  "contentModel": "encoder.onnx",
+  "pitchModel": "estimator.onnx",
+  "sampleRate": 40000,
+  "threads": 4,
+  "licence": "LICENSE.txt"
+}
+```
+
+`sampleRate`, `threads` and `licence` may be left out.
 
 ### Reverb
 

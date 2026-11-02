@@ -33,6 +33,8 @@ struct Reading {
     int family = 0;
     QString modelFile;
     QString licenceFile;
+    QString contentFile;
+    QString pitchFile;
     int sampleRate = 0;
     int channels = 0;
     int hopSize = 0;
@@ -156,6 +158,10 @@ void ModelFolderReader::takeAnswer(const QByteArray &text)
             reading.modelFile = QString::fromUtf8(value);
         } else if (key == "licenceFile") {
             reading.licenceFile = QString::fromUtf8(value);
+        } else if (key == "contentFile") {
+            reading.contentFile = QString::fromUtf8(value);
+        } else if (key == "pitchFile") {
+            reading.pitchFile = QString::fromUtf8(value);
         } else if (key == "sampleRate") {
             reading.sampleRate = value.toInt();
         } else if (key == "channels") {
@@ -191,6 +197,16 @@ QString ModelFolderReader::modelFile() const
 QString ModelFolderReader::licenceFile() const
 {
     return d->reading.licenceFile;
+}
+
+QString ModelFolderReader::contentFile() const
+{
+    return d->reading.contentFile;
+}
+
+QString ModelFolderReader::pitchFile() const
+{
+    return d->reading.pitchFile;
 }
 
 int ModelFolderReader::sampleRate() const
