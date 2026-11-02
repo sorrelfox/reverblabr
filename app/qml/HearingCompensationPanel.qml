@@ -27,6 +27,9 @@ import org.kde.ki18n
 //   level heard and each band's ceiling, with the sound going in and the
 //   sound coming out: the processed sound is seen rising into the
 //   space between them.
+// - **Numbers round the plot** (PlotAxes). What is drawn on another scale
+//   than the axis says so under the plot: the sound behind the gains, and an
+//   audiogram typed in dB HL on the levels view.
 // - **A band's inspector:** its four settings, and its input/output curve
 //   with the level it is at now.
 // - **The audiogram**, and **Fit from audiogram**: one edit, one
@@ -39,10 +42,10 @@ import org.kde.ki18n
 //
 // **Hearing Compensation 64** has the same panel with control points
 // in place of a handle a band: a handle on each point, dragged across to
-// move it and up or down for the curve being edited; a double click adds a
-// point where the curves already are, so nothing changes until it is
-// moved; the inspector shows the chosen point, and Remove Point takes it
-// out. The 64 bands follow the curves through the points.
+// move it and up or down for the curve being edited; a double click, or
+// Add Point, adds a point where the curves already are, so nothing changes
+// until it is moved; the inspector shows the chosen point, and Remove Point
+// takes it out. The 64 bands follow the curves through the points.
 ColumnLayout {
     id: panel
 
@@ -101,6 +104,7 @@ ColumnLayout {
 
     /// What a copy from the other ear brings beside the bands.
     readonly property var limitParams: ["maximumGainDb", "limiterCeilingDb"]
+    readonly property string frequencyAxisTitle: KI18n.i18nc("@label the axis of a graph across frequency", "Frequency, Hz")
     readonly property string decibelWord: KI18n.i18nc("@label unit of a change of level", "dB")
     readonly property string dbfsWord: KI18n.i18nc("@label unit of a level, 0 is full scale", "dBFS")
     /// Tone's tilt, where a block has it. It adds to the same gains as
@@ -141,6 +145,13 @@ ColumnLayout {
     readonly property alias bands: bands
     readonly property alias otherBands: otherBands
     readonly property alias plotArea: plotArea
+    readonly property alias plotAxes: plotAxes
+    readonly property alias bandCurveAxes: bandCurveAxes
+    readonly property alias ceilingNote: ceilingNote
+    readonly property alias levelsNote: levelsWords
+    readonly property alias gainNote: gainWords
+    readonly property alias soundBehindShape: soundBehind
+    readonly property alias thresholdLine: thresholdPolyline
     readonly property alias nowLine: nowPolyline
     readonly property alias averageLine: averagePolyline
     readonly property alias otherLine: otherPolyline
@@ -153,7 +164,9 @@ ColumnLayout {
     readonly property alias bandCurve: bandCurvePolyline
     readonly property alias bandCurveArea: bandCurveArea
     readonly property alias bandCurveDot: bandCurveDot
+    readonly property alias addButton: addControl
     readonly property alias removeButton: removeControl
+    readonly property alias pointsFullNote: pointsFullWords
     readonly property alias limits: limitsSection
     readonly property alias loudnessLimit: loudnessRow
     readonly property alias mostGainLimit: mostGainRow
@@ -188,6 +201,11 @@ ColumnLayout {
 
         params: panel.otherParams
         typeId: panel.typeId
+    }
+
+    // How a frequency is written short, as on a tile.
+    FrequencyMoveWords {
+        id: numberWords
     }
 
     /// Asks for this block's band values and spectra while the panel is
@@ -301,7 +319,7 @@ ColumnLayout {
         return points;
     }
 
-    // --- the audiogram, on the levels view ---
+    // --- the audiogram and the ceilings ---
 
     readonly property var audiogramHz: [125, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 6000, 8000]
     /// What may be found at each frequency, in the order the lists offer it.
@@ -330,16 +348,76 @@ ColumnLayout {
         return points;
     }
 
-    readonly property var ceilingPoints: {
-        const points = [];
+
+    /// Which bands' ceilings can be drawn, as runs of neighbouring bands
+    /// (lists of points). **A ceiling above 0 dBFS has no place on this
+    /// scale**: no digital level reaches it, so it holds nothing back
+    /// (ceilingText says "no limit"), and pinned to the top it read as a level
+    /// of 0 dBFS. Those bands are left out and ceilingNote says so.
+    readonly property var ceilingRuns: {
+        const runs = [];
         if (plotArea.width <= 0) {
-            return points;
+            return runs;
         }
+        let run = null;
         for (let band = 0; band < bands.count; ++band) {
-            points.push(Qt.point(panel.xOfHz(bands.centresHz[band]),
-                                 panel.yOfLevel(bands.ceilingDbfs(bands.value(band, "Ceiling")))));
+            const dbfs = bands.ceilingDbfs(bands.value(band, "Ceiling"));
+            if (dbfs > panel.loudestDbfs) {
+                run = null;
+                continue;
+            }
+            if (run === null) {
+                run = [];
+                runs.push(run);
+            }
+            // Inside the edge: a line on the plot's top is half cut away.
+            run.push(Qt.point(panel.xOfHz(bands.centresHz[band]), Math.max(1, panel.yOfLevel(dbfs))));
         }
-        return points;
+        return runs;
+    }
+    readonly property int ceilingsOffScale: {
+        let above = bands.count;
+        for (const run of panel.ceilingRuns) {
+            above -= run.length;
+        }
+        return above;
+    }
+    /// The runs as a path. A band alone, with nothing either side, is a short
+    /// dash, since a line of one point draws nothing.
+    readonly property string ceilingPath: panel.ceilingRuns.map(run => {
+        const first = run.length > 1 ? run[0] : Qt.point(run[0].x - 4, run[0].y);
+        const rest = run.length > 1 ? run.slice(1) : [Qt.point(run[0].x + 4, run[0].y)];
+        return "M " + first.x + " " + first.y + rest.map(point => " L " + point.x + " " + point.y).join("");
+    }).join(" ")
+
+    /// What the audiogram's line on the levels view is. Typed in dB HL it is
+    /// drawn 85 dB lower, the listening scale's offset, which is no measure
+    /// of this system, so the dBFS axis must not pass for a calibration.
+    readonly property string levelsAudiogramWords: {
+        if (panel.thresholdPoints.length === 0) {
+            return "";
+        }
+        return panel.audiogramInDbfs
+            ? KI18n.i18nc("@info under the levels view of a block, an audiogram typed in dBFS",
+                          "Dark line: the quietest level heard, from the audiogram.")
+            : KI18n.i18nc("@info under the levels view of a block, an audiogram typed in dB HL, '85 dB'",
+                          "Dark line: the quietest level heard, from the audiogram, drawn %1 dB below what was typed. That is a fixed figure, not a measure of your sound system.",
+                          bands.listeningOffsetDb);
+    }
+
+    /// What the gain view has to say when the sound is behind its curves,
+    /// which the gain axis does not measure.
+    readonly property bool soundBehindGains: panel.view === "gain" && panel.spectrum.length > 0
+
+    /// What the levels view has to say about the sound, under the plot.
+    readonly property string levelsLiveWords: {
+        if (Meters.frame < 0 || !Meters.live) {
+            return KI18n.i18nc("@info the levels view of a block, while its session is stopped",
+                               "The sound is drawn while the session runs.");
+        }
+        return Meters.analysed() === panel.blockId ? ""
+            : KI18n.i18nc("@info the levels view of a block, while another block's card is analysed",
+                          "Not showing live sound: another card has it.");
     }
 
     // --- editing ---
@@ -422,7 +500,9 @@ ColumnLayout {
             return -1;
         }
         // The settings at hz, from the curves through the points that are on.
-        const on = bands.points.filter(point => point.on).sort((a, b) => a.hz - b.hz);
+        // The first of any on the same frequency, as the block has it.
+        const sorted = bands.points.filter(point => point.on).sort((a, b) => a.hz - b.hz || a.index - b.index);
+        const on = sorted.filter((point, at) => at === 0 || point.hz > sorted[at - 1].hz);
         const changes = [[bands.pointParamId(free.index, "On"), true],
                          [bands.pointParamId(free.index, "Hz"), Math.round(hz)]];
         for (const which of bands.settings) {
@@ -436,6 +516,25 @@ ColumnLayout {
         SessionModel.setParams(panel.blockId, changes);
         panel.selected = free.index;
         return free.index;
+    }
+
+    /// **Where Add Point puts a point**: the middle, in octaves, of the widest
+    /// gap between the points, the lowest of equal gaps, which spreads a row
+    /// of presses across the curve. With fewer than two points there are no
+    /// gaps, so the ends of the block's range count.
+    function hzForNewPoint(): real {
+        const placed = bands.placed.map(point => bands.pointValue(point, "Hz"));
+        const edges = placed.length >= 2 ? placed : [bands.lowestHz].concat(placed, [bands.highestHz]);
+        let widest = -1;
+        let hz = bands.lowestHz;
+        for (let edge = 0; edge + 1 < edges.length; ++edge) {
+            const gap = Math.log(edges[edge + 1] / edges[edge]);
+            if (gap > widest + 1e-9) {
+                widest = gap;
+                hz = Math.sqrt(edges[edge] * edges[edge + 1]);
+            }
+        }
+        return Math.round(hz);
     }
 
     /// Takes the chosen point out: switched off, its settings kept.
@@ -517,6 +616,18 @@ ColumnLayout {
     function hzText(hz: real): string {
         return hz >= 1000 ? KI18n.i18nc("@item a frequency in kilohertz", "%1 kHz", (hz / 1000).toFixed(hz >= 10000 ? 0 : 1))
                           : KI18n.i18nc("@item a frequency in hertz", "%1 Hz", Math.round(hz));
+    }
+
+    /// A number on an axis: a true minus, and a plus on a gain above 0.
+    function axisNumber(value: real): string {
+        const digits = Math.abs(value).toLocaleString(Qt.locale(), 'f', 0);
+        return value < 0 ? "\u2212" + digits : (value > 0 && plotAxes.gains ? "+" : "") + digits;
+    }
+
+    /// The words of an input/output axis.
+    function bandAxisNumber(value: real): string {
+        const digits = Math.abs(value).toLocaleString(Qt.locale(), 'f', 0);
+        return value < 0 ? "\u2212" + digits : digits;
     }
 
     function viewName(which: string): string {
@@ -630,277 +741,350 @@ ColumnLayout {
     // --- the plot ---
 
     Item {
-        id: plotArea
+        id: plotFrame
 
         Layout.fillWidth: true
-        Layout.preferredHeight: Kirigami.Units.gridUnit * 11
-        clip: true
+        Layout.preferredHeight: Kirigami.Units.gridUnit * 11 + plotAxes.topGutter + plotAxes.bottomGutter
 
-        Rectangle {
+        PlotAxes {
+            id: plotAxes
+
+            readonly property bool gains: panel.view === "gain"
+
             anchors.fill: parent
-            color: AppColors.well
-            radius: AppMetrics.troughRadius
+            plot: plotArea
+            xOf: hz => panel.xOfHz(hz)
+            yOf: plotAxes.gains ? db => panel.yOfGain(db) : dbfs => panel.yOfLevel(dbfs)
+            xText: hz => numberWords.shortHz(hz)
+            yText: value => panel.axisNumber(value)
+            xTicks: [125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+            yTicks: plotAxes.gains ? [-20, 0, 20, 40, 60] : [-100, -80, -60, -40, -20, 0]
+            yLines: plotAxes.gains ? [-10, 10, 30, 50] : []
+            heavyY: plotAxes.gains ? 0 : null
+            xTitle: panel.frequencyAxisTitle
+            yTitle: plotAxes.gains ? KI18n.i18nc("@label the axis of a graph of gain", "Gain, dB")
+                                   : KI18n.i18nc("@label the axis of a graph of level, 0 is full scale", "Level, dBFS")
+            widestYText: panel.axisNumber(-100)
         }
 
-        Repeater {
-            model: panel.view === "gain" ? [-20, -10, 0, 10, 20, 30, 40, 50, 60] : [-100, -80, -60, -40, -20, 0]
+        Item {
+            id: plotArea
 
-            delegate: Rectangle {
-                required property var modelData
+            x: plotAxes.leftGutter
+            y: plotAxes.topGutter
+            width: plotFrame.width - plotAxes.leftGutter - plotAxes.rightGutter
+            height: plotFrame.height - plotAxes.topGutter - plotAxes.bottomGutter
+            clip: true
 
-                x: 0
-                y: Math.round(panel.view === "gain" ? panel.yOfGain(modelData) : panel.yOfLevel(modelData))
-                width: plotArea.width
-                height: 1
-                color: panel.view === "gain" && modelData === 0 ? AppColors.muted : AppColors.border
+            // The sound behind the gains, on a scale of its own.
+            Shape {
+                id: soundBehind
+
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                visible: panel.soundBehindGains
+
+                ShapePath {
+                    strokeColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.5)
+                    strokeWidth: 1
+                    fillColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.22)
+
+                    PathPolyline {
+                        path: panel.view === "gain" ? panel.spectrumPoints(panel.spectrum, true) : []
+                    }
+                }
+            }
+
+            // The gain view's curves.
+            Shape {
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                visible: panel.view === "gain"
+
+                ShapePath {
+                    strokeColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.7)
+                    strokeWidth: 1
+                    strokeStyle: ShapePath.DashLine
+                    fillColor: "transparent"
+
+                    PathPolyline {
+                        id: otherPolyline
+
+                        path: panel.otherBlock !== "" ? panel.line(otherBands, "Average") : []
+                    }
+                }
+
+                ShapePath {
+                    strokeColor: Qt.rgba(panel.tint.r, panel.tint.g, panel.tint.b, 0.45)
+                    strokeWidth: 1.5
+                    fillColor: "transparent"
+
+                    PathPolyline {
+                        path: panel.line(bands, "Soft")
+                    }
+                }
+
+                ShapePath {
+                    strokeColor: Qt.rgba(panel.tint.r, panel.tint.g, panel.tint.b, 0.7)
+                    strokeWidth: 1.5
+                    fillColor: "transparent"
+
+                    PathPolyline {
+                        path: panel.line(bands, "Loud")
+                    }
+                }
+
+                ShapePath {
+                    strokeColor: Qt.rgba(panel.tint.r, panel.tint.g, panel.tint.b, 0.6)
+                    strokeWidth: 1
+                    strokeStyle: ShapePath.DashLine
+                    fillColor: "transparent"
+
+                    PathPolyline {
+                        path: panel.line(bands, "Ceiling")
+                    }
+                }
+
+                ShapePath {
+                    strokeColor: panel.tint
+                    strokeWidth: 2
+                    fillColor: "transparent"
+                    joinStyle: ShapePath.RoundJoin
+                    capStyle: ShapePath.RoundCap
+
+                    PathPolyline {
+                        id: averagePolyline
+
+                        path: panel.line(bands, "Average")
+                    }
+                }
+
+                // Now: the gain each band is applying at this moment.
+                ShapePath {
+                    strokeColor: AppColors.text
+                    strokeWidth: 2
+                    fillColor: "transparent"
+                    joinStyle: ShapePath.RoundJoin
+
+                    PathPolyline {
+                        id: nowPolyline
+
+                        path: panel.nowPoints
+                    }
+                }
+            }
+
+            // The levels view: the ear, and the sound in and out.
+            Shape {
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                visible: panel.view === "levels"
+
+                ShapePath {
+                    strokeColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.6)
+                    strokeWidth: 1
+                    fillColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.15)
+
+                    PathPolyline {
+                        path: panel.view === "levels" ? panel.spectrumPoints(panel.inputSpectrum, true) : []
+                    }
+                }
+
+                ShapePath {
+                    strokeColor: panel.tint
+                    strokeWidth: 1.5
+                    fillColor: "transparent"
+
+                    PathPolyline {
+                        path: panel.view === "levels" ? panel.spectrumPoints(panel.spectrum, false) : []
+                    }
+                }
+
+                ShapePath {
+                    strokeColor: AppColors.text
+                    strokeWidth: 2
+                    fillColor: "transparent"
+
+                    PathPolyline {
+                        id: thresholdPolyline
+
+                        path: panel.thresholdPoints
+                    }
+                }
+
+                ShapePath {
+                    strokeColor: panel.tint
+                    strokeWidth: 1.5
+                    strokeStyle: ShapePath.DashLine
+                    fillColor: "transparent"
+
+                    PathSvg {
+                        id: ceilingLine
+
+                        path: panel.ceilingPath
+                    }
+                }
+            }
+
+            // **What the dashed line is, and where it went**: words on the plot,
+            // below the top line, on the well so a spectrum does not run through
+            // them.
+            Rectangle {
+                id: ceilingNote
+
+                readonly property var lastRun: panel.ceilingRuns.length > 0
+                    ? panel.ceilingRuns[panel.ceilingRuns.length - 1] : []
+                readonly property real lineY: ceilingNote.lastRun.length > 0
+                    ? ceilingNote.lastRun[ceilingNote.lastRun.length - 1].y : 0
+                readonly property string words: {
+                    if (panel.ceilingsOffScale === 0) {
+                        return KI18n.i18nc("@label the dashed line on the levels view", "Ceiling");
+                    }
+                    return panel.ceilingsOffScale === bands.count
+                        ? KI18n.i18nc("@info no band's ceiling is on the levels view's scale",
+                                      "Ceiling above 0 dBFS: no limit")
+                        : KI18n.i18ncp("@info bands whose ceiling is above the levels view's scale",
+                                       "Ceiling: no limit in %1 band",
+                                       "Ceiling: no limit in %1 bands",
+                                       panel.ceilingsOffScale);
+                }
+
+                visible: panel.view === "levels"
+                anchors.right: parent.right
+                anchors.rightMargin: Kirigami.Units.smallSpacing
+                y: Math.min(plotArea.height - height, ceilingNote.lineY + Kirigami.Units.smallSpacing)
+                width: Math.min(ceilingWords.implicitWidth, plotArea.width - 2 * Kirigami.Units.smallSpacing)
+                height: ceilingWords.implicitHeight
+                // Thin enough that a line it lies over can still be followed.
+                color: Qt.alpha(AppColors.well, 0.7)
+                radius: AppMetrics.troughRadius
+
+                QQC2.Label {
+                    id: ceilingWords
+
+                    anchors.fill: parent
+                    text: ceilingNote.words
+                    elide: Text.ElideRight
+                    font: AppFonts.small
+                    color: AppColors.text
+                }
+            }
+
+            // A band the fit could not help: more gain is unlikely to.
+            Repeater {
+                model: panel.view === "gain" ? panel.unhelped : []
+
+                delegate: Kirigami.Icon {
+                    required property var modelData
+
+                    x: panel.xOfHz(modelData) - width / 2
+                    y: Kirigami.Units.smallSpacing
+                    width: Kirigami.Units.iconSizes.small
+                    height: width
+                    source: "data-warning"
+                }
+            }
+
+            Repeater {
+                id: handleRepeater
+
+                model: panel.view === "gain" ? panel.handleIndices : []
+
+                delegate: Rectangle {
+                    id: handle
+
+                    /// The band, or the point, this is the handle of.
+                    required property var modelData
+                    readonly property int index: handle.modelData
+
+                    readonly property bool chosen: handle.index === panel.selected
+                    readonly property point at: plotArea.width > 0 ? panel.handlePoint(handle.index) : Qt.point(0, 0)
+
+                    x: handle.at.x - width / 2
+                    y: handle.at.y - height / 2
+                    width: handle.chosen ? 12 : 8
+                    height: width
+                    radius: width / 2
+                    color: panel.tint
+                    border.width: handle.chosen ? 2 : 1
+                    border.color: handle.chosen ? AppColors.text : panel.tint
+
+                    Accessible.role: Accessible.Indicator
+                    Accessible.name: KI18n.i18nc("@info a band's handle, 'Average at 1.0 kHz: +12.0 dB'", "%1 at %2: %3",
+                                                 panel.settingName(panel.editing),
+                                                 panel.hzText(panel.throughPoints ? bands.pointValue(handle.index, "Hz")
+                                                                                  : bands.centresHz[handle.index]),
+                                                 panel.editing === "Ceiling"
+                                                 ? bands.ceilingText(panel.throughPoints
+                                                                     ? bands.pointValue(handle.index, "Ceiling")
+                                                                     : bands.value(handle.index, "Ceiling"))
+                                                 : panel.gainText(panel.throughPoints
+                                                                  ? panel.drawnPointGain(handle.index, panel.editing)
+                                                                  : panel.drawnGain(handle.index, panel.editing)))
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: panel.view === "gain"
+                acceptedButtons: Qt.LeftButton
+                preventStealing: true
+
+                onPressed: mouse => {
+                    const band = panel.bandAt(mouse.x, mouse.y);
+                    if (band < 0) {
+                        // Through points, a double click in the open adds one.
+                        mouse.accepted = panel.throughPoints;
+                        return;
+                    }
+                    panel.pressedX = mouse.x;
+                    panel.pressedY = mouse.y;
+                    panel.grabOffset = mouse.y - panel.handlePoint(band).y;
+                    panel.grabOffsetX = mouse.x - panel.handlePoint(band).x;
+                    panel.selected = band;
+                    panel.dragging = band;
+                }
+                onDoubleClicked: mouse => {
+                    if (panel.throughPoints && panel.bandAt(mouse.x, mouse.y) < 0) {
+                        panel.addPoint(panel.pointHzAtX(mouse.x));
+                    }
+                }
+                onPositionChanged: mouse => {
+                    if (panel.dragging >= 0) {
+                        panel.dragTo(panel.dragging, mouse.x, mouse.y);
+                    }
+                }
+                onReleased: panel.endDrag()
+                onCanceled: panel.endDrag()
             }
         }
+    }
 
-        Repeater {
-            model: [125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+    // The sound behind the gains is not read on the gain axis.
+    QQC2.Label {
+        id: gainWords
 
-            delegate: Rectangle {
-                required property var modelData
+        Layout.fillWidth: true
+        visible: panel.soundBehindGains
+        wrapMode: Text.WordWrap
+        font: AppFonts.small
+        color: AppColors.muted
+        text: KI18n.i18nc("@info under the gain view of a block, while the sound is drawn behind the curves",
+                          "Grey: the sound, on a scale of its own, not the gain axis: 0 dBFS at the top, \u2212100 dBFS at the bottom.")
+    }
 
-                x: Math.round(panel.xOfHz(modelData))
-                y: 0
-                width: 1
-                height: plotArea.height
-                color: AppColors.border
-            }
-        }
+    // What the levels view draws, and whether any of it is live.
+    QQC2.Label {
+        id: levelsWords
 
-        // The sound behind the gains, on a scale of its own.
-        Shape {
-            anchors.fill: parent
-            preferredRendererType: Shape.CurveRenderer
-            visible: panel.view === "gain" && panel.spectrum.length > 0
-
-            ShapePath {
-                strokeColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.5)
-                strokeWidth: 1
-                fillColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.22)
-
-                PathPolyline {
-                    path: panel.view === "gain" ? panel.spectrumPoints(panel.spectrum, true) : []
-                }
-            }
-        }
-
-        // The gain view's curves.
-        Shape {
-            anchors.fill: parent
-            preferredRendererType: Shape.CurveRenderer
-            visible: panel.view === "gain"
-
-            ShapePath {
-                strokeColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.7)
-                strokeWidth: 1
-                strokeStyle: ShapePath.DashLine
-                fillColor: "transparent"
-
-                PathPolyline {
-                    id: otherPolyline
-
-                    path: panel.otherBlock !== "" ? panel.line(otherBands, "Average") : []
-                }
-            }
-
-            ShapePath {
-                strokeColor: Qt.rgba(panel.tint.r, panel.tint.g, panel.tint.b, 0.45)
-                strokeWidth: 1.5
-                fillColor: "transparent"
-
-                PathPolyline {
-                    path: panel.line(bands, "Soft")
-                }
-            }
-
-            ShapePath {
-                strokeColor: Qt.rgba(panel.tint.r, panel.tint.g, panel.tint.b, 0.7)
-                strokeWidth: 1.5
-                fillColor: "transparent"
-
-                PathPolyline {
-                    path: panel.line(bands, "Loud")
-                }
-            }
-
-            ShapePath {
-                strokeColor: Qt.rgba(panel.tint.r, panel.tint.g, panel.tint.b, 0.6)
-                strokeWidth: 1
-                strokeStyle: ShapePath.DashLine
-                fillColor: "transparent"
-
-                PathPolyline {
-                    path: panel.line(bands, "Ceiling")
-                }
-            }
-
-            ShapePath {
-                strokeColor: panel.tint
-                strokeWidth: 2
-                fillColor: "transparent"
-                joinStyle: ShapePath.RoundJoin
-                capStyle: ShapePath.RoundCap
-
-                PathPolyline {
-                    id: averagePolyline
-
-                    path: panel.line(bands, "Average")
-                }
-            }
-
-            // Now: the gain each band is applying at this moment.
-            ShapePath {
-                strokeColor: AppColors.text
-                strokeWidth: 2
-                fillColor: "transparent"
-                joinStyle: ShapePath.RoundJoin
-
-                PathPolyline {
-                    id: nowPolyline
-
-                    path: panel.nowPoints
-                }
-            }
-        }
-
-        // The levels view: the ear, and the sound in and out.
-        Shape {
-            anchors.fill: parent
-            preferredRendererType: Shape.CurveRenderer
-            visible: panel.view === "levels"
-
-            ShapePath {
-                strokeColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.6)
-                strokeWidth: 1
-                fillColor: Qt.rgba(AppColors.muted.r, AppColors.muted.g, AppColors.muted.b, 0.15)
-
-                PathPolyline {
-                    path: panel.view === "levels" ? panel.spectrumPoints(panel.inputSpectrum, true) : []
-                }
-            }
-
-            ShapePath {
-                strokeColor: panel.tint
-                strokeWidth: 1.5
-                fillColor: "transparent"
-
-                PathPolyline {
-                    path: panel.view === "levels" ? panel.spectrumPoints(panel.spectrum, false) : []
-                }
-            }
-
-            ShapePath {
-                strokeColor: AppColors.text
-                strokeWidth: 2
-                fillColor: "transparent"
-
-                PathPolyline {
-                    path: panel.thresholdPoints
-                }
-            }
-
-            ShapePath {
-                strokeColor: Qt.rgba(panel.tint.r, panel.tint.g, panel.tint.b, 0.8)
-                strokeWidth: 1
-                strokeStyle: ShapePath.DashLine
-                fillColor: "transparent"
-
-                PathPolyline {
-                    path: panel.ceilingPoints
-                }
-            }
-        }
-
-        // A band the fit could not help: more gain is unlikely to.
-        Repeater {
-            model: panel.view === "gain" ? panel.unhelped : []
-
-            delegate: Kirigami.Icon {
-                required property var modelData
-
-                x: panel.xOfHz(modelData) - width / 2
-                y: Kirigami.Units.smallSpacing
-                width: Kirigami.Units.iconSizes.small
-                height: width
-                source: "data-warning"
-            }
-        }
-
-        Repeater {
-            id: handleRepeater
-
-            model: panel.view === "gain" ? panel.handleIndices : []
-
-            delegate: Rectangle {
-                id: handle
-
-                /// The band, or the point, this is the handle of.
-                required property var modelData
-                readonly property int index: handle.modelData
-
-                readonly property bool chosen: handle.index === panel.selected
-                readonly property point at: plotArea.width > 0 ? panel.handlePoint(handle.index) : Qt.point(0, 0)
-
-                x: handle.at.x - width / 2
-                y: handle.at.y - height / 2
-                width: handle.chosen ? 12 : 8
-                height: width
-                radius: width / 2
-                color: panel.tint
-                border.width: handle.chosen ? 2 : 1
-                border.color: handle.chosen ? AppColors.text : panel.tint
-
-                Accessible.role: Accessible.Indicator
-                Accessible.name: KI18n.i18nc("@info a band's handle, 'Average at 1.0 kHz: +12.0 dB'", "%1 at %2: %3",
-                                             panel.settingName(panel.editing),
-                                             panel.hzText(panel.throughPoints ? bands.pointValue(handle.index, "Hz")
-                                                                              : bands.centresHz[handle.index]),
-                                             panel.editing === "Ceiling"
-                                             ? bands.ceilingText(panel.throughPoints
-                                                                 ? bands.pointValue(handle.index, "Ceiling")
-                                                                 : bands.value(handle.index, "Ceiling"))
-                                             : panel.gainText(panel.throughPoints
-                                                              ? panel.drawnPointGain(handle.index, panel.editing)
-                                                              : panel.drawnGain(handle.index, panel.editing)))
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            enabled: panel.view === "gain"
-            acceptedButtons: Qt.LeftButton
-            preventStealing: true
-
-            onPressed: mouse => {
-                const band = panel.bandAt(mouse.x, mouse.y);
-                if (band < 0) {
-                    // Through points, a double click in the open adds one.
-                    mouse.accepted = panel.throughPoints;
-                    return;
-                }
-                panel.pressedX = mouse.x;
-                panel.pressedY = mouse.y;
-                panel.grabOffset = mouse.y - panel.handlePoint(band).y;
-                panel.grabOffsetX = mouse.x - panel.handlePoint(band).x;
-                panel.selected = band;
-                panel.dragging = band;
-            }
-            onDoubleClicked: mouse => {
-                if (panel.throughPoints && panel.bandAt(mouse.x, mouse.y) < 0) {
-                    panel.addPoint(panel.pointHzAtX(mouse.x));
-                }
-            }
-            onPositionChanged: mouse => {
-                if (panel.dragging >= 0) {
-                    panel.dragTo(panel.dragging, mouse.x, mouse.y);
-                }
-            }
-            onReleased: panel.endDrag()
-            onCanceled: panel.endDrag()
-        }
+        Layout.fillWidth: true
+        visible: panel.view === "levels"
+        wrapMode: Text.WordWrap
+        font: AppFonts.small
+        color: AppColors.muted
+        text: [KI18n.i18nc("@info under the levels view of a block",
+                           "Grey: sound in. Coloured line: sound out. Dashed: ceiling. Sound in bands a tenth of an octave wide."),
+               panel.levelsAudiogramWords, panel.levelsLiveWords].filter(words => words !== "").join(" ")
     }
 
     QQC2.Label {
@@ -915,6 +1099,73 @@ ColumnLayout {
                            "In the marked band more gain is unlikely to help. Frequency Lowering can move the sound to where it is heard.",
                            "In the %1 marked bands more gain is unlikely to help. Frequency Lowering can move the sound to where it is heard.",
                            panel.unhelped.length)
+    }
+
+    // --- the points ---
+
+    // Beside each other and out of the inspector: a point can be added with
+    // none chosen. Sixteen bands have no points: not there at all.
+    RowLayout {
+        Layout.fillWidth: true
+        visible: panel.throughPoints
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.Button {
+            id: addControl
+
+            enabled: bands.placed.length < bands.pointCount
+            Accessible.ignored: !panel.throughPoints
+            Accessible.description: addControl.enabled ? "" : pointsFullWords.text
+            text: KI18n.i18nc("@action:button put a new control point on the curves", "Add Point")
+            icon.name: "list-add"
+            onClicked: panel.addPoint(panel.hzForNewPoint())
+            // Space and Return are this button's while it has the keyboard,
+            // not the window's Run.
+            Keys.onShortcutOverride: event => {
+                event.accepted = event.key === Qt.Key_Space;
+            }
+            Keys.onReturnPressed: addControl.click()
+            Keys.onEnterPressed: addControl.click()
+        }
+
+        QQC2.Button {
+            id: removeControl
+
+            visible: panel.throughPoints && panel.selected >= 0
+            Accessible.ignored: !panel.throughPoints
+            text: KI18n.i18nc("@action:button take a control point out of the curves", "Remove Point")
+            icon.name: "list-remove"
+            onClicked: {
+                const hadKeyboard = removeControl.activeFocus;
+                panel.removePoint(panel.selected);
+                // It goes away with the point; the keyboard must not go too.
+                if (hadKeyboard) {
+                    addControl.forceActiveFocus(Qt.TabFocusReason);
+                }
+            }
+            Keys.onShortcutOverride: event => {
+                event.accepted = event.key === Qt.Key_Space;
+            }
+            Keys.onReturnPressed: removeControl.click()
+            Keys.onEnterPressed: removeControl.click()
+        }
+
+        Item {
+            Layout.fillWidth: true
+        }
+    }
+
+    // A disabled button shows no tooltip, so the reason is in plain words.
+    QQC2.Label {
+        id: pointsFullWords
+
+        Layout.fillWidth: true
+        visible: panel.throughPoints && !addControl.enabled
+        wrapMode: Text.WordWrap
+        font: AppFonts.small
+        color: AppColors.muted
+        text: KI18n.i18nc("@info why Add Point cannot be pressed, '24 points'",
+                          "A block holds %1 points. Remove one to add another.", bands.pointCount)
     }
 
     // --- the band inspector ---
@@ -980,89 +1231,106 @@ ColumnLayout {
         // its own: level in across, level out up, from the block's law,
         // with a dot where the band is now.
         Item {
-            id: bandCurveArea
+            Layout.preferredWidth: bandCurveAxes.leftGutter + bandCurveArea.width + bandCurveAxes.rightGutter
+            Layout.preferredHeight: bandCurveAxes.topGutter + bandCurveArea.height + bandCurveAxes.bottomGutter
 
-            readonly property real quietestDbfs: -90
-            readonly property var curve: {
-                const points = [];
-                if (bandCurveArea.width <= 0 || panel.selected < 0) {
+            PlotAxes {
+                id: bandCurveAxes
+
+                anchors.fill: parent
+                plot: bandCurveArea
+                xOf: dbfs => bandCurveArea.xOf(dbfs)
+                yOf: dbfs => bandCurveArea.yOf(dbfs)
+                xText: value => panel.bandAxisNumber(value)
+                yText: value => panel.bandAxisNumber(value)
+                xTicks: [-90, -60, -30, 0]
+                yTicks: [-90, -60, -30, 0]
+                xTitle: KI18n.i18nc("@label the axis across a band's input/output curve", "In, dBFS")
+                yTitle: KI18n.i18nc("@label the axis up a band's input/output curve", "Out, dBFS")
+                widestYText: panel.bandAxisNumber(-90)
+            }
+
+            Item {
+                id: bandCurveArea
+
+                readonly property real quietestDbfs: -90
+                readonly property var curve: {
+                    const points = [];
+                    if (bandCurveArea.width <= 0 || panel.selected < 0) {
+                        return points;
+                    }
+                    for (let level = bandCurveArea.quietestDbfs; level <= 0; level += 1) {
+                        points.push(Qt.point(bandCurveArea.xOf(level),
+                                             bandCurveArea.yOf(level + bands.steadyGain(inspector.band, level))));
+                    }
                     return points;
                 }
-                for (let level = bandCurveArea.quietestDbfs; level <= 0; level += 1) {
-                    points.push(Qt.point(bandCurveArea.xOf(level),
-                                         bandCurveArea.yOf(level + bands.steadyGain(inspector.band, level))));
+                /// The band's level and gain now, while the block publishes them.
+                readonly property bool live: inspector.liveBand >= 0 && panel.nowLevels.length > inspector.liveBand
+                readonly property point now: bandCurveArea.live
+                    ? Qt.point(bandCurveArea.xOf(panel.nowLevels[inspector.liveBand]),
+                               bandCurveArea.yOf(panel.nowLevels[inspector.liveBand] + panel.nowGains[inspector.liveBand]))
+                    : Qt.point(0, 0)
+
+                function xOf(dbfs: real): real {
+                    const clamped = Math.max(bandCurveArea.quietestDbfs, Math.min(0, dbfs));
+                    return bandCurveArea.width * (clamped - bandCurveArea.quietestDbfs) / -bandCurveArea.quietestDbfs;
                 }
-                return points;
-            }
-            /// The band's level and gain now, while the block publishes them.
-            readonly property bool live: inspector.liveBand >= 0 && panel.nowLevels.length > inspector.liveBand
-            readonly property point now: bandCurveArea.live
-                ? Qt.point(bandCurveArea.xOf(panel.nowLevels[inspector.liveBand]),
-                           bandCurveArea.yOf(panel.nowLevels[inspector.liveBand] + panel.nowGains[inspector.liveBand]))
-                : Qt.point(0, 0)
 
-            function xOf(dbfs: real): real {
-                const clamped = Math.max(bandCurveArea.quietestDbfs, Math.min(0, dbfs));
-                return bandCurveArea.width * (clamped - bandCurveArea.quietestDbfs) / -bandCurveArea.quietestDbfs;
-            }
+                function yOf(dbfs: real): real {
+                    const clamped = Math.max(bandCurveArea.quietestDbfs, Math.min(0, dbfs));
+                    return bandCurveArea.height * -clamped / -bandCurveArea.quietestDbfs;
+                }
 
-            function yOf(dbfs: real): real {
-                const clamped = Math.max(bandCurveArea.quietestDbfs, Math.min(0, dbfs));
-                return bandCurveArea.height * -clamped / -bandCurveArea.quietestDbfs;
-            }
+                x: bandCurveAxes.leftGutter
+                y: bandCurveAxes.topGutter
+                width: Kirigami.Units.gridUnit * 8
+                height: Kirigami.Units.gridUnit * 8
+                clip: true
 
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 8
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 8
-            clip: true
+                Shape {
+                    anchors.fill: parent
+                    preferredRendererType: Shape.CurveRenderer
 
-            Rectangle {
-                anchors.fill: parent
-                color: AppColors.well
-                radius: AppMetrics.troughRadius
-            }
+                    // Unchanged, for the curve to be read against.
+                    ShapePath {
+                        strokeColor: AppColors.border
+                        strokeWidth: 1
+                        fillColor: "transparent"
+                        startX: 0
+                        startY: bandCurveArea.height
 
-            Shape {
-                anchors.fill: parent
-                preferredRendererType: Shape.CurveRenderer
+                        PathLine {
+                            x: bandCurveArea.width
+                            y: 0
+                        }
+                    }
 
-                // Unchanged, for the curve to be read against.
-                ShapePath {
-                    strokeColor: AppColors.border
-                    strokeWidth: 1
-                    fillColor: "transparent"
-                    startX: 0
-                    startY: bandCurveArea.height
+                    ShapePath {
+                        strokeColor: panel.tint
+                        strokeWidth: 2
+                        fillColor: "transparent"
+                        joinStyle: ShapePath.RoundJoin
 
-                    PathLine {
-                        x: bandCurveArea.width
-                        y: 0
+                        PathPolyline {
+                            id: bandCurvePolyline
+
+                            path: bandCurveArea.curve
+                        }
                     }
                 }
 
-                ShapePath {
-                    strokeColor: panel.tint
-                    strokeWidth: 2
-                    fillColor: "transparent"
-                    joinStyle: ShapePath.RoundJoin
+                Rectangle {
+                    id: bandCurveDot
 
-                    PathPolyline {
-                        id: bandCurvePolyline
-
-                        path: bandCurveArea.curve
-                    }
+                    visible: bandCurveArea.live
+                    x: bandCurveArea.now.x - width / 2
+                    y: bandCurveArea.now.y - height / 2
+                    width: 8
+                    height: 8
+                    radius: width / 2
+                    color: AppColors.text
                 }
-            }
-
-            Rectangle {
-                id: bandCurveDot
-
-                visible: bandCurveArea.live
-                x: bandCurveArea.now.x - width / 2
-                y: bandCurveArea.now.y - height / 2
-                width: 8
-                height: 8
-                radius: width / 2
-                color: AppColors.text
             }
         }
 
@@ -1082,17 +1350,6 @@ ColumnLayout {
                 valueText: modelData === "Ceiling" ? value => bands.ceilingText(value) : null
                 Layout.fillWidth: true
             }
-        }
-
-        QQC2.Button {
-            id: removeControl
-
-            visible: panel.throughPoints && panel.selected >= 0
-            // Sixteen bands have no points to take out: not there at all.
-            Accessible.ignored: !panel.throughPoints
-            text: KI18n.i18nc("@action:button take a control point out of the curves", "Remove Point")
-            icon.name: "list-remove"
-            onClicked: panel.removePoint(panel.selected)
         }
     }
 

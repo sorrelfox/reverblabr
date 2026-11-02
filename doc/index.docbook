@@ -1659,10 +1659,16 @@ the ceiling across the frequencies. Pick <guilabel>Soft</guilabel>,
 <guilabel>Average</guilabel>, <guilabel>Loud</guilabel> or
 <guilabel>Ceiling</guilabel> above it, then drag a band's handle up or down.
 The dark line is the gain each band is giving right now, with the sound
-playing drawn behind it.</para></listitem>
+playing drawn behind it. The numbers round the graph give the frequency in Hz
+and the gain in dB; the sound behind has a scale of its own, which the line
+under the graph gives.</para></listitem>
 <listitem><para><guilabel>The Levels view</guilabel> shows where the sound sits
 for this ear: the quietest levels it hears (from the audiogram), the
-ceilings, and the sound going in and coming out.</para></listitem>
+ceilings, and the sound going in and coming out. The numbers are digital
+level, in dBFS. Levels typed in dB HL are drawn 85 dB lower, a fixed figure
+that does not measure your sound system. A ceiling above 0 dBFS holds nothing
+back and has no place on this scale, so the words on the graph say that
+instead.</para></listitem>
 <listitem><para>Click a handle to see that band's settings as
 numbers.</para></listitem>
 <listitem><para><guilabel>Speed</guilabel> decides how quickly the gain follows
@@ -1720,8 +1726,10 @@ bands follow smooth curves through them that never overshoot.</para>
 <itemizedlist>
 <listitem><para>Drag a point sideways to move it, and up or down to change the
 curve you picked above the view.</para></listitem>
-<listitem><para>Double-click an empty spot to add a point (up to 24). It is
-placed on the curves as they are, so nothing changes until you move it.
+<listitem><para><guibutton>Add Point</guibutton> puts a point in the middle of
+the widest gap between the points, or double-click an empty spot to put one
+there (up to 24). It is placed on the curves as they are, so nothing changes
+until you move it.
 <guibutton>Remove Point</guibutton> takes the selected one
 out.</para></listitem>
 <listitem><para><guibutton>Fit from Audiogram</guibutton> places a point at
@@ -1746,8 +1754,8 @@ it too: it starts on the right.</para></step>
 <step><para>Its first move is ready to go: sound from 4 to 8 kHz squeezed into
 2.5 to 4 kHz, with the high range emptied. On the
 <guilabel>Arrows</guilabel> view, the shaded range is where the sound comes
-from and the outlined one is where it goes. Drag the ends of either range to
-change them.</para></step>
+from and the outlined one is where it goes, with the frequencies in Hz along
+the bottom. Drag the ends of either range to change them.</para></step>
 <step><para>Choose how each move carries the sound.
 <guilabel>Squeeze</guilabel> fits the whole range into a smaller one lower
 down: use it where the ear hears nothing at all, and

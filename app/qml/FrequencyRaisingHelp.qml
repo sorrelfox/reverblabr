@@ -54,7 +54,7 @@ HelpPage {
         paragraphs: [
             KI18n.i18nc("@info help page of the Frequency Raising block", "Shows the moves along a line of pitches, low on the left and high on the right. For each move, the shaded range is where the sound comes from and the outlined range is where it goes, with an arrow between them."),
             KI18n.i18nc("@info help page of the Frequency Raising block", "Click a range to pick its move. Drag the ends of the picked move's two ranges to change them."),
-            KI18n.i18nc("@info help page of the Frequency Raising block", "While the session runs, the sound before the block and after it is drawn behind, for this block's ear, so you can see it move.")
+            KI18n.i18nc("@info help page of the Frequency Raising block", "While the session runs, the sound before the block and after it is drawn behind, for this block's ear, so you can see it move. The numbers up the side, in dBFS, are for that sound. The ranges and the arrows use only the frequencies along the bottom.")
         ]
     }
 
@@ -62,7 +62,7 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@option:radio show the moves as a map of frequency in against frequency out", "Map")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Frequency Raising block", "Shows where each pitch ends up: the pitch going in runs across, and the pitch coming out runs up. The straight diagonal is sound left where it was. A squeezed move bends away from it, a copied move adds a line beside it, and Add harmonics adds a line for each harmonic.")
+            KI18n.i18nc("@info help page of the Frequency Raising block", "Shows where each pitch ends up: the pitch going in runs across, and the pitch coming out runs up, both in hertz. The straight diagonal is sound left where it was. A squeezed move bends away from it, a copied move adds a line beside it, and Add harmonics adds a line for each harmonic.")
         ]
     }
 

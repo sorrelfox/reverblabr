@@ -96,6 +96,29 @@ TestCase {
         }
     }
 
+    function test_itKeepsAReadableWidthInAWideWindow() {
+        testCase.window.width = 1600;
+        testCase.window.height = 900;
+        waitForRendering(testCase.window.contentItem);
+        testCase.notice.read();
+        testCase.waitOpen();
+        verify(testCase.notice.width <= testCase.notice.readableWidth + 1, "wider than its text should run: " + testCase.notice.width);
+        verify(testCase.notice.width >= testCase.notice.readableWidth - 1, "it uses the room it has: " + testCase.notice.width);
+        testCase.notice.close();
+        testCase.waitShut();
+    }
+
+    function test_aNarrowWindowNarrowsIt() {
+        testCase.window.width = 420;
+        testCase.window.height = 600;
+        waitForRendering(testCase.window.contentItem);
+        testCase.notice.read();
+        testCase.waitOpen();
+        verify(testCase.notice.width < 420, "it stays inside the window: " + testCase.notice.width);
+        testCase.notice.close();
+        testCase.waitShut();
+    }
+
     function test_theLibraryAsksOnceAndThenAdds() {
         const canvas = testCase.window.canvas;
         canvas.chooseBlock(testCase.hearingType);

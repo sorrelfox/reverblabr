@@ -47,8 +47,8 @@ To set up two lanes with Hearing Compensation 16 (any hearing block works the sa
 
 **Hearing Compensation 16** gives one ear more of what it hears faintly. In each of sixteen bands it has three gains, for **soft**, **average** and **loud** sound, and a **ceiling** that nothing in that band goes above. Soft sound gets the most lift and loud sound the least, so quiet speech comes up without loud sound becoming too much.
 
-- **The Gain view** draws the three gains and the ceiling across the frequencies. Pick **Soft**, **Average**, **Loud** or **Ceiling** above it, then drag a band's handle up or down. The dark line is the gain each band is giving right now, with the sound playing drawn behind it.
-- **The Levels view** shows where the sound sits for this ear: the quietest levels it hears (from the audiogram), the ceilings, and the sound going in and coming out.
+- **The Gain view** draws the three gains and the ceiling across the frequencies. Pick **Soft**, **Average**, **Loud** or **Ceiling** above it, then drag a band's handle up or down. The dark line is the gain each band is giving right now, with the sound playing drawn behind it. The numbers round the graph give the frequency in Hz and the gain in dB; the sound behind has a scale of its own, which the line under the graph gives.
+- **The Levels view** shows where the sound sits for this ear: the quietest levels it hears (from the audiogram), the ceilings, and the sound going in and coming out. The numbers are digital level, in dBFS. Levels typed in dB HL are drawn 85 dB lower, a fixed figure that does not measure your sound system. A ceiling above 0 dBFS holds nothing back and has no place on this scale, so the words on the graph say that instead.
 - **Click a handle** to see that band's settings as numbers.
 - **Speed** decides how quickly the gain follows the sound. **Syllabic** follows speech syllable by syllable, **Slow** keeps the shape of music, and **Adaptive** does both and catches a sudden loud sound at once.
 - **Loudness** turns all bands up or down together. **Noise floor** keeps the lift from bringing up the hiss of a recording.
@@ -78,7 +78,7 @@ The fit follows published fitting rules, not something I made up. [From an audio
 **Hearing Compensation 64** works the same way with sixty-four bands, for a steep slope, a narrow dip or a sharp edge that sixteen bands can't follow. Instead of one handle per band you set **points**, and the bands follow smooth curves through them that never overshoot.
 
 - **Drag a point** sideways to move it, and up or down to change the curve you picked above the view.
-- **Double-click** an empty spot to add a point (up to 24). It's placed on the curves as they are, so nothing changes until you move it. **Remove Point** takes the selected one out.
+- **Add Point** puts a point in the middle of the widest gap between the points, or **double-click** an empty spot to put one there (up to 24). It's placed on the curves as they are, so nothing changes until you move it. **Remove Point** takes the selected one out.
 - **Fit from Audiogram** places a point at each frequency the audiogram has a level for.
 
 ## Frequency Lowering
@@ -86,7 +86,7 @@ The fit follows published fitting rules, not something I made up. [From an audio
 Some ears hear nothing in a high range however loud it is, and an important part of speech lives up there: the hiss of **s**, **sh** and **f**, which is what tells "sit" from "fit" and "cat" from "cats". **Frequency Lowering** moves that sound down into a range the ear does hear.
 
 1. Add it for the ear that needs it and choose that ear under **Ear**. Add a second one for the other ear if that one needs it too: it starts on the right.
-2. Its first move is ready to go: sound from **4 to 8 kHz** squeezed into **2.5 to 4 kHz**, with the high range emptied. On the **Arrows** view, the shaded range is where the sound comes from and the outlined one is where it goes. Drag the ends of either range to change them.
+2. Its first move is ready to go: sound from **4 to 8 kHz** squeezed into **2.5 to 4 kHz**, with the high range emptied. On the **Arrows** view, the shaded range is where the sound comes from and the outlined one is where it goes, with the frequencies in Hz along the bottom. Drag the ends of either range to change them.
 3. Choose how each move carries the sound:
    - **Squeeze** fits the whole range into a smaller one lower down. Use it where the ear hears nothing at all, and **Empty** the range it came from.
    - **Copy down** adds a copy lower down and keeps the original, either **As it was** or **Quieter**. Every sound moves by the same step, from the bottom of one range to the bottom of the other: about two thirds of an octave with the ranges a new block starts with. Use it where the ear still hears some of the high range.

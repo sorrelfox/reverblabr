@@ -207,6 +207,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/PitchShiftFace.qml
     qml/PitchShiftHelp.qml
     qml/PitchShiftPanel.qml
+    qml/PlotAxes.qml
     qml/PitchShiftWords.qml
     qml/PlaceholderMessage.qml
     qml/PluginFace.qml

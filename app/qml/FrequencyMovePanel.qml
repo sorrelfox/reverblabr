@@ -23,7 +23,8 @@ import org.kde.ki18n
 // each move's source range shaded, as what the ear does not use, its
 // destination outlined, and an arrow from one to the other; the picked
 // move's four ends can be dragged. Behind them, while the session runs, the
-// sound before the block and after it, on the block's own ear. Map:
+// sound before the block and after it, on the block's own ear; the level
+// axis is theirs, the ranges use only the frequency axis. Map:
 // the frequency that goes in, across, against the one that comes out, up —
 // the diagonal is sound left where it was, a squeezed move bends it, and a
 // copied one adds a branch beside it.
@@ -75,6 +76,7 @@ ColumnLayout {
     readonly property alias moves: moves
     readonly property alias words: words
     readonly property alias plotArea: plotArea
+    readonly property alias plotAxes: plotAxes
     readonly property alias chips: chipRepeater
     readonly property alias addButton: addControl
     readonly property alias deleteButton: deleteControl
@@ -151,6 +153,15 @@ ColumnLayout {
     }
     function hzAt(x: real): real {
         return panel.hzAlong(x / Math.max(1, plotArea.width));
+    }
+    /// Where a level sits up the arrows, for the spectra: 0 dBFS at the top.
+    function yOfLevel(dbfs: real): real {
+        return plotArea.height * -Math.max(-90, Math.min(0, dbfs)) / 90;
+    }
+    /// A number on the level axis, with a true minus.
+    function levelNumber(dbfs: real): string {
+        const digits = Math.abs(dbfs).toLocaleString(Qt.locale(), 'f', 0);
+        return dbfs < 0 ? "\u2212" + digits : digits;
     }
     /// Where \a hz sits up the map, the lowest at the bottom.
     function yOf(hz: real): real {
@@ -296,22 +307,45 @@ ColumnLayout {
         }
     }
 
-    Rectangle {
+    Item {
+        id: plotFrame
+
         Layout.fillWidth: true
-        Layout.preferredHeight: Kirigami.Units.gridUnit * 9
-        color: AppColors.well
-        radius: AppMetrics.controlRadius
-        border.color: AppColors.border
+        Layout.preferredHeight: Kirigami.Units.gridUnit * 9 + plotAxes.topGutter + plotAxes.bottomGutter
+
+        PlotAxes {
+            id: plotAxes
+
+            anchors.fill: parent
+            plot: plotArea
+            radius: AppMetrics.controlRadius
+            xOf: hz => panel.xOf(hz)
+            yOf: panel.showingMap ? hz => panel.yOf(hz) : dbfs => panel.yOfLevel(dbfs)
+            xText: hz => words.shortHz(hz)
+            yText: panel.showingMap ? hz => words.shortHz(hz) : dbfs => panel.levelNumber(dbfs)
+            // The octaves, from the block's own low end.
+            xTicks: (moves.lowestHz < 125 ? [moves.lowestHz] : []).concat([125, 250, 500, 1000, 2000, 4000, 8000, 16000])
+            yTicks: panel.showingMap ? plotAxes.xTicks : [-90, -60, -30, 0]
+            xTitle: panel.showingMap
+                ? KI18n.i18nc("@label the axis across a map of frequency in against frequency out", "Frequency in, Hz")
+                : KI18n.i18nc("@label the axis of a graph across frequency", "Frequency, Hz")
+            yTitle: panel.showingMap
+                ? KI18n.i18nc("@label the axis up a map of frequency in against frequency out", "Frequency out, Hz")
+                : KI18n.i18nc("@label the axis of a graph of level, 0 is full scale", "Level, dBFS")
+            widestYText: panel.levelNumber(-100)
+        }
 
         Item {
             id: plotArea
 
-            anchors.fill: parent
-            anchors.margins: Kirigami.Units.smallSpacing
+            x: plotAxes.leftGutter
+            y: plotAxes.topGutter
+            width: plotFrame.width - plotAxes.leftGutter - plotAxes.rightGutter
+            height: plotFrame.height - plotAxes.topGutter - plotAxes.bottomGutter
             clip: true
 
             /// The sound before and after the block, on its ear, as
-            /// points: [x, y] from -90 dB at the bottom to 0 at the top.
+            /// points, on the level axis.
             function spectrumPoints(bands: var): var {
                 const centres = Meters.spectrumBandsHz();
                 const points = [];
@@ -320,8 +354,7 @@ ColumnLayout {
                     if (hz < moves.lowestHz || hz > moves.highestHz) {
                         continue;
                     }
-                    const db = Math.max(-90, Math.min(0, bands[band]));
-                    points.push(Qt.point(panel.xOf(hz), plotArea.height * (-db / 90)));
+                    points.push(Qt.point(panel.xOf(hz), panel.yOfLevel(bands[band])));
                 }
                 return points;
             }
@@ -626,29 +659,6 @@ ColumnLayout {
                         }
                     }
                 }
-            }
-
-            QQC2.Label {
-                anchors {
-                    left: parent.left
-                    bottom: parent.bottom
-                }
-                text: panel.showingMap
-                    ? KI18n.i18nc("@info:tooltip what the map's axes are", "In → across, out ↑")
-                    : words.shortHz(moves.lowestHz)
-                font: AppFonts.small
-                color: AppColors.muted
-            }
-
-            QQC2.Label {
-                anchors {
-                    right: parent.right
-                    bottom: parent.bottom
-                }
-                visible: panel.view === "arrows"
-                text: words.shortHz(moves.highestHz)
-                font: AppFonts.small
-                color: AppColors.muted
             }
         }
     }

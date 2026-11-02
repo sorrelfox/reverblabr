@@ -308,4 +308,65 @@ TestCase {
         tryVerify(() => !panel.outputSpectrumShape.visible, 1000, "the map drew the spectrum");
         TestEngine.stop(testCase.sessionId);
     }
+
+    // --- the numbers round the plot ---
+
+    /// Each number on the plot sits where these formulas, written apart from
+    /// the panel, put its value.
+    function checkTicks(panel: var, y: var) {
+        const axes = panel.plotAxes;
+        const plot = panel.plotArea;
+        const along = hz => Math.log(hz / 125) / Math.log(16000 / 125);
+        verify(axes.xNumbers.count > 0, "no numbers across");
+        verify(axes.yNumbers.count > 0, "no numbers up");
+        for (let tick = 0; tick < axes.xNumbers.count; ++tick) {
+            const number = axes.xNumbers.itemAt(tick);
+            const at = plot.width * along(number.modelData);
+            verify(Math.abs(number.x - plot.x - at) <= 0.51, number.modelData + " is at " + (number.x - plot.x) + ", not " + at);
+        }
+        for (let tick = 0; tick < axes.yNumbers.count; ++tick) {
+            const number = axes.yNumbers.itemAt(tick);
+            const at = plot.height * y(number.modelData, along);
+            verify(Math.abs(number.y - plot.y - at) <= 0.51, number.modelData + " is at " + (number.y - plot.y) + ", not " + at);
+        }
+    }
+
+    function test_everyAxisHasNumbersAndAUnit() {
+        const panel = testCase.openPanel(testCase.newBlock()).panel;
+        const axes = panel.plotAxes;
+        compare(axes.xTitleLabel.text, "Frequency, Hz");
+        compare(axes.yTitleLabel.text, "Level, dBFS");
+        compare(axes.shownX, [125, 250, 500, 1000, 2000, 4000, 8000, 16000]);
+        compare(axes.shownY, [0, -30, -60, -90]);
+        testCase.checkTicks(panel, dbfs => -dbfs / 90);
+
+        panel.mapButton.clicked();
+        tryVerify(() => axes.xTitleLabel.text === "Frequency in, Hz", 1000);
+        compare(axes.yTitleLabel.text, "Frequency out, Hz");
+        verify(axes.shownY.length >= 4, "the map keeps too few numbers: " + axes.shownY);
+        testCase.checkTicks(panel, (hz, along) => 1 - along(hz));
+    }
+
+    function test_ticksAndTheRangesStayTogetherAsThePlotIsResized() {
+        const panel = testCase.openPanel(testCase.newBlock()).panel;
+        for (const width of [420, 300, 560]) {
+            panel.width = width;
+            tryVerify(() => Math.abs(panel.plotArea.width - (width - panel.plotAxes.leftGutter - panel.plotAxes.rightGutter)) < 1, 1000);
+            testCase.checkTicks(panel, dbfs => -dbfs / 90);
+            verify(panel.plotArea.x + panel.plotArea.width + panel.plotAxes.rightGutter <= panel.width + 0.5, "past the card's edge");
+        }
+    }
+
+    function test_noLabelsOverlapInANarrowCard() {
+        const panel = testCase.openPanel(testCase.newBlock()).panel;
+        panel.width = 150;
+        tryVerify(() => panel.plotArea.width < 130, 1000);
+        const axes = panel.plotAxes;
+        verify(axes.xNumbers.count > 1, "too few numbers kept to read a scale");
+        for (let tick = 1; tick < axes.xNumbers.count; ++tick) {
+            const before = axes.xNumbers.itemAt(tick - 1).children[1];
+            const after = axes.xNumbers.itemAt(tick).children[1];
+            verify(after.mapToItem(axes, 0, 0).x >= before.mapToItem(axes, before.width, 0).x, "two numbers touch");
+        }
+    }
 }

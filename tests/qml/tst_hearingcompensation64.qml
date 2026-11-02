@@ -9,7 +9,7 @@
 // the control points exactly as the block draws them, the "now" line with
 // 64 values, a point dragged across and up, a point added where the curves
 // already are and taken out again, Fit from audiogram placing points and
-// its undo, and Copy from the Other Ear taking the points over.
+// its undo, Copy from the Other Ear taking the points over, and Add Point.
 
 import QtQuick
 import QtTest
@@ -43,9 +43,17 @@ TestCase {
             property alias panel: inner
             property alias flickable: scroller
 
+            /// How often a window-wide Space went off.
+            property int ran: 0
+
             width: 500
             height: 420
             visible: true
+
+            Shortcut {
+                sequence: "Space"
+                onActivated: ran += 1
+            }
 
             Flickable {
                 id: scroller
@@ -308,5 +316,125 @@ TestCase {
         tryVerify(() => panel.handles.count === 6, 1000, "the copied points are not the handles");
         SessionModel.undo();
         tryVerify(() => SessionModel.param(right, "point8On") === undefined, 1000, "one undo left the copy");
+    }
+
+    // --- Add Point ---
+
+    function test_addPointGoesInTheWidestGapOnTheCurvesAsOneEdit() {
+        const id = testCase.newBlock("");
+        SessionModel.setParams(id, [["point2AverageGainDb", 20], ["point3AverageGainDb", 10],
+                                    ["point2SoftGainDb", 30], ["point1LoudGainDb", -5], ["point4CeilingDb", 90]]);
+        tryVerify(() => SessionModel.param(id, "point4CeilingDb") === 90, 1000);
+        const panel = testCase.openPanel(id).panel;
+        verify(panel.addButton.visible);
+        verify(panel.addButton.enabled);
+        verify(!panel.removeButton.visible, "Remove Point with no point chosen");
+        const bands = panel.bands;
+        const before = {};
+        for (const which of bands.settings) {
+            before[which] = [];
+            for (let band = 0; band < 64; ++band) {
+                before[which].push(bands.value(band, which));
+            }
+        }
+        // Equal octaves from 250 Hz to 8 kHz: the lowest of them.
+        compare(panel.hzForNewPoint(), 354);
+
+        mouseClick(panel.addButton);
+        tryVerify(() => SessionModel.param(id, "point6On") === true, 1000, "no point was added");
+        compare(SessionModel.param(id, "point6Hz"), 354);
+        compare(panel.selected, 6, "the new point is the one inspected");
+        tryVerify(() => panel.handles.count === 7, 1000);
+        tryVerify(() => panel.removeButton.visible, 1000, "no Remove Point beside it");
+        // The same frequency as the curves had, within the tenth of a decibel
+        // a point is rounded to and what its new neighbours do to the slopes.
+        for (const which of bands.settings) {
+            for (let band = 0; band < 64; ++band) {
+                const moved = Math.abs(bands.value(band, which) - before[which][band]);
+                verify(moved <= 0.6, which + " of band " + band + " moved " + moved + " dB");
+            }
+        }
+
+        // The next widest, now that one octave has been halved.
+        compare(panel.hzForNewPoint(), 707);
+
+        // One step, both ways.
+        SessionModel.undo();
+        tryVerify(() => SessionModel.param(id, "point6On") === undefined, 1000, "one undo did not take it all back");
+        compare(SessionModel.param(id, "point6Hz"), undefined);
+        SessionModel.redo();
+        tryVerify(() => SessionModel.param(id, "point6On") === true, 1000);
+    }
+
+    function test_withTooFewPointsForAGapTheRangeCounts() {
+        const id = testCase.newBlock("");
+        const panel = testCase.openPanel(id).panel;
+        const off = [];
+        for (let point = 0; point < 6; ++point) {
+            off.push(["point" + point + "On", false]);
+        }
+        SessionModel.setParams(id, off);
+        tryVerify(() => panel.bands.placed.length === 0, 1000);
+        compare(panel.hzForNewPoint(), 1265);
+        panel.addPoint(panel.hzForNewPoint());
+        tryVerify(() => panel.bands.placed.length === 1, 1000);
+        compare(panel.hzForNewPoint(), 356);
+    }
+
+    function test_addPointStopsAtTheLimitAndSaysWhy() {
+        const id = testCase.newBlock("");
+        const panel = testCase.openPanel(id).panel;
+        verify(!panel.pointsFullNote.visible, "says full with six points");
+        for (let count = 6; count < 24; ++count) {
+            mouseClick(panel.addButton);
+            tryVerify(() => panel.bands.placed.length === count + 1, 1000, "the button stopped at " + count);
+            // A frame for the row to settle, as any pointer leaves it.
+            wait(30);
+        }
+        const hz = panel.bands.placed.map(point => panel.bands.pointValue(point, "Hz"));
+        compare(new Set(hz).size, 24, "two points share a frequency: " + hz);
+        tryVerify(() => !panel.addButton.enabled, 1000, "the button is still on at 24");
+        verify(panel.pointsFullNote.visible, "no reason given");
+        compare(panel.pointsFullNote.text, "A block holds 24 points. Remove one to add another.");
+        compare(panel.addButton.Accessible.description, panel.pointsFullNote.text);
+        const undoText = SessionModel.undoText;
+        mouseClick(panel.addButton);
+        wait(50);
+        compare(panel.bands.placed.length, 24);
+        compare(SessionModel.undoText, undoText);
+
+        panel.selected = panel.bands.placed[3];
+        mouseClick(panel.removeButton);
+        tryVerify(() => panel.addButton.enabled, 1000, "room again, and the button stays off");
+        verify(!panel.pointsFullNote.visible);
+    }
+
+    function test_addPointIsReachedAndPressedFromTheKeyboard() {
+        const id = testCase.newBlock("");
+        const window = testCase.openPanel(id);
+        const panel = window.panel;
+        window.requestActivate();
+        tryVerify(() => window.active, 1000, "the window never took the keyboard");
+        panel.earChoice.forceActiveFocus(Qt.TabFocusReason);
+        for (let tab = 0; tab < 30 && !panel.addButton.activeFocus; ++tab) {
+            keyClick(Qt.Key_Tab);
+        }
+        verify(panel.addButton.activeFocus, "Tab never reached Add Point");
+
+        // Space, with a window-wide Space of its own, as the main window has.
+        window.ran = 0;
+        keyClick(Qt.Key_Space);
+        tryVerify(() => panel.bands.placed.length === 7, 1000, "Space did not press it");
+        compare(window.ran, 0, "Space went to the window as well");
+        keyClick(Qt.Key_Return);
+        tryVerify(() => panel.bands.placed.length === 8, 1000, "Return did not press it");
+
+        // Next along is Remove Point, which keeps the keyboard in the card
+        // when it goes away with the point.
+        keyClick(Qt.Key_Tab);
+        verify(panel.removeButton.activeFocus, "Remove Point is not the next stop");
+        keyClick(Qt.Key_Space);
+        tryVerify(() => panel.bands.placed.length === 7, 1000, "Space did not press Remove Point");
+        verify(panel.addButton.activeFocus, "the keyboard went away with the button");
     }
 }

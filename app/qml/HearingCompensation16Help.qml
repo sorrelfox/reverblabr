@@ -55,7 +55,7 @@ HelpPage {
         paragraphs: [
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Shows how much each band lifts the sound, from low pitches on the left to high ones on the right. Up is more lift, in decibels (dB), from −20 dB to +60 dB. 0 dB leaves the sound as it is; every 6 dB more roughly doubles the strength of the sound."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The four curves are the Soft, Average and Loud gains and the Ceiling, in the block's colour. The one you picked under the view choice has a handle on each band: drag a handle up or down to change that band. Click a handle to see the band's settings as numbers under the view."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "While the session runs, a dark line shows the lift each band is giving right now, moving between the Soft and Loud curves as the sound gets quieter or louder. The sound itself is drawn faintly behind it."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "While the session runs, a dark line shows the lift each band is giving right now, moving between the Soft and Loud curves as the sound gets quieter or louder. The sound itself is drawn faintly behind it, on a scale of its own, as the line under the view says: 0 dBFS at the top, −100 dBFS at the bottom. The gain numbers do not apply to it."),
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "When the session has a second block of this kind for the other ear, its Average curve is drawn as a faint dashed line, to compare the two ears.")
         ]
     }
@@ -65,8 +65,9 @@ HelpPage {
         title: KI18n.i18nc("@option:radio a view of levels against frequency", "Levels")
         paragraphs: [
             KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "Shows where the sound sits against this ear's hearing, from very quiet at the bottom to the loudest possible at the top."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The thick dark line is the quietest level the ear hears, from the audiogram. The dashed line is each band's ceiling. While the session runs, the grey area is the sound coming in, and the coloured line the sound going out."),
-            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The aim is to see the sound going out rise above the dark line, where the ear can hear it, and stay under the dashed one.")
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The numbers are digital level, in dBFS, from −100 at the bottom to 0 at the top, where digital sound is at its loudest. The thick dark line is the quietest level the ear hears, from the audiogram. Levels typed in dB HL are drawn 85 dB lower, a fixed figure that does not measure your sound system, and the line under the view says so. The dashed line is each band's ceiling. While the session runs, the grey area is the sound coming in, and the coloured line the sound going out, in bands a tenth of an octave wide."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "The aim is to see the sound going out rise above the dark line, where the ear can hear it, and stay under the dashed one."),
+            KI18n.i18nc("@info help page of the Hearing Compensation 16 block", "A ceiling above 0 dBFS holds nothing back, so it has no place on this scale: the words on the graph say so, and how many bands it applies to.")
         ]
     }
 

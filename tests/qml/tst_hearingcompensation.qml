@@ -402,4 +402,256 @@ TestCase {
         compare(SessionModel.redoText, redoText);
         TestEngine.stop(testCase.sessionId);
     }
+
+    // --- the numbers round the plots ---
+
+    /// Each number on \a axes sits where these formulas, written apart from
+    /// the panel, put its value.
+    function checkTicks(axes: var, x: var, y: var) {
+        verify(axes.xNumbers.count > 0, "no numbers across");
+        verify(axes.yNumbers.count > 0, "no numbers up");
+        for (let tick = 0; tick < axes.xNumbers.count; ++tick) {
+            const number = axes.xNumbers.itemAt(tick);
+            const at = x(number.modelData);
+            verify(Math.abs(number.x - axes.plot.x - at) <= 0.51, number.modelData + " is at " + (number.x - axes.plot.x) + ", not " + at);
+        }
+        for (let tick = 0; tick < axes.yNumbers.count; ++tick) {
+            const number = axes.yNumbers.itemAt(tick);
+            const at = y(number.modelData);
+            verify(Math.abs(number.y - axes.plot.y - at) <= 0.51, number.modelData + " is at " + (number.y - axes.plot.y) + ", not " + at);
+        }
+    }
+
+    function checkPlot(panel: var) {
+        const plot = panel.plotArea;
+        const xOfHz = hz => plot.width * Math.log(hz / 80) / Math.log(18000 / 80);
+        if (panel.view === "gain") {
+            testCase.checkTicks(panel.plotAxes, xOfHz, db => plot.height * (60 - db) / 80);
+        } else {
+            testCase.checkTicks(panel.plotAxes, xOfHz, dbfs => plot.height * -dbfs / 100);
+        }
+    }
+
+    function test_everyAxisHasNumbersAndAUnit() {
+        const window = testCase.openPanel(testCase.newBlock(""));
+        const panel = window.panel;
+        const axes = panel.plotAxes;
+        compare(axes.xTitleLabel.text, "Frequency, Hz");
+        compare(axes.yTitleLabel.text, "Gain, dB");
+        compare(axes.shownX, [125, 250, 500, 1000, 2000, 4000, 8000, 16000]);
+        compare(axes.xNumbers.itemAt(3).children[1].text, "1k");
+        compare(axes.xNumbers.itemAt(7).children[1].text, "16k");
+        compare(axes.shownY, [60, 40, 20, 0, -20]);
+        compare(axes.yNumbers.itemAt(0).children[1].text, "+60");
+        compare(axes.yNumbers.itemAt(4).children[1].text, "−20");
+        compare(axes.heavyY, 0);
+        testCase.checkPlot(panel);
+
+        panel.view = "levels";
+        compare(axes.yTitleLabel.text, "Level, dBFS");
+        compare(axes.shownY, [0, -20, -40, -60, -80, -100]);
+        compare(axes.heavyY, null);
+        testCase.checkPlot(panel);
+
+        panel.selected = 3;
+        const curve = panel.bandCurveAxes;
+        tryVerify(() => curve.plot.visible && curve.xNumbers.count === 4, 1000, "the band's curve has no numbers");
+        compare(curve.xTitleLabel.text, "In, dBFS");
+        compare(curve.yTitleLabel.text, "Out, dBFS");
+        const side = curve.plot.width;
+        testCase.checkTicks(curve, dbfs => side * (dbfs + 90) / 90, dbfs => side * -dbfs / 90);
+    }
+
+    function test_theGutterDoesNotMoveThePlotBetweenViews() {
+        const panel = testCase.openPanel(testCase.newBlock("")).panel;
+        const x = panel.plotArea.x;
+        const width = panel.plotArea.width;
+        panel.view = "levels";
+        compare(panel.plotArea.x, x);
+        compare(panel.plotArea.width, width);
+    }
+
+    function test_ticksAndHandlesStayTogetherAsThePlotIsResized() {
+        const window = testCase.openPanel(testCase.newBlock(""));
+        const panel = window.panel;
+        const widths = [460, 300, 620];
+        for (const width of widths) {
+            panel.width = width;
+            tryVerify(() => Math.abs(panel.plotArea.width - (width - panel.plotAxes.leftGutter - panel.plotAxes.rightGutter)) < 1, 1000);
+            testCase.checkPlot(panel);
+            // A handle at a band's centre, against the number nearest it.
+            const handle = panel.handles.itemAt(7);
+            fuzzyCompare(handle.x + handle.width / 2, panel.xOfHz(panel.bands.centresHz[7]), 0.01);
+            verify(panel.plotAxes.width <= panel.width, "the axes run past the card");
+            verify(panel.plotArea.x + panel.plotArea.width + panel.plotAxes.rightGutter <= panel.width + 0.5, "past the card's edge");
+        }
+    }
+
+    // Alone, at a width no card comes down to: a card's rows stop shrinking
+    // first, and how far depends on the style.
+    Component {
+        id: narrowAxes
+
+        Item {
+            property alias axes: axes
+
+            width: 130
+            height: 90
+
+            PlotAxes {
+                id: axes
+
+                anchors.fill: parent
+                plot: narrowPlot
+                xOf: hz => narrowPlot.width * Math.log(hz / 80) / Math.log(18000 / 80)
+                yOf: db => narrowPlot.height * (60 - db) / 80
+                xText: hz => String(hz)
+                yText: db => String(db)
+                xTicks: [125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+                yTicks: [-20, 0, 20, 40, 60]
+                widestYText: "-100"
+            }
+
+            Item {
+                id: narrowPlot
+
+                x: axes.leftGutter
+                y: axes.topGutter
+                width: parent.width - axes.leftGutter - axes.rightGutter
+                height: parent.height - axes.topGutter - axes.bottomGutter
+            }
+        }
+    }
+
+    function test_noLabelsOverlapAtLargeText() {
+        const axes = createTemporaryObject(narrowAxes, testCase).axes;
+        tryVerify(() => axes.xNumbers.count > 1, 1000, "too few numbers kept to read a scale");
+        verify(axes.xNumbers.count < 8, "every number kept at a width they cannot fit");
+        for (let tick = 1; tick < axes.xNumbers.count; ++tick) {
+            const before = axes.xNumbers.itemAt(tick - 1).children[1];
+            const after = axes.xNumbers.itemAt(tick).children[1];
+            verify(after.mapToItem(axes, 0, 0).x >= before.mapToItem(axes, before.width, 0).x, "two numbers touch");
+        }
+        verify(axes.yNumbers.count < 5, "every number kept at a height they cannot fit");
+        for (let tick = 1; tick < axes.yNumbers.count; ++tick) {
+            const before = axes.yNumbers.itemAt(tick - 1).children[1];
+            const after = axes.yNumbers.itemAt(tick).children[1];
+            verify(after.mapToItem(axes, 0, 0).y >= before.mapToItem(axes, 0, before.height).y - 1, "two numbers touch");
+        }
+    }
+
+    // --- the levels view ---
+
+    function test_aCeilingAboveFullScaleIsSaidNotPinnedToTheTop() {
+        const window = testCase.openPanel(testCase.newBlock(""));
+        const panel = window.panel;
+        panel.view = "levels";
+        // A new block's ceiling, 100 on the listening scale, is +15 dBFS.
+        compare(panel.ceilingsOffScale, 16);
+        compare(panel.ceilingPath, "", "a line was drawn for a level this scale does not have");
+        const note = panel.ceilingNote;
+        tryVerify(() => note.visible, 1000, "the card says nothing about the ceilings");
+        compare(note.words, "Ceiling above 0 dBFS: no limit");
+        verify(note.y > 0, "the words sit on the plot's edge");
+        verify(note.x >= 0 && note.x + note.width <= panel.plotArea.width, "the words run off the plot");
+        verify(note.y + note.height <= panel.plotArea.height, "the words run off the plot");
+        verify(note.width > 0 && note.height > 0, "the words have no size");
+    }
+
+    function test_aCeilingOnTheScaleIsDrawnAndLabelled() {
+        const id = testCase.newBlock("");
+        const window = testCase.openPanel(id);
+        const panel = window.panel;
+        panel.view = "levels";
+        // Two neighbours, one band alone, one exactly at full scale; the
+        // rest over the top.
+        SessionModel.setParams(id, [["band3CeilingDb", 65], ["band4CeilingDb", 60], ["band9CeilingDb", 70],
+                                    ["band14CeilingDb", 85]]);
+        tryVerify(() => panel.ceilingsOffScale === 12, 1000);
+        compare(panel.ceilingRuns.length, 3);
+        compare(panel.ceilingRuns[0].length, 2);
+        fuzzyCompare(panel.ceilingRuns[0][0].y, panel.yOfLevel(-20), 1e-6);
+        fuzzyCompare(panel.ceilingRuns[0][1].y, panel.yOfLevel(-25), 1e-6);
+        compare(panel.ceilingRuns[2][0].y, 1, "a line at 0 dBFS is half cut off by the plot's edge");
+        verify(panel.ceilingPath.startsWith("M "), panel.ceilingPath);
+        compare(panel.ceilingPath.split("M").length - 1, 3, "not one stroke a run");
+        compare(panel.ceilingNote.words, "Ceiling: no limit in 12 bands");
+
+        const all = [];
+        for (let band = 0; band < 16; ++band) {
+            all.push(["band" + band + "CeilingDb", 40]);
+        }
+        SessionModel.setParams(id, all);
+        tryVerify(() => panel.ceilingsOffScale === 0, 1000);
+        compare(panel.ceilingNote.words, "Ceiling");
+        verify(panel.ceilingNote.y + panel.ceilingNote.height <= panel.plotArea.height,
+               "the label left the plot under a line at the bottom");
+    }
+
+    function test_theLevelsViewSaysWhenItHasNoLiveSound() {
+        const panel = testCase.openPanel(testCase.newBlock("")).panel;
+        verify(!panel.levelsNote.visible, "the gain view has the levels view's words");
+        panel.view = "levels";
+        verify(panel.levelsNote.visible);
+        verify(panel.levelsNote.text.indexOf("drawn while the session runs") >= 0, panel.levelsNote.text);
+        verify(panel.levelsNote.text.indexOf("a tenth of an octave") >= 0, panel.levelsNote.text);
+        TestEngine.start(testCase.sessionId);
+        tryVerify(() => panel.levelsNote.text.indexOf("drawn while the session runs") < 0, 1000, "still says stopped");
+        Meters.analyse("another");
+        tryVerify(() => panel.levelsNote.text.indexOf("another card has it") >= 0, 1000, "does not say another card has it");
+        Meters.analyse(panel.blockId, panel.earChannel);
+        TestEngine.stop(testCase.sessionId);
+    }
+
+    function test_theLevelsViewDrawsTheAudiogramAndSaysWhatItIs() {
+        const id = testCase.newBlock("");
+        const panel = testCase.openPanel(id).panel;
+        panel.view = "levels";
+        compare(panel.thresholdLine.path.length, 0);
+        verify(panel.levelsNote.text.indexOf("Dark line") < 0, "words for a line that is not there");
+
+        SessionModel.setParams(id, [["audiogram1000", "heard"], ["audiogram1000Db", 40],
+                                    ["audiogram4000", "heard"], ["audiogram4000Db", 60]]);
+        tryVerify(() => panel.thresholdLine.path.length === 2, 1000, "the audiogram's line is not drawn");
+        const line = panel.thresholdLine.path;
+        fuzzyCompare(line[0].x, panel.xOfHz(1000), 1e-6);
+        fuzzyCompare(line[0].y, panel.plotArea.height * 45 / 100, 1e-6);
+        fuzzyCompare(line[1].y, panel.plotArea.height * 25 / 100, 1e-6);
+        verify(panel.levelsNote.text.indexOf("85 dB below what was typed") >= 0, panel.levelsNote.text);
+
+        SessionModel.setParam(id, "audiogramUnit", "dbFs");
+        SessionModel.setParam(id, "audiogram1000Db", -40);
+        tryVerify(() => panel.audiogramInDbfs && panel.thresholdLine.path[0].y === panel.yOfLevel(-40), 1000,
+                  "a level typed in dBFS is not drawn where it reads");
+        verify(panel.levelsNote.text.indexOf("Dark line") >= 0, panel.levelsNote.text);
+        verify(panel.levelsNote.text.indexOf("85 dB") < 0, "an offset named that was not applied");
+    }
+
+    function test_theSoundBehindTheGainsSaysItsOwnScale() {
+        const id = testCase.newBlock("");
+        const panel = testCase.openPanel(id).panel;
+        verify(!panel.soundBehindShape.visible);
+        verify(!panel.gainNote.visible, "words for a sound that is not drawn");
+        const levels = [];
+        for (let band = 0; band < 96; ++band) {
+            levels.push(-50);
+        }
+        TestEngine.setFakeSpectrum(testCase.sessionId, id, levels);
+        TestEngine.start(testCase.sessionId);
+        tryVerify(() => panel.soundBehindShape.visible, 1000, "the sound is not drawn behind the gains");
+        verify(panel.gainNote.visible, "the sound has no scale and nothing says so");
+        verify(panel.gainNote.text.indexOf("0 dBFS at the top") >= 0, panel.gainNote.text);
+        panel.view = "levels";
+        verify(!panel.soundBehindShape.visible);
+        verify(!panel.gainNote.visible, "the levels view has an axis for it");
+        TestEngine.stop(testCase.sessionId);
+    }
+
+    function test_sixteenBandsHaveNoPointsToAdd() {
+        const panel = testCase.openPanel(testCase.newBlock("")).panel;
+        verify(!panel.addButton.visible);
+        verify(panel.addButton.Accessible.ignored, "a screen reader would find it");
+        verify(!panel.removeButton.visible);
+        verify(!panel.pointsFullNote.visible);
+    }
 }

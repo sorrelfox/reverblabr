@@ -28,6 +28,9 @@ AppPromptDialog {
     property var whenAccepted: null
     /// Kirigami's scrolling view, whose own type it does not publish.
     readonly property var scroller: contentItem
+    /// The widest this gets, whatever the window: lines of text stop being
+    /// easy to follow well before a wide window's edge.
+    readonly property real readableWidth: Kirigami.Units.gridUnit * 34
 
     /// The four paragraphs, each with its lead in bold.
     readonly property list<string> paragraphs: [
@@ -84,7 +87,10 @@ AppPromptDialog {
     // edge while it moves is pushed back, and moved again, without end.
     maximumHeight: (parent?.height ?? 0) - Kirigami.Units.gridUnit * 6
     title: KI18n.i18nc("@title:window", "Before You Add a Hearing Block")
-    preferredWidth: Kirigami.Units.gridUnit * 34
+    // A limit and not a preferred width: wrapped words ask for their whole
+    // length on one line, and the larger of that and a preferred width wins,
+    // so the dialog would fill any window. A narrow window still narrows it.
+    maximumWidth: dialog.readableWidth
     standardButtons: dialog.asking ? Kirigami.Dialog.Cancel : Kirigami.Dialog.Close
     customFooterActions: dialog.asking ? [goOnAction] : []
 
