@@ -262,9 +262,11 @@ public:
     [[nodiscard]] bool loadPreset(const std::string &id) override;
     [[nodiscard]] std::optional<std::string> savePreset(const std::string &name) override;
 
-    /// **The main thread's turn for the controller**: what changed
-    /// elsewhere told to it, values it changed itself read back. A few
-    /// times a second; a test calls it.
+    /// **The main thread's turn for the controller**: what the halves sent
+    /// each other from their own threads told to them, what changed
+    /// elsewhere told to it, values it changed itself read back. Thirty
+    /// times a second from a timer of the main loop, window or no window;
+    /// a test calls it.
     void editorTick();
 
 protected:

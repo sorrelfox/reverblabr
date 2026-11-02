@@ -19,10 +19,13 @@
 #include <pluginterfaces/vst/ivstmessage.h>
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -222,18 +225,66 @@ private:
 /// loading its code; nothing when it has none, or it cannot be read.
 [[nodiscard]] std::optional<std::vector<Vst3Module::Class>> vst3ModuleInfo(const std::string &bundle);
 
+/// **A process call in progress on this thread**, for as long as it lives:
+/// what tells a relay that a message comes from the audio thread. Nothing
+/// is allocated or locked to make, ask or end one: the mark needs no setting
+/// up, and the host is a program, whose thread-local variables are all there
+/// from a thread's first instruction. Only a library's are made on first use,
+/// which is why the compiler's check of real-time code refuses them all, and
+/// why a call that is marked is one that check cannot see into.
+class Vst3AudioCall
+{
+public:
+    Vst3AudioCall() noexcept
+    {
+        s_inside = true;
+    }
+    ~Vst3AudioCall()
+    {
+        s_inside = false;
+    }
+    Vst3AudioCall(const Vst3AudioCall &) = delete;
+    Vst3AudioCall &operator=(const Vst3AudioCall &) = delete;
+
+    [[nodiscard]] static bool inside() noexcept
+    {
+        return s_inside;
+    }
+
+private:
+    static constinit inline thread_local bool s_inside = false;
+};
+
 /// **One side's end of the line between a plugin's two halves**: what one
-/// half sends through it reaches the halves on the other side, but only
-/// from the host's main thread. A message sent from anywhere else (the
-/// audio thread, from inside a process call) is refused and dropped, so
-/// that the other half never runs there, and nothing it does on receiving
-/// it happens on the audio thread. The format allows a host this, as the
-/// SDK's own hosts do it.
+/// half sends through it reaches the halves on the other side, always on
+/// the host's main thread, so that no half is ever told on a thread of the
+/// other's.
+///
+/// - **Sent on the main thread**: told at once, inside the call.
+/// - **Sent from inside a process call** (see Vst3AudioCall): refused and
+///   dropped, with nothing copied, allocated or locked, so nothing a half
+///   does on receiving it happens on the audio thread.
+/// - **Sent from any other thread**, as a plugin sends its meters and
+///   graphs: copied there and then, and kept until the main thread's next
+///   deliver(). The sender may reuse or let go of its message at once.
+///
+/// **What waits is bounded**, by kMostWaiting and kMostWaitingBytes: when a
+/// new message does not fit, the oldest go first, since what a window shows
+/// is the latest. A single message larger than the whole bound is refused.
+/// Only a message the host made can be copied (the format has no way to
+/// list a message's attributes): any other sent from such a thread is
+/// refused. Everything lost this way is counted by dropped().
 class Vst3Relay final : public Steinberg::Vst::IConnectionPoint
 {
 public:
-    /// Messages are passed on when they are sent from the thread that
-    /// makes the relay.
+    /// The most messages kept for the main thread. A heavy plugin sends
+    /// a few dozen between two of its turns, 33 ms apart.
+    static constexpr std::size_t kMostWaiting = 1024;
+    /// The most bytes of them: an oscilloscope's frames are about 150 KiB
+    /// each, 25 times a second, so about two seconds' worth.
+    static constexpr std::size_t kMostWaitingBytes = std::size_t{8} * 1024 * 1024;
+
+    /// The thread that makes the relay is the main thread to it.
     Vst3Relay();
     Vst3Relay(const Vst3Relay &) = delete;
     Vst3Relay &operator=(const Vst3Relay &) = delete;
@@ -241,7 +292,16 @@ public:
     /// Where messages go from now on: every point added, in turn.
     void add(Steinberg::Vst::IConnectionPoint *to);
     void remove(Steinberg::Vst::IConnectionPoint *to);
-    /// How many messages were dropped for being sent from another thread.
+    /// **The main thread's turn**: tells what is waiting, in the order it
+    /// was sent. Only the main thread may call it.
+    void deliver();
+    /// **Nothing more is kept**, and what is waiting is let go of: for a
+    /// plugin on its way out, or a relay nobody listens to. A thread still
+    /// sending is refused, safely, until the plugin has stopped it, which
+    /// must be before the relay goes: IComponent::terminate() is that point.
+    void close();
+    /// How many messages were lost: from the audio thread, pushed out of
+    /// what waits, or refused.
     [[nodiscard]] std::size_t dropped() const noexcept
     {
         return m_dropped.load(std::memory_order_relaxed);
@@ -255,9 +315,22 @@ public:
     Steinberg::tresult PLUGIN_API notify(Steinberg::Vst::IMessage *message) override;
 
 private:
+    struct Waiting {
+        Vst3Ref<Steinberg::Vst::IMessage> message;
+        std::size_t bytes = 0;
+    };
+
+    void tell(Steinberg::Vst::IMessage *message);
+
     std::thread::id m_main;
+    /// The main thread's alone.
     std::vector<Steinberg::Vst::IConnectionPoint *> m_to;
     std::atomic<std::size_t> m_dropped{0};
+    std::atomic<bool> m_closed{false};
+    /// Held only to move what waits in or out; nobody is told under it.
+    std::mutex m_lock;
+    std::deque<Waiting> m_waiting;
+    std::size_t m_waitingBytes = 0;
 };
 
 /// **A plugin's two halves, made and joined**: its component, which makes

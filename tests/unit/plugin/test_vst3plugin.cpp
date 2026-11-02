@@ -20,11 +20,13 @@
 #include "vst3plugin.h"
 
 #include <gtest/gtest.h>
+#include <pluginterfaces/vst/ivsthostapplication.h>
 #include <poll.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -744,6 +746,200 @@ TEST(PluginVst3, BothInstancesOfAMonoPluginHearTheController)
     EXPECT_EQ(folder.count("component heard gain"), 2) << "the second instance did not hear the controller";
 }
 
+// The format's interfaces have no virtual destructors; nothing is deleted
+// through one.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+
+namespace
+{
+
+/// A half the relay tells, which writes down what it was told.
+class Listener final : public Steinberg::Vst::IConnectionPoint
+{
+public:
+    Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID, void **object) override
+    {
+        *object = nullptr;
+        return Steinberg::kNoInterface;
+    }
+    Steinberg::uint32 PLUGIN_API addRef() override
+    {
+        return 1;
+    }
+    Steinberg::uint32 PLUGIN_API release() override
+    {
+        return 1;
+    }
+    Steinberg::tresult PLUGIN_API connect(Steinberg::Vst::IConnectionPoint *) override
+    {
+        return Steinberg::kResultOk;
+    }
+    Steinberg::tresult PLUGIN_API disconnect(Steinberg::Vst::IConnectionPoint *) override
+    {
+        return Steinberg::kResultOk;
+    }
+    Steinberg::tresult PLUGIN_API notify(Steinberg::Vst::IMessage *message) override
+    {
+        Steinberg::int64 number = -1;
+        (void)message->getAttributes()->getInt("n", number);
+        numbers.push_back(number);
+        return Steinberg::kResultOk;
+    }
+
+    std::vector<Steinberg::int64> numbers;
+};
+
+/// A message made the way a plugin makes one, numbered, with \a bytes of
+/// binary in it.
+[[nodiscard]] Vst3Ref<Steinberg::Vst::IMessage> numbered(Steinberg::int64 number, std::size_t bytes = 0)
+{
+    Vst3Ref<Steinberg::Vst::IHostApplication> host =
+        vst3Query<Steinberg::Vst::IHostApplication>(vst3HostContext(), Steinberg::Vst::IHostApplication_iid);
+    Steinberg::TUID id;
+    std::memcpy(id, Steinberg::Vst::IMessage_iid, sizeof(id));
+    void *made = nullptr;
+    EXPECT_EQ(host->createInstance(id, id, &made), Steinberg::kResultOk);
+    Vst3Ref<Steinberg::Vst::IMessage> message(static_cast<Steinberg::Vst::IMessage *>(made));
+    message->setMessageID("numbered");
+    (void)message->getAttributes()->setInt("n", number);
+    const std::string body(bytes, 'x');
+    (void)message->getAttributes()->setBinary("b", body.data(), static_cast<Steinberg::uint32>(body.size()));
+    return message;
+}
+
+/// A message of a plugin's own making: nothing can be read of it but what
+/// a half that knows its attributes asks for.
+class OwnMessage final : public Steinberg::Vst::IMessage
+{
+public:
+    Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID, void **object) override
+    {
+        *object = nullptr;
+        return Steinberg::kNoInterface;
+    }
+    Steinberg::uint32 PLUGIN_API addRef() override
+    {
+        return 1;
+    }
+    Steinberg::uint32 PLUGIN_API release() override
+    {
+        return 1;
+    }
+    Steinberg::FIDString PLUGIN_API getMessageID() override
+    {
+        return "own";
+    }
+    void PLUGIN_API setMessageID(Steinberg::FIDString) override { }
+    Steinberg::Vst::IAttributeList *PLUGIN_API getAttributes() override
+    {
+        return nullptr;
+    }
+};
+
+} // namespace
+
+#pragma GCC diagnostic pop
+
+TEST(PluginVst3, ARelayKeepsTheNewestOfWhatAnotherThreadSends)
+{
+    Vst3Relay relay;
+    Listener listener;
+    relay.add(&listener);
+    const Steinberg::int64 sent = static_cast<Steinberg::int64>(Vst3Relay::kMostWaiting) + 10;
+    std::thread sender([&] {
+        for (Steinberg::int64 number = 0; number < sent; ++number) {
+            EXPECT_EQ(relay.notify(numbered(number).get()), Steinberg::kResultOk);
+        }
+    });
+    sender.join();
+    EXPECT_TRUE(listener.numbers.empty()) << "told on the sender's thread";
+    EXPECT_EQ(relay.dropped(), 10U);
+
+    relay.deliver();
+    ASSERT_EQ(listener.numbers.size(), Vst3Relay::kMostWaiting);
+    EXPECT_EQ(listener.numbers.front(), 10) << "the oldest are the ones that go";
+    EXPECT_EQ(listener.numbers.back(), sent - 1);
+
+    relay.deliver();
+    EXPECT_EQ(listener.numbers.size(), Vst3Relay::kMostWaiting) << "told twice";
+}
+
+TEST(PluginVst3, ARelayHoldsSoManyBytesAndNoMore)
+{
+    Vst3Relay relay;
+    Listener listener;
+    relay.add(&listener);
+    const std::size_t third = Vst3Relay::kMostWaitingBytes / 3;
+    std::thread sender([&] {
+        for (Steinberg::int64 number = 0; number < 4; ++number) {
+            EXPECT_EQ(relay.notify(numbered(number, third).get()), Steinberg::kResultOk);
+        }
+        // Larger than all it may hold: it goes, and what waits stays.
+        EXPECT_EQ(relay.notify(numbered(99, Vst3Relay::kMostWaitingBytes + 1).get()), Steinberg::kResultFalse);
+    });
+    sender.join();
+    EXPECT_EQ(relay.dropped(), 3U) << "two pushed out, and the one refused";
+    relay.deliver();
+    EXPECT_EQ(listener.numbers, (std::vector<Steinberg::int64>{2, 3}));
+}
+
+TEST(PluginVst3, ARelayNeverCopiesOnTheAudioThread)
+{
+    Vst3Relay relay;
+    Listener listener;
+    relay.add(&listener);
+    const Vst3Ref<Steinberg::Vst::IMessage> message = numbered(1, 1024);
+    std::thread audio([&] {
+        const Vst3AudioCall call;
+        const NoAllocations none;
+        EXPECT_EQ(relay.notify(message.get()), Steinberg::kResultFalse);
+    });
+    audio.join();
+    relay.deliver();
+    EXPECT_TRUE(listener.numbers.empty());
+    EXPECT_EQ(relay.dropped(), 1U);
+}
+
+TEST(PluginVst3, ARelayOnTheHostsThreadTellsAtOnce)
+{
+    Vst3Relay relay;
+    Listener listener;
+    relay.add(&listener);
+    EXPECT_EQ(relay.notify(numbered(5).get()), Steinberg::kResultOk);
+    EXPECT_EQ(listener.numbers, (std::vector<Steinberg::int64>{5}));
+}
+
+TEST(PluginVst3, ARelayLetsGoOfAMessageItCannotCopy)
+{
+    // **The format has no way to list a message's attributes**, so only
+    // the host's own messages can be kept.
+    Vst3Relay relay;
+    Listener listener;
+    relay.add(&listener);
+    OwnMessage message;
+    std::thread sender([&] { EXPECT_EQ(relay.notify(&message), Steinberg::kResultFalse); });
+    sender.join();
+    relay.deliver();
+    EXPECT_TRUE(listener.numbers.empty());
+    EXPECT_EQ(relay.dropped(), 1U);
+}
+
+TEST(PluginVst3, AClosedRelayKeepsNothing)
+{
+    Vst3Relay relay;
+    Listener listener;
+    relay.add(&listener);
+    std::thread before([&] { (void)relay.notify(numbered(1).get()); });
+    before.join();
+    relay.close();
+    std::thread after([&] { EXPECT_EQ(relay.notify(numbered(2).get()), Steinberg::kResultFalse); });
+    after.join();
+    relay.deliver();
+    EXPECT_TRUE(listener.numbers.empty());
+    EXPECT_EQ(relay.dropped(), 2U) << "what was waiting, and what came after";
+}
+
 TEST(PluginVst3, TheControllerNeverHearsTheComponentOnTheAudioThread)
 {
 #if defined(__has_feature)
@@ -768,6 +964,33 @@ TEST(PluginVst3, TheControllerNeverHearsTheComponentOnTheAudioThread)
     ASSERT_NE(here, nullptr);
     cycle.run(*here);
     EXPECT_TRUE(folder.wasTold("cycle"));
+}
+
+TEST(PluginVst3, TheControllerHearsWhatTheComponentSendsFromAThreadOfItsOwn)
+{
+    // **As a plugin sends its meters**: from neither the audio thread nor
+    // the host's. Nothing moves here but the loop's timers, as in a host
+    // nobody touches.
+    const Folder folder;
+    const ScopedEnv sends("RB_TEST_VST3_THREAD", "1");
+    HandLoop loop;
+    Told told;
+    std::unique_ptr<Vst3Plugin> plugin = preparedPlugin();
+    ASSERT_NE(plugin, nullptr);
+    told.block = plugin.get();
+    plugin->attach(loop, told.events);
+    const std::string heard = "thread 7 0.50 word abcd on its own";
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+    while (!folder.wasTold(heard) && std::chrono::steady_clock::now() < deadline) {
+        loop.tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds{2});
+    }
+    EXPECT_TRUE(folder.wasTold(heard)) << "what the component's thread sent did not reach the controller, whole, on "
+                                          "the thread the controller lives on";
+
+    // **Let go of while its thread is still sending**, with messages
+    // waiting that nobody will be told.
+    plugin.reset();
 }
 
 TEST(PluginVst3, AnEmptyStateIsNeverGivenToEitherHalf)

@@ -79,6 +79,9 @@ private:
 /// formats.
 tresult callProcess(Vst::IAudioProcessor *processor, Vst::ProcessData *data)
 {
+    // **Whatever the plugin sends from inside this call** is the audio
+    // thread's, and goes no further.
+    const Vst3AudioCall call;
     return processor->process(*data);
 }
 
@@ -798,6 +801,8 @@ std::expected<void, dsp::BlockError> Vst3Plugin::prepare(const dsp::PrepareSpec 
         second.point = vst3Query<Vst::IConnectionPoint>(second.component.get(), Vst::IConnectionPoint_iid);
         if (second.point && m_halves->toComponents) {
             second.relay = std::make_unique<Vst3Relay>();
+            // Nobody listens, so nothing need wait.
+            second.relay->close();
             (void)second.point->connect(second.relay.get());
             m_halves->toComponents->add(second.point.get());
         } else {
@@ -1192,6 +1197,15 @@ void Vst3Plugin::editorTick()
 {
     if (!m_halves) {
         return;
+    }
+    // **What the halves sent each other from their own threads**, a
+    // plugin's meters and graphs among it: whether or not its window is
+    // open, this timer runs as long as the host's main loop does.
+    if (m_halves->toController) {
+        m_halves->toController->deliver();
+    }
+    if (m_halves->toComponents) {
+        m_halves->toComponents->deliver();
     }
     Vst::IEditController *controller = m_halves->controller.get();
     // **What the sound gave out**, a meter or a setting it moved, told to

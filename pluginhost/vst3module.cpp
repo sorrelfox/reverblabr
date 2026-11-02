@@ -85,6 +85,29 @@ template <std::size_t Size>
 class HostAttributes final : public Vst::IAttributeList
 {
 public:
+    HostAttributes() = default;
+    /// A copy that holds everything itself, with a count of its own.
+    HostAttributes(const HostAttributes &other)
+        : m_values(other.m_values)
+    {
+    }
+    HostAttributes &operator=(const HostAttributes &) = delete;
+
+    /// About what it holds.
+    [[nodiscard]] std::size_t bytes() const noexcept
+    {
+        std::size_t total = 0;
+        for (const auto &[id, value] : m_values) {
+            total += id.size() + sizeof(Value);
+            if (const auto *text = std::get_if<std::u16string>(&value)) {
+                total += text->size() * sizeof(char16_t);
+            } else if (const auto *binary = std::get_if<std::string>(&value)) {
+                total += binary->size();
+            }
+        }
+        return total;
+    }
+
     tresult PLUGIN_API queryInterface(const TUID iid, void **object) override
     {
         if (same(iid, FUnknown_iid) || same(iid, Vst::IAttributeList_iid)) {
@@ -190,18 +213,36 @@ private:
     std::map<std::string, Value> m_values;
 };
 
+/// **What only the host's own messages answer to**, so a relay can tell one
+/// it can copy without trusting a plugin's object to have type information.
+const TUID kHostMessageIid = INLINE_UID(0x52424D53, 0x47484F53, 0x544F574E, 0x434F5059);
+
 /// **A message a plugin made through the host**: an id and attributes.
 class HostMessage final : public Vst::IMessage
 {
 public:
+    HostMessage() = default;
+    /// A copy that leans on nothing of \a other's.
+    HostMessage(const HostMessage &other)
+        : m_id(other.m_id)
+        , m_attributes(new HostAttributes(*other.m_attributes))
+    {
+    }
+    HostMessage &operator=(const HostMessage &) = delete;
     ~HostMessage()
     {
         m_attributes->release();
     }
 
+    /// About what it holds.
+    [[nodiscard]] std::size_t bytes() const noexcept
+    {
+        return sizeof(HostMessage) + m_id.size() + m_attributes->bytes();
+    }
+
     tresult PLUGIN_API queryInterface(const TUID iid, void **object) override
     {
-        if (same(iid, FUnknown_iid) || same(iid, Vst::IMessage_iid)) {
+        if (same(iid, FUnknown_iid) || same(iid, Vst::IMessage_iid) || same(iid, kHostMessageIid)) {
             addRef();
             *object = static_cast<Vst::IMessage *>(this);
             return kResultOk;
@@ -960,20 +1001,89 @@ tresult PLUGIN_API Vst3Relay::notify(Vst::IMessage *message)
     if (message == nullptr) {
         return kInvalidArgument;
     }
-    if (std::this_thread::get_id() != m_main) {
+    if (std::this_thread::get_id() == m_main) {
+        tell(message);
+        return kResultOk;
+    }
+    // **The audio thread stops here**: a count, and nothing else.
+    if (Vst3AudioCall::inside() || m_closed.load(std::memory_order_acquire)) {
         m_dropped.fetch_add(1, std::memory_order_relaxed);
         return kResultFalse;
     }
+    // **A copy, made outside the lock**, of a message that is the host's:
+    // the sender may change or let go of its own the moment this returns.
+    void *own = nullptr;
+    if (message->queryInterface(kHostMessageIid, &own) != kResultOk || own == nullptr) {
+        m_dropped.fetch_add(1, std::memory_order_relaxed);
+        return kResultFalse;
+    }
+    const Vst3Ref<Vst::IMessage> original(static_cast<Vst::IMessage *>(own));
+    auto *host = static_cast<HostMessage *>(original.get());
+    const std::size_t bytes = host->bytes();
+    if (bytes > kMostWaitingBytes) {
+        m_dropped.fetch_add(1, std::memory_order_relaxed);
+        return kResultFalse;
+    }
+    Vst3Ref<Vst::IMessage> copy(new HostMessage(*host));
+
+    const std::scoped_lock lock(m_lock);
+    if (m_closed.load(std::memory_order_relaxed)) {
+        m_dropped.fetch_add(1, std::memory_order_relaxed);
+        return kResultFalse;
+    }
+    // **The oldest go first**: what a window shows is the latest.
+    while (m_waiting.size() >= kMostWaiting || m_waitingBytes + bytes > kMostWaitingBytes) {
+        m_waitingBytes -= m_waiting.front().bytes;
+        m_waiting.pop_front();
+        m_dropped.fetch_add(1, std::memory_order_relaxed);
+    }
+    m_waiting.push_back(Waiting{std::move(copy), bytes});
+    m_waitingBytes += bytes;
+    return kResultOk;
+}
+
+void Vst3Relay::tell(Vst::IMessage *message)
+{
     // A copy: a half told may join or leave another while it is told.
     const std::vector<Vst::IConnectionPoint *> to = m_to;
     for (Vst::IConnectionPoint *point : to) {
         (void)point->notify(message);
     }
-    return kResultOk;
+}
+
+void Vst3Relay::deliver()
+{
+    std::deque<Waiting> waiting;
+    {
+        const std::scoped_lock lock(m_lock);
+        waiting.swap(m_waiting);
+        m_waitingBytes = 0;
+    }
+    for (const Waiting &entry : waiting) {
+        tell(entry.message.get());
+    }
+}
+
+void Vst3Relay::close()
+{
+    const std::scoped_lock lock(m_lock);
+    m_closed.store(true, std::memory_order_release);
+    m_dropped.fetch_add(m_waiting.size(), std::memory_order_relaxed);
+    m_waiting.clear();
+    m_waitingBytes = 0;
 }
 
 Vst3Halves::~Vst3Halves()
 {
+    // **Nothing more is kept from here on**: a thread of the plugin's may
+    // still be sending, and is refused, until terminate() below has stopped
+    // it. The relays go last, after that.
+    if (toController) {
+        toController->close();
+    }
+    if (toComponents) {
+        toComponents->close();
+    }
     if (componentPoint && toController) {
         (void)componentPoint->disconnect(toController.get());
     }
@@ -1038,9 +1148,11 @@ makeVst3Halves(const Vst3Module &module, const std::string &id, Vst::IComponentH
         (void)halves.controller->setComponentHandler(handler);
     }
     if (!halves.oneObject) {
-        // **Joined through the host's relays**, which pass on only what
-        // is sent on the main thread: a component may send from inside its
-        // process call, and the controller must not run there.
+        // **Joined through the host's relays**, which tell each half on the
+        // main thread alone: what a component sends from a thread of its
+        // own waits for the main thread's turn, and what it sends from
+        // inside its process call is dropped, as the controller must not
+        // run there.
         halves.componentPoint = vst3Query<Vst::IConnectionPoint>(halves.component.get(), Vst::IConnectionPoint_iid);
         halves.controllerPoint = vst3Query<Vst::IConnectionPoint>(halves.controller.get(), Vst::IConnectionPoint_iid);
         if (halves.componentPoint && halves.controllerPoint) {

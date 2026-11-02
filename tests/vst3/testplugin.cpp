@@ -40,6 +40,12 @@
 //                                 gain changed (each instance says so)
 //   cycle                         the controller heard the component speak
 //                                 from its first process call
+//   thread <what> on <whose>      the controller heard, once, what the
+//                                 component's own thread sends, and says
+//                                 whose thread it heard it on: its own, or
+//                                 the sender's
+//   stopped sending               the component went, having sent from its
+//                                 own thread
 //   given an empty state          a half was given a state of no bytes
 //   refused to attach             the view would not be attached
 //
@@ -48,6 +54,10 @@
 // environment asks of it, for the tests that need it:
 //
 //   RB_TEST_VST3_TALK             speak from the first process call
+//   RB_TEST_VST3_THREAD           speak from a thread of the component's own
+//                                 for as long as it is active, as a plugin
+//                                 sends its meters: every attribute kind,
+//                                 about once a millisecond
 //   RB_TEST_VST3_EMPTY_STATE      keep a component state of no bytes
 //   RB_TEST_VST3_REFUSE_SETUP     refuse to be set up for processing
 //   RB_TEST_VST3_REFUSE_ATTACH    refuse to have its view attached
@@ -69,13 +79,16 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <thread>
 
 // The format's interfaces have no virtual destructors; nothing is deleted
 // through one.
@@ -225,6 +238,10 @@ public:
     }
     tresult PLUGIN_API terminate() override
     {
+        if (m_sent) {
+            note("stopped sending");
+        }
+        stopSending();
         if (m_host != nullptr) {
             m_host->release();
             m_host = nullptr;
@@ -288,6 +305,13 @@ public:
         if (state != 0) {
             m_latency = 16U * static_cast<uint32>(m_colour);
         }
+        if (state != 0 && flag("RB_TEST_VST3_THREAD") && !m_sender.joinable()) {
+            m_sent = true;
+            m_sending.store(true);
+            m_sender = std::thread([this] { sendFromOwnThread(); });
+        } else if (state == 0) {
+            stopSending();
+        }
         return kResultOk;
     }
     tresult PLUGIN_API setState(IBStream *state) override
@@ -347,9 +371,9 @@ public:
         // **A word to the controller from inside the first process call**,
         // as some plugins send theirs: a host must not let the controller
         // hear it on the audio thread.
-        if (m_talks && !m_talked && m_peer != nullptr) {
+        if (m_talks && !m_talked && m_peer.load() != nullptr) {
             m_talked = true;
-            say(m_peer, "cycle");
+            say(m_peer.load(), "cycle");
         }
         if (data.inputParameterChanges != nullptr) {
             for (int32 at = 0; at < data.inputParameterChanges->getParameterCount(); ++at) {
@@ -427,6 +451,42 @@ private:
         const char *value = std::getenv(name);
         return value != nullptr && *value != '\0';
     }
+    void stopSending()
+    {
+        m_sending.store(false);
+        if (m_sender.joinable()) {
+            m_sender.join();
+        }
+    }
+    /// **As a plugin sends what its window shows**: a message of each kind
+    /// of attribute, which the sender may reuse or let go of at once.
+    void sendFromOwnThread()
+    {
+        static constexpr std::array<char16, 5> kWord = {u'w', u'o', u'r', u'd', 0};
+        static constexpr std::array<char, 4> kBytes = {'a', 'b', 'c', 'd'};
+        while (m_sending.load()) {
+            void *made = nullptr;
+            TUID messageId;
+            std::memcpy(messageId, Vst::IMessage_iid, sizeof(TUID));
+            if (m_host->createInstance(messageId, messageId, &made) == kResultOk && made != nullptr) {
+                auto *message = static_cast<Vst::IMessage *>(made);
+                message->setMessageID("thread");
+                Vst::IAttributeList *attributes = message->getAttributes();
+                (void)attributes->setInt("n", 7);
+                (void)attributes->setFloat("x", 0.5);
+                (void)attributes->setString("s", kWord.data());
+                (void)attributes->setBinary("b", kBytes.data(), kBytes.size());
+                if (Vst::IConnectionPoint *peer = m_peer.load(); peer != nullptr) {
+                    (void)peer->notify(message);
+                }
+                // What the host keeps must not lean on what the sender has.
+                message->setMessageID("gone");
+                (void)attributes->setInt("n", 0);
+                message->release();
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds{1});
+        }
+    }
     void say(Vst::IConnectionPoint *to, const char *id)
     {
         void *made = nullptr;
@@ -446,7 +506,10 @@ private:
     bool m_talked = false;
     bool m_emptyState = false;
     bool m_refusesSetup = false;
-    Vst::IConnectionPoint *m_peer = nullptr;
+    std::atomic<Vst::IConnectionPoint *> m_peer{nullptr};
+    std::thread m_sender;
+    std::atomic<bool> m_sending{false};
+    bool m_sent = false;
     uint32 m_latency = 0;
     Vst::IHostApplication *m_host = nullptr;
     std::atomic<float> m_gain{0.25f};
@@ -592,6 +655,7 @@ public:
             return kResultFalse;
         }
         m_host = static_cast<Vst::IHostApplication *>(host);
+        m_ownThread = std::this_thread::get_id();
         return kResultOk;
     }
     tresult PLUGIN_API terminate() override
@@ -770,6 +834,11 @@ public:
             && message->getAttributes()->getInt("n", n) == kResultOk) {
             note("hello " + std::to_string(n));
         }
+        if (message != nullptr && std::strcmp(message->getMessageID(), "thread") == 0 && !m_heardThread) {
+            m_heardThread = true;
+            note("thread " + attributesOf(*message) + " on "
+                 + (std::this_thread::get_id() == m_ownThread ? "its own" : "the sender's"));
+        }
         return kResultOk;
     }
 
@@ -793,6 +862,25 @@ public:
     }
 
 private:
+    [[nodiscard]] static std::string attributesOf(Vst::IMessage &message)
+    {
+        Vst::IAttributeList *attributes = message.getAttributes();
+        int64 number = 0;
+        double fraction = 0.0;
+        std::array<Vst::TChar, 16> word{};
+        const void *bytes = nullptr;
+        uint32 size = 0;
+        (void)attributes->getInt("n", number);
+        (void)attributes->getFloat("x", fraction);
+        (void)attributes->getString("s", word.data(), sizeof(word));
+        (void)attributes->getBinary("b", bytes, size);
+        std::string text = std::to_string(number) + " " + std::to_string(fraction).substr(0, 4) + " ";
+        for (std::size_t at = 0; word[at] != 0; ++at) {
+            text += static_cast<char>(word[at]);
+        }
+        return text + " " + std::string(static_cast<const char *>(bytes), size);
+    }
+
     void tell(const char *id)
     {
         void *made = nullptr;
@@ -815,6 +903,8 @@ private:
     std::int32_t m_colour = 0;
     std::int32_t m_zoom = 1;
     bool m_heardLevel = false;
+    bool m_heardThread = false;
+    std::thread::id m_ownThread;
 };
 
 View::View(Controller &controller)

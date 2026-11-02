@@ -1374,6 +1374,28 @@ TEST_F(PluginHosts, AVst3PluginRunsWithBothHalvesStatesAndItsPresets)
     ASSERT_TRUE(spinUntil([&] { return said.shown.back().isEmpty(); }, 1s));
 }
 
+TEST_F(PluginHosts, AVst3ComponentsOwnThreadIsHeardInAHostNobodyTouches)
+{
+    // **As a plugin sends its meters**, from a thread of its own, with no
+    // window open and nothing asked of the host: its main loop's own turn
+    // tells the controller, on the main thread.
+    const Vst3Folder folder;
+    const ScopedEnv sends("RB_TEST_VST3_THREAD", "1");
+    PluginHostProcess host;
+    HostSaid said(host);
+    startChain(
+        host, 0, QString::fromLatin1(kTestVst3), QStringLiteral("vst3"), QStringLiteral("dualMono"), testVst3Bundle());
+    EXPECT_TRUE(
+        spinUntil([&] { return folder.told().contains(QStringLiteral("thread 7 0.50 word abcd on its own")); }, 3s))
+        << folder.told().join(u',').toStdString();
+    ASSERT_TRUE(host.isRunning());
+
+    // **Closing while its thread sends**: the plugin goes in good order.
+    host.stop();
+    EXPECT_TRUE(spinUntil([&] { return folder.told().contains(QStringLiteral("stopped sending")); }, 2s))
+        << folder.told().join(u',').toStdString();
+}
+
 TEST_F(PluginHosts, AVst3PluginsViewNeedsADisplay)
 {
     // **No display, no window**: a VST3 view is put in an X11 window of the
