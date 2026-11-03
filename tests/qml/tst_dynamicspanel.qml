@@ -594,6 +594,28 @@ TestCase {
         compare(face.readout.text, "—");
     }
 
+    // **The tile is the card's graph made small**: the same range and the
+    // same shape. It once showed -60 to 0 dB only, so a gate below -60 and
+    // a knee near the top, both on the card, were not on the tile at all.
+    function test_theFaceDrawsTheSameGraphAsThePanel() {
+        const window = testCase.windowWith({ expanderThreshold: -60, expanderRatio: 10, threshold: -24, height: 10 });
+        const panel = window.panel;
+        const face = createTemporaryObject(faceComponent, null);
+        face.blockId = "dyn";
+        waitForRendering(face);
+
+        compare(face.curve.lowestDb, panel.curve.lowestDb, "the tile starts where the card does");
+        compare(face.curve.highestDb, panel.curve.highestDb, "the tile ends where the card does");
+        for (let db = -120; db <= 40; db += 10) {
+            const onFace = face.curve.pointAt(db);
+            const onPanel = panel.curve.pointAt(db);
+            fuzzyCompare(onFace.x / face.curve.plotWidth, onPanel.x / panel.curve.plotWidth, 0.01,
+                         "across, at " + db + " dB");
+            fuzzyCompare(onFace.y / face.curve.plotHeight, onPanel.y / panel.curve.plotHeight, 0.01,
+                         "up, at " + db + " dB");
+        }
+    }
+
     // **The presets footer is not this panel's any more**. It belongs
     // to the settings panel, which puts the same row under every block, and
     // is tested there — see tst_settingspanel.qml. The placeholder that

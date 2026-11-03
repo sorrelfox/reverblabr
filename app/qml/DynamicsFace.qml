@@ -69,10 +69,9 @@ Item {
         params: face.params
         plotWidth: plotArea.width
         plotHeight: plotArea.height
-        // The part of the range a tile can say something about: from a quiet
-        // room to full scale.
-        lowestDb: -60
-        highestDb: 0
+        // **The card's range, the plot's own**, so that the tile is the
+        // card's graph made small: a gate down at -100 or a knee near the
+        // top is on both or on neither.
     }
 
     Item {
