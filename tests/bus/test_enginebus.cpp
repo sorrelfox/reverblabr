@@ -765,6 +765,18 @@ TEST_F(EngineBus, AWindowOnTheDaemonReadsTheSoundOfABlockItIsDrawing)
     remote->stop(sessionId);
 }
 
+TEST_F(EngineBus, ASurfaceDrawingABlockStartsNoDaemon)
+{
+    // It says this every second for as long as it is on the screen, so a
+    // daemon that stopped, or was stopped, would be back within a second,
+    // without the sessions the window thinks it has.
+    bus::RemoteEngine *remote = window(u"window"_s);
+    ASSERT_FALSE(daemonRunning());
+    remote->watchScope(u"gone"_s, u"scope"_s);
+    idle(1500);
+    EXPECT_FALSE(daemonRunning());
+}
+
 TEST_F(EngineBus, TheWindowReadsTheDaemonsLevelsWithNoMessageAFrame)
 {
     // **The mock daemon publishes sixty snapshots a second** while a

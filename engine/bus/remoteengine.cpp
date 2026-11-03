@@ -220,12 +220,12 @@ public:
         send(method, std::move(arguments));
     }
 
-    void send(const QString &method, QVariantList arguments)
+    void send(const QString &method, QVariantList arguments, bool startsDaemon = true)
     {
         QDBusMessage message = QDBusMessage::createMethodCall(kServiceName, kObjectPath, kInterfaceName, method);
         message.setArguments(arguments);
         // **The call is what starts the daemon** when nobody has the name.
-        message.setAutoStartService(true);
+        message.setAutoStartService(startsDaemon);
         auto *watch = new QDBusPendingCallWatcher(connection.asyncCall(message), q);
         QObject::connect(watch, &QDBusPendingCallWatcher::finished, q, [this, method](QDBusPendingCallWatcher *done) {
             if (done->isError()) {
@@ -529,7 +529,11 @@ void RemoteEngine::analyse(const QString &sessionId, const QString &blockId, int
 
 void RemoteEngine::watchScope(const QString &sessionId, const QString &blockId)
 {
-    d->call(u"WatchScope"_s, {sessionId, blockId});
+    // **Not a reason to start a daemon**: this comes every second from
+    // whatever is on the screen, and a new daemon would not have the session.
+    if (d->connected) {
+        d->send(u"WatchScope"_s, {sessionId, blockId}, false);
+    }
 }
 
 void RemoteEngine::holdBlockOff(const QString &sessionId, const QString &blockId, bool held)
