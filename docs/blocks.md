@@ -143,9 +143,10 @@ The original goes straight through, so a Reverb doesn't delay the lane.
 | **VU** | A pair of needles that follow the average level, the way a tape machine's meters did, against a reference level you choose. |
 | **Speech Now** | Shows Speaking while a voice is on this lane, and Quiet when not. For a moment after a voice stops it shows Quiet again. It can't tell who is speaking or what was said, and the sound passes unchanged. |
 | **Voice Gauge** | Shows the level of a voice at this point on the lane, in LUFS, against two marks you place. It says where the reading stands against your marks, and nothing about how you sound. It can be wrong, and the sound passes unchanged. |
+| **Waveform** | Draws the sound at this point in a lane as it goes by: an oscilloscope, on its tile and on its card. The sound passes unchanged. |
 | **Sound Side** | Shows which channel is louder, with a moving mark and a word. It can't tell what made the sound, and it can't tell front from back. The sound passes unchanged. |
 
-Any of them can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
+Any of the level meters can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
 
 ### Speech Now
 
@@ -174,6 +175,22 @@ The number is the level over the last few seconds of voice, in LUFS. It takes a 
 Put it before Voice Evener. After that block the reading sits near its target and hides what the voice did. After Speech Denoise, a pause can read as No sound here. A Bluetooth headset drops to hands-free sound while anything records from it, and a session left running holds it there outside calls too.
 
 Under **Show it on**, **Floating bar** adds a row to the same small window as Speech Now's label, with the number, the word and a track. On the track the marks keep one place, a third and two thirds along. Set a key for **Say Voice Level** to have your screen reader say the number and the word ([global shortcuts](desktop.md#global-shortcuts)). Nothing is spoken unasked.
+
+### Waveform
+
+Put one before and one after a block to see what it does to the shape of the sound. It passes the sound on with no delay, and it works only while its tile or its card is on the screen. A session can draw up to 16 at once. A card outside the main window goes on drawing.
+
+**Style** draws a **Line**, the wave itself, or the band it fills when more than one sample falls on a pixel. **Filled** is how far the sound reaches either side of the middle as a solid shape, **Bars** the same in separate bars, and **Dots** marks the highest and lowest points. **Time shown** goes from 10 ms, the shape of a wave, to 10 s, how the level moves, and a single click stays visible even at 10 s.
+
+**Refresh rate** is how often a new look is taken at the sound, from 10 to 120 times a second. The sound does not come through the 60-a-second levels, so a rate above 60 is real. It can't show more than arrives, one cycle of the sound system at a time, and the card says so when you ask for more. **Motion** decides what happens between two looks. **Real-time** shows the newest sound as it is and holds it. **Smooth** draws at the rate of your screen: from 200 ms up the trace flows steadily across, a little behind the newest sound, and below that, or with the trigger on, each new trace eases in from the last, lined up on a rising zero crossing. Smooth is calmer and uses more of the graphics card.
+
+**Gain** enlarges the drawing and not the sound, and **Auto fit** does it for you: at once when the trace would go off the edge, and over about a second when it gets quieter. **Channels** picks **Both** over each other, **Left**, **Right**, **Mid**, **Side**, or **Stacked** with left above right. **Scale** on **Decibels** spreads the last 60 dB over the height, so that quiet sound can be seen.
+
+**Start on a rising zero crossing** holds a steady tone still. On speech or music there are many crossings and the trace still moves, and with none to find, the card says so and the newest sound is shown. **Hold** keeps a moment on the screen, and you can change how it is drawn while it is held. It is kept for the session but left out of presets, and a trace that was held is gone once neither the tile nor the card is on the screen.
+
+A trace that stands still is one you asked to hold. When the session is stopped or overloaded, the block is off, or nothing is arriving, no trace is shown and a line of words says why.
+
+The presets are **Speaking**, **Single tone**, **Long view** and **Left and right**.
 
 ### Sound Side
 

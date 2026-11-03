@@ -1,0 +1,9 @@
+{
+    "schema": 1,
+    "type": "meter.waveform",
+    "params": {
+        "style": "filled",
+        "spanMs": 500.0,
+        "channels": "stacked"
+    }
+}

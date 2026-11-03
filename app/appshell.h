@@ -158,6 +158,12 @@ public:
     /// when the engine becomes a daemon.
     [[nodiscard]] static const core::TelemetrySlot *telemetryOf(const QString &sessionId);
 
+    /// Where a session's blocks being drawn write their sound, or null: in
+    /// the same memory as telemetryOf(), and it moves when that does. Told
+    /// apart from setEngine() because most tests have no use for it.
+    static void setScopes(std::function<const rt::ScopePool *(const QString &)> scopes);
+    [[nodiscard]] static const rt::ScopePool *scopesOf(const QString &sessionId);
+
     /// What telemetryOf(\a sessionId) answers has changed: TelemetryNotice
     /// says so to whoever keeps an address. For the engine in another
     /// process, whose mappings come and go (ADR-0018).

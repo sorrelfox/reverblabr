@@ -196,6 +196,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_timeshift.cpp
         blocks/test_volume.cpp
         blocks/test_voicegauge.cpp
+        blocks/test_waveformmeter.cpp
         blocks/test_soundside.cpp
         blocks/test_nightlevel.cpp
         blocks/test_voicecompressor.cpp
@@ -486,6 +487,9 @@ rb_add_gtest(reverblabr-app-test
         app/test_peakrmspanel.cpp
         app/test_recentapplications.cpp
         app/test_recordingstatus.cpp
+        app/test_scopehub.cpp
+        app/test_scopeitem.cpp
+        app/test_scopeview.cpp
         app/test_sessionmodel.cpp
         app/test_sessionoverview.cpp
         app/test_telemetrywatch.cpp

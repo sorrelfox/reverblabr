@@ -58,6 +58,7 @@ class Meters::Private
 {
 public:
     MeterHub hub;
+    ScopeHub scopes{&hub};
     QTimer ticker;
     qulonglong frame = 0;
     bool live = false;
@@ -72,6 +73,11 @@ Meters::Meters(QObject *parent)
     , d(std::make_unique<Private>())
 {
     d->ticker.setInterval(kTickMs);
+    d->scopes.setAsker([](const QString &sessionId, const QString &blockId) {
+        if (core::EngineFacade *engine = AppShell::engine(); engine != nullptr) {
+            engine->watchScope(sessionId, blockId);
+        }
+    });
     connect(&d->ticker, &QTimer::timeout, this, [this] {
         // **A frame that brought nothing still ages the holds**, so a peak
         // line goes on falling when the engine has gone quiet.
@@ -108,6 +114,11 @@ bool Meters::isLive() const
     return d->live;
 }
 
+ScopeHub *Meters::scopes() const
+{
+    return &d->scopes;
+}
+
 void Meters::watch(const QString &sessionId)
 {
     // **A spectrum asked for belongs to the session it was asked of**, and
@@ -124,6 +135,7 @@ void Meters::watch(const QString &sessionId)
     d->sessionId = sessionId;
     const core::TelemetrySlot *slot = AppShell::telemetryOf(sessionId);
     d->hub.watch(slot);
+    d->scopes.watch(sessionId, AppShell::scopesOf(sessionId));
     if (slot == nullptr) {
         d->ticker.stop();
         d->live = false;

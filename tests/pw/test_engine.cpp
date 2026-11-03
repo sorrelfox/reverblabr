@@ -10,6 +10,7 @@
 // the mock walks, against a real PipeWire.
 
 #include "blocks/oneearmix.h"
+#include "blocks/waveformmeter.h"
 #include "core/audiosystem.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
@@ -58,6 +59,7 @@ namespace
     EXPECT_TRUE(registry.add(std::string{test::PassThroughOutput::kTypeId}, &test::PassThroughOutput::make));
     // One block with real parameters, for the tests that turn a knob.
     EXPECT_TRUE(registry.add(std::string{test::GainBlock::kTypeId}, &test::GainBlock::make));
+    EXPECT_TRUE(registry.add(std::string{blocks::WaveformMeter::kTypeId}, &blocks::WaveformMeter::make));
     return registry;
 }
 
@@ -842,6 +844,122 @@ TEST_F(EngineThroughTheFacade, OneBlocksSpectrumIsTakenWhileItIsAskedFor)
     EXPECT_FALSE(analysing(u"src"_s) || analysing(u"fx"_s));
 
     engine.stop(id);
+}
+
+// **A block's sound through the real engine, on a real audio thread**: two
+// Waveform blocks in one lane, each drawn at once and each with a slot of its
+// own, writing into the pool only for as long as somebody keeps asking.
+TEST_F(EngineThroughTheFacade, TheSoundOfABlockBeingDrawnReachesTheScopePoolAndStopsWhenNobodyAsks)
+{
+    QTemporaryDir sessions;
+    ASSERT_TRUE(sessions.isValid());
+    const dsp::BlockRegistry registry = testRegistry();
+    Engine engine(registry, SessionStore{sessions.path()});
+
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    QSignalSpy errors(&engine, &EngineFacade::error);
+
+    engine.connectToPipeWire();
+    Waiter pump;
+    ASSERT_TRUE(pump.pumpUntil([&] { return engine.isConnected(); }));
+
+    engine.createSession(u"Scopes"_s);
+    const QString id = opened.back().at(0).toString();
+    engine.applyEdit(id, addBlockEdit(u"src"_s, test::PassThroughSource::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"one"_s, blocks::WaveformMeter::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"two"_s, blocks::WaveformMeter::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"out"_s, test::PassThroughOutput::kTypeId));
+    for (std::uint32_t channel = 0; channel < 2; ++channel) {
+        engine.applyEdit(id, connectEdit(u"src"_s, channel, u"one"_s, channel));
+        engine.applyEdit(id, connectEdit(u"one"_s, channel, u"two"_s, channel));
+        engine.applyEdit(id, connectEdit(u"two"_s, channel, u"out"_s, channel));
+    }
+    const core::TelemetrySlot *slot = engine.telemetryOf(id);
+    const rt::ScopePool *pool = engine.scopesOf(id);
+    ASSERT_NE(slot, nullptr);
+    ASSERT_NE(pool, nullptr);
+
+    engine.start(id);
+    ASSERT_TRUE(errors.isEmpty()) << errors.back().at(0).toString().toStdString();
+    const std::optional<Graph::Node> ours = pump.awaitNode(engine.runtimeOf(id)->node()->nodeName());
+    ASSERT_TRUE(ours.has_value());
+    ASSERT_TRUE(pump.awaitPorts(ours->id, "input", 2));
+    FakeApp app(appOptions("ScopeApp", "scopeapp"));
+    const std::optional<Graph::Node> stream = pump.awaitMatch(playbackStreamOf("ScopeApp"));
+    ASSERT_TRUE(stream.has_value());
+    ASSERT_TRUE(pump.awaitPorts(stream->id, "output", 2));
+    ASSERT_EQ(linkByChannel(stream->id, ours->id), 2U);
+    ASSERT_TRUE(pump.pumpUntil([&] {
+        const std::optional<core::BlockTelemetry> block = blockOf(slot->load(), "one");
+        return block.has_value() && block->active;
+    }));
+
+    // Nobody has asked: no slot, whatever is playing.
+    pump.pump(std::chrono::milliseconds{100});
+    EXPECT_EQ(blockOf(slot->load(), "one")->scopeSlot, -1);
+
+    engine.watchScope(id, u"one"_s);
+    engine.watchScope(id, u"two"_s);
+    ASSERT_TRUE(pump.pumpUntil([&] {
+        const core::TelemetrySnapshot snapshot = slot->load();
+        return blockOf(snapshot, "one")->scopeSlot >= 0 && blockOf(snapshot, "two")->scopeSlot >= 0;
+    })) << "no slot was given";
+    const core::TelemetrySnapshot given = slot->load();
+    const int one = blockOf(given, "one")->scopeSlot;
+    const int two = blockOf(given, "two")->scopeSlot;
+    EXPECT_NE(one, two);
+    EXPECT_EQ(blockOf(given, "src")->scopeSlot, -1) << "nobody asked about that one";
+
+    std::vector<rt::ScopePoint> points(rt::kScopePoints);
+    const auto peakIn = [&](int index) {
+        const rt::ScopeRead read = rt::readScope(pool->slots[static_cast<std::size_t>(index)], 0, points);
+        float peak = 0.0f;
+        for (std::size_t point = 0; point < read.points; ++point) {
+            peak = std::max({peak, points[point].high[rt::ScopeLeft], -points[point].low[rt::ScopeLeft]});
+        }
+        return peak;
+    };
+    ASSERT_TRUE(pump.pumpUntil([&] { return peakIn(one) > 0.1f && peakIn(two) > 0.1f; }))
+        << "the sound never reached the pool";
+    EXPECT_NEAR(peakIn(one), std::pow(10.0f, static_cast<float>(kTonePeakDb) / 20.0f), 0.02f)
+        << "the trace should be of the tone that is playing";
+
+    // A setting of the block reaches nothing on the way: no plan, no error,
+    // and the sound goes on coming.
+    const std::uint32_t before = rt::readScope(pool->slots[static_cast<std::size_t>(one)], 0, {}).head;
+    const std::uint64_t cycles = engine.runtimeOf(id)->node()->telemetry().cycles;
+    engine.setParam(id, u"one"_s, u"style"_s, uR"(["bars"])"_s);
+    engine.setParam(id, u"one"_s, u"spanMs"_s, uR"([1000])"_s);
+    engine.setParam(id, u"one"_s, u"motion"_s, uR"(["smooth"])"_s);
+    ASSERT_TRUE(pump.pumpUntil([&] {
+        return rt::readScope(pool->slots[static_cast<std::size_t>(one)], 0, {}).head != before
+            && engine.runtimeOf(id)->node()->telemetry().cycles > cycles;
+    }));
+    EXPECT_TRUE(errors.isEmpty());
+    EXPECT_EQ(blockOf(slot->load(), "one")->scopeSlot, one) << "a setting took the block's slot from it";
+
+    // Going on asking for one only: the other's writing stops.
+    const auto headOf = [&](int index) {
+        return rt::readScope(pool->slots[static_cast<std::size_t>(index)], 0, {}).head;
+    };
+    const auto keepAsking = [&](const std::chrono::milliseconds wait) {
+        const auto until = std::chrono::steady_clock::now() + wait;
+        while (std::chrono::steady_clock::now() < until) {
+            engine.watchScope(id, u"one"_s);
+            pump.pump(std::chrono::milliseconds{200});
+        }
+    };
+    keepAsking(TelemetrySampler::kScopeLease + std::chrono::milliseconds{500});
+    EXPECT_GE(blockOf(slot->load(), "one")->scopeSlot, 0);
+    EXPECT_EQ(blockOf(slot->load(), "two")->scopeSlot, -1) << "a lease nobody renewed did not run out";
+    const std::uint32_t stopped = headOf(two);
+    const std::uint32_t going = headOf(one);
+    pump.pump(std::chrono::milliseconds{200});
+    EXPECT_EQ(headOf(two), stopped) << "written to after it was let go of";
+    EXPECT_NE(headOf(one), going) << "the one still asked for should go on";
+
+    engine.stop(id);
+    EXPECT_TRUE(errors.isEmpty());
 }
 
 // **A block's band values and the sound before it, through the real engine**:

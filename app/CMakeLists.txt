@@ -316,6 +316,12 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/VoiceGaugeRow.qml
     qml/VoiceGaugeState.qml
     qml/VoiceGaugeWords.qml
+    qml/WaveformFace.qml
+    qml/WaveformHelp.qml
+    qml/WaveformPanel.qml
+    qml/WaveformScope.qml
+    qml/WaveformState.qml
+    qml/WaveformWords.qml
     qml/TypedValueRow.qml
     qml/FloatingLabel.qml
     qml/FloatingPlaceSection.qml
@@ -396,6 +402,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/meter.peakrms.svg
     icons/meter.speechnow.svg
     icons/meter.voicegauge.svg
+    icons/meter.waveform.svg
     icons/meter.soundside.svg
     icons/effect.nightlevel.svg
     icons/effect.voicecompressor.svg
@@ -522,6 +529,8 @@ target_sources(reverblabr-ui PRIVATE
     launchrequests.h
     meteritem.cpp
     meteritem.h
+    scopeitem.cpp
+    scopeitem.h
     meters.cpp
     meters.h
     meterscale.cpp
@@ -566,6 +575,10 @@ target_sources(reverblabr-ui PRIVATE
     soundsidereadings.h
     meterhub.cpp
     meterhub.h
+    scopehub.cpp
+    scopehub.h
+    scopeview.cpp
+    scopeview.h
     volumescale.cpp
     volumescale.h
     waveformitem.cpp

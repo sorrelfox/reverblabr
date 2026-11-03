@@ -67,6 +67,7 @@
 #include "blocks/volume.h"
 #include "blocks/vumeter.h"
 #include "blocks/wave.h"
+#include "blocks/waveformmeter.h"
 
 #include <string>
 
@@ -109,6 +110,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{VuMeter::kTypeId}, &VuMeter::make).has_value()
         && registry.add(std::string{SpeechNow::kTypeId}, &SpeechNow::make).has_value()
         && registry.add(std::string{VoiceGauge::kTypeId}, &VoiceGauge::make).has_value()
+        && registry.add(std::string{WaveformMeter::kTypeId}, &WaveformMeter::make).has_value()
         && registry.add(std::string{SoundSide::kTypeId}, &SoundSide::make).has_value()
         && registry.add(std::string{NightLevel::kTypeId}, &NightLevel::make).has_value()
         && registry.add(std::string{VoiceForward::kTypeId}, &VoiceForward::make).has_value()

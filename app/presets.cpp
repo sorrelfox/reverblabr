@@ -63,6 +63,10 @@ constexpr std::array kFactoryNames{
     FactoryName{"speech"_L1, kli18nc("@item:inmenu a preset for the Voice Compressor block", "Speech")},
     FactoryName{"strong-voice"_L1, kli18nc("@item:inmenu a preset for the Voice Compressor block", "Strong voice")},
     FactoryName{"singing"_L1, kli18nc("@item:inmenu a preset for the Voice Compressor block", "Singing")},
+    FactoryName{"speaking"_L1, kli18nc("@item:inmenu a preset for the Waveform block", "Speaking")},
+    FactoryName{"singleTone"_L1, kli18nc("@item:inmenu a preset for the Waveform block", "Single tone")},
+    FactoryName{"longView"_L1, kli18nc("@item:inmenu a preset for the Waveform block", "Long view")},
+    FactoryName{"leftAndRight"_L1, kli18nc("@item:inmenu a preset for the Waveform block", "Left and right")},
     FactoryName{"wholeMix"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Whole mix")},
     FactoryName{"higherSounds"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Higher sounds")},
     // Dynamics Processor.

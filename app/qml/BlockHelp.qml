@@ -39,6 +39,10 @@ QtObject {
         VolumeHelp {}
     }
 
+    readonly property Component waveform: Component {
+        WaveformHelp {}
+    }
+
     readonly property Component peakRms: Component {
         PeakRmsHelp {}
     }
@@ -277,6 +281,7 @@ QtObject {
         "hearing.suddensounds": help.suddenSounds,
         "meter.speechnow": help.speechNow,
         "meter.voicegauge": help.voiceGauge,
+        "meter.waveform": help.waveform,
         "meter.soundside": help.soundSide,
         "effect.nightlevel": help.nightLevel,
         "effect.voicecompressor": help.voiceCompressor,

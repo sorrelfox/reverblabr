@@ -8,6 +8,7 @@
 #pragma once
 
 #include "meterhub.h"
+#include "scopehub.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -39,6 +40,8 @@ class Meters : public QObject
     /// Whether anything is being published at all. False is the idle state
     /// every meter shows: a stopped session is not a quiet one.
     Q_PROPERTY(bool live READ isLive NOTIFY ticked)
+    /// Where a surface that draws the sound itself gets it.
+    Q_PROPERTY(rb::ui::ScopeHub *scopes READ scopes CONSTANT)
 
 public:
     /// How often the levels are read. Sixty a second is what the engine
@@ -51,6 +54,7 @@ public:
 
     [[nodiscard]] qulonglong frame() const;
     [[nodiscard]] bool isLive() const;
+    [[nodiscard]] ScopeHub *scopes() const;
 
     /// Follows the session's telemetry. Empty stops reading, which is what
     /// closing a session does.

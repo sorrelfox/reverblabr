@@ -1,0 +1,10 @@
+{
+    "schema": 1,
+    "type": "meter.waveform",
+    "params": {
+        "refresh": "hz30",
+        "style": "line",
+        "spanMs": 20.0,
+        "trigger": true
+    }
+}

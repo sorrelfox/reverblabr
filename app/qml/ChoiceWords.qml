@@ -34,6 +34,7 @@ QtObject {
     readonly property SpeechNowWords speechNow: SpeechNowWords {}
     readonly property FilterWords filter: FilterWords {}
     readonly property WaveWords wave: WaveWords {}
+    readonly property WaveformWords waveform: WaveformWords {}
     readonly property RecorderWords recorder: RecorderWords {}
     readonly property BroadcastWords broadcast: BroadcastWords {}
     readonly property LiveStreamWords liveStream: LiveStreamWords {}
@@ -131,8 +132,18 @@ QtObject {
             found = words.recorder.sampleRateName(choice, AppShell.sampleRate);
             break;
         case "channels":
-            found = typeId === "output.wave" ? words.wave.sideName(choice) : words.recorder.channelsName(choice);
+            found = typeId === "output.wave" ? words.wave.sideName(choice)
+                : typeId === "meter.waveform" ? words.waveform.channelsName(choice)
+                : words.recorder.channelsName(choice);
             break;
+        case "refresh":
+            return words.waveform.refreshName(choice);
+        case "motion":
+            return words.waveform.motionName(choice);
+        case "style":
+            return words.waveform.styleName(choice);
+        case "scale":
+            return words.waveform.scaleName(choice);
         case "server":
             found = words.broadcast.serverName(choice);
             break;

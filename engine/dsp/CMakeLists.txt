@@ -63,6 +63,8 @@ add_library(reverblabr-dsp STATIC
     paramvalue.h
     quadraturefold.cpp
     quadraturefold.h
+    scopetrace.cpp
+    scopetrace.h
     smoothing.h
     spectrum.cpp
     spectrum.h

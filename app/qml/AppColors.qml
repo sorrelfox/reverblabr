@@ -368,6 +368,9 @@ QtObject {
     readonly property color liveOnLightCanvas: colors.lightPalette.live
     readonly property color live: Kirigami.ColorUtils.brightnessForColor(colors.canvas) === Kirigami.ColorUtils.Dark
                                   ? colors.liveOnDarkCanvas : colors.liveOnLightCanvas
+    /// The lines behind a Waveform's trace, on the well: quiet, and still
+    /// there in both palettes and in a colour scheme of the person's own.
+    readonly property color scopeGrid: Kirigami.ColorUtils.linearInterpolation(colors.well, colors.text, 0.14)
     /// The hot end of a meter, where a level's peak is drawn: the
     /// prototype's pale yellow, or in *Follow system* the live colour
     /// lifted halfway to white, as it was before the application had a look

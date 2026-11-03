@@ -912,6 +912,23 @@ reading can also show in the system tray and on the floating window, and <guilab
 Voice Level</guilabel> has your screen reader say it.</para>
 </sect2>
 
+<sect2 id="block-meter-waveform">
+<title>Waveform</title>
+<para>Draws the sound at this point on the lane as it goes by, on its tile and on
+its card. The sound passes unchanged and with no delay, and a session can draw up
+to 16 of them at once. <guilabel>Style</guilabel> draws a <guilabel>Line</guilabel>,
+<guilabel>Filled</guilabel>, <guilabel>Bars</guilabel> or <guilabel>Dots</guilabel>,
+and <guilabel>Time shown</guilabel> goes from 10 ms, the shape of a wave, to 10 s,
+how the level moves. <guilabel>Refresh rate</guilabel> is how often a new look is
+taken. With <guilabel>Motion</guilabel> on <guilabel>Real-time</guilabel> each look
+shows the newest sound as it is. On <guilabel>Smooth</guilabel> the picture is drawn
+at the rate of your screen: a long view flows steadily across, and a short one eases
+from one look to the next. <guilabel>Start on a rising zero crossing</guilabel> holds
+a steady tone still, and <guilabel>Hold</guilabel> keeps a moment on the screen. When
+the session is stopped or overloaded, or the block is off, no trace is shown and a
+line of words says why.</para>
+</sect2>
+
 <sect2 id="block-meter-soundside">
 <title>Sound Side</title>
 <para>Shows which channel of a stereo lane is louder right now, with a moving mark

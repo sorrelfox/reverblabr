@@ -61,6 +61,8 @@ struct BlockLevels {
     std::array<bool, rt::kMaxMeterChannels> clippedChannels{};
     bool active = false;
     bool enabled = true;
+    /// Which of the session's scope slots holds its sound, or -1.
+    int scopeSlot = -1;
     /// How late the block makes the sound, in milliseconds.
     float latencyMs = 0.0f;
 };

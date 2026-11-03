@@ -129,6 +129,7 @@ int main(int argc, char *argv[])
     core::MockEngine mock;
     mock.addFakeInventory();
     ui::AppShell::setEngine(&mock, [&mock](const QString &sessionId) { return mock.telemetryOf(sessionId); });
+    ui::AppShell::setScopes([&mock](const QString &sessionId) { return mock.scopesOf(sessionId); });
 
     Grabber grabber(parser.value(outOption));
     QQmlApplicationEngine engine;

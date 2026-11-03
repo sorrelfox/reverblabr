@@ -25,6 +25,7 @@ namespace
 /// the QML tests do.
 core::EngineFacade *g_facade = nullptr;
 std::function<const core::TelemetrySlot *(const QString &)> g_telemetry;
+std::function<const rt::ScopePool *(const QString &)> g_scopes;
 std::pair<QString, QString> g_startupNotice;
 bool g_engineInBackground = true;
 
@@ -128,6 +129,16 @@ core::EngineFacade *AppShell::engine()
 const core::TelemetrySlot *AppShell::telemetryOf(const QString &sessionId)
 {
     return g_telemetry && !sessionId.isEmpty() ? g_telemetry(sessionId) : nullptr;
+}
+
+void AppShell::setScopes(std::function<const rt::ScopePool *(const QString &)> scopes)
+{
+    g_scopes = std::move(scopes);
+}
+
+const rt::ScopePool *AppShell::scopesOf(const QString &sessionId)
+{
+    return g_scopes && !sessionId.isEmpty() ? g_scopes(sessionId) : nullptr;
 }
 
 TelemetryNotice *TelemetryNotice::instance()

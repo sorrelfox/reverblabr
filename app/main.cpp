@@ -200,6 +200,7 @@ int main(int argc, char *argv[])
         mockImplementation = std::make_unique<rb::core::MockEngine>();
         rb::core::MockEngine *mock = mockImplementation.get();
         rb::ui::AppShell::setEngine(mock, [mock](const QString &sessionId) { return mock->telemetryOf(sessionId); });
+        rb::ui::AppShell::setScopes([mock](const QString &sessionId) { return mock->scopesOf(sessionId); });
     } else if (choice.kind == rb::bus::EngineKind::Daemon) {
         // **The engine in reverblabrd** (ADR-0017), reached over the
         // session bus and started by the first call. Its levels are read
@@ -210,6 +211,7 @@ int main(int argc, char *argv[])
         QObject::connect(remote, &rb::bus::RemoteEngine::telemetryChanged, &app, &rb::ui::AppShell::telemetryMoved);
         rb::ui::AppShell::setEngine(remote,
                                     [remote](const QString &sessionId) { return remote->telemetryOf(sessionId); });
+        rb::ui::AppShell::setScopes([remote](const QString &sessionId) { return remote->scopesOf(sessionId); });
     } else {
         // An engine of the window's own: no Auto Run, and the Info
         // tab says so.
@@ -220,6 +222,7 @@ int main(int argc, char *argv[])
         // Telemetry deliberately does not travel through the facade
         // ([ADR-0003]); where to read it is handed over separately.
         rb::ui::AppShell::setEngine(real, [real](const QString &sessionId) { return real->telemetryOf(sessionId); });
+        rb::ui::AppShell::setScopes([real](const QString &sessionId) { return real->scopesOf(sessionId); });
     }
 
     // **What the engine says that is worth a notification**, sent

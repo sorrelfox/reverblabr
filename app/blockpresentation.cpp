@@ -321,6 +321,13 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "Reads the level of a voice on this lane over a few seconds and holds it through pauses. The sound "
                   "itself passes unchanged.")},
+    Entry{"meter.waveform",
+          "meters",
+          kli18nc("@item block name", "Waveform"),
+          kli18nc("@info block description", "Draws the sound at this point in a lane as it goes by"),
+          kli18nc("@info:tooltip block description",
+                  "An oscilloscope for any point in a lane: choose how much time it shows, how it is drawn and how "
+                  "it moves. The sound passes unchanged.")},
     Entry{"meter.soundside",
           "meters",
           kli18nc("@item block name", "Sound Side"),

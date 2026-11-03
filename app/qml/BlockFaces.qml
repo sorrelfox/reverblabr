@@ -77,6 +77,11 @@ QtObject {
         VuFace {}
     }
 
+    /// The sound itself, as it goes by.
+    readonly property Component waveform: Component {
+        WaveformFace {}
+    }
+
     readonly property Component speechNow: Component {
         SpeechNowFace {}
     }
@@ -312,6 +317,7 @@ QtObject {
         "hearing.suddensounds": faces.suddenSounds,
         "meter.speechnow": faces.speechNow,
         "meter.voicegauge": faces.voiceGauge,
+        "meter.waveform": faces.waveform,
         "meter.soundside": faces.soundSide,
         "effect.nightlevel": faces.nightLevel,
         "effect.voicecompressor": faces.voiceCompressor,

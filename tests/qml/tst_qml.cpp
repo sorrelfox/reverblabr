@@ -590,6 +590,7 @@ public Q_SLOTS:
         // window can be asked about.
         core::MockEngine *mock = m_engine.get();
         ui::AppShell::setEngine(mock, [mock](const QString &sessionId) { return mock->telemetryOf(sessionId); });
+        ui::AppShell::setScopes([mock](const QString &sessionId) { return mock->scopesOf(sessionId); });
         // **Never the system bus.** A change to an all-users device goes to
         // the helper through KAuth, which would ask the desktop for an
         // administrator's password; here a stand-in answers instead.

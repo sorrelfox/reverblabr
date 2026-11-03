@@ -1,0 +1,10 @@
+{
+    "schema": 1,
+    "type": "meter.waveform",
+    "params": {
+        "motion": "smooth",
+        "style": "filled",
+        "spanMs": 2000.0,
+        "channels": "both"
+    }
+}

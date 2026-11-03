@@ -114,6 +114,8 @@ add_library(reverblabr-blocks STATIC
     vumeter.h
     wave.cpp
     wave.h
+    waveformmeter.cpp
+    waveformmeter.h
 )
 target_include_directories(reverblabr-blocks PUBLIC ${PROJECT_SOURCE_DIR}/engine)
 # The plugin block asks the plugins built into the host what they are

@@ -203,6 +203,7 @@ bool MeterHub::tick()
         into.channelCount = std::min<std::uint32_t>(from.channelCount, rt::kMaxMeterChannels);
         into.enabled = from.enabled;
         into.active = from.active;
+        into.scopeSlot = from.scopeSlot;
         into.latencyMs = snapshot.sampleRate > 0
             ? 1000.0f * static_cast<float>(from.latencySamples) / static_cast<float>(snapshot.sampleRate)
             : 0.0f;

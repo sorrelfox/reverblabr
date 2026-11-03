@@ -1,0 +1,10 @@
+{
+    "schema": 1,
+    "type": "meter.waveform",
+    "params": {
+        "refresh": "hz15",
+        "style": "bars",
+        "spanMs": 10000.0,
+        "autoFit": true
+    }
+}

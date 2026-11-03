@@ -166,6 +166,10 @@ QtObject {
 
     /// The Peak/RMS panel: two meters, the numbers under them, and a hold
     /// that is measured in wall-clock time rather than in parameters.
+    readonly property Component waveform: Component {
+        WaveformPanel {}
+    }
+
     readonly property Component peakRms: Component {
         PeakRmsPanel {}
     }
@@ -340,6 +344,7 @@ QtObject {
         "hearing.suddensounds": panels.suddenSounds,
         "meter.speechnow": panels.speechNow,
         "meter.voicegauge": panels.voiceGauge,
+        "meter.waveform": panels.waveform,
         "meter.soundside": panels.soundSide,
         "effect.nightlevel": panels.nightLevel,
         "effect.voicecompressor": panels.voiceCompressor,
