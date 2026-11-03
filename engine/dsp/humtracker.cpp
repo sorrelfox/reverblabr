@@ -61,6 +61,14 @@ constexpr double kRippleSeconds = 0.01;
 constexpr double kPowerSeconds = 0.1;
 /// The harmonics' share of the power below which they are not asked.
 constexpr double kHarmonicShare = 0.2;
+/// **A hum stands out in its own narrow band.** What the fundamental's
+/// low-pass lets through has to be at least this share of the input's power
+/// for the loop to lock (−40 dB), and this to stay locked (−50 dB). Loud
+/// music leaks through the low-pass too, some 50 dB under itself, and a
+/// loop wide enough to pull in a hum chases that leak until its phase looks
+/// still: without this it locked onto a chord a third of the time.
+constexpr double kLockShare = 1.0e-4;
+constexpr double kKeepShare = 1.0e-5;
 
 [[nodiscard]] double clampHz(double hz) noexcept
 {
@@ -96,6 +104,8 @@ void HumTracker::reset(double startHz) noexcept RB_NONBLOCKING
     }
     m_previous.fill({0.0, 0.0});
     m_averagePower.fill(0.0);
+    m_inputSum = 0.0;
+    m_inputPower = 0.0;
     m_lockAverage = 0.0;
     m_integral = start;
     m_loopHz = start;
@@ -130,6 +140,7 @@ void HumTracker::retune() noexcept RB_NONBLOCKING
 void HumTracker::push(float sample) noexcept RB_NONBLOCKING
 {
     const auto x = static_cast<double>(sample);
+    m_inputSum += x * x;
 
     // Turned down by the loop's phase, and by twice and three times it.
     const std::complex<double> down = std::conj(m_phasor);
@@ -160,6 +171,11 @@ void HumTracker::update() noexcept RB_NONBLOCKING
     for (std::size_t index = 0; index < kHarmonics; ++index) {
         m_averagePower[index] += m_powerCoefficient * (std::norm(m_demodulated[index].back()) - m_averagePower[index]);
     }
+    m_inputPower += m_powerCoefficient * (m_inputSum / static_cast<double>(m_decimation) - m_inputPower);
+    m_inputSum = 0.0;
+    // A tone's power is twice its turned-down value's: half its amplitude
+    // is left after turning down.
+    const double share = m_inputPower > 0.0 ? 2.0 * m_averagePower[0] / m_inputPower : 0.0;
     const bool live = level > kQuietest;
     const double error = live ? std::arg(fundamental) : 0.0;
 
@@ -172,8 +188,16 @@ void HumTracker::update() noexcept RB_NONBLOCKING
         if (std::abs(harmonic) > kQuietest && std::abs(m_previous[index]) > kQuietest) {
             const double says = std::arg(harmonic * std::conj(m_previous[index]))
                 / (kTwoPi * m_updateSeconds * static_cast<double>(index + 1));
-            harmonicSays += power * says;
-            harmonicPower += power;
+            // **What is not the hum's harmonic is not asked.** A note
+            // beside the harmonic's place, such as a G at 196 Hz by the
+            // third of a 50 Hz hum, gets through its low-pass and turns its
+            // phase at the distance between them: tens of hertz, more than
+            // the loop could ever be off. Counted, it pulled the loop off
+            // the hum and the notches onto the music.
+            if (std::abs(says) <= kWideLoopHz) {
+                harmonicSays += power * says;
+                harmonicPower += power;
+            }
         }
         m_previous[index] = harmonic;
     }
@@ -189,13 +213,13 @@ void HumTracker::update() noexcept RB_NONBLOCKING
     m_lockAverage =
         m_lockCoefficient * m_lockAverage + (1.0 - m_lockCoefficient) * (live ? std::cos(2.0 * error) : 0.0);
     if (m_locked) {
-        if (m_lockAverage < kUnlockStillness || !live) {
+        if (m_lockAverage < kUnlockStillness || !live || share < kKeepShare) {
             m_locked = false;
             m_lockedFor = 0;
             m_held = m_estimate;
         }
     } else {
-        const bool steady = live && m_lockAverage > kLockStillness;
+        const bool steady = live && m_lockAverage > kLockStillness && share >= kLockShare;
         m_steady = steady ? m_steady + 1 : 0;
         if (m_steady >= m_confirmUpdates) {
             m_locked = true;

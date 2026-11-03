@@ -270,6 +270,92 @@ TEST(HumTrackerTest, ATonePlayingNextToAHarmonicDoesNotPullIt)
     EXPECT_LT(worst, 0.015);
 }
 
+namespace
+{
+
+/// A G major chord, G3 B3 D4 G4, two voices a note a little apart, each
+/// with ten harmonics, the loudest partial at \a amplitude. In tune, its
+/// notes are the 4th, 5th, 6th and 8th harmonics of 49 Hz.
+[[nodiscard]] Signal chord(std::size_t frames, float amplitude)
+{
+    Signal signal(frames, 0.0f);
+    std::mt19937 random(3);
+    std::uniform_real_distribution<double> start(0.0, 2.0 * std::numbers::pi);
+    struct Partial {
+        double hz;
+        double phase;
+        double level;
+    };
+    std::vector<Partial> partials;
+    for (const double note : {196.0, 246.94, 293.66, 392.0}) {
+        for (const double apart : {-0.6, 0.7}) {
+            for (int number = 1; number <= 10; ++number) {
+                partials.push_back({(note + apart) * number, start(random), 1.0 / std::pow(number, 1.5)});
+            }
+        }
+    }
+    for (std::size_t n = 0; n < frames; ++n) {
+        const double t = static_cast<double>(n) / kRate;
+        double sum = 0.0;
+        for (const Partial &partial : partials) {
+            sum += partial.level * std::sin(2.0 * std::numbers::pi * partial.hz * t + partial.phase);
+        }
+        signal[n] = static_cast<float>(amplitude * sum);
+    }
+    return signal;
+}
+
+} // namespace
+
+TEST(HumTrackerTest, AChordWithNoHumUnderItIsNeverLockedOnto)
+{
+    // Loud music leaks through the fundamental's low-pass, some 50 dB under
+    // itself, and a loop wide enough to pull a hum in chased that leak until
+    // its phase looked still: it locked onto this chord a third of the time
+    // at the loudest. What it hears at the base has to be a share of the
+    // whole for it to be a hum.
+    for (const float amplitude : {0.002f, 0.02f, 0.2f}) {
+        HumTracker tracker;
+        tracker.prepare(kRate);
+        tracker.reset(50.0);
+        bool everLocked = false;
+        track(tracker,
+              chord(static_cast<std::size_t>(6.0 * kRate), amplitude),
+              [&](double, double estimate, bool locked) {
+                  everLocked = everLocked || locked;
+                  EXPECT_DOUBLE_EQ(estimate, 50.0);
+              });
+        EXPECT_FALSE(everLocked) << "the chord at " << amplitude;
+    }
+}
+
+TEST(HumTrackerTest, AHumUnderAChordIsFollowedAndNotPulledOff)
+{
+    // The chord's G at 196 Hz is 46 Hz from a 50 Hz hum's 3rd harmonic: it
+    // got through that harmonic's low-pass turning at 46 Hz, and the 15 Hz
+    // that said the base was off pulled the loop as far as 52.9 Hz and
+    // unlocked it more than half the time. What says the base is further
+    // off than the loop could be is not the hum's harmonic.
+    HumTracker tracker;
+    tracker.prepare(kRate);
+    tracker.reset(50.0);
+    Signal input = chord(static_cast<std::size_t>(6.0 * kRate), 0.02f);
+    const Signal base = sine(input.size(), 50.0, kRate, 0.01f);
+    for (std::size_t n = 0; n < input.size(); ++n) {
+        input[n] += base[n];
+    }
+    double worst = 0.0;
+    std::size_t unlocked = 0;
+    track(tracker, input, [&](double t, double estimate, bool locked) {
+        if (t >= 2.0) {
+            worst = std::max(worst, std::abs(estimate - 50.0));
+            unlocked += locked ? 0 : 1;
+        }
+    });
+    EXPECT_EQ(unlocked, 0U);
+    EXPECT_LT(worst, 0.015);
+}
+
 TEST(HumTrackerTest, ItLooksOnlyBetween48And62Hz)
 {
     for (const double actual : {45.0, 65.0}) {

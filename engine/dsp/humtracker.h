@@ -45,7 +45,11 @@ namespace rb::dsp
 /// being the phase error): noise and program keep it turning, a hum does
 /// not. Until then, and again whenever it starts turning (silence, or
 /// program with nothing steady at the base), estimate() holds where it was
-/// and the loop is drawn back towards it.
+/// and the loop is drawn back towards it. **And a hum stands out**: what
+/// the fundamental's low-pass lets through has to be a share of the input's
+/// power, or loud music leaking through it, a chord, could pass for one. A
+/// harmonic that says the base is further off than the loop could be is a
+/// note beside the harmonic, not the harmonic, and is not asked.
 ///
 /// **Never a step.** estimate() glides to what the loop reports, and to a
 /// new starting point from aim(), over kGlideSeconds.
@@ -129,6 +133,10 @@ private:
     double m_crossCoefficient = 0.0;
     double m_powerCoefficient = 0.0;
     std::array<double, kHarmonics> m_averagePower{};
+    /// The input's power: summed over an update, and averaged like the
+    /// harmonics'.
+    double m_inputSum = 0.0;
+    double m_inputPower = 0.0;
     double m_glideCoefficient = 0.0;
     double m_rippleCoefficient = 0.0;
     double m_smoothError = 0.0;
