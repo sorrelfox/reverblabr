@@ -53,6 +53,7 @@ ColumnLayout {
     readonly property alias peaksCheck: peaksControl
     readonly property alias gridCheck: gridControl
     readonly property alias infoLine: info
+    readonly property alias advancedSection: advanced
 
     /// Wide enough for the bars to read as bars.
     readonly property real panelWidth: Kirigami.Units.gridUnit * 24
@@ -110,158 +111,170 @@ ColumnLayout {
         }
     }
 
-    ScopeChoiceRow {
-        id: barsRow
+    // --- advanced: how it is drawn and read ---
+    //
+    // Folded away under a heading, as on every other card: the graph
+    // and Hold are what is reached for while watching, and the rest is
+    // set once.
+    CollapsibleSection {
+        id: advanced
 
-        blockId: panel.blockId
-        paramId: "bars"
-        title: KI18n.i18nc("@label how many bars a Spectrum shows", "Bars")
-        choices: panel.words.barCounts
-        current: reading.bars
-        nameOf: panel.words.barsName
-    }
+        title: KI18n.i18nc("@title:group the less usual settings", "Advanced")
 
-    ScopeChoiceRow {
-        id: motionRow
+        ScopeChoiceRow {
+            id: barsRow
 
-        blockId: panel.blockId
-        paramId: "motion"
-        title: KI18n.i18nc("@label how a Spectrum's bars move between refreshes", "Motion")
-        choices: panel.words.motions
-        current: reading.motion
-        nameOf: panel.words.motionName
-        tipOf: panel.words.motionTip
-    }
+            blockId: panel.blockId
+            paramId: "bars"
+            title: KI18n.i18nc("@label how many bars a Spectrum shows", "Bars")
+            choices: panel.words.barCounts
+            current: reading.bars
+            nameOf: panel.words.barsName
+        }
 
-    ScopeChoiceRow {
-        id: refreshRow
+        ScopeChoiceRow {
+            id: motionRow
 
-        blockId: panel.blockId
-        paramId: "refresh"
-        title: KI18n.i18nc("@label how many times a second a Spectrum is worked out", "Refresh rate, per second")
-        choices: panel.words.refreshRates
-        current: reading.refresh
-        nameOf: panel.words.refreshName
-        spokenOf: choice => KI18n.i18nc("@action:button how many times a second a Spectrum is worked out", "%1 times a second", panel.words.refreshName(choice))
-    }
+            blockId: panel.blockId
+            paramId: "motion"
+            title: KI18n.i18nc("@label how a Spectrum's bars move between refreshes", "Motion")
+            choices: panel.words.motions
+            current: reading.motion
+            nameOf: panel.words.motionName
+            tipOf: panel.words.motionTip
+        }
 
-    QQC2.Label {
-        id: refreshNoteText
+        ScopeChoiceRow {
+            id: refreshRow
 
-        visible: panel.refreshOutrunsCycle
-        text: KI18n.i18nc("@info under a Spectrum's refresh rate, %1 a whole number",
-                          "Sound arrives about %1 times a second at this cycle length, so a faster refresh repeats itself",
-                          Math.round(panel.arrivals))
-        color: AppColors.muted
-        font: AppFonts.small
-        wrapMode: Text.WordWrap
-        Layout.fillWidth: true
-    }
+            blockId: panel.blockId
+            paramId: "refresh"
+            title: KI18n.i18nc("@label how many times a second a Spectrum is worked out", "Refresh rate, per second")
+            choices: panel.words.refreshRates
+            current: reading.refresh
+            nameOf: panel.words.refreshName
+            spokenOf: choice => KI18n.i18nc("@action:button how many times a second a Spectrum is worked out", "%1 times a second", panel.words.refreshName(choice))
+        }
 
-    ScopeChoiceRow {
-        id: scaleRow
+        QQC2.Label {
+            id: refreshNoteText
 
-        blockId: panel.blockId
-        paramId: "scale"
-        title: KI18n.i18nc("@label how a Spectrum spreads the frequencies across its width", "Frequency scale")
-        choices: panel.words.scales
-        current: reading.scale
-        nameOf: panel.words.scaleName
-    }
+            visible: panel.refreshOutrunsCycle
+            text: KI18n.i18nc("@info under a Spectrum's refresh rate, %1 a whole number",
+                              "Sound arrives about %1 times a second at this cycle length, so a faster refresh repeats itself",
+                              Math.round(panel.arrivals))
+            color: AppColors.muted
+            font: AppFonts.small
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
 
-    ScopeChoiceRow {
-        id: fftSizeRow
+        ScopeChoiceRow {
+            id: scaleRow
 
-        blockId: panel.blockId
-        paramId: "fftSize"
-        title: KI18n.i18nc("@label how many samples of sound each look of a Spectrum takes in", "FFT size")
-        choices: panel.words.fftSizes
-        current: reading.fftSize
-        nameOf: panel.words.fftSizeName
-    }
+            blockId: panel.blockId
+            paramId: "scale"
+            title: KI18n.i18nc("@label how a Spectrum spreads the frequencies across its width", "Frequency scale")
+            choices: panel.words.scales
+            current: reading.scale
+            nameOf: panel.words.scaleName
+        }
 
-    QQC2.Label {
-        id: fftSizeNoteText
+        ScopeChoiceRow {
+            id: fftSizeRow
 
-        visible: well.scope.frameMs > 0
-        text: KI18n.i18nc("@info under a Spectrum's FFT size, %1 a duration, %2 a frequency difference; both whole numbers",
-                          "Looks at %1 ms at a time, and tells apart sounds %2 Hz from one another",
-                          Math.round(well.scope.frameMs), Math.round(well.scope.resolutionHz))
-        color: AppColors.muted
-        font: AppFonts.small
-        wrapMode: Text.WordWrap
-        Layout.fillWidth: true
-    }
+            blockId: panel.blockId
+            paramId: "fftSize"
+            title: KI18n.i18nc("@label how many samples of sound each look of a Spectrum takes in", "FFT size")
+            choices: panel.words.fftSizes
+            current: reading.fftSize
+            nameOf: panel.words.fftSizeName
+        }
 
-    ScopeChoiceRow {
-        id: floorRow
+        QQC2.Label {
+            id: fftSizeNoteText
 
-        blockId: panel.blockId
-        paramId: "floor"
-        title: KI18n.i18nc("@label the level at the bottom of a Spectrum's view", "Level range")
-        choices: panel.words.floors
-        current: reading.floor
-        nameOf: panel.words.floorName
-    }
+            visible: well.scope.frameMs > 0
+            text: KI18n.i18nc("@info under a Spectrum's FFT size, %1 a duration, %2 a frequency difference; both whole numbers",
+                              "Looks at %1 ms at a time, and tells apart sounds %2 Hz from one another",
+                              Math.round(well.scope.frameMs), Math.round(well.scope.resolutionHz))
+            color: AppColors.muted
+            font: AppFonts.small
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
 
-    ScopeChoiceRow {
-        id: tiltRow
+        ScopeChoiceRow {
+            id: floorRow
 
-        blockId: panel.blockId
-        paramId: "tilt"
-        title: KI18n.i18nc("@label how much a Spectrum lifts high frequencies against low ones", "Tilt")
-        choices: panel.words.tilts
-        current: reading.tilt
-        nameOf: panel.words.tiltName
-    }
+            blockId: panel.blockId
+            paramId: "floor"
+            title: KI18n.i18nc("@label the level at the bottom of a Spectrum's view", "Level range")
+            choices: panel.words.floors
+            current: reading.floor
+            nameOf: panel.words.floorName
+        }
 
-    ScopeChoiceRow {
-        id: channelRow
+        ScopeChoiceRow {
+            id: tiltRow
 
-        blockId: panel.blockId
-        paramId: "channels"
-        title: KI18n.i18nc("@label which channels a Spectrum reads", "Channels")
-        choices: panel.words.channelChoices
-        current: reading.channels
-        nameOf: panel.words.channelsName
-    }
+            blockId: panel.blockId
+            paramId: "tilt"
+            title: KI18n.i18nc("@label how much a Spectrum lifts high frequencies against low ones", "Tilt")
+            choices: panel.words.tilts
+            current: reading.tilt
+            nameOf: panel.words.tiltName
+        }
 
-    ScopeChoiceRow {
-        id: styleRow
+        ScopeChoiceRow {
+            id: channelRow
 
-        blockId: panel.blockId
-        paramId: "style"
-        title: KI18n.i18nc("@label how a Spectrum's bars are drawn", "Style")
-        choices: panel.words.styles
-        current: reading.style
-        nameOf: panel.words.styleName
-    }
+            blockId: panel.blockId
+            paramId: "channels"
+            title: KI18n.i18nc("@label which channels a Spectrum reads", "Channels")
+            choices: panel.words.channelChoices
+            current: reading.channels
+            nameOf: panel.words.channelsName
+        }
 
-    QQC2.CheckBox {
-        id: peaksControl
+        ScopeChoiceRow {
+            id: styleRow
 
-        text: KI18n.i18nc("@option:check a mark over each of a Spectrum's bars at its recent peak", "Peak marks")
-        onToggled: SessionModel.setParam(panel.blockId, "peaks", peaksControl.checked)
+            blockId: panel.blockId
+            paramId: "style"
+            title: KI18n.i18nc("@label how a Spectrum's bars are drawn", "Style")
+            choices: panel.words.styles
+            current: reading.style
+            nameOf: panel.words.styleName
+        }
 
-        SessionBound {
-            control: peaksControl
-            property: "checked"
-            value: reading.peaks
+        QQC2.CheckBox {
+            id: peaksControl
+
+            text: KI18n.i18nc("@option:check a mark over each of a Spectrum's bars at its recent peak", "Peak marks")
+            onToggled: SessionModel.setParam(panel.blockId, "peaks", peaksControl.checked)
+
+            SessionBound {
+                control: peaksControl
+                property: "checked"
+                value: reading.peaks
+            }
+        }
+
+        QQC2.CheckBox {
+            id: gridControl
+
+            text: KI18n.i18nc("@option:check lines and numbers behind a Spectrum's bars", "Grid and labels")
+            onToggled: SessionModel.setParam(panel.blockId, "grid", gridControl.checked)
+
+            SessionBound {
+                control: gridControl
+                property: "checked"
+                value: reading.grid
+            }
         }
     }
 
-    QQC2.CheckBox {
-        id: gridControl
-
-        text: KI18n.i18nc("@option:check lines and numbers behind a Spectrum's bars", "Grid and labels")
-        onToggled: SessionModel.setParam(panel.blockId, "grid", gridControl.checked)
-
-        SessionBound {
-            control: gridControl
-            property: "checked"
-            value: reading.grid
-        }
-    }
 
     InfoLine {
         id: info

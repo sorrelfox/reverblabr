@@ -44,6 +44,15 @@ TestCase {
         return panel;
     }
 
+    /// A panel with its Advanced part open, by a press on its heading as a
+    /// person opens it: the settings are folded away to begin with.
+    function openPanelFor() {
+        const panel = panelFor();
+        mouseClick(panel.advancedSection.toggle);
+        verify(panel.advancedSection.expanded);
+        return panel;
+    }
+
     function faceFor() {
         const face = createTemporaryObject(BlockFaces.faceFor("meter.spectrum"), testCase, { width: 200, height: 90 });
         face.blockId = "bars";
@@ -148,6 +157,22 @@ TestCase {
         compare(words.tiltDbOf("tilt0"), 0);
         compare(words.tiltDbOf("tilt3"), 3);
         compare(words.tiltDbOf("tilt4p5"), 4.5);
+    }
+
+    function test_theSettingsAreFoldedUnderAdvancedAtFirst() {
+        const panel = panelFor();
+        const advanced = panel.advancedSection;
+        verify(!advanced.expanded, "Advanced starts folded");
+        verify(panel.scopeWell.visible, "the graph stays in view");
+        verify(panel.holdButton.visible, "Hold stays in reach");
+        verify(!panel.gridCheck.visible, "the settings are hidden");
+        verify(!panel.motionChoices.itemAt(0).visible);
+        mouseClick(advanced.toggle);
+        verify(advanced.expanded);
+        verify(panel.gridCheck.visible, "Advanced shows the settings");
+        verify(panel.motionChoices.itemAt(0).visible);
+        mouseClick(advanced.toggle);
+        verify(!panel.gridCheck.visible, "and folds them away again");
     }
 
     function test_theLibraryOffersItWithTheMeters() {
@@ -277,7 +302,7 @@ TestCase {
     }
 
     function test_everyControlWritesTheSessionAndAnUndoComesBack() {
-        const panel = panelFor();
+        const panel = openPanelFor();
         clickIn(panel.barsChoices, "bars128");
         compare(panel.reader.bars, "bars128");
         compare(panel.scope.bars, 128);
@@ -338,7 +363,7 @@ TestCase {
     }
 
     function test_theGridsNumbersAreOnTheCardWhileItIsOn() {
-        const panel = panelFor();
+        const panel = openPanelFor();
         const face = faceFor();
         const well = panel.scopeWell;
         verify(well.showsLabels);
@@ -362,7 +387,7 @@ TestCase {
     }
 
     function test_theCardSaysWhatTheFftSizeComesTo() {
-        const panel = panelFor();
+        const panel = openPanelFor();
         verify(!panel.fftSizeNote.visible, "nothing is known until sound is here");
         run();
         barsArrive(panel);
@@ -386,7 +411,7 @@ TestCase {
     }
 
     function test_aRefreshFasterThanTheCyclesIsSaidToBe() {
-        const panel = panelFor();
+        const panel = openPanelFor();
         run();
         tryVerify(() => panel.arrivals > 0, 2000);
         verify(!panel.refreshNote.visible, "30 a second is under what a cycle of 1024 brings");

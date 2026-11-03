@@ -916,7 +916,9 @@ Voice Level</guilabel> has your screen reader say it.</para>
 <title>Waveform</title>
 <para>Draws the sound at this point on the lane as it goes by, on its tile and on
 its card. The sound passes unchanged and with no delay, and a session can draw up
-to 16 of them at once. <guilabel>Style</guilabel> draws a <guilabel>Line</guilabel>,
+to 16 of them at once. On the card, <guilabel>Hold</guilabel> is under the
+trace, and the settings are folded under <guilabel>Advanced</guilabel>.
+<guilabel>Style</guilabel> draws a <guilabel>Line</guilabel>,
 <guilabel>Filled</guilabel>, <guilabel>Bars</guilabel> or <guilabel>Dots</guilabel>,
 and <guilabel>Time shown</guilabel> goes from 10 ms, the shape of a wave, to 10 s,
 how the level moves. <guilabel>Refresh rate</guilabel> is how often a new look is
@@ -935,7 +937,9 @@ line of words says why.</para>
 of bars, on its tile and on its card. The sound passes unchanged and with no delay,
 and a session can draw up to 16 Waveform and Spectrum blocks at once. A bar stands at
 the loudest thing in its range of frequencies, with 0 dBFS at the top, so a sine wave
-at full scale reaches the top in the bar that holds it. <guilabel>Bars</guilabel>
+at full scale reaches the top in the bar that holds it. On the card,
+<guilabel>Hold</guilabel> is under the bars, and the settings are folded under
+<guilabel>Advanced</guilabel>. <guilabel>Bars</guilabel>
 divides the range from 20 Hz to 20 kHz into 16 to 128, spread by
 <guilabel>Frequency scale</guilabel>. <guilabel>FFT size</guilabel> is how much sound
 each look takes in: a large size tells low notes apart, and a small one follows quick

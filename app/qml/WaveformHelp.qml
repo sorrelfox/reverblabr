@@ -35,6 +35,13 @@ HelpPage {
     }
 
     HelpSection {
+        title: KI18n.i18nc("@title:group the less usual settings", "Advanced")
+        paragraphs: [
+            KI18n.i18nc("@info help page of the Waveform block", "The settings below are folded under this heading, under the trace and Hold. Click the heading to show them, and again to fold them away.")
+        ]
+    }
+
+    HelpSection {
         setting: true
         title: KI18n.i18nc("@label how a Waveform is drawn", "Style")
         covers: [

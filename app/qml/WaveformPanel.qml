@@ -58,6 +58,7 @@ ColumnLayout {
     readonly property alias gridCheck: gridControl
     readonly property alias scaleChoices: scaleRepeater
     readonly property alias infoLine: info
+    readonly property alias advancedSection: advanced
 
     /// Wide enough for a trace to read as one.
     readonly property real panelWidth: Kirigami.Units.gridUnit * 24
@@ -122,286 +123,298 @@ ColumnLayout {
         }
     }
 
-    QQC2.Label {
-        text: KI18n.i18nc("@label how a Waveform is drawn", "Style")
-        color: AppColors.muted
-    }
+    // --- advanced: how it is drawn and read ---
+    //
+    // Folded away under a heading, as on every other card: the graph
+    // and Hold are what is reached for while watching, and the rest is
+    // set once.
+    CollapsibleSection {
+        id: advanced
 
-    SegmentedFrame {
-        shrinkable: true
-        Layout.fillWidth: true
+        title: KI18n.i18nc("@title:group the less usual settings", "Advanced")
 
-        QQC2.ButtonGroup {
-            id: styleGroup
+        QQC2.Label {
+            text: KI18n.i18nc("@label how a Waveform is drawn", "Style")
+            color: AppColors.muted
         }
 
-        Repeater {
-            id: styleRepeater
+        SegmentedFrame {
+            shrinkable: true
+            Layout.fillWidth: true
 
-            model: panel.words.styles
+            QQC2.ButtonGroup {
+                id: styleGroup
+            }
 
-            delegate: SegmentedChoice {
-                id: styleButton
+            Repeater {
+                id: styleRepeater
 
-                required property string modelData
+                model: panel.words.styles
 
-                text: panel.words.styleName(styleButton.modelData)
-                Accessible.name: text
-                QQC2.ButtonGroup.group: styleGroup
-                onClicked: panel.choose("style", styleButton.modelData)
+                delegate: SegmentedChoice {
+                    id: styleButton
 
-                SessionBound {
-                    control: styleButton
-                    property: "checked"
-                    value: reading.style === styleButton.modelData
+                    required property string modelData
+
+                    text: panel.words.styleName(styleButton.modelData)
+                    Accessible.name: text
+                    QQC2.ButtonGroup.group: styleGroup
+                    onClicked: panel.choose("style", styleButton.modelData)
+
+                    SessionBound {
+                        control: styleButton
+                        property: "checked"
+                        value: reading.style === styleButton.modelData
+                    }
+                }
+            }
+        }
+
+        QQC2.Label {
+            text: KI18n.i18nc("@label how a Waveform moves between refreshes", "Motion")
+            color: AppColors.muted
+        }
+
+        SegmentedFrame {
+            shrinkable: true
+            Layout.fillWidth: true
+
+            QQC2.ButtonGroup {
+                id: motionGroup
+            }
+
+            Repeater {
+                id: motionRepeater
+
+                model: panel.words.motions
+
+                delegate: SegmentedChoice {
+                    id: motionButton
+
+                    required property string modelData
+
+                    text: panel.words.motionName(motionButton.modelData)
+                    Accessible.name: text
+                    QQC2.ToolTip.text: panel.words.motionTip(motionButton.modelData)
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    QQC2.ButtonGroup.group: motionGroup
+                    onClicked: panel.choose("motion", motionButton.modelData)
+
+                    SessionBound {
+                        control: motionButton
+                        property: "checked"
+                        value: reading.motion === motionButton.modelData
+                    }
+                }
+            }
+        }
+
+        QQC2.Label {
+            text: KI18n.i18nc("@label how many times a second a Waveform is drawn", "Refresh rate, per second")
+            color: AppColors.muted
+        }
+
+        SegmentedFrame {
+            shrinkable: true
+            Layout.fillWidth: true
+            Accessible.name: KI18n.i18nc("@label how many times a second a Waveform is drawn", "Refresh rate, per second")
+
+            QQC2.ButtonGroup {
+                id: refreshGroup
+            }
+
+            Repeater {
+                id: refreshRepeater
+
+                model: panel.words.refreshRates
+
+                delegate: SegmentedChoice {
+                    id: refreshButton
+
+                    required property string modelData
+
+                    text: panel.words.refreshName(refreshButton.modelData)
+                    Accessible.name: KI18n.i18nc("@action:button how many times a second a Waveform is drawn", "%1 times a second", text)
+                    QQC2.ButtonGroup.group: refreshGroup
+                    onClicked: panel.choose("refresh", refreshButton.modelData)
+
+                    SessionBound {
+                        control: refreshButton
+                        property: "checked"
+                        value: reading.refresh === refreshButton.modelData
+                    }
+                }
+            }
+        }
+
+        QQC2.Label {
+            id: refreshNoteText
+
+            visible: panel.refreshOutrunsCycle
+            text: KI18n.i18nc("@info under a Waveform's refresh rate, %1 a whole number",
+                              "Sound arrives about %1 times a second at this cycle length, so a faster refresh repeats itself",
+                              Math.round(panel.arrivals))
+            color: AppColors.muted
+            font: AppFonts.small
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
+        TypedValueRow {
+            id: spanControl
+
+            blockId: panel.blockId
+            paramId: "spanMs"
+            label: KI18n.i18nc("@label how much time a Waveform shows across its width", "Time shown")
+            unit: KI18n.i18nc("@label milliseconds", "ms")
+            spoken: panel.spanSpoken(spanControl.value)
+            value: reading.spanMs
+            from: panel.shortestSpan
+            to: panel.longestSpan
+            pageStepSize: 50
+            logarithmic: true
+        }
+
+        TypedValueRow {
+            id: gainControl
+
+            blockId: panel.blockId
+            paramId: "gainDb"
+            label: KI18n.i18nc("@label how much a Waveform's trace is enlarged", "Gain")
+            unit: KI18n.i18nc("@label decibels", "dB")
+            spoken: panel.words.gainText(gainControl.value)
+            value: reading.gainDb
+            from: panel.lowestGain
+            to: panel.highestGain
+            enabled: !reading.autoFit
+        }
+
+        QQC2.CheckBox {
+            id: autoFitControl
+
+            text: KI18n.i18nc("@option:check a Waveform enlarges its trace to fill the height", "Auto fit")
+            onToggled: SessionModel.setParam(panel.blockId, "autoFit", autoFitControl.checked)
+
+            SessionBound {
+                control: autoFitControl
+                property: "checked"
+                value: reading.autoFit
+            }
+        }
+
+        QQC2.Label {
+            text: KI18n.i18nc("@label which channels a Waveform draws", "Channels")
+            color: AppColors.muted
+        }
+
+        SegmentedFrame {
+            shrinkable: true
+            Layout.fillWidth: true
+
+            QQC2.ButtonGroup {
+                id: channelGroup
+            }
+
+            Repeater {
+                id: channelRepeater
+
+                model: panel.words.channelChoices
+
+                delegate: SegmentedChoice {
+                    id: channelButton
+
+                    required property string modelData
+
+                    text: panel.words.channelsName(channelButton.modelData)
+                    Accessible.name: text
+                    QQC2.ButtonGroup.group: channelGroup
+                    onClicked: panel.choose("channels", channelButton.modelData)
+
+                    SessionBound {
+                        control: channelButton
+                        property: "checked"
+                        value: reading.channels === channelButton.modelData
+                    }
+                }
+            }
+        }
+
+        QQC2.CheckBox {
+            id: triggerControl
+
+            text: KI18n.i18nc("@option:check a Waveform starts each trace at the same point of the wave", "Start on a rising zero crossing")
+            onToggled: SessionModel.setParam(panel.blockId, "trigger", triggerControl.checked)
+
+            SessionBound {
+                control: triggerControl
+                property: "checked"
+                value: reading.trigger
+            }
+        }
+
+        QQC2.Label {
+            id: triggerNoteText
+
+            visible: reading.trigger && well.scope.showing && !well.scope.crossed
+            text: KI18n.i18nc("@info under a Waveform's trigger", "No crossing found: the newest sound is shown as it comes")
+            color: AppColors.muted
+            font: AppFonts.small
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
+        QQC2.CheckBox {
+            id: gridControl
+
+            text: KI18n.i18nc("@option:check lines behind a Waveform's trace", "Grid")
+            onToggled: SessionModel.setParam(panel.blockId, "grid", gridControl.checked)
+
+            SessionBound {
+                control: gridControl
+                property: "checked"
+                value: reading.grid
+            }
+        }
+
+        QQC2.Label {
+            text: KI18n.i18nc("@label what the height of a Waveform means", "Scale")
+            color: AppColors.muted
+        }
+
+        SegmentedFrame {
+            shrinkable: true
+            Layout.fillWidth: true
+
+            QQC2.ButtonGroup {
+                id: scaleGroup
+            }
+
+            Repeater {
+                id: scaleRepeater
+
+                model: panel.words.scales
+
+                delegate: SegmentedChoice {
+                    id: scaleButton
+
+                    required property string modelData
+
+                    text: panel.words.scaleName(scaleButton.modelData)
+                    Accessible.name: text
+                    QQC2.ButtonGroup.group: scaleGroup
+                    onClicked: panel.choose("scale", scaleButton.modelData)
+
+                    SessionBound {
+                        control: scaleButton
+                        property: "checked"
+                        value: reading.scale === scaleButton.modelData
+                    }
                 }
             }
         }
     }
 
-    QQC2.Label {
-        text: KI18n.i18nc("@label how a Waveform moves between refreshes", "Motion")
-        color: AppColors.muted
-    }
-
-    SegmentedFrame {
-        shrinkable: true
-        Layout.fillWidth: true
-
-        QQC2.ButtonGroup {
-            id: motionGroup
-        }
-
-        Repeater {
-            id: motionRepeater
-
-            model: panel.words.motions
-
-            delegate: SegmentedChoice {
-                id: motionButton
-
-                required property string modelData
-
-                text: panel.words.motionName(motionButton.modelData)
-                Accessible.name: text
-                QQC2.ToolTip.text: panel.words.motionTip(motionButton.modelData)
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-                QQC2.ButtonGroup.group: motionGroup
-                onClicked: panel.choose("motion", motionButton.modelData)
-
-                SessionBound {
-                    control: motionButton
-                    property: "checked"
-                    value: reading.motion === motionButton.modelData
-                }
-            }
-        }
-    }
-
-    QQC2.Label {
-        text: KI18n.i18nc("@label how many times a second a Waveform is drawn", "Refresh rate, per second")
-        color: AppColors.muted
-    }
-
-    SegmentedFrame {
-        shrinkable: true
-        Layout.fillWidth: true
-        Accessible.name: KI18n.i18nc("@label how many times a second a Waveform is drawn", "Refresh rate, per second")
-
-        QQC2.ButtonGroup {
-            id: refreshGroup
-        }
-
-        Repeater {
-            id: refreshRepeater
-
-            model: panel.words.refreshRates
-
-            delegate: SegmentedChoice {
-                id: refreshButton
-
-                required property string modelData
-
-                text: panel.words.refreshName(refreshButton.modelData)
-                Accessible.name: KI18n.i18nc("@action:button how many times a second a Waveform is drawn", "%1 times a second", text)
-                QQC2.ButtonGroup.group: refreshGroup
-                onClicked: panel.choose("refresh", refreshButton.modelData)
-
-                SessionBound {
-                    control: refreshButton
-                    property: "checked"
-                    value: reading.refresh === refreshButton.modelData
-                }
-            }
-        }
-    }
-
-    QQC2.Label {
-        id: refreshNoteText
-
-        visible: panel.refreshOutrunsCycle
-        text: KI18n.i18nc("@info under a Waveform's refresh rate, %1 a whole number",
-                          "Sound arrives about %1 times a second at this cycle length, so a faster refresh repeats itself",
-                          Math.round(panel.arrivals))
-        color: AppColors.muted
-        font: AppFonts.small
-        wrapMode: Text.WordWrap
-        Layout.fillWidth: true
-    }
-
-    TypedValueRow {
-        id: spanControl
-
-        blockId: panel.blockId
-        paramId: "spanMs"
-        label: KI18n.i18nc("@label how much time a Waveform shows across its width", "Time shown")
-        unit: KI18n.i18nc("@label milliseconds", "ms")
-        spoken: panel.spanSpoken(spanControl.value)
-        value: reading.spanMs
-        from: panel.shortestSpan
-        to: panel.longestSpan
-        pageStepSize: 50
-        logarithmic: true
-    }
-
-    TypedValueRow {
-        id: gainControl
-
-        blockId: panel.blockId
-        paramId: "gainDb"
-        label: KI18n.i18nc("@label how much a Waveform's trace is enlarged", "Gain")
-        unit: KI18n.i18nc("@label decibels", "dB")
-        spoken: panel.words.gainText(gainControl.value)
-        value: reading.gainDb
-        from: panel.lowestGain
-        to: panel.highestGain
-        enabled: !reading.autoFit
-    }
-
-    QQC2.CheckBox {
-        id: autoFitControl
-
-        text: KI18n.i18nc("@option:check a Waveform enlarges its trace to fill the height", "Auto fit")
-        onToggled: SessionModel.setParam(panel.blockId, "autoFit", autoFitControl.checked)
-
-        SessionBound {
-            control: autoFitControl
-            property: "checked"
-            value: reading.autoFit
-        }
-    }
-
-    QQC2.Label {
-        text: KI18n.i18nc("@label which channels a Waveform draws", "Channels")
-        color: AppColors.muted
-    }
-
-    SegmentedFrame {
-        shrinkable: true
-        Layout.fillWidth: true
-
-        QQC2.ButtonGroup {
-            id: channelGroup
-        }
-
-        Repeater {
-            id: channelRepeater
-
-            model: panel.words.channelChoices
-
-            delegate: SegmentedChoice {
-                id: channelButton
-
-                required property string modelData
-
-                text: panel.words.channelsName(channelButton.modelData)
-                Accessible.name: text
-                QQC2.ButtonGroup.group: channelGroup
-                onClicked: panel.choose("channels", channelButton.modelData)
-
-                SessionBound {
-                    control: channelButton
-                    property: "checked"
-                    value: reading.channels === channelButton.modelData
-                }
-            }
-        }
-    }
-
-    QQC2.CheckBox {
-        id: triggerControl
-
-        text: KI18n.i18nc("@option:check a Waveform starts each trace at the same point of the wave", "Start on a rising zero crossing")
-        onToggled: SessionModel.setParam(panel.blockId, "trigger", triggerControl.checked)
-
-        SessionBound {
-            control: triggerControl
-            property: "checked"
-            value: reading.trigger
-        }
-    }
-
-    QQC2.Label {
-        id: triggerNoteText
-
-        visible: reading.trigger && well.scope.showing && !well.scope.crossed
-        text: KI18n.i18nc("@info under a Waveform's trigger", "No crossing found: the newest sound is shown as it comes")
-        color: AppColors.muted
-        font: AppFonts.small
-        wrapMode: Text.WordWrap
-        Layout.fillWidth: true
-    }
-
-    QQC2.CheckBox {
-        id: gridControl
-
-        text: KI18n.i18nc("@option:check lines behind a Waveform's trace", "Grid")
-        onToggled: SessionModel.setParam(panel.blockId, "grid", gridControl.checked)
-
-        SessionBound {
-            control: gridControl
-            property: "checked"
-            value: reading.grid
-        }
-    }
-
-    QQC2.Label {
-        text: KI18n.i18nc("@label what the height of a Waveform means", "Scale")
-        color: AppColors.muted
-    }
-
-    SegmentedFrame {
-        shrinkable: true
-        Layout.fillWidth: true
-
-        QQC2.ButtonGroup {
-            id: scaleGroup
-        }
-
-        Repeater {
-            id: scaleRepeater
-
-            model: panel.words.scales
-
-            delegate: SegmentedChoice {
-                id: scaleButton
-
-                required property string modelData
-
-                text: panel.words.scaleName(scaleButton.modelData)
-                Accessible.name: text
-                QQC2.ButtonGroup.group: scaleGroup
-                onClicked: panel.choose("scale", scaleButton.modelData)
-
-                SessionBound {
-                    control: scaleButton
-                    property: "checked"
-                    value: reading.scale === scaleButton.modelData
-                }
-            }
-        }
-    }
 
     InfoLine {
         id: info
