@@ -41,7 +41,7 @@ ColumnLayout {
     /// The block's ranges. The interface layer does not depend on the
     /// engine's, so they are written down twice; tst_denoise.qml holds them
     /// against the catalogue.
-    readonly property real highestReduction: 30
+    readonly property real highestReduction: 40
     readonly property real defaultReduction: 20
     readonly property real highestThreshold: 20
     readonly property real defaultThreshold: 3
@@ -210,6 +210,6 @@ ColumnLayout {
 
     InfoLine {
         text: KI18n.i18nc("@info how to use the Denoise block",
-                          "Play the noise on its own and press Learn Noise: three seconds of it are listened to. Then everything that follows has that noise taken out.")
+                          "Play the noise on its own and press Learn Noise: ten seconds of it are listened to. Then everything that follows has that noise taken out.")
     }
 }

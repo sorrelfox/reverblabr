@@ -586,7 +586,8 @@ public:
             // real one takes a steady tone: by how far its peak is over.
             // A Denoise says whether it has a noise to take out. The mock
             // has no audio to learn from, so a Learn press is taken as
-            // learned at once, three seconds' worth, and a Forget as gone.
+            // learned at once, a whole learning's worth, and a Forget as
+            // gone; a saved profile counts if the real block would read it.
             // A Declick has nothing to find in a made-up level: none taken
             // out, as the real one says of a clean signal.
             if (running && block.type == asText(blocks::Declick::kTypeId)) {
@@ -600,7 +601,9 @@ public:
                 into.values[blocks::Dehum::kLockedValue] = block.params.value("auto"_L1).toBool() ? 0.0f : -1.0f;
             }
             if (running && block.type == asText(blocks::Denoise::kTypeId)) {
-                const bool learned = !block.params.value("profile"_L1).toString().isEmpty()
+                const bool learned =
+                    blocks::Denoise::decodeProfile(block.params.value("profile"_L1).toString().toStdString())
+                        .has_value()
                     || block.params.value("learn"_L1).toInt() > block.params.value("forget"_L1).toInt();
                 into.values[blocks::Denoise::kStateValue] = learned ? blocks::Denoise::kActive : blocks::Denoise::kIdle;
                 into.values[blocks::Denoise::kLearnedSecondsValue] = learned ? blocks::Denoise::kLearnSeconds : 0.0f;

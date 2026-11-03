@@ -16,6 +16,10 @@ import org.kde.ki18n
 // state); a noise learned in this run is not in the session's settings
 // until they are next saved. **While it does not, the saved profile says**:
 // a profile's text records how many seconds it was learned from.
+//
+// **A noise the block's first version learned is not used** ("v1", an
+// average where the block now keeps a fingerprint): the block has nothing
+// to take out until the noise is learned again, and says so.
 QtObject {
     id: reading
 
@@ -38,9 +42,13 @@ QtObject {
     /// Whether the running block is publishing.
     readonly property bool live: Meters.live && reading.values.length > reading.secondsValue
 
+    /// Whether the saved noise is one an earlier version learned, which the
+    /// block does not use (Denoise::decodeProfile).
+    readonly property bool isOutdated: reading.profile.startsWith("v1;")
+
     readonly property bool isLearning: reading.live && Math.round(reading.values[reading.stateValue]) === reading.learning
     readonly property bool isActive: reading.live ? Math.round(reading.values[reading.stateValue]) === reading.active
-                                                  : reading.profile !== ""
+                                                  : reading.profile.startsWith("v2;")
     readonly property real progress: reading.isLearning ? reading.values[reading.progressValue] : 0
     readonly property real seconds: reading.live ? reading.values[reading.secondsValue] : reading.savedSeconds
     /// The seconds a saved profile's text says it was learned from.
@@ -59,9 +67,12 @@ QtObject {
         ? KI18n.i18nc("@info how far a Denoise block is through learning, '40 %'", "Listening… %1 %",
                       Math.round(reading.progress * 100))
         : (reading.isActive
-           ? KI18n.i18nc("@info how much noise a Denoise block learned, '3.0 s noise learned'", "%1 s noise learned",
+           ? KI18n.i18nc("@info how much noise a Denoise block learned, '10.0 s noise learned'", "%1 s noise learned",
                          Number(reading.seconds).toLocaleString(Qt.locale(), 'f', 1))
-           : KI18n.i18nc("@info a Denoise block with no noise learned", "No noise learned"))
+           : (reading.isOutdated
+              ? KI18n.i18nc("@info a Denoise block whose saved noise an earlier version learned, and which it does not use",
+                            "Learn the noise again")
+              : KI18n.i18nc("@info a Denoise block with no noise learned", "No noise learned")))
 
     /// Asks the block to listen, if the session is running to hear.
     function learn() {

@@ -6,8 +6,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // The Denoise block's face and panel offscreen, against the mock
-// engine: what they say with no noise, a saved noise and a noise learned in
-// this run; the Learn and Forget button; and the two settings.
+// engine: what they say with no noise, a saved noise, a noise an earlier
+// version saved and a noise learned in this run; the Learn and Forget
+// button; and the two settings.
 
 import QtQuick
 import QtTest
@@ -21,9 +22,17 @@ TestCase {
 
     property string sessionId: ""
 
-    /// A saved profile's text, as the block writes one: only its header is
-    /// read here.
-    readonly property string savedProfile: "v1;rate=48000;size=2048;seconds=3.0;db=" + new Array(1025).fill("-60.0").join(",")
+    /// A saved profile's text, as the block writes one, whole: the mock
+    /// counts it only if the block would read it.
+    readonly property string savedProfile: "v2;rate=48000;size=2048;seconds=10.0"
+        + ";now=" + new Array(1025).fill("-60.0").join(",")
+        + ";held=" + new Array(1025).fill("-64.0").join(",")
+        + ";nowlimits=" + new Array(8).fill("6.0").join(",")
+        + ";heldlimits=" + new Array(8).fill("1.0").join(",")
+        + ";rest=" + new Array(8).fill("-6.0").join(",")
+    /// What the block's first version saved: an average per band, which
+    /// this one does not use.
+    readonly property string oldProfile: "v1;rate=48000;size=2048;seconds=3.0;db=" + new Array(1025).fill("-60.0").join(",")
 
     function panelFor() {
         const panel = createTemporaryObject(BlockPanels.panelFor("advanced.denoise"), testCase, { width: 340 });
@@ -99,9 +108,23 @@ TestCase {
         const face = testCase.faceFor();
         const panel = testCase.panelFor();
         tryCompare(face.headlineLabel, "text", "Active");
-        compare(face.captionLabel.text, "3.0 s noise learned");
+        compare(face.captionLabel.text, "10.0 s noise learned");
         compare(panel.actionButton.text, "Forget Noise");
         verify(panel.actionButton.enabled, "a saved noise cannot be forgotten while stopped");
+    }
+
+    function test_anEarlierVersionsNoiseAsksToBeLearnedAgain() {
+        SessionModel.setParam("dn", "profile", testCase.oldProfile);
+        const face = testCase.faceFor();
+        const panel = testCase.panelFor();
+        tryCompare(face.captionLabel, "text", "Learn the noise again");
+        compare(face.headlineLabel.text, "Inactive");
+        compare(panel.actionButton.text, "Learn Noise");
+        // And running, the block has nothing to take out either.
+        testCase.run();
+        tryVerify(() => panel.actionButton.enabled, 1000, "Learn could not be pressed while running");
+        compare(face.headlineLabel.text, "Inactive");
+        compare(face.captionLabel.text, "Learn the noise again");
     }
 
     function test_learningWhileRunningCountsAPress() {
@@ -112,7 +135,7 @@ TestCase {
         panel.actionButton.clicked();
         compare(SessionModel.param("dn", "learn"), 1);
         tryCompare(face.headlineLabel, "text", "Active");
-        compare(face.captionLabel.text, "3.0 s noise learned");
+        compare(face.captionLabel.text, "10.0 s noise learned");
     }
 
     function test_forgettingDropsTheSavedAndTheRunningNoise() {

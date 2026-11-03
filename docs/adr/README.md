@@ -25,7 +25,7 @@ Start a new record from [the template](template.md).
 | [0012](0012-reverblabr-look.md) | The Reverblabr look: our own control style, the design's tokens and our own title bar, with *Follow system* kept as an appearance | Accepted |
 | [0013](0013-virtual-devices.md) | Virtual devices as generated PipeWire drop-ins, mirrored by live nodes; all-users devices through a KAuth helper | Accepted |
 | [0014](0014-plugin-host-process.md) | Plugins in host processes of their own, as PipeWire nodes the session is split around; parameters through shared memory, a heartbeat watchdog, bypass by relinking | Accepted |
-| [0015](0015-own-fft-and-denoise.md) | Our own real FFT, and our own spectral denoiser rather than libspecbleach (whose FFTW is GPL) | Accepted |
+| [0015](0015-own-fft-and-denoise.md) | Our own real FFT, and our own spectral denoiser rather than libspecbleach (whose FFTW is GPL) | Accepted, the denoiser's algorithm superseded by 0033 |
 | [0016](0016-rnnoise-optional.md) | Speech Denoise on the distribution's RNNoise, built only where there is one (Fedora, not Kubuntu 26.04) | Accepted |
 | [0017](0017-engine-daemon.md) | The engine in a daemon, `reverblabrd`, reached over D-Bus and started on demand | Accepted |
 | [0018](0018-telemetry-in-shared-memory.md) | A session's telemetry in a sealed memfd, handed to a window once, read-only, beside the facade | Accepted |
@@ -43,3 +43,4 @@ Start a new record from [the template](template.md).
 | [0030](0030-floating-surfaces.md) | Windows over other programs: an overlay-layer surface through the optional `layer-shell-qt` QML module, imported in one file and probed at run time, a plain window elsewhere; one component with two stored placements; one rule for when a surface stops believing the telemetry | Accepted |
 | [0031](0031-model-block.md) | The Model block: a trained model in a process of its own beside the session, reached only through rings in shared memory, with the plain input kept to cross to; a folder matched to a family adapter | Proposed |
 | [0032](0032-panels-outside-the-window.md) | Settings panels outside the main window: the same item in a top-layer surface of its own, placed by margins from an origin a popup measures; carried out on a press the main window keeps; a plain window elsewhere | Accepted |
+| [0033](0033-denoise-fingerprint.md) | Denoise learns a fingerprint of the noise: two ceilings per band, the noise's loud moments included; octaves that hold the noise alone turned down whole; the noise followed up as it grows | Accepted |

@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # ADR-0015: Our own real FFT, and our own spectral denoiser rather than libspecbleach
 
-- **Status:** Accepted
+- **Status:** Accepted; the denoiser's algorithm superseded by [ADR-0033](0033-denoise-fingerprint.md) (a fingerprint of the noise, its loud moments included, rather than its average)
 - **Date:** 2026-09-28
 
 ## Context

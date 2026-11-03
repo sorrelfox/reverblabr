@@ -987,9 +987,11 @@ follows a hum whose frequency drifts.</para>
 
 <sect2 id="block-advanced-denoise">
 <title>Denoise</title>
-<para>Listens to a few seconds of a steady noise on its own (a fan, hiss, an
-air conditioner), then removes that noise from everything that follows. The
-noise it learned is saved with the session.</para>
+<para>Listens to ten seconds of a background noise on its own (a fan, hiss, or
+the buzzing and ticking a sound card picks up from the computer) and learns
+how loud it gets at every pitch, then removes that noise from everything that
+follows, following it when it grows. The noise it learned is saved with the
+session.</para>
 </sect2>
 
 <sect2 id="block-advanced-ducking">
