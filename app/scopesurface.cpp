@@ -214,7 +214,9 @@ void ScopeSurface::adopt(ScopeFeed *feed)
 
 bool ScopeSurface::isOnScreen() const
 {
-    return isVisible() && window() != nullptr && window()->isVisible() && m_hub && !m_blockId.isEmpty();
+    // Exposed as well: a minimised window goes on saying it is visible.
+    return isVisible() && window() != nullptr && window()->isVisible() && window()->isExposed() && m_hub
+        && !m_blockId.isEmpty();
 }
 
 void ScopeSurface::follow()
@@ -242,10 +244,15 @@ void ScopeSurface::followWindow(QQuickWindow *window)
 {
     disconnect(m_windowShown);
     disconnect(m_frames);
+    if (m_window != nullptr) {
+        m_window->removeEventFilter(this);
+    }
     m_ticking = false;
     m_window = window;
     if (window != nullptr) {
         m_windowShown = connect(window, &QWindow::visibleChanged, this, &ScopeSurface::follow);
+        // There is no signal for this one.
+        window->installEventFilter(this);
     }
     follow();
     followFrames();
@@ -300,6 +307,14 @@ void ScopeSurface::onFrameSwapped()
     if (m_ticking) {
         update();
     }
+}
+
+bool ScopeSurface::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_window && event->type() == QEvent::Expose) {
+        follow();
+    }
+    return QQuickItem::eventFilter(watched, event);
 }
 
 void ScopeSurface::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)

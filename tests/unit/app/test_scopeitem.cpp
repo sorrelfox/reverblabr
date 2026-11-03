@@ -19,6 +19,7 @@
 #include <QQuickWindow>
 #include <QTest>
 #include <gtest/gtest.h>
+#include <private/qwindow_p.h>
 
 #include <cmath>
 #include <cstring>
@@ -128,6 +129,31 @@ TEST_F(ScopeItemTest, ItAsksForSoundOnlyWhileItCanBeSeen)
     window.hide();
     QCoreApplication::processEvents();
     EXPECT_FALSE(item->isSubscribed()) << "a hidden window shows nothing either";
+}
+
+TEST_F(ScopeItemTest, AWindowThatCanNotBeSeenAsksForNoSound)
+{
+    // A minimised window goes on saying it is visible: only its being exposed
+    // tells, and the desktop says when that changes. The offscreen platform
+    // never does, so the test says it.
+    QQuickWindow window;
+    const std::unique_ptr<ScopeItem> item = itemIn(window);
+    ASSERT_TRUE(show(window));
+    EXPECT_TRUE(item->isSubscribed());
+    const auto setExposed = [&window](bool exposed, const QRegion &region) {
+        QWindowPrivate::get(&window)->exposed = exposed;
+        QExposeEvent event(region);
+        QCoreApplication::sendEvent(&window, &event);
+        QCoreApplication::processEvents();
+    };
+
+    setExposed(false, QRegion());
+    EXPECT_TRUE(window.isVisible());
+    EXPECT_FALSE(item->isSubscribed());
+    EXPECT_EQ(hub.feedCount(), 0);
+
+    setExposed(true, QRect(0, 0, 320, 120));
+    EXPECT_TRUE(item->isSubscribed());
 }
 
 TEST_F(ScopeItemTest, TwoItemsOfOneBlockDrawFromOneFeed)

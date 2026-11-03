@@ -511,6 +511,10 @@ rb_add_gtest(reverblabr-app-test
     # made up. The interface itself does not depend on them.
     LIBRARIES reverblabr-ui reverblabr-blocks reverblabr-dsp-testkit Qt6::Test
 )
+# A test says a window can't be seen, as a desktop does when it is minimised:
+# Qt has no public call for that.
+find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS GuiPrivate)
+target_link_libraries(reverblabr-app-test PRIVATE Qt6::GuiPrivate)
 # The desktop entry, whose actions and icon the launch and icon tests read.
 target_compile_definitions(reverblabr-app-test PRIVATE
     RB_DESKTOP_FILE="${PROJECT_SOURCE_DIR}/app/io.github.reverblabr.Reverblabr.desktop")

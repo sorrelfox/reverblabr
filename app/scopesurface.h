@@ -28,9 +28,9 @@ namespace rb::ui
 /// window changes. Everything that lasts is in the feed and the view.
 ///
 /// **Nothing ticks while nobody can see it.** It holds a feed only while
-/// visible in a shown window, and that is what keeps the block's sound coming;
-/// and it asks to be drawn at each frame of the screen only while Smooth is on
-/// and there is something to move.
+/// visible in a window that is shown and not minimised, and that is what keeps
+/// the block's sound coming; and it asks to be drawn at each frame of the
+/// screen only while Smooth is on and there is something to move.
 ///
 /// **The feed is let go of a moment later and not at once**, because a card
 /// going from one window to another belongs to no window for an instant, and
@@ -121,6 +121,7 @@ protected:
     void pictureWorkedOut(bool changed);
     void frameBuilt(int vertices);
 
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     void itemChange(ItemChange change, const ItemChangeData &value) override;
 
