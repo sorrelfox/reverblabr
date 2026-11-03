@@ -177,6 +177,46 @@ TEST(ScopeMotion, SmoothStaysBehindTheNewestSoundAndNeverPassesIt)
     }
 }
 
+TEST(ScopeMotion, ASmoothViewNeverRunsOutOfSoundAtItsOldEnd)
+{
+    // News comes in lumps, and the clock runs evenly through them, so that
+    // just after a lump it is further behind the newest sound than the lag
+    // says. What was read has to reach back for that too, or the left of the
+    // view opens and closes with every lump.
+    const Sound sound = toneOf(100.0);
+    struct Case {
+        double spanMs;
+        double refreshHz;
+        double cycleMs;
+    };
+    for (const Case &asked : {Case{200.0, 30.0, 2048.0 / 48.0},
+                              Case{200.0, 60.0, 8192.0 / 48.0},
+                              Case{500.0, 10.0, 1024.0 / 48.0},
+                              Case{2000.0, 120.0, 256.0 / 48.0}}) {
+        const ScopeSettings settings = settingsOf(asked.spanMs, true, asked.refreshHz);
+        const auto points = static_cast<std::size_t>(ScopeView::framesWanted(settings, kRate, asked.cycleMs));
+        const double lumpMs = std::max(asked.cycleMs, 1000.0 / asked.refreshHz);
+        ScopeView view;
+        ScopeFrame frame;
+        std::uint64_t serial = 1;
+        double nextLump = 0.0;
+        int empty = 0;
+        for (int tick = 0; tick < 300; ++tick) {
+            const double now = 1000.0 + tick * kFrameMs;
+            if (now >= nextLump) {
+                // The sound of a whole number of lumps, as it arrives.
+                const double arrived = std::floor(now / lumpMs) * lumpMs;
+                frame = frameUpTo(sound, 96000.0 + framesIn(arrived), points, ++serial);
+                frame.cycleMs = asked.cycleMs;
+                nextLump = arrived + lumpMs;
+            }
+            view.update(frame, settings, kColumns, now);
+            empty += view.trace(0).front().heard ? 0 : 1;
+        }
+        EXPECT_EQ(empty, 0) << asked.spanMs << " ms at " << asked.refreshHz << " a second, cycle " << asked.cycleMs;
+    }
+}
+
 TEST(ScopeMotion, AClockFarFromTheSoundGoesThereAtOnce)
 {
     ScopeClock clock;

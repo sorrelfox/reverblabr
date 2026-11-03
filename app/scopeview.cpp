@@ -100,7 +100,9 @@ double ScopeView::framesWanted(const ScopeSettings &settings, double sampleRate,
         ms += std::max(settings.spanMs * 0.5, kLookBackMs);
     }
     if (scrolls(settings)) {
-        ms += lagMs(settings, cycleMs);
+        // Twice: the clock runs evenly through news that comes in lumps, so
+        // just after a lump it is that much further behind than the lag says.
+        ms += 2.0 * lagMs(settings, cycleMs);
     }
     return ms * 1.0e-3 * sampleRate;
 }
