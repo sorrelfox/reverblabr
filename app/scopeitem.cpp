@@ -7,12 +7,12 @@
 
 #include "scopeitem.h"
 
-#include <QQuickWindow>
-#include <QSGGeometryNode>
+#include "tracegeometry.h"
+
 #include <QSGNode>
-#include <QSGVertexColorMaterial>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <vector>
 
@@ -35,113 +35,6 @@ constexpr float kFewerDivisionsBelow = 240.0f;
 constexpr float kDotSize = 2.5f;
 /// What the bottom of the Decibels scale is marked at.
 constexpr std::array<float, 4> kDecibelMarks{-12.0f, -24.0f, -36.0f, -48.0f};
-
-/// One colour's worth of triangles.
-///
-/// A colour for each vertex and not a material for each strength, so that a
-/// line can fade at its edges where the scene graph has no antialiasing to
-/// lend it.
-class TraceNode : public QSGGeometryNode
-{
-public:
-    TraceNode()
-        : m_geometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0, 0, QSGGeometry::UnsignedIntType)
-    {
-        m_geometry.setDrawingMode(QSGGeometry::DrawTriangles);
-        m_geometry.setVertexDataPattern(QSGGeometry::StreamPattern);
-        m_geometry.setIndexDataPattern(QSGGeometry::StreamPattern);
-        setGeometry(&m_geometry);
-        setMaterial(&m_material);
-    }
-
-    void setTriangles(const std::vector<QSGGeometry::ColoredPoint2D> &vertices, const std::vector<quint32> &indices)
-    {
-        const auto vertexCount = static_cast<int>(vertices.size());
-        const auto indexCount = static_cast<int>(indices.size());
-        if (m_geometry.vertexCount() != vertexCount || m_geometry.indexCount() != indexCount) {
-            m_geometry.allocate(vertexCount, indexCount);
-        }
-        std::ranges::copy(vertices, m_geometry.vertexDataAsColoredPoint2D());
-        std::ranges::copy(indices, m_geometry.indexDataAsUInt());
-        markDirty(QSGNode::DirtyGeometry);
-    }
-
-private:
-    QSGGeometry m_geometry;
-    QSGVertexColorMaterial m_material;
-};
-
-/// Triangles being put together.
-class Triangles
-{
-public:
-    void clear()
-    {
-        m_vertices.clear();
-        m_indices.clear();
-    }
-
-    void reserve(std::size_t vertices, std::size_t indices)
-    {
-        m_vertices.reserve(vertices);
-        m_indices.reserve(indices);
-    }
-
-    void setColor(const QColor &color)
-    {
-        m_red = color.redF();
-        m_green = color.greenF();
-        m_blue = color.blueF();
-        m_alpha = color.alphaF();
-    }
-
-    [[nodiscard]] quint32 vertex(float x, float y, float strength)
-    {
-        // Premultiplied, as the material wants them.
-        const float alpha = m_alpha * strength;
-        QSGGeometry::ColoredPoint2D point{};
-        point.set(x,
-                  y,
-                  static_cast<uchar>(std::lround(m_red * alpha * 255.0f)),
-                  static_cast<uchar>(std::lround(m_green * alpha * 255.0f)),
-                  static_cast<uchar>(std::lround(m_blue * alpha * 255.0f)),
-                  static_cast<uchar>(std::lround(alpha * 255.0f)));
-        m_vertices.push_back(point);
-        return static_cast<quint32>(m_vertices.size() - 1);
-    }
-
-    /// One quad from two pairs of vertices already made.
-    void quad(quint32 a, quint32 b, quint32 c, quint32 d)
-    {
-        m_indices.insert(m_indices.end(), {a, b, c, b, d, c});
-    }
-
-    void rectangle(float x1, float y1, float x2, float y2, float strength)
-    {
-        const quint32 a = vertex(x1, y1, strength);
-        const quint32 b = vertex(x2, y1, strength);
-        const quint32 c = vertex(x1, y2, strength);
-        const quint32 d = vertex(x2, y2, strength);
-        quad(a, b, c, d);
-    }
-
-    [[nodiscard]] const std::vector<QSGGeometry::ColoredPoint2D> &vertices() const
-    {
-        return m_vertices;
-    }
-    [[nodiscard]] const std::vector<quint32> &indices() const
-    {
-        return m_indices;
-    }
-
-private:
-    std::vector<QSGGeometry::ColoredPoint2D> m_vertices;
-    std::vector<quint32> m_indices;
-    float m_red = 1.0f;
-    float m_green = 1.0f;
-    float m_blue = 1.0f;
-    float m_alpha = 1.0f;
-};
 
 /// Where a height goes in a lane of the item.
 struct Lane {
@@ -196,82 +89,26 @@ void addBand(Triangles &triangles, const std::vector<BandColumn> &band, float st
 } // namespace
 
 ScopeItem::ScopeItem(QQuickItem *parent)
-    : QQuickItem(parent)
+    : ScopeSurface(parent)
 {
-    setFlag(ItemHasContents);
 }
 
-ScopeItem::~ScopeItem()
+ScopeItem::~ScopeItem() = default;
+
+void ScopeItem::startAfresh()
 {
-    adopt(nullptr);
+    m_view.clear();
 }
 
-ScopeHub *ScopeItem::hub() const
+bool ScopeItem::workOutPicture()
 {
-    return m_hub;
-}
-
-void ScopeItem::setHub(ScopeHub *hub)
-{
-    if (hub != m_hub) {
-        adopt(nullptr);
-        m_hub = hub;
-        Q_EMIT sourceChanged();
-        follow();
+    // Held, the picture is still worked out, from what is kept, so that a
+    // setting changed meanwhile still shows; it just never moves on.
+    ScopeSettings settings = m_settings;
+    if (hold()) {
+        settings.smooth = false;
     }
-}
-
-QString ScopeItem::blockId() const
-{
-    return m_blockId;
-}
-
-void ScopeItem::setBlockId(const QString &blockId)
-{
-    if (blockId != m_blockId) {
-        adopt(nullptr);
-        m_blockId = blockId;
-        m_view.clear();
-        Q_EMIT sourceChanged();
-        follow();
-    }
-}
-
-void ScopeItem::changeSettings()
-{
-    if (m_feed) {
-        m_feed->setSettings(m_settings);
-    }
-    followFrames();
-    update();
-    Q_EMIT settingsChanged();
-}
-
-qreal ScopeItem::refreshHz() const
-{
-    return m_settings.refreshHz;
-}
-
-void ScopeItem::setRefreshHz(qreal hz)
-{
-    if (hz > 0.0 && hz != m_settings.refreshHz) {
-        m_settings.refreshHz = hz;
-        changeSettings();
-    }
-}
-
-QString ScopeItem::motion() const
-{
-    return m_motion;
-}
-
-void ScopeItem::setMotion(const QString &motion)
-{
-    if (motion != m_motion) {
-        m_motion = motion;
-        m_settings.smooth = motion == "smooth"_L1;
-        changeSettings();
-    }
+    return m_view.update(feed()->frame(), settings, static_cast<std::size_t>(columnCount()), hub()->nowMs());
 }
 
 QString ScopeItem::style() const
@@ -362,25 +199,6 @@ void ScopeItem::setTrigger(bool on)
     }
 }
 
-bool ScopeItem::hold() const
-{
-    return m_hold;
-}
-
-void ScopeItem::setHold(bool on)
-{
-    if (on != m_hold) {
-        m_hold = on;
-        if (m_feed) {
-            m_feed->setHold(on);
-        }
-        followFrames();
-        update();
-        Q_EMIT settingsChanged();
-        Q_EMIT liveChanged();
-    }
-}
-
 bool ScopeItem::grid() const
 {
     return m_grid;
@@ -451,63 +269,9 @@ void ScopeItem::setGridColor(const QColor &color)
     }
 }
 
-QString ScopeItem::feedState() const
-{
-    if (!m_feed) {
-        return u"stopped"_s;
-    }
-    switch (m_feed->state()) {
-    case ScopeFeed::State::Live:
-        return u"live"_s;
-    case ScopeFeed::State::Waiting:
-        return u"waiting"_s;
-    case ScopeFeed::State::NoRoom:
-        return u"noRoom"_s;
-    case ScopeFeed::State::Stopped:
-        return u"stopped"_s;
-    case ScopeFeed::State::Off:
-        return u"off"_s;
-    case ScopeFeed::State::Overloaded:
-        return u"overloaded"_s;
-    case ScopeFeed::State::NoNews:
-        return u"noNews"_s;
-    }
-    return u"stopped"_s;
-}
-
-bool ScopeItem::isShowing() const
-{
-    return m_feed && m_feed->hasTrace();
-}
-
 bool ScopeItem::crossed() const
 {
     return m_view.crossed();
-}
-
-qreal ScopeItem::arrivalsPerSecond() const
-{
-    return m_feed ? m_feed->arrivalsPerSecond() : 0.0;
-}
-
-int ScopeItem::vertexCount() const
-{
-    return m_vertexCount;
-}
-
-int ScopeItem::pictures() const
-{
-    return m_pictures;
-}
-
-bool ScopeItem::isTicking() const
-{
-    return m_ticking;
-}
-
-bool ScopeItem::isSubscribed() const
-{
-    return !m_feed.isNull();
 }
 
 QVariantList ScopeItem::heights(int trace) const
@@ -525,146 +289,12 @@ int ScopeItem::columnCount() const
     return std::clamp(static_cast<int>(std::ceil(width())), 0, kMaxColumns);
 }
 
-void ScopeItem::work()
-{
-    if (m_feed) {
-        m_feed->tick();
-        if (m_view.update(m_feed->frame(), m_settings, static_cast<std::size_t>(columnCount()), m_hub->nowMs())) {
-            ++m_pictures;
-        }
-        sayReadings();
-    }
-}
-
-void ScopeItem::adopt(ScopeFeed *feed)
-{
-    if (feed == m_feed) {
-        return;
-    }
-    if (m_feed) {
-        disconnect(m_feed, nullptr, this, nullptr);
-        if (m_hub) {
-            m_hub->unsubscribe(m_feed);
-        }
-    }
-    m_feed = feed;
-    if (m_feed) {
-        m_feed->setSettings(m_settings);
-        m_feed->setHold(m_hold);
-        connect(m_feed, &ScopeFeed::refreshed, this, &ScopeItem::onRefreshed);
-        connect(m_feed, &ScopeFeed::stateChanged, this, &ScopeItem::onStateChanged);
-        m_view.clear();
-    }
-    followFrames();
-    Q_EMIT liveChanged();
-}
-
-bool ScopeItem::isOnScreen() const
-{
-    return isVisible() && window() != nullptr && window()->isVisible() && m_hub && !m_blockId.isEmpty();
-}
-
-void ScopeItem::follow()
-{
-    if (isOnScreen()) {
-        if (!m_feed) {
-            adopt(m_hub->subscribe(m_blockId));
-        }
-    } else if (m_feed && !m_lettingGo) {
-        m_lettingGo = true;
-        QMetaObject::invokeMethod(this, &ScopeItem::letGoUnlessShown, Qt::QueuedConnection);
-    }
-    update();
-}
-
-void ScopeItem::letGoUnlessShown()
-{
-    m_lettingGo = false;
-    if (!isOnScreen()) {
-        adopt(nullptr);
-    }
-}
-
-void ScopeItem::followWindow(QQuickWindow *window)
-{
-    disconnect(m_windowShown);
-    disconnect(m_frames);
-    m_ticking = false;
-    m_window = window;
-    if (window != nullptr) {
-        m_windowShown = connect(window, &QWindow::visibleChanged, this, &ScopeItem::follow);
-    }
-    follow();
-    followFrames();
-}
-
-void ScopeItem::followFrames()
-{
-    // **Only while a frame could show something new.** Asking for the next
-    // frame is what makes a window draw continuously, on the GPU and all.
-    const bool wanted = m_settings.smooth && !m_hold && m_feed && m_feed->hasTrace() && m_window != nullptr;
-    if (wanted == m_ticking) {
-        return;
-    }
-    m_ticking = wanted;
-    if (wanted) {
-        // **Queued**: this signal comes from the window's render thread, and
-        // update() belongs to this one.
-        m_frames =
-            connect(m_window, &QQuickWindow::frameSwapped, this, &ScopeItem::onFrameSwapped, Qt::QueuedConnection);
-        update();
-    } else {
-        disconnect(m_frames);
-    }
-    Q_EMIT liveChanged();
-}
-
-void ScopeItem::onRefreshed()
-{
-    followFrames();
-    update();
-}
-
-void ScopeItem::onStateChanged()
-{
-    followFrames();
-    update();
-    Q_EMIT liveChanged();
-}
-
-void ScopeItem::sayReadings()
+void ScopeItem::sayOwnReadings()
 {
     const bool crossed = m_view.crossed();
-    const qreal arrivals = arrivalsPerSecond();
-    if (crossed != m_saidCrossed || arrivals != m_saidArrivals) {
+    if (crossed != m_saidCrossed) {
         m_saidCrossed = crossed;
-        m_saidArrivals = arrivals;
         Q_EMIT readingsChanged();
-    }
-}
-
-void ScopeItem::onFrameSwapped()
-{
-    if (m_ticking) {
-        update();
-    }
-}
-
-void ScopeItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
-{
-    QQuickItem::geometryChange(newGeometry, oldGeometry);
-    if (newGeometry.size() != oldGeometry.size()) {
-        update();
-    }
-}
-
-void ScopeItem::itemChange(ItemChange change, const ItemChangeData &value)
-{
-    QQuickItem::itemChange(change, value);
-    if (change == ItemSceneChange) {
-        followWindow(value.window);
-    } else if (change == ItemVisibleHasChanged) {
-        follow();
     }
 }
 
@@ -688,18 +318,9 @@ QSGNode *ScopeItem::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
     auto *secondNode = static_cast<TraceNode *>(node->childAtIndex(1));
     auto *firstNode = static_cast<TraceNode *>(node->childAtIndex(2));
 
-    const bool showing = m_feed && m_feed->hasTrace();
+    const bool showing = isShowing();
     if (showing) {
-        const auto columns = static_cast<std::size_t>(columnCount());
-        // Held, the picture is still worked out, from what is kept, so that a
-        // setting changed meanwhile still shows; it just never moves on.
-        ScopeSettings settings = m_settings;
-        if (m_hold) {
-            settings.smooth = false;
-        }
-        if (m_view.update(m_feed->frame(), settings, columns, m_hub->nowMs())) {
-            ++m_pictures;
-        }
+        pictureWorkedOut(workOutPicture());
     }
 
     const auto w = static_cast<float>(width());
@@ -830,9 +451,7 @@ QSGNode *ScopeItem::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
     traceInto(firstNode, 0);
     traceInto(secondNode, 1);
 
-    m_vertexCount = vertices;
-    // On this item's own thread, after the frame.
-    QMetaObject::invokeMethod(this, &ScopeItem::sayReadings, Qt::QueuedConnection);
+    frameBuilt(vertices);
     return node;
 }
 

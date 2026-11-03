@@ -531,6 +531,9 @@ target_sources(reverblabr-ui PRIVATE
     meteritem.h
     scopeitem.cpp
     scopeitem.h
+    scopesurface.cpp
+    scopesurface.h
+    tracegeometry.h
     meters.cpp
     meters.h
     meterscale.cpp
