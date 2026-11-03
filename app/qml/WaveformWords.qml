@@ -111,7 +111,7 @@ QtObject {
         case "waiting":
             return KI18n.i18nc("@info a Waveform has asked for the sound and it is not there yet", "Waiting for sound");
         case "noRoom":
-            return KI18n.i18nc("@info every Waveform slot of the session is in use", "Too many Waveforms are showing");
+            return KI18n.i18nc("@info every slot of the session for Waveform and Spectrum blocks is in use", "Too many Waveform and Spectrum blocks are showing");
         case "stopped":
             return KI18n.i18nc("@info a Waveform in a session that is not running", "Not running");
         case "off":

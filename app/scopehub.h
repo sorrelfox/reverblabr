@@ -10,6 +10,7 @@
 #include "meterhub.h"
 #include "rt/scope.h"
 #include "scopeview.h"
+#include "spectrumview.h"
 
 #include <QObject>
 #include <QPointer>
@@ -91,6 +92,13 @@ public:
         return m_frame;
     }
 
+    /// The spectrum of what the frame holds, shared like the frame, so that
+    /// a tile and a card showing one block cost one transform.
+    [[nodiscard]] SpectrumAnalysis &spectrum() noexcept
+    {
+        return m_spectrum;
+    }
+
     /// How much new sound a second can bring at this cycle length: the most
     /// a refresh rate above it can show. Nought while nothing is known.
     [[nodiscard]] double arrivalsPerSecond() const noexcept;
@@ -125,6 +133,7 @@ private:
     bool m_hold = false;
     State m_state = State::Waiting;
     ScopeFrame m_frame;
+    SpectrumAnalysis m_spectrum;
 
     bool m_seenSlot = false;
     int m_slot = -1;

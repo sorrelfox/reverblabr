@@ -1,0 +1,10 @@
+{
+    "schema": 1,
+    "type": "meter.spectrum",
+    "params": {
+        "motion": "smooth",
+        "bars": "bars32",
+        "floor": "db60",
+        "style": "segmented"
+    }
+}

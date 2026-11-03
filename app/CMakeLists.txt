@@ -322,6 +322,13 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/WaveformScope.qml
     qml/WaveformState.qml
     qml/WaveformWords.qml
+    qml/ScopeChoiceRow.qml
+    qml/SpectrumFace.qml
+    qml/SpectrumHelp.qml
+    qml/SpectrumPanel.qml
+    qml/SpectrumScope.qml
+    qml/SpectrumState.qml
+    qml/SpectrumWords.qml
     qml/TypedValueRow.qml
     qml/FloatingLabel.qml
     qml/FloatingPlaceSection.qml
@@ -403,6 +410,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/meter.speechnow.svg
     icons/meter.voicegauge.svg
     icons/meter.waveform.svg
+    icons/meter.spectrum.svg
     icons/meter.soundside.svg
     icons/effect.nightlevel.svg
     icons/effect.voicecompressor.svg
@@ -582,6 +590,10 @@ target_sources(reverblabr-ui PRIVATE
     scopehub.h
     scopeview.cpp
     scopeview.h
+    spectrumitem.cpp
+    spectrumitem.h
+    spectrumview.cpp
+    spectrumview.h
     volumescale.cpp
     volumescale.h
     waveformitem.cpp

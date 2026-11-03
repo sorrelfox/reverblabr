@@ -82,6 +82,11 @@ QtObject {
         WaveformFace {}
     }
 
+    /// How much of each frequency is in the sound.
+    readonly property Component spectrum: Component {
+        SpectrumFace {}
+    }
+
     readonly property Component speechNow: Component {
         SpeechNowFace {}
     }
@@ -318,6 +323,7 @@ QtObject {
         "meter.speechnow": faces.speechNow,
         "meter.voicegauge": faces.voiceGauge,
         "meter.waveform": faces.waveform,
+        "meter.spectrum": faces.spectrum,
         "meter.soundside": faces.soundSide,
         "effect.nightlevel": faces.nightLevel,
         "effect.voicecompressor": faces.voiceCompressor,

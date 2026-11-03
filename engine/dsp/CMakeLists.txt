@@ -14,6 +14,8 @@ add_library(reverblabr-dsp STATIC
     audioblock.h
     audiogram.cpp
     audiogram.h
+    barspectrum.cpp
+    barspectrum.h
     audiobuffer.h
     autoregressive.h
     biquad.h

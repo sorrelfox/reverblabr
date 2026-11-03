@@ -144,6 +144,7 @@ The original goes straight through, so a Reverb doesn't delay the lane.
 | **Speech Now** | Shows Speaking while a voice is on this lane, and Quiet when not. For a moment after a voice stops it shows Quiet again. It can't tell who is speaking or what was said, and the sound passes unchanged. |
 | **Voice Gauge** | Shows the level of a voice at this point on the lane, in LUFS, against two marks you place. It says where the reading stands against your marks, and nothing about how you sound. It can be wrong, and the sound passes unchanged. |
 | **Waveform** | Draws the sound at this point in a lane as it goes by: an oscilloscope, on its tile and on its card. The sound passes unchanged. |
+| **Spectrum** | Shows how much of each frequency there is at this point in a lane, as a row of bars: a spectrum analyzer, on its tile and on its card. The sound passes unchanged. |
 | **Sound Side** | Shows which channel is louder, with a moving mark and a word. It can't tell what made the sound, and it can't tell front from back. The sound passes unchanged. |
 
 Any of the level meters can also be shown in the system tray, see [On the desktop](desktop.md#the-tray-icon).
@@ -178,7 +179,7 @@ Under **Show it on**, **Floating bar** adds a row to the same small window as Sp
 
 ### Waveform
 
-Put one before and one after a block to see what it does to the shape of the sound. It passes the sound on with no delay, and it works only while its tile or its card is on the screen. A session can draw up to 16 at once. A card outside the main window goes on drawing.
+Put one before and one after a block to see what it does to the shape of the sound. It passes the sound on with no delay, and it works only while its tile or its card is on the screen. A session can draw up to 16 Waveform and Spectrum blocks at once. A card outside the main window goes on drawing.
 
 **Style** draws a **Line**, the wave itself, or the band it fills when more than one sample falls on a pixel. **Filled** is how far the sound reaches either side of the middle as a solid shape, **Bars** the same in separate bars, and **Dots** marks the highest and lowest points. **Time shown** goes from 10 ms, the shape of a wave, to 10 s, how the level moves, and a single click stays visible even at 10 s.
 
@@ -191,6 +192,28 @@ Put one before and one after a block to see what it does to the shape of the sou
 A trace that stands still is one you asked to hold. When the session is stopped or overloaded, the block is off, or nothing is arriving, no trace is shown and a line of words says why.
 
 The presets are **Speaking**, **Single tone**, **Long view** and **Left and right**.
+
+### Spectrum
+
+Put one before and one after an equalizer or a filter to see what it does, or use one to find the frequency of a hum or a whistle. It passes the sound on with no delay, and it works only while its tile or its card is on the screen. A session can draw up to 16 Waveform and Spectrum blocks at once. A card outside the main window goes on drawing.
+
+A bar stands at the loudest thing in its range of frequencies, with 0 dBFS at the top, so a sine wave at full scale reaches the top in the bar that holds it, to within 0.4 dB, whichever settings you use. The range goes from 20 Hz to 20 kHz, or to half the sample rate if that is lower. It is worked out from every sample, so the top of the range is as true as the bottom.
+
+**Bars** divides the range into 16 to 128, and a tile shows fewer when it has no room for them all. **Frequency scale** gives each octave the same width on **Logarithmic**, and each hertz the same width on **Linear**, which suits looking at harmonics.
+
+**FFT size** is how much sound each look takes in, from 1024 to 8192 samples, and the card says what that comes to. A large size tells low notes apart but blurs quick sounds together, and a small size does the opposite. At the bottom of a logarithmic scale several bars may share what one size can tell apart. They all show it, so a low sine draws a hump as wide as the size makes it, and no bar is left empty.
+
+**Refresh rate** is how often the bars are worked out, from 10 to 120 times a second. A slow rate misses nothing: the bars show the loudest moment since the last refresh, as far back as the block keeps sound, which is 8191 samples or 170 ms at 48 kHz. It can't show more than arrives, one cycle of the sound system at a time, and the card says so when you ask for more. **Motion** decides what happens between two refreshes. **Real-time** shows each refresh's bars as they are and holds them. **Smooth** moves the bars at the rate of your screen: they rise quickly and ease down when the sound falls. Smooth is calmer and uses more of the graphics card.
+
+**Level range** is the level at the bottom of the view, from -60 to -120 dBFS. The top is always 0 dBFS. **Tilt** lifts high frequencies and lowers low ones by 3 or 4.5 dB an octave, turning about 1 kHz, in the drawing and not in the sound. Music is usually strongest at the bottom, and with tilt it is easier to compare across the range. With tilt on, a bar's height is no longer the true level.
+
+**Channels** picks **Mix**, **Left** or **Right**. Mix is the two added and halved, as a mono mix would be: a sound in one channel reads 6 dB lower, and sound in opposite phase cancels out. **Style** draws **Solid** or **Segmented** bars. **Peak marks** puts a mark over each bar at its highest, which stays for a second and then falls slowly. **Grid and labels** draws lines behind the bars at round frequencies and every 20 dB, and the card names them.
+
+**Hold** keeps the bars on the screen, and you can change how they are read while they are held. It is kept for the session but left out of presets, and held bars are gone once neither the tile nor the card is on the screen.
+
+Bars that stand still are bars you asked to hold. When the session is stopped or overloaded, the block is off, or nothing is arriving, no bars are shown and a line of words says why.
+
+The presets are **Music balance**, **Fine detail**, **Quick look** and **LED bars**.
 
 ### Sound Side
 

@@ -328,6 +328,13 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "An oscilloscope for any point in a lane: choose how much time it shows, how it is drawn and how "
                   "it moves. The sound passes unchanged.")},
+    Entry{"meter.spectrum",
+          "meters",
+          kli18nc("@item block name", "Spectrum"),
+          kli18nc("@info block description", "Shows how much of each frequency there is at this point in a lane"),
+          kli18nc("@info:tooltip block description",
+                  "A spectrum analyzer for any point in a lane, in bars: choose how many, how fine and how they move. "
+                  "The sound passes unchanged.")},
     Entry{"meter.soundside",
           "meters",
           kli18nc("@item block name", "Sound Side"),

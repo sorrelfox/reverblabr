@@ -39,6 +39,9 @@ struct ScopeSettings {
     Channels channels = Channels::Both;
     bool trigger = false;
     bool decibels = false;
+    /// Reads all the finest ring holds, whatever the span says: for a surface
+    /// that wants the samples themselves and not a view of them.
+    bool everySample = false;
 };
 
 /// **The points of one look at a slot**, kept by ScopeFeed for every surface

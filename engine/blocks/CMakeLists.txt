@@ -98,6 +98,8 @@ add_library(reverblabr-blocks STATIC
     volume.h
     voicegauge.cpp
     voicegauge.h
+    spectrummeter.cpp
+    spectrummeter.h
     soundside.cpp
     soundside.h
     suddensounds.cpp

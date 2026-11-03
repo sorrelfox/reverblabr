@@ -101,6 +101,7 @@ TEST(GainReach, EveryBlockIsWhatTheTableSays)
         {"meter.speechnow", GainReach::Unity},
         {"meter.voicegauge", GainReach::Unity},
         {"meter.waveform", GainReach::Unity},
+        {"meter.spectrum", GainReach::Unity},
         {"meter.soundside", GainReach::Unity},
         {"output.recorder", GainReach::Unity},
         {"effect.balance", GainReach::Unity},
@@ -137,5 +138,5 @@ TEST(GainReach, EveryUnityBlockStaysUnderItsInput)
             }
         }
     }
-    EXPECT_EQ(tried, 11U);
+    EXPECT_EQ(tried, 12U);
 }

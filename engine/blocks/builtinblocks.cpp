@@ -57,6 +57,7 @@
 #endif
 #include "blocks/soundside.h"
 #include "blocks/speechnow.h"
+#include "blocks/spectrummeter.h"
 #include "blocks/suddensounds.h"
 #include "blocks/sync.h"
 #include "blocks/systemaudio.h"
@@ -111,6 +112,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{SpeechNow::kTypeId}, &SpeechNow::make).has_value()
         && registry.add(std::string{VoiceGauge::kTypeId}, &VoiceGauge::make).has_value()
         && registry.add(std::string{WaveformMeter::kTypeId}, &WaveformMeter::make).has_value()
+        && registry.add(std::string{SpectrumMeter::kTypeId}, &SpectrumMeter::make).has_value()
         && registry.add(std::string{SoundSide::kTypeId}, &SoundSide::make).has_value()
         && registry.add(std::string{NightLevel::kTypeId}, &NightLevel::make).has_value()
         && registry.add(std::string{VoiceForward::kTypeId}, &VoiceForward::make).has_value()

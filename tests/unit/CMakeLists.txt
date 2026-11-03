@@ -71,6 +71,7 @@ rb_add_gtest(reverblabr-dsp-test
         dsp/kitblocks.h
         dsp/test_audiobuffer.cpp
         dsp/test_autoregressive.cpp
+        dsp/test_barspectrum.cpp
         dsp/test_biquad.cpp
         dsp/test_block.cpp
         dsp/test_blockregistry.cpp
@@ -197,6 +198,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_volume.cpp
         blocks/test_voicegauge.cpp
         blocks/test_waveformmeter.cpp
+        blocks/test_spectrummeter.cpp
         blocks/test_soundside.cpp
         blocks/test_nightlevel.cpp
         blocks/test_voicecompressor.cpp
@@ -490,6 +492,8 @@ rb_add_gtest(reverblabr-app-test
         app/test_scopehub.cpp
         app/test_scopeitem.cpp
         app/test_scopeview.cpp
+        app/test_spectrumitem.cpp
+        app/test_spectrumview.cpp
         app/test_sessionmodel.cpp
         app/test_sessionoverview.cpp
         app/test_telemetrywatch.cpp

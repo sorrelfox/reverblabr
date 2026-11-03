@@ -67,6 +67,10 @@ constexpr std::array kFactoryNames{
     FactoryName{"singleTone"_L1, kli18nc("@item:inmenu a preset for the Waveform block", "Single tone")},
     FactoryName{"longView"_L1, kli18nc("@item:inmenu a preset for the Waveform block", "Long view")},
     FactoryName{"leftAndRight"_L1, kli18nc("@item:inmenu a preset for the Waveform block", "Left and right")},
+    FactoryName{"musicBalance"_L1, kli18nc("@item:inmenu a preset for the Spectrum block", "Music balance")},
+    FactoryName{"fineDetail"_L1, kli18nc("@item:inmenu a preset for the Spectrum block", "Fine detail")},
+    FactoryName{"quickLook"_L1, kli18nc("@item:inmenu a preset for the Spectrum block", "Quick look")},
+    FactoryName{"ledBars"_L1, kli18nc("@item:inmenu a preset for the Spectrum block", "LED bars")},
     FactoryName{"wholeMix"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Whole mix")},
     FactoryName{"higherSounds"_L1, kli18nc("@item:inmenu a preset for the Sound Side block", "Higher sounds")},
     // Dynamics Processor.

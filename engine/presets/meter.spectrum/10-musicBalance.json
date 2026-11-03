@@ -1,0 +1,10 @@
+{
+    "schema": 1,
+    "type": "meter.spectrum",
+    "params": {
+        "motion": "smooth",
+        "bars": "bars64",
+        "fftSize": "fft4096",
+        "tilt": "tilt4p5"
+    }
+}

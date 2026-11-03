@@ -170,6 +170,10 @@ QtObject {
         WaveformPanel {}
     }
 
+    readonly property Component spectrum: Component {
+        SpectrumPanel {}
+    }
+
     readonly property Component peakRms: Component {
         PeakRmsPanel {}
     }
@@ -345,6 +349,7 @@ QtObject {
         "meter.speechnow": panels.speechNow,
         "meter.voicegauge": panels.voiceGauge,
         "meter.waveform": panels.waveform,
+        "meter.spectrum": panels.spectrum,
         "meter.soundside": panels.soundSide,
         "effect.nightlevel": panels.nightLevel,
         "effect.voicecompressor": panels.voiceCompressor,

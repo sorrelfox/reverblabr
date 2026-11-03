@@ -35,6 +35,7 @@ QtObject {
     readonly property FilterWords filter: FilterWords {}
     readonly property WaveWords wave: WaveWords {}
     readonly property WaveformWords waveform: WaveformWords {}
+    readonly property SpectrumWords spectrum: SpectrumWords {}
     readonly property RecorderWords recorder: RecorderWords {}
     readonly property BroadcastWords broadcast: BroadcastWords {}
     readonly property LiveStreamWords liveStream: LiveStreamWords {}
@@ -134,16 +135,25 @@ QtObject {
         case "channels":
             found = typeId === "output.wave" ? words.wave.sideName(choice)
                 : typeId === "meter.waveform" ? words.waveform.channelsName(choice)
+                : typeId === "meter.spectrum" ? words.spectrum.channelsName(choice)
                 : words.recorder.channelsName(choice);
             break;
         case "refresh":
             return words.waveform.refreshName(choice);
         case "motion":
-            return words.waveform.motionName(choice);
+            return typeId === "meter.spectrum" ? words.spectrum.motionName(choice) : words.waveform.motionName(choice);
         case "style":
-            return words.waveform.styleName(choice);
+            return typeId === "meter.spectrum" ? words.spectrum.styleName(choice) : words.waveform.styleName(choice);
         case "scale":
-            return words.waveform.scaleName(choice);
+            return typeId === "meter.spectrum" ? words.spectrum.scaleName(choice) : words.waveform.scaleName(choice);
+        case "bars":
+            return words.spectrum.barsName(choice);
+        case "fftSize":
+            return words.spectrum.fftSizeName(choice);
+        case "floor":
+            return words.spectrum.floorName(choice);
+        case "tilt":
+            return words.spectrum.tiltName(choice);
         case "server":
             found = words.broadcast.serverName(choice);
             break;

@@ -1,0 +1,9 @@
+{
+    "schema": 1,
+    "type": "meter.spectrum",
+    "params": {
+        "bars": "bars128",
+        "fftSize": "fft8192",
+        "floor": "db100"
+    }
+}

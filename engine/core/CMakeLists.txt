@@ -189,6 +189,10 @@ qt_add_resources(reverblabr-engine "reverblabr-factory-presets"
         ../presets/meter.waveform/20-singleTone.json
         ../presets/meter.waveform/30-longView.json
         ../presets/meter.waveform/40-leftAndRight.json
+        ../presets/meter.spectrum/10-musicBalance.json
+        ../presets/meter.spectrum/20-fineDetail.json
+        ../presets/meter.spectrum/30-quickLook.json
+        ../presets/meter.spectrum/40-ledBars.json
         ../presets/meter.soundside/10-wholeMix.json
         ../presets/meter.soundside/20-higherSounds.json
 )

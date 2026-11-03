@@ -92,6 +92,9 @@ double ScopeClock::advance(double newestFrame, double sampleRate, double lagFram
 
 double ScopeView::framesWanted(const ScopeSettings &settings, double sampleRate, double cycleMs)
 {
+    if (settings.everySample) {
+        return static_cast<double>(rt::kScopePoints - 1);
+    }
     double ms = settings.spanMs;
     if (seeksCrossing(settings)) {
         ms += std::max(settings.spanMs * 0.5, kLookBackMs);

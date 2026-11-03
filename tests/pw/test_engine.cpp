@@ -10,6 +10,7 @@
 // the mock walks, against a real PipeWire.
 
 #include "blocks/oneearmix.h"
+#include "blocks/spectrummeter.h"
 #include "blocks/waveformmeter.h"
 #include "core/audiosystem.h"
 #include "core/editcommand.h"
@@ -60,6 +61,7 @@ namespace
     // One block with real parameters, for the tests that turn a knob.
     EXPECT_TRUE(registry.add(std::string{test::GainBlock::kTypeId}, &test::GainBlock::make));
     EXPECT_TRUE(registry.add(std::string{blocks::WaveformMeter::kTypeId}, &blocks::WaveformMeter::make));
+    EXPECT_TRUE(registry.add(std::string{blocks::SpectrumMeter::kTypeId}, &blocks::SpectrumMeter::make));
     return registry;
 }
 
@@ -867,7 +869,7 @@ TEST_F(EngineThroughTheFacade, TheSoundOfABlockBeingDrawnReachesTheScopePoolAndS
     const QString id = opened.back().at(0).toString();
     engine.applyEdit(id, addBlockEdit(u"src"_s, test::PassThroughSource::kTypeId));
     engine.applyEdit(id, addBlockEdit(u"one"_s, blocks::WaveformMeter::kTypeId));
-    engine.applyEdit(id, addBlockEdit(u"two"_s, blocks::WaveformMeter::kTypeId));
+    engine.applyEdit(id, addBlockEdit(u"two"_s, blocks::SpectrumMeter::kTypeId));
     engine.applyEdit(id, addBlockEdit(u"out"_s, test::PassThroughOutput::kTypeId));
     for (std::uint32_t channel = 0; channel < 2; ++channel) {
         engine.applyEdit(id, connectEdit(u"src"_s, channel, u"one"_s, channel));

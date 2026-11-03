@@ -163,6 +163,8 @@ constexpr double kFakeScopeHz = 1000.0;
 constexpr double kFakeNoteHz = 165.0;
 constexpr double kFakeSwellHz = 0.4;
 constexpr float kFakeNotePeak = 0.55f;
+constexpr std::array<std::pair<double, double>, 6> kFakeOvertones{
+    {{3.0, 0.3}, {5.0, 0.12}, {8.0, 0.06}, {13.0, 0.03}, {21.0, 0.015}, {55.0, 0.006}}};
 
 } // namespace
 
@@ -413,7 +415,12 @@ public:
             return {tone, 0.5f * tone};
         }
         const auto swell = static_cast<float>(0.6 + 0.4 * std::sin(turn * kFakeSwellHz));
-        const auto note = static_cast<float>(std::sin(turn * kFakeNoteHz) + 0.3 * std::sin(turn * kFakeNoteHz * 3.0));
+        // Overtones up the range, so that a spectrum has something to show.
+        double harmonics = 0.0;
+        for (const auto &[multiple, share] : kFakeOvertones) {
+            harmonics += share * std::sin(turn * kFakeNoteHz * multiple);
+        }
+        const auto note = static_cast<float>(std::sin(turn * kFakeNoteHz) + harmonics);
         const auto later = static_cast<float>(std::sin(turn * kFakeNoteHz + 0.9));
         return {kFakeNotePeak * swell * note, kFakeNotePeak * swell * later};
     }

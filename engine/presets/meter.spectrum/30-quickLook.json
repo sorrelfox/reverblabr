@@ -1,0 +1,9 @@
+{
+    "schema": 1,
+    "type": "meter.spectrum",
+    "params": {
+        "refresh": "hz60",
+        "bars": "bars32",
+        "fftSize": "fft1024"
+    }
+}
