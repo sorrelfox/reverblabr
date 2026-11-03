@@ -124,6 +124,7 @@ public:
     void loadPluginPreset(const QString &, const QString &, const QString &) override { }
     void savePluginPreset(const QString &, const QString &, const QString &) override { }
     void analyse(const QString &, const QString &, int) override { }
+    void watchScope(const QString &, const QString &) override { }
     void holdBlockOff(const QString &, const QString &, bool) override { }
     void start(const QString &) override { }
     void stop(const QString &) override { }

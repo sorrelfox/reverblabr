@@ -113,6 +113,7 @@ rb_add_gtest(reverblabr-rt-test
         rt/test_audiotap.cpp
         rt/test_logger.cpp
         rt/test_meter.cpp
+        rt/test_scope.cpp
         rt/test_retirequeue.cpp
         rt/test_runwatch.cpp
         rt/test_seqlock.cpp
@@ -417,6 +418,7 @@ rb_add_gtest(reverblabr-engine-test
         core/test_session.cpp
         core/test_sessionlist.cpp
         core/test_sessionstore.cpp
+        core/test_scopeclaims.cpp
         core/test_sharedtelemetry.cpp
         core/test_systemdevicechange.cpp
         core/test_telemetry.cpp

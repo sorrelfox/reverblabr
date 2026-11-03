@@ -378,6 +378,12 @@ const core::TelemetrySlot *RemoteEngine::telemetryOf(const QString &sessionId)
     return nullptr;
 }
 
+const rt::ScopePool *RemoteEngine::scopesOf(const QString &sessionId) const
+{
+    const auto found = d->telemetry.find(sessionId);
+    return found != d->telemetry.end() && found->second.mapping ? &found->second.mapping->scopes() : nullptr;
+}
+
 void RemoteEngine::relayBusSignal(const QDBusMessage &message)
 {
     d->relay(message);
@@ -519,6 +525,11 @@ void RemoteEngine::savePluginPreset(const QString &sessionId, const QString &blo
 void RemoteEngine::analyse(const QString &sessionId, const QString &blockId, int channel)
 {
     d->call(u"Analyse"_s, {sessionId, blockId, channel});
+}
+
+void RemoteEngine::watchScope(const QString &sessionId, const QString &blockId)
+{
+    d->call(u"WatchScope"_s, {sessionId, blockId});
 }
 
 void RemoteEngine::holdBlockOff(const QString &sessionId, const QString &blockId, bool held)

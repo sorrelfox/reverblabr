@@ -77,6 +77,8 @@ add_library(reverblabr-engine STATIC
     recordingplayer.h
     recordings.cpp
     recordings.h
+    scopeclaims.cpp
+    scopeclaims.h
     secretstore.cpp
     secretstore.h
     sessionlisting.cpp

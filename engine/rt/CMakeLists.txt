@@ -19,6 +19,7 @@ add_library(reverblabr-rt STATIC
     retirequeue.h
     runwatch.cpp
     runwatch.h
+    scope.h
     seqlock.h
     spscqueue.h
     triplebuffer.h

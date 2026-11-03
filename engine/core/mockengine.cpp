@@ -52,6 +52,7 @@
 #include "core/recordinglibrary.h"
 #include "core/recordingnames.h"
 #include "core/recordings.h"
+#include "core/scopeclaims.h"
 #include "core/session.h"
 #include "core/sessionlisting.h"
 #include "core/sessionplan.h"
@@ -154,6 +155,14 @@ constexpr float kFakeDspLoad = 0.05f;
 constexpr std::uint32_t kFakeChannels = 2;
 /// A sine's RMS as a share of its peak, one over root two.
 constexpr float kSineRmsOfPeak = 0.7071068f;
+/// The tone in a scope for a block a test has given a level to: left at the
+/// level, right at half of it.
+constexpr double kFakeScopeHz = 1000.0;
+/// What a scope shows of a block nobody has given a level: a note with an
+/// overtone, swelling slowly, so that the application's mock moves.
+constexpr double kFakeNoteHz = 165.0;
+constexpr double kFakeSwellHz = 0.4;
+constexpr float kFakeNotePeak = 0.55f;
 
 } // namespace
 
@@ -196,6 +205,12 @@ public:
         QHash<QString, QVariantList> blockValues;
         QString analysed;
         int analysedChannel = kBothChannels;
+        /// Who is being drawn, and what is written for them.
+        ScopeClaims scopes;
+        std::map<QString, rt::ScopeWriter> scopeWriters;
+        /// How much made-up sound has been written, and until when.
+        std::uint64_t scopeFrames = 0;
+        std::uint64_t scopeNanos = 0;
         /// The blocks held out of the sound.
         QSet<QString> heldOff;
         /// What each FIR Filter's file holds, read again only when the
@@ -252,6 +267,7 @@ public:
     /// The monotonic clock a snapshot is stamped with. The interface's peak
     /// hold is in wall-clock time, so the stamps have to move.
     QElapsedTimer clock;
+    std::chrono::nanoseconds scopeLease = TelemetrySampler::kScopeLease;
     std::uint64_t frame = 0;
 
     /// **A recordings index of the mock's own**, in a folder that goes
@@ -381,6 +397,86 @@ public:
         for (auto &entry : open) {
             if (entry.second.state == sessionState::running && !entry.second.frozen) {
                 publish(entry.second, true);
+            }
+        }
+    }
+
+    /// The made-up sound of \a block at frame \a frame: a pure tone for a
+    /// block with a level a test gave it, and otherwise a note to look at.
+    [[nodiscard]] static std::pair<float, float>
+    fakeSound(const Open &session, const QString &block, std::uint64_t frame)
+    {
+        const double seconds = static_cast<double>(frame) / kFakeSampleRate;
+        const double turn = 2.0 * std::numbers::pi * seconds;
+        if (session.levels.contains(block)) {
+            const auto tone = session.levels.value(block) * static_cast<float>(std::sin(turn * kFakeScopeHz));
+            return {tone, 0.5f * tone};
+        }
+        const auto swell = static_cast<float>(0.6 + 0.4 * std::sin(turn * kFakeSwellHz));
+        const auto note = static_cast<float>(std::sin(turn * kFakeNoteHz) + 0.3 * std::sin(turn * kFakeNoteHz * 3.0));
+        const auto later = static_cast<float>(std::sin(turn * kFakeNoteHz + 0.9));
+        return {kFakeNotePeak * swell * note, kFakeNotePeak * swell * later};
+    }
+
+    /// Writes what has gone by since the last time into the slots of the
+    /// blocks being drawn, as the real blocks do on the audio thread, and
+    /// says in \a snapshot which slot each has. Nothing while overloaded, as
+    /// a session that has given way runs no blocks.
+    void feedScopes(Open &session, TelemetrySnapshot &snapshot)
+    {
+        if (session.scopes.isIdle()) {
+            return;
+        }
+        session.scopes.expire(snapshot.nanos);
+        const auto hasBlock = [&session](const QString &id) {
+            return std::ranges::any_of(session.session.blocks,
+                                       [&id](const BlockInstance &block) { return block.id == id; });
+        };
+        std::vector<QString> leaving;
+        session.scopes.forEachGiven([&](const QString &blockId, int, rt::BlockMeter *) {
+            if (!session.scopes.isWanted(blockId) || !hasBlock(blockId)) {
+                leaving.push_back(blockId);
+            }
+        });
+        for (const QString &blockId : leaving) {
+            session.scopes.letGo(blockId);
+            session.scopeWriters.erase(blockId);
+        }
+        session.scopes.forEachWanted([&](const QString &blockId) {
+            if (session.scopes.slotOf(blockId) < 0 && hasBlock(blockId)) {
+                if (const int slot = session.scopes.give(blockId, nullptr); slot >= 0) {
+                    rt::claimScopeSlot(session.telemetry.scopes().slots[static_cast<std::size_t>(slot)]);
+                }
+            }
+        });
+
+        const std::uint64_t gone = snapshot.nanos - session.scopeNanos;
+        session.scopeNanos = snapshot.nanos;
+        // One tick's worth at most after a long gap: no scope reaches back
+        // far enough for the rest to matter.
+        const auto frames = static_cast<std::uint32_t>(
+            std::min<std::uint64_t>(gone * kFakeSampleRate / 1'000'000'000U, kFakeQuantum * 4U));
+        std::array<float, kFakeQuantum * 4U> left{};
+        std::array<float, kFakeQuantum * 4U> right{};
+        session.scopes.forEachGiven([&](const QString &blockId, int slot, rt::BlockMeter *) {
+            if (session.overloaded) {
+                return;
+            }
+            for (std::uint32_t frame = 0; frame < frames; ++frame) {
+                std::tie(left[frame], right[frame]) = fakeSound(session, blockId, session.scopeFrames + frame);
+            }
+            session.scopeWriters[blockId].write(session.telemetry.scopes().slots[static_cast<std::size_t>(slot)],
+                                                left.data(),
+                                                right.data(),
+                                                frames,
+                                                kFakeSampleRate);
+        });
+        session.scopeFrames += frames;
+
+        for (std::uint32_t index = 0; index < snapshot.blockCount; ++index) {
+            const BlockInstance &block = session.session.blocks.at(index);
+            if (const int slot = session.scopes.slotOf(block.id); slot >= 0) {
+                snapshot.blocks[index].scopeSlot = static_cast<std::int8_t>(slot);
             }
         }
     }
@@ -633,6 +729,9 @@ public:
                 }
             }
             ++snapshot.blockCount;
+        }
+        if (running) {
+            feedScopes(session, snapshot);
         }
         session.telemetry.slot().store(snapshot);
     }
@@ -1774,6 +1873,12 @@ const TelemetrySlot *MockEngine::telemetryOf(const QString &sessionId) const
     return found == d->open.end() ? nullptr : &found->second.telemetry.slot();
 }
 
+const rt::ScopePool *MockEngine::scopesOf(const QString &sessionId) const
+{
+    const auto found = d->open.find(sessionId);
+    return found == d->open.end() ? nullptr : &found->second.telemetry.scopes();
+}
+
 int MockEngine::shareTelemetry(const QString &sessionId) const
 {
     const auto found = d->open.find(sessionId);
@@ -1893,6 +1998,30 @@ void MockEngine::holdBlockOff(const QString &sessionId, const QString &blockId, 
     } else {
         session->heldOff.remove(blockId);
     }
+}
+
+void MockEngine::watchScope(const QString &sessionId, const QString &blockId)
+{
+    if (const auto found = d->open.find(sessionId); found != d->open.end() && !blockId.isEmpty()) {
+        found->second.scopes.renew(blockId,
+                                   static_cast<std::uint64_t>(d->clock.nsecsElapsed())
+                                       + static_cast<std::uint64_t>(d->scopeLease.count()));
+    }
+}
+
+QStringList MockEngine::scopesGiven(const QString &sessionId) const
+{
+    QStringList given;
+    if (const auto found = d->open.find(sessionId); found != d->open.end()) {
+        found->second.scopes.forEachGiven(
+            [&given](const QString &blockId, int, rt::BlockMeter *) { given.append(blockId); });
+    }
+    return given;
+}
+
+void MockEngine::setFakeScopeLease(int milliseconds)
+{
+    d->scopeLease = std::chrono::milliseconds{milliseconds};
 }
 
 void MockEngine::analyse(const QString &sessionId, const QString &blockId, int channel)

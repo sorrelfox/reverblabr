@@ -7,6 +7,7 @@
 
 #include "core/telemetry.h"
 
+#include "core/scopeclaims.h"
 #include "core/sessionruntime.h"
 #include "core/sharedtelemetry.h"
 #include "dsp/audioblock.h"
@@ -248,6 +249,81 @@ public:
     rt::BlockMeter *analysing = nullptr;
     BlockAnalysis analysis;
 
+    /// Whose sound goes into the scope pool.
+    ScopeClaims scopes;
+    std::chrono::milliseconds scopeLease = TelemetrySampler::kScopeLease;
+
+    /// Lets every block out of the pool, leaving what is wanted wanted.
+    /// **Before a runtime's meters go**: they hold addresses in this memory.
+    void letGoScopes(const std::vector<SessionRuntime::MeteredBlock> &metered)
+    {
+        std::vector<QString> given;
+        scopes.forEachGiven([&](const QString &blockId, int, rt::BlockMeter *) { given.push_back(blockId); });
+        for (const QString &blockId : given) {
+            rt::BlockMeter *const meter = scopes.meterOf(blockId);
+            const bool stillThere = std::ranges::any_of(
+                metered, [meter](const SessionRuntime::MeteredBlock &block) { return block.meter == meter; });
+            if (stillThere) {
+                meter->setScope(nullptr);
+            }
+            scopes.letGo(blockId);
+        }
+    }
+
+    /// Brings the pool up to date with who is wanted, and says in
+    /// \a snapshot which block has which slot. **One question a tick** for a
+    /// session that draws nothing.
+    void takeScopes(const std::vector<SessionRuntime::MeteredBlock> &metered, TelemetrySnapshot &snapshot)
+    {
+        if (scopes.isIdle()) {
+            return;
+        }
+        scopes.expire(snapshot.nanos);
+
+        const auto listed = [&metered](const QString &blockId) -> const SessionRuntime::MeteredBlock * {
+            const auto found = std::ranges::find(metered, blockId, &SessionRuntime::MeteredBlock::id);
+            return found == metered.end() ? nullptr : &*found;
+        };
+
+        // A block no longer wanted, gone, or made anew under the same id.
+        std::vector<QString> leaving;
+        scopes.forEachGiven([&](const QString &blockId, int, rt::BlockMeter *meter) {
+            const SessionRuntime::MeteredBlock *block = listed(blockId);
+            if (block == nullptr || block->meter != meter || !scopes.isWanted(blockId)) {
+                leaving.push_back(blockId);
+            }
+        });
+        for (const QString &blockId : leaving) {
+            rt::BlockMeter *const meter = scopes.meterOf(blockId);
+            if (const SessionRuntime::MeteredBlock *block = listed(blockId);
+                block != nullptr && block->meter == meter) {
+                meter->setScope(nullptr);
+            }
+            scopes.letGo(blockId);
+        }
+
+        scopes.forEachWanted([&](const QString &blockId) {
+            const SessionRuntime::MeteredBlock *block = listed(blockId);
+            if (block == nullptr || block->meter == nullptr || scopes.slotOf(blockId) >= 0) {
+                return;
+            }
+            if (const int slot = scopes.give(blockId, block->meter); slot >= 0) {
+                rt::ScopeSlot &into = published.scopes().slots[static_cast<std::size_t>(slot)];
+                rt::claimScopeSlot(into);
+                block->meter->setScope(&into);
+            }
+        });
+
+        // By the runtime's list and not by what the snapshot spells: an id
+        // there may have been cut, and the two are in the same order.
+        const std::uint32_t blocks = std::min<std::uint32_t>(snapshot.blockCount, kMaxMeteredBlocks);
+        for (std::uint32_t index = 0; index < blocks && index < metered.size(); ++index) {
+            if (const int slot = scopes.slotOf(metered[index].id); slot >= 0) {
+                snapshot.blocks[index].scopeSlot = static_cast<std::int8_t>(slot);
+            }
+        }
+    }
+
     /// Stops copying out whatever is being copied, if the runtime still
     /// has it.
     void stopAnalysing(const std::vector<SessionRuntime::MeteredBlock> &metered)
@@ -328,14 +404,21 @@ TelemetrySampler::TelemetrySampler(QObject *parent)
     connect(&d->timer, &QTimer::timeout, this, &TelemetrySampler::sample);
 }
 
-TelemetrySampler::~TelemetrySampler() = default;
+TelemetrySampler::~TelemetrySampler()
+{
+    if (d->runtime != nullptr) {
+        d->letGoScopes(d->runtime->meters());
+    }
+}
 
 void TelemetrySampler::watch(SessionRuntime *runtime)
 {
     // **Stop copying out of the runtime being left**, while it can still be
     // asked which meters it has.
     if (d->runtime != nullptr && runtime != d->runtime) {
-        d->stopAnalysing(d->runtime->meters());
+        const std::vector<SessionRuntime::MeteredBlock> metered = d->runtime->meters();
+        d->stopAnalysing(metered);
+        d->letGoScopes(metered);
     }
     d->analysing = nullptr;
     d->analysis.follow(nullptr, 0.0);
@@ -362,6 +445,20 @@ int TelemetrySampler::analysedChannel() const
     return d->analysedChannel;
 }
 
+void TelemetrySampler::watchScope(const QString &blockId)
+{
+    if (blockId.isEmpty()) {
+        return;
+    }
+    const auto lease = std::chrono::duration_cast<std::chrono::nanoseconds>(d->scopeLease);
+    d->scopes.renew(blockId, rt::monotonicNanos() + static_cast<std::uint64_t>(lease.count()));
+}
+
+void TelemetrySampler::setScopeLease(std::chrono::milliseconds lease)
+{
+    d->scopeLease = lease;
+}
+
 void TelemetrySampler::start()
 {
     d->timer.start();
@@ -383,6 +480,11 @@ bool TelemetrySampler::isRunning() const
 const TelemetrySlot &TelemetrySampler::slot() const
 {
     return d->slot;
+}
+
+const rt::ScopePool &TelemetrySampler::scopes() const
+{
+    return d->published.scopes();
 }
 
 int TelemetrySampler::shareReadOnly() const
@@ -458,6 +560,7 @@ void TelemetrySampler::sample()
     std::erase_if(d->held, [](const std::pair<const QString, HeldLevels> &entry) { return !entry.second.seen; });
 
     d->takeSpectrum(metered, snapshot.sampleRate, snapshot);
+    d->takeScopes(metered, snapshot);
 
     d->slot.store(snapshot);
 }

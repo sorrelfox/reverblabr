@@ -820,6 +820,12 @@ const TelemetrySlot *Engine::telemetryOf(const QString &sessionId) const
     return session == nullptr ? nullptr : &session->telemetry->slot();
 }
 
+const rt::ScopePool *Engine::scopesOf(const QString &sessionId) const
+{
+    Private::Open *session = d->find(sessionId);
+    return session == nullptr ? nullptr : &session->telemetry->scopes();
+}
+
 int Engine::shareTelemetry(const QString &sessionId) const
 {
     Private::Open *session = d->find(sessionId);
@@ -1486,6 +1492,15 @@ void Engine::analyse(const QString &sessionId, const QString &blockId, int chann
     Private::Open *session = d->require(sessionId);
     if (session != nullptr) {
         session->telemetry->analyse(blockId, channel);
+    }
+}
+
+void Engine::watchScope(const QString &sessionId, const QString &blockId)
+{
+    // Not require(): a window may still be renewing a session just closed,
+    // and that is nobody's mistake.
+    if (Private::Open *session = d->find(sessionId); session != nullptr) {
+        session->telemetry->watchScope(blockId);
     }
 }
 

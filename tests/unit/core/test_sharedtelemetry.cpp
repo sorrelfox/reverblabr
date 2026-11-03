@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <gtest/gtest.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <array>
@@ -30,6 +31,7 @@
 
 using namespace rb::core;
 using namespace Qt::StringLiterals;
+namespace rt = rb::rt;
 
 namespace
 {
@@ -108,6 +110,45 @@ TEST(SharedTelemetry, WhatIsPublishedIsReadThroughTheSharedDescriptor)
     engine->writableSlot()->store(snapshotOf(8, 0.75f));
     EXPECT_EQ(window->slot().load().frame, 8U);
     EXPECT_FLOAT_EQ(window->slot().load().blocks[0].peak[0], 0.75f);
+}
+
+TEST(SharedTelemetry, ASessionThatDrawsNoSoundSpendsNothingOnThePool)
+{
+    auto engine = SharedTelemetry::create();
+    ASSERT_TRUE(engine.has_value());
+    const int fd = engine->shareReadOnly();
+    ASSERT_GE(fd, 0);
+    struct stat before{};
+    ASSERT_EQ(::fstat(fd, &before), 0);
+    EXPECT_LT(before.st_blocks * 512, 64 * 1024) << "making the region wrote the pool";
+
+    rt::claimScopeSlot(engine->writableScopes()->slots[3]);
+    struct stat after{};
+    ASSERT_EQ(::fstat(fd, &after), 0);
+    EXPECT_GE(after.st_blocks * 512, static_cast<off_t>(sizeof(rt::ScopeSlot)) - 8192)
+        << "a slot given out must be in memory before the audio thread touches it";
+    ::close(fd);
+}
+
+TEST(SharedTelemetry, WhatABlockDrawsIsReadThroughAWindowsReadOnlyMapping)
+{
+    auto engine = SharedTelemetry::create();
+    ASSERT_TRUE(engine.has_value());
+    auto window = SharedTelemetry::map(engine->shareReadOnly());
+    ASSERT_TRUE(window.has_value());
+
+    EXPECT_EQ(window->writableScopes(), nullptr);
+    rt::ScopeSlot &slot = engine->writableScopes()->slots[5];
+    rt::claimScopeSlot(slot);
+    rt::ScopeWriter writer;
+    const std::array<float, 4> left{0.1f, 0.2f, 0.3f, 0.4f};
+    writer.write(slot, left.data(), nullptr, 4, 48000);
+
+    std::array<rt::ScopePoint, 8> room{};
+    const rt::ScopeRead read = rt::readScope(window->scopes().slots[5], 0, room);
+    ASSERT_EQ(read.points, 4U);
+    EXPECT_EQ(read.sampleRate, 48000U);
+    EXPECT_EQ(room[3].low[rt::ScopeLeft], 0.4f);
 }
 
 TEST(SharedTelemetry, AWindowCanNeitherWriteTheMemoryNorBeHandedAWayTo)

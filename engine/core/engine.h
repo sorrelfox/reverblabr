@@ -112,6 +112,10 @@ public:
     /// long as the session is open and reads as silence while it is idle.
     [[nodiscard]] const TelemetrySlot *telemetryOf(const QString &sessionId) const;
 
+    /// Where \a sessionId's blocks being drawn write their sound, in the same
+    /// memory as telemetryOf(), or nullptr when no such session is open.
+    [[nodiscard]] const rt::ScopePool *scopesOf(const QString &sessionId) const;
+
     /// **The same slot for a window in another process** (ADR-0018): a new
     /// read-only descriptor for the shared memory it lives in, which the
     /// caller owns and hands on. -1 when no such session is open, or when
@@ -162,6 +166,7 @@ public Q_SLOTS:
     void loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId) override;
     void savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name) override;
     void analyse(const QString &sessionId, const QString &blockId, int channel) override;
+    void watchScope(const QString &sessionId, const QString &blockId) override;
     void holdBlockOff(const QString &sessionId, const QString &blockId, bool held) override;
     void start(const QString &sessionId) override;
     void stop(const QString &sessionId) override;

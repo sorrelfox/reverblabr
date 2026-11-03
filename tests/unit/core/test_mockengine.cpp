@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -1031,4 +1032,63 @@ TEST(MockEngineTest, ListsPluginsAndSaysARescanStartsAndEnds)
         QJsonDocument::fromJson(changed.back().at(0).toString().toUtf8()).object().value("scanning"_L1).toBool());
     EXPECT_EQ(engine.fakeRescans(), 1);
     EXPECT_TRUE(engine.fakeLastRescanRetried());
+}
+
+TEST(MockEngineTest, ABlockBeingDrawnHasASlotAndItsMadeUpSoundForAsLongAsSomebodyAsks)
+{
+    int argc = 0;
+    std::array<char *, 1> argv{nullptr};
+    const QCoreApplication application(argc, argv.data());
+    MockEngine engine;
+    QSignalSpy opened(&engine, &EngineFacade::sessionOpened);
+    engine.createSession(u"Scopes"_s);
+    const QString id = opened.back().at(0).toString();
+    engine.applyEdit(id, addBlockEdit(u"scope"_s, u"meter.peakrms"_s));
+    engine.setFakeLevel(id, u"scope"_s, 0.5);
+    engine.setFakeScopeLease(200);
+
+    const TelemetrySlot *slot = engine.telemetryOf(id);
+    const rb::rt::ScopePool *pool = engine.scopesOf(id);
+    ASSERT_NE(slot, nullptr);
+    ASSERT_NE(pool, nullptr);
+    engine.start(id);
+
+    const auto blockSlot = [&] {
+        const TelemetrySnapshot snapshot = slot->load();
+        return snapshot.blockCount > 0 ? static_cast<int>(snapshot.blocks[0].scopeSlot) : -1;
+    };
+    const auto waitFor = [&](const std::function<bool()> &done) {
+        QElapsedTimer timer;
+        timer.start();
+        while (!done() && timer.elapsed() < 3000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+        }
+        return done();
+    };
+    ASSERT_TRUE(waitFor([&] { return slot->load().running; }));
+    EXPECT_EQ(blockSlot(), -1) << "nobody has asked";
+    EXPECT_TRUE(engine.scopesGiven(id).isEmpty());
+
+    engine.watchScope(id, u"nobody here"_s);
+    engine.watchScope(id, u"scope"_s);
+    ASSERT_TRUE(waitFor([&] { return blockSlot() >= 0; }));
+    EXPECT_EQ(engine.scopesGiven(id), QStringList{u"scope"_s}) << "a block the session does not have takes up no slot";
+
+    std::vector<rb::rt::ScopePoint> points(rb::rt::kScopePoints);
+    const rb::rt::ScopeSlot &scope = pool->slots[static_cast<std::size_t>(blockSlot())];
+    ASSERT_TRUE(waitFor([&] { return rb::rt::readScope(scope, 0, points).points > 2000; }));
+    const rb::rt::ScopeRead read = rb::rt::readScope(scope, 0, points);
+    EXPECT_EQ(read.sampleRate, 48000U);
+    float left = 0.0f;
+    float right = 0.0f;
+    for (std::size_t point = 0; point < read.points; ++point) {
+        left = std::max(left, points[point].high[rb::rt::ScopeLeft]);
+        right = std::max(right, points[point].high[rb::rt::ScopeRight]);
+    }
+    EXPECT_NEAR(left, 0.5f, 0.01f);
+    EXPECT_NEAR(right, 0.25f, 0.01f) << "two sides, each its own";
+
+    ASSERT_TRUE(waitFor([&] { return blockSlot() == -1; })) << "a lease nobody renews runs out";
+    EXPECT_TRUE(engine.scopesGiven(id).isEmpty());
+    engine.stop(id);
 }

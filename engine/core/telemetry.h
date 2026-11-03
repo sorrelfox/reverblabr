@@ -71,6 +71,9 @@ struct BlockTelemetry {
     /// Whether there was a signal on any channel: what the wires and the
     /// state dots go by.
     bool active = false;
+    /// **Which of the session's scope slots holds this block's sound**, or
+    /// -1 for none: nobody is drawing it, or there is no slot left.
+    std::int8_t scopeSlot = -1;
     /// How late the block makes the sound, in samples at the snapshot's
     /// rate. Nought for nearly every block.
     std::uint32_t latencySamples = 0;
@@ -265,6 +268,22 @@ public:
     [[nodiscard]] QString analysed() const;
     [[nodiscard]] int analysedChannel() const;
 
+    /// **Keeps \a blockId's sound coming into a scope slot for a little while
+    /// longer**: the session's scope pool, for a block that writes to one
+    /// (rt::BlockMeter::feedScope()). Any number of blocks, up to
+    /// rt::kScopeSlots. A surface says this about once a second for as long
+    /// as it is showing, so that a window that crashes lets go as surely as
+    /// one that closes, and two windows need nothing between them. What slot
+    /// a block has is in its BlockTelemetry.
+    void watchScope(const QString &blockId);
+    /// How long watchScope() lasts: kScopeLease, unless a test has no time
+    /// for that.
+    void setScopeLease(std::chrono::milliseconds lease);
+
+    /// How long a surface's word lasts, and how often it has to say it.
+    static constexpr std::chrono::milliseconds kScopeLease{3000};
+    static constexpr std::chrono::milliseconds kScopeRenewal{1000};
+
     /// Starts and stops the timer. A sampler with nothing to watch publishes
     /// one empty snapshot and then stops on its own.
     void start();
@@ -279,6 +298,10 @@ public:
     /// Where the snapshots are published. The interface keeps a pointer to
     /// this and reads it on its own frame tick.
     [[nodiscard]] const TelemetrySlot &slot() const;
+
+    /// **Where the blocks being drawn write their sound**, beside the slot
+    /// and in the same memory (ADR-0018).
+    [[nodiscard]] const rt::ScopePool &scopes() const;
 
     /// **The same slot, for a window in another process** (ADR-0018): a new
     /// descriptor, read-only, for the shared memory slot() lives in. The

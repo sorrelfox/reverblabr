@@ -153,6 +153,10 @@ public:
     /// exactly as the real engine's telemetryOf() is.
     [[nodiscard]] const TelemetrySlot *telemetryOf(const QString &sessionId) const;
 
+    /// Where its made-up sound is written for surfaces that draw it, as the
+    /// real engine's scopesOf(), or nullptr.
+    [[nodiscard]] const rt::ScopePool *scopesOf(const QString &sessionId) const;
+
     /// The same slot for a window in another process, as the real engine's
     /// shareTelemetry() (ADR-0018): a read-only descriptor the caller owns,
     /// or -1.
@@ -200,6 +204,12 @@ public:
     /// test can give sessions a load, late cycles and a real-time answer,
     /// and the graph some nodes and links. An empty string takes it off.
     Q_INVOKABLE void setFakeDiagnostics(const QString &diagnosticsJson);
+    /// Which blocks a surface is drawing now: those with a slot, for a test
+    /// to see that one asked and that it let go.
+    [[nodiscard]] Q_INVOKABLE QStringList scopesGiven(const QString &sessionId) const;
+    /// How long a surface's word lasts here. For a test with no three
+    /// seconds to spare.
+    Q_INVOKABLE void setFakeScopeLease(int milliseconds);
     /// Which block's spectrum was last asked for, for a test to see that a
     /// panel asked, and that it let go when it closed.
     [[nodiscard]] Q_INVOKABLE QString analysed(const QString &sessionId) const;
@@ -314,6 +324,7 @@ public Q_SLOTS:
     void loadPluginPreset(const QString &sessionId, const QString &blockId, const QString &presetId) override;
     void savePluginPreset(const QString &sessionId, const QString &blockId, const QString &name) override;
     void analyse(const QString &sessionId, const QString &blockId, int channel) override;
+    void watchScope(const QString &sessionId, const QString &blockId) override;
     void holdBlockOff(const QString &sessionId, const QString &blockId, bool held) override;
     void start(const QString &sessionId) override;
     void stop(const QString &sessionId) override;

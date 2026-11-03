@@ -721,6 +721,50 @@ TEST_F(EngineBus, AWindowOnTheDaemonReadsTheAnalysedBlocksBandValuesAndSoundBefo
     remote->stop(sessionId);
 }
 
+TEST_F(EngineBus, AWindowOnTheDaemonReadsTheSoundOfABlockItIsDrawing)
+{
+    // Across the bus and through a read-only mapping: asked for by name, and
+    // read straight out of the memory the block writes. The mock, as above.
+    core::MockEngine engine;
+    bus::EngineService service(&engine, open(u"service"_s));
+    service.setTelemetry([&](const QString &sessionId) { return engine.shareTelemetry(sessionId); });
+    ASSERT_TRUE(service.publish());
+    bus::RemoteEngine *remote = window(u"window"_s);
+    QSignalSpy opened(remote, &core::EngineFacade::sessionOpened);
+    QSignalSpy moved(remote, &bus::RemoteEngine::telemetryChanged);
+    remote->createSession(u"Scopes"_s);
+    ASSERT_TRUE(waitFor([&] { return opened.count() > 0; }));
+    const QString sessionId = opened.at(0).at(0).toString();
+    engine.applyEdit(sessionId, uR"({"op":"addBlock","block":{"id":"scope","type":"meter.peakrms","pos":[0,0]}})"_s);
+    engine.setFakeLevel(sessionId, u"scope"_s, 0.5);
+    (void)remote->telemetryOf(sessionId);
+    EXPECT_EQ(remote->scopesOf(sessionId), nullptr) << "nothing is mapped yet";
+    ASSERT_TRUE(waitFor([&] { return moved.count() > 0; })) << "the memory was never mapped";
+    const core::TelemetrySlot *slot = remote->telemetryOf(sessionId);
+    const rt::ScopePool *pool = remote->scopesOf(sessionId);
+    ASSERT_NE(slot, nullptr);
+    ASSERT_NE(pool, nullptr);
+
+    remote->start(sessionId);
+    remote->watchScope(sessionId, u"scope"_s);
+    ASSERT_TRUE(waitFor([&] {
+        const core::TelemetrySnapshot snapshot = slot->load();
+        return snapshot.running && snapshot.blockCount > 0 && snapshot.blocks[0].scopeSlot >= 0;
+    })) << "the block never got a slot";
+
+    std::vector<rt::ScopePoint> points(rt::kScopePoints);
+    const rt::ScopeSlot &scope = pool->slots[static_cast<std::size_t>(slot->load().blocks[0].scopeSlot)];
+    ASSERT_TRUE(waitFor([&] { return rt::readScope(scope, 0, points).points > 1000; }))
+        << "no sound reached the window";
+    const rt::ScopeRead read = rt::readScope(scope, 0, points);
+    float highest = 0.0f;
+    for (std::size_t point = 0; point < read.points; ++point) {
+        highest = std::max(highest, points[point].high[rt::ScopeLeft]);
+    }
+    EXPECT_NEAR(highest, 0.5f, 0.02f);
+    remote->stop(sessionId);
+}
+
 TEST_F(EngineBus, TheWindowReadsTheDaemonsLevelsWithNoMessageAFrame)
 {
     // **The mock daemon publishes sixty snapshots a second** while a

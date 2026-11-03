@@ -9,6 +9,7 @@
 
 #include "rt/audiotap.h"
 #include "rt/realtime.h"
+#include "rt/scope.h"
 #include "rt/seqlock.h"
 
 #include <array>
@@ -335,6 +336,50 @@ public:
     static constexpr std::uint32_t kAnalysisChannels = 2;
     static constexpr std::size_t kAnalysisFrames = 1 << 16;
 
+    /// **Gives the block a slot to draw into, or takes it away** with null.
+    /// Engine thread. Waits out a write that may still be going on, so that
+    /// when it returns the slot can be given to another block. That is as
+    /// long as one cycle's copy, and it happens only as a surface comes or
+    /// goes.
+    void setScope(ScopeSlot *slot) noexcept
+    {
+        m_scope.store(slot, std::memory_order_seq_cst);
+        // As in ChannelMeter::take(): a write that started before the store
+        // is done once the count has moved on from an odd number, and one
+        // that starts after it sees the new slot.
+        const std::uint32_t busy = m_scopeBusy.load(std::memory_order_seq_cst);
+        if ((busy & 1U) != 0) {
+            while (m_scopeBusy.load(std::memory_order_acquire) == busy) { }
+        }
+    }
+
+    [[nodiscard]] ScopeSlot *scope() const noexcept
+    {
+        return m_scope.load(std::memory_order_acquire);
+    }
+
+    /// **Hands one cycle of sound to whoever is drawing this block**, for a
+    /// block that has a surface of its own. Real-time. While nobody is, this
+    /// is one relaxed read: a block that calls it every cycle costs nothing
+    /// to speak of, and a block that doesn't costs nothing at all, which is
+    /// why it is not done for every block where the graph meters them.
+    void feedScope(ScopeWriter &writer,
+                   const float *left,
+                   const float *right,
+                   std::uint32_t frames,
+                   std::uint32_t sampleRate) noexcept RB_NONBLOCKING
+    {
+        if (m_scope.load(std::memory_order_relaxed) == nullptr) {
+            return;
+        }
+        m_scopeBusy.fetch_add(1, std::memory_order_seq_cst);
+        // Looked at again now that setScope() can see this write.
+        if (ScopeSlot *slot = m_scope.load(std::memory_order_seq_cst); slot != nullptr) {
+            writer.write(*slot, left, right, frames, sampleRate);
+        }
+        m_scopeBusy.fetch_add(1, std::memory_order_release);
+    }
+
     /// Forgets everything, for a block that has just been connected or
     /// switched off.
     void clear() noexcept
@@ -355,6 +400,9 @@ private:
     std::unique_ptr<AudioTap> m_inputAnalysis;
     SeqlockValue<BandValues> m_bands;
     std::atomic<bool> m_analysing{false};
+    std::atomic<ScopeSlot *> m_scope{nullptr};
+    /// Odd while the audio thread is inside feedScope().
+    std::atomic<std::uint32_t> m_scopeBusy{0};
 };
 
 } // namespace rb::rt

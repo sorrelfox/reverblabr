@@ -167,6 +167,13 @@ public Q_SLOTS:
     /// a block that works on one ear. Not answered: they arrive with the
     /// meters, and a block that is not running has none.
     virtual void analyse(const QString &sessionId, const QString &blockId, int channel) = 0;
+    /// **Keeps \a blockId's sound coming into the session's scope pool** for
+    /// the next three seconds (ADR-0018). A surface drawing a block says this
+    /// about once a second for as long as it is showing, and just stops when
+    /// it is done; nothing is written for a block nobody has asked about
+    /// lately. Not answered: the sound arrives in the shared memory, and the
+    /// block's telemetry says which slot it is in.
+    virtual void watchScope(const QString &sessionId, const QString &blockId) = 0;
     /// **Takes a block out of the sound while something is compared, or puts
     /// it back.** Not an edit: no undo step, no patch, nothing to save, and
     /// the session goes on saying the block is on. The change fades over the

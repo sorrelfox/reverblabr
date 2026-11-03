@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <cstdlib>
 #include <new>
 #include <string>
 #include <utility>
@@ -103,8 +104,21 @@ PublishedSlot::PublishedSlot()
     if (auto created = SharedTelemetry::create(); created) {
         m_shared.emplace(std::move(*created));
     } else {
-        m_own = std::make_unique<TelemetrySlot>();
+        // Mapped rather than allocated, so that this too reads as zeroes and
+        // costs nothing for the scope pool until it is used.
+        void *memory =
+            ::mmap(nullptr, sizeof(TelemetryRegion), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (memory == MAP_FAILED) {
+            std::abort();
+        }
+        m_own.reset(new (memory) TelemetryRegion);
     }
+}
+
+void PublishedSlot::Unmap::operator()(TelemetryRegion *region) const noexcept
+{
+    region->~TelemetryRegion();
+    ::munmap(region, sizeof(TelemetryRegion));
 }
 
 int SharedTelemetry::shareReadOnly() const

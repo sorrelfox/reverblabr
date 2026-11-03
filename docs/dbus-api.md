@@ -145,6 +145,7 @@ The released surface is written down line by line in [`dbus/io.github.reverblabr
 | `LoadPluginPreset(s sessionId, s blockId, s presetId)` | puts one of them on the block, as one edit to undo | `SessionPatch` for each value it changed, then `PluginPresetShown` |
 | `SavePluginPreset(s sessionId, s blockId, s name)` | keeps the plugin's settings as a preset of its format, where its other hosts find it (an LV2 plugin's in `~/.lv2`, a VST3 plugin's in `~/.vst3/presets`); a CLAP plugin's go with the application's own, through `SavePreset` | `PluginPresetsListed`, or `plugin.presetRefused` |
 | `Analyse(s sessionId, s blockId, i channel)` | takes one block's live spectra into the session's levels (for the window's curves; an empty `blockId` stops) | not answered: the spectra travel with the levels |
+| `WatchScope(s sessionId, s blockId)` | keeps one block's sound coming into the session's scope pool for the next three seconds. A client drawing a block says this about once a second for as long as it is showing, and just stops when it is done. The block's telemetry says which slot it is in | not answered: the sound is in the shared memory |
 | `HoldBlockOff(s sessionId, s blockId, b held)` | takes a block out of the sound for a comparison, or puts it back: not an edit, so no undo step, no patch and nothing to save. It ends when the session stops or the client leaves the bus | not answered |
 
 ### What is out there
@@ -316,6 +317,7 @@ Every action a person takes on the engine from the window is one of these calls.
 | Restarting a plugin | `RestartPlugin` |
 | A plugin's own window, and its own presets | `SetPluginWindow`, `ListPluginPresets`, `LoadPluginPreset`, `SavePluginPreset`; a control moved in the window arrives as `SessionPatch`, and a whole drag of it is one `Undo` |
 | A curve with the sound drawn behind it | `Analyse` |
+| A block's sound drawn as it passes | `WatchScope` |
 | The block library | `GetBlockCatalogue` |
 | The application and device pickers | `GetInventory` |
 | The audio system in the status bar, and Retry | `GetAudioSystem`, `ReconnectAudioSystem` |

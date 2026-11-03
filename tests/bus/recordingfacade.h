@@ -142,6 +142,10 @@ public:
     {
         record("analyse", {sessionId, blockId, channel});
     }
+    void watchScope(const QString &sessionId, const QString &blockId) override
+    {
+        record("watchScope", {sessionId, blockId});
+    }
     void holdBlockOff(const QString &sessionId, const QString &blockId, bool held) override
     {
         record("holdBlockOff", {sessionId, blockId, held});

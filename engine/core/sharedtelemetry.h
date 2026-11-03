@@ -28,8 +28,10 @@ namespace rb::core
 /// - 3: 128 band values rather than 64, for the 64-band block's gains and
 ///   levels.
 /// - 4: whether the session has given way to overload.
+/// - 5: a pool of scope slots after the snapshot, and which slot each block
+///   has.
 inline constexpr std::uint32_t kTelemetryMagic = 0x4c544252;
-inline constexpr std::uint32_t kTelemetryVersion = 4;
+inline constexpr std::uint32_t kTelemetryVersion = 5;
 
 /// **A fingerprint of the snapshot's layout**: its size, its blocks' size
 /// and every bound that shapes it. Two builds that would read the same
@@ -46,7 +48,14 @@ inline constexpr std::uint32_t kTelemetryVersion = 4;
         offsetof(TelemetrySnapshot, analysedId),
         offsetof(TelemetrySnapshot, inputSpectrum),
         offsetof(TelemetrySnapshot, bandValues),
+        offsetof(BlockTelemetry, scopeSlot),
         sizeof(TelemetrySlot),
+        sizeof(rt::ScopePool),
+        rt::kScopeSlots,
+        rt::kScopeLevels,
+        rt::kScopeLevelStep,
+        rt::kScopePoints,
+        rt::kScopeTraces,
         kMaxMeteredBlocks,
         kMaxTelemetryIdBytes,
         kSpectrumBands,
@@ -68,12 +77,18 @@ inline constexpr std::uint32_t kTelemetryVersion = 4;
 /// sequence number and an array of 32-bit words, every one a lock-free
 /// atomic, so it means the same thing mapped into two processes at two
 /// addresses. The header in front says what it is.
+///
+/// **The scope pool follows it, and is left out of construction on purpose.**
+/// It has no initialiser, so making a region writes none of it, and a memfd
+/// spends no memory on a page until it is written: the pool is sixteen
+/// megabytes on paper and nothing at all in a session that draws no sound.
 struct TelemetryRegion {
     std::uint32_t magic = kTelemetryMagic;
     std::uint32_t version = kTelemetryVersion;
     std::uint64_t layout = telemetryLayout();
 
     alignas(64) TelemetrySlot slot;
+    rt::ScopePool scopes;
 
     static_assert(std::atomic<std::uint32_t>::is_always_lock_free, "shared between processes, so never a lock");
 };
@@ -119,6 +134,17 @@ public:
         return m_fd >= 0 ? &m_region->slot : nullptr;
     }
 
+    [[nodiscard]] const rt::ScopePool &scopes() const noexcept
+    {
+        return m_region->scopes;
+    }
+
+    /// The scope pool to write into, or null for a window's mapping.
+    [[nodiscard]] rt::ScopePool *writableScopes() noexcept
+    {
+        return m_fd >= 0 ? &m_region->scopes : nullptr;
+    }
+
     /// **A new descriptor for the same memory, opened read-only**, for
     /// handing to a window: it can map the region but never write it. The
     /// caller owns it. -1 for a window's mapping, which has no descriptor,
@@ -149,12 +175,22 @@ public:
 
     [[nodiscard]] TelemetrySlot &slot() noexcept
     {
-        return m_shared ? *m_shared->writableSlot() : *m_own;
+        return m_shared ? *m_shared->writableSlot() : m_own->slot;
     }
 
     [[nodiscard]] const TelemetrySlot &slot() const noexcept
     {
-        return m_shared ? m_shared->slot() : *m_own;
+        return m_shared ? m_shared->slot() : m_own->slot;
+    }
+
+    [[nodiscard]] rt::ScopePool &scopes() noexcept
+    {
+        return m_shared ? *m_shared->writableScopes() : m_own->scopes;
+    }
+
+    [[nodiscard]] const rt::ScopePool &scopes() const noexcept
+    {
+        return m_shared ? m_shared->scopes() : m_own->scopes;
     }
 
     /// A read-only descriptor for it, for a window in another process; the
@@ -165,8 +201,13 @@ public:
     }
 
 private:
+    /// Lets go of a region of this process's own.
+    struct Unmap {
+        void operator()(TelemetryRegion *region) const noexcept;
+    };
+
     std::optional<SharedTelemetry> m_shared;
-    std::unique_ptr<TelemetrySlot> m_own;
+    std::unique_ptr<TelemetryRegion, Unmap> m_own;
 };
 
 } // namespace rb::core
