@@ -11,6 +11,7 @@
 // in blocks.WaveformMeter, app.ScopeView and app.ScopeItem.
 
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick.Window
 import QtTest
 import io.github.reverblabr
@@ -363,6 +364,44 @@ TestCase {
                 anchors.fill: parent
             }
         }
+    }
+
+    Component {
+        id: shortCanvas
+
+        Window {
+            property alias canvas: inner
+
+            width: 1100
+            height: 300
+            visible: true
+
+            SessionCanvas {
+                id: inner
+
+                anchors.fill: parent
+            }
+        }
+    }
+
+    function test_aCardShorterThanItsSettingsScrollsTheFirstTimeItOpens() {
+        // **The view scrolls through what it is told it holds**, and it was
+        // told the height of the empty card it had been before its block:
+        // in a window too short for the card, the first Waveform card to
+        // open showed no scroll bar, and the settings below its picture
+        // could not be reached until something made the card grow.
+        const window = createTemporaryObject(shortCanvas, null);
+        tryVerify(() => window.canvas.mainWindowShowing, 2000, "the canvas's window is not showing");
+        const canvas = window.canvas;
+        const block = canvas.addBlockAt("meter.waveform", 300, 100);
+        canvas.openSettings(block);
+        const panel = canvas.settings;
+        tryVerify(() => panel.body.item !== null && panel.body.item.blockId === block, 2000);
+        const view = panel.bodyView;
+        tryVerify(() => view.contentHeight > view.height, 2000, "the card is not shorter than its settings");
+        tryCompare(view.contentItem, "contentHeight", view.contentHeight, 2000, "the view scrolls through less");
+        verify(view.QQC2.ScrollBar.vertical.size < 1, "no scroll bar says there is more");
+        SessionModel.removeBlocks([block]);
     }
 
     function test_aCardOutsideTheMainWindowKeepsDrawingBesideItsTile() {

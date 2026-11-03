@@ -515,6 +515,28 @@ Primitives.ShadowedRectangle {
             // scroll bar, shown whenever there is more, began to say so).
             contentHeight: body.implicitHeight
 
+            // **And its Flickable holds to it.** Given a block, the scroll view
+            // passes the new height on and then puts the empty card's back,
+            // so the first card to open in a window too short for it scrolled
+            // through only that much: no scroll bar, and nothing below the
+            // first rows within reach.
+            onContentHeightChanged: Qt.callLater(bodyView.holdContentHeight)
+
+            function holdContentHeight() {
+                const flickable = bodyView.contentItem as Flickable;
+                if (flickable !== null && flickable.contentHeight !== bodyView.contentHeight) {
+                    flickable.contentHeight = bodyView.contentHeight;
+                }
+            }
+
+            Connections {
+                target: bodyView.contentItem as Flickable
+
+                function onContentHeightChanged() {
+                    Qt.callLater(bodyView.holdContentHeight);
+                }
+            }
+
             Loader {
                 id: body
 
