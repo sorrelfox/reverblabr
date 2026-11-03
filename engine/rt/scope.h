@@ -334,6 +334,9 @@ inline void claimScopeSlot(ScopeSlot &slot) noexcept
         for (std::size_t point = 0; point < kScopePoints; point += kPointsPerPage) {
             scopeword::store(ring.points[point].low[0], 0.0f, std::memory_order_relaxed);
         }
+        // A slot starts part of the way into a page, so the last points are
+        // on a page the steps above went past.
+        scopeword::store(ring.points[kScopePoints - 1].low[0], 0.0f, std::memory_order_relaxed);
     }
     scopeword::store(slot.generation, generation + 2, std::memory_order_release);
 }

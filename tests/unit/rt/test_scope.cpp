@@ -14,6 +14,8 @@
 #include "rt/scope.h"
 
 #include <gtest/gtest.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <array>
@@ -229,6 +231,29 @@ TEST(Scope, ASlotGivenOutAgainStartsClean)
     writer.write(slot, left.data(), nullptr, 4, 48000);
     EXPECT_EQ(newest(slot, 0, 16).size(), 4U);
     EXPECT_TRUE(newest(slot, 1, 16).empty());
+}
+
+TEST(Scope, GivingOutASlotTouchesEveryPageWhereverTheSlotStarts)
+{
+    // A slot starts wherever the snapshot before it ended, so a ring's last
+    // points can lie on a page of their own, and the audio thread reaches
+    // them only after a quarter of an hour.
+    const auto page = static_cast<std::size_t>(::sysconf(_SC_PAGESIZE));
+    const std::size_t pages = sizeof(ScopeSlot) / page + 3;
+    for (const std::size_t offset : {std::size_t{0}, std::size_t{64}, std::size_t{320}, page / 2, page - 64}) {
+        void *memory = ::mmap(nullptr, pages * page, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        ASSERT_NE(memory, MAP_FAILED);
+        auto *slot = reinterpret_cast<ScopeSlot *>(static_cast<char *>(memory) + offset);
+        claimScopeSlot(*slot);
+
+        std::vector<unsigned char> resident(pages);
+        ASSERT_EQ(::mincore(memory, pages * page, resident.data()), 0);
+        const std::size_t lastPage = (offset + sizeof(ScopeSlot) - 1) / page;
+        for (std::size_t index = 0; index <= lastPage; ++index) {
+            EXPECT_NE(resident[index] & 1U, 0U) << "page " << index << " at offset " << offset;
+        }
+        ::munmap(memory, pages * page);
+    }
 }
 
 TEST(Scope, ABlockMadeAnewGoesOnFromWhereTheRingsHaveGot)
