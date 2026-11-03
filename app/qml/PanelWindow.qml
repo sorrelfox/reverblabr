@@ -47,6 +47,9 @@ Window {
     /// How far the window sits from that screen's work area.
     readonly property int leftEdge: Math.round((surface.panel?.outsideLeft ?? 0) - surface.inset)
     readonly property int topEdge: Math.round((surface.panel?.outsideTop ?? 0) - surface.inset)
+    /// Room for the card, whatever its size is by now.
+    readonly property int wantedWidth: (surface.panel?.width ?? 0) + surface.inset * 2
+    readonly property int wantedHeight: (surface.panel?.height ?? 0) + surface.inset * 2
     /// Where the panel goes.
     readonly property alias holder: holder
     readonly property alias watch: watch
@@ -64,12 +67,25 @@ Window {
         }
     }
 
+    /// **The desktop's answer can overtake a newer size.** A card coming back
+    /// grows as its body arrives, after its window has asked for the size it
+    /// had, and that answer leaves the window smaller than the card with
+    /// nothing in the bindings having changed to put it right.
+    function fit() {
+        if (surface.width !== surface.wantedWidth) {
+            surface.width = Qt.binding(() => surface.wantedWidth);
+        }
+        if (surface.height !== surface.wantedHeight) {
+            surface.height = Qt.binding(() => surface.wantedHeight);
+        }
+    }
+
     transientParent: surface.canvas?.Window.window ?? null
     screen: surface.placedOn
     x: (surface.placedOn?.virtualX ?? 0) + surface.leftEdge
     y: (surface.placedOn?.virtualY ?? 0) + surface.topEdge
-    width: (surface.panel?.width ?? 0) + surface.inset * 2
-    height: (surface.panel?.height ?? 0) + surface.inset * 2
+    width: surface.wantedWidth
+    height: surface.wantedHeight
     color: "transparent"
     flags: Qt.Tool | Qt.FramelessWindowHint
     title: surface.panel?.displayName ?? ""
@@ -81,6 +97,8 @@ Window {
     // card with nothing new to draw makes none (ADR-0030).
     onLeftEdgeChanged: surface.update()
     onTopEdgeChanged: surface.update()
+    onWidthChanged: Qt.callLater(surface.fit)
+    onHeightChanged: Qt.callLater(surface.fit)
 
     WindowWatch {
         id: watch

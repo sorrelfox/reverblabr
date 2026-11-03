@@ -108,6 +108,23 @@ TestCase {
         compare(canvas.detachedPanelFor(block), panel);
     }
 
+    function test_aSizeFromTheDesktopDoesNotCutTheCard() {
+        const window = testCase.shown();
+        const { panel } = testCase.detachedOn(window);
+        panel.outsideButton.clicked();
+        tryVerify(() => panel.surface !== null, 2000, "the panel got no window");
+        const surface = panel.surface;
+        const fits = () => surface.width === Math.trunc(panel.width) + surface.inset * 2
+            && surface.height === Math.trunc(panel.height) + surface.inset * 2;
+        tryVerify(fits, 2000, "the window was never the card's size");
+
+        // What a layer surface's first answer does to a card that has grown
+        // since it asked: nothing in the card has changed for it to go by.
+        surface.setGeometry(surface.x, surface.y, surface.width - 60, surface.height - 40);
+
+        tryVerify(fits, 2000, "the card stays cut");
+    }
+
     function test_itKeepsThePlaceItHadOnTheScreen() {
         const window = testCase.shown();
         window.x = 300;
