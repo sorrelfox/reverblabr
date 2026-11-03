@@ -80,6 +80,12 @@ Window {
         }
     }
 
+    function keepOnScreen() {
+        if (surface.panel !== null && surface.canvas !== null) {
+            surface.canvas.moveOutsidePanel(surface.panel.blockId, 0, 0);
+        }
+    }
+
     transientParent: surface.canvas?.Window.window ?? null
     screen: surface.placedOn
     x: (surface.placedOn?.virtualX ?? 0) + surface.leftEdge
@@ -99,6 +105,10 @@ Window {
     onTopEdgeChanged: surface.update()
     onWidthChanged: Qt.callLater(surface.fit)
     onHeightChanged: Qt.callLater(surface.fit)
+    // **A card that grows stays on the screen**: one opened low, or an
+    // Advanced section unfolded, moves up as far as it has to, as a drag
+    // would have kept it.
+    onWantedHeightChanged: Qt.callLater(surface.keepOnScreen)
 
     WindowWatch {
         id: watch

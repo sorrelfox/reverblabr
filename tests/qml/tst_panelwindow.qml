@@ -125,6 +125,24 @@ TestCase {
         tryVerify(fits, 2000, "the card stays cut");
     }
 
+    function test_aCardThatGrowsOutsideStaysOnTheScreen() {
+        const window = testCase.shown();
+        const { canvas, block, panel } = testCase.detachedOn(window, "meter.waveform");
+        panel.outsideButton.clicked();
+        tryVerify(() => panel.surface !== null, 2000, "the panel got no window");
+        tryVerify(() => panel.body.item !== null && panel.body.item.advancedSection !== undefined, 2000);
+        const screenHeight = panel.surface.placedOn.height;
+        // Low on the screen, with room for the card as it is.
+        canvas.putOutside(block, 20, screenHeight - panel.height - 10);
+        const grown = panel.height;
+
+        panel.body.item.advancedSection.expanded = true;
+
+        tryVerify(() => panel.height > grown, 2000, "the card did not grow");
+        tryVerify(() => panel.outsideTop + panel.height <= screenHeight, 2000,
+                  "the card runs off the bottom of the screen");
+    }
+
     function test_itKeepsThePlaceItHadOnTheScreen() {
         const window = testCase.shown();
         window.x = 300;
