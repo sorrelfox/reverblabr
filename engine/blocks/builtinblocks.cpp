@@ -7,6 +7,7 @@
 
 #include "blocks/builtinblocks.h"
 
+#include "blocks/amplify.h"
 #include "blocks/applicationsource.h"
 #include "blocks/autolevel.h"
 #include "blocks/balance.h"
@@ -108,6 +109,7 @@ bool registerBuiltinBlocks(dsp::BlockRegistry &registry)
         && registry.add(std::string{Sync::kTypeId}, &Sync::make).has_value()
         && registry.add(std::string{HighPassFilter::kTypeId}, &HighPassFilter::make).has_value()
         && registry.add(std::string{Volume::kTypeId}, &Volume::make).has_value()
+        && registry.add(std::string{Amplify::kTypeId}, &Amplify::make).has_value()
         && registry.add(std::string{VuMeter::kTypeId}, &VuMeter::make).has_value()
         && registry.add(std::string{SpeechNow::kTypeId}, &SpeechNow::make).has_value()
         && registry.add(std::string{VoiceGauge::kTypeId}, &VoiceGauge::make).has_value()

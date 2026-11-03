@@ -54,6 +54,10 @@ QtObject {
         SystemAudioFace {}
     }
 
+    readonly property Component amplify: Component {
+        AmplifyFace {}
+    }
+
     readonly property Component volume: Component {
         VolumeFace {}
     }
@@ -359,6 +363,7 @@ QtObject {
         "effect.limiter": faces.limiter,
         "effect.lowpass": faces.lowPass,
         "effect.volume": faces.volume,
+        "effect.amplify": faces.amplify,
         "meter.peakrms": faces.peakRms,
         "meter.vu": faces.vu,
         "advanced.sync": faces.sync,

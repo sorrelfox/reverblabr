@@ -35,6 +35,10 @@ QtObject {
     readonly property string whenTitle: KI18n.i18nc("@title a part of a block's help page", "When to use it")
     readonly property string tipsTitle: KI18n.i18nc("@title a part of a block's help page", "Tips")
 
+    readonly property Component amplify: Component {
+        AmplifyHelp {}
+    }
+
     readonly property Component volume: Component {
         VolumeHelp {}
     }
@@ -276,6 +280,7 @@ QtObject {
         "effect.reverb": help.reverb,
         "effect.simplecompressor": help.simpleCompressor,
         "effect.volume": help.volume,
+        "effect.amplify": help.amplify,
         "hearing.compensation16": help.hearingCompensation16,
         "hearing.compensation64": help.hearingCompensation64,
         "hearing.frequencylowering": help.frequencyLowering,

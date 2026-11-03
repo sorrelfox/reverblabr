@@ -861,6 +861,14 @@ at, unless you choose an <guilabel>Overdrive</guilabel> (2×, 3× or 4×) in its
 settings, which lets it go up to 200, 300 or 400 %. A limiter keeps the louder
 sound from clipping.</para>
 </sect2>
+
+<sect2 id="block-effect-amplify">
+<title>Amplify</title>
+<para>Makes a lane louder, up to 1000 %, or quieter, with one slider on its
+tile or in its settings, and does nothing else. It has no limiter: a sound
+turned up past full scale clips, so watch a meter after it, or put a Limiter
+after it.</para>
+</sect2>
 </sect1>
 
 <sect1 id="blocks-meters">

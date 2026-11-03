@@ -10,6 +10,8 @@
 # about the interface, which is what lets every one of them be run offline
 # against a signal and measured.
 add_library(reverblabr-blocks STATIC
+    amplify.cpp
+    amplify.h
     applicationsource.cpp
     applicationsource.h
     autolevel.cpp

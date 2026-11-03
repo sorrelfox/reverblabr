@@ -195,6 +195,7 @@ rb_add_gtest(reverblabr-blocks-test
         blocks/test_sync.cpp
         blocks/test_systemaudio.cpp
         blocks/test_timeshift.cpp
+        blocks/test_amplify.cpp
         blocks/test_volume.cpp
         blocks/test_voicegauge.cpp
         blocks/test_waveformmeter.cpp

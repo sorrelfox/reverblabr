@@ -292,6 +292,13 @@ constexpr std::array kEntries{
           kli18nc("@info:tooltip block description",
                   "Turns a source up or down, as a percentage of what arrived. A limiter sits at the end of it, "
                   "so turning a source up cannot make it clip.")},
+    Entry{"effect.amplify",
+          "effects",
+          kli18nc("@item block name", "Amplify"),
+          kli18nc("@info block description", "Makes a source louder, up to ten times, and nothing else"),
+          kli18nc("@info:tooltip block description",
+                  "Multiplies the sound by a gain from 0 to 1000 %. No limiter: a sound turned up past full scale "
+                  "clips.")},
 
     // ------------------------------------------------------------- meters
     Entry{"meter.peakrms",

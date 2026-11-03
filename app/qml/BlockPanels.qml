@@ -49,6 +49,12 @@ QtObject {
         SystemAudioPanel {}
     }
 
+    /// The Amplify panel: one slider, a percentage over an amplitude, as
+    /// Volume's is.
+    readonly property Component amplify: Component {
+        AmplifyPanel {}
+    }
+
     /// The Volume panel: a percentage over an amplitude, and a setting that
     /// moves the top of a slider — neither of which the generic panel can
     /// know about.
@@ -385,6 +391,7 @@ QtObject {
         "effect.limiter": panels.limiter,
         "effect.lowpass": panels.lowPass,
         "effect.volume": panels.volume,
+        "effect.amplify": panels.amplify,
         "meter.peakrms": panels.peakRms,
         "meter.vu": panels.vu,
         "advanced.sync": panels.sync,

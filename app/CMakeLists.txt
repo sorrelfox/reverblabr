@@ -272,6 +272,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/ToolBarRow.qml
     qml/VolumeFace.qml
     qml/VolumeHelp.qml
+    qml/AmplifyFace.qml
+    qml/AmplifyHelp.qml
     qml/SpeechNowDot.qml
     qml/SpeechNowFace.qml
     qml/SpeechNowHelp.qml
@@ -341,6 +343,7 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/VuPanel.qml
     qml/WaveFace.qml
     qml/VolumePanel.qml
+    qml/AmplifyPanel.qml
     qml/WaveHelp.qml
     qml/WavePanel.qml
     qml/WaveWords.qml
@@ -406,6 +409,7 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/effect.reverb.svg
     icons/effect.simplecompressor.svg
     icons/effect.volume.svg
+    icons/effect.amplify.svg
     icons/meter.peakrms.svg
     icons/meter.speechnow.svg
     icons/meter.voicegauge.svg
