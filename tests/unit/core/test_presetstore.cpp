@@ -255,7 +255,8 @@ TEST_F(Presets, EveryShippedPresetNamesParametersItsBlockActuallyHas)
         << "the shipped presets are three for Volume and five for Dynamics, "
            "twenty for the 10-Band EQ, two for Dehum, three for "
            "Hearing Compensation 16, three for Hearing Compensation 64, one for Auto Level, two for Speech Now "
-           ", two for Voice Gauge, four for Waveform, four for Spectrum, two for Sound Side, three for Night Level, two for Voice "
+           ", two for Voice Gauge, four for Waveform, four for Spectrum, two for Sound Side, three for Night Level, "
+           "two for Voice "
            "Forward, four for Voice "
            "Compressor and three for "
            "Reverb";

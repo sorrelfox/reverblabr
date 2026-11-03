@@ -56,8 +56,8 @@
 #include "blocks/speechdenoise.h"
 #endif
 #include "blocks/soundside.h"
-#include "blocks/speechnow.h"
 #include "blocks/spectrummeter.h"
+#include "blocks/speechnow.h"
 #include "blocks/suddensounds.h"
 #include "blocks/sync.h"
 #include "blocks/systemaudio.h"
