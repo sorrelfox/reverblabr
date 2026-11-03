@@ -59,7 +59,7 @@ void ScopeSurface::setBlockId(const QString &blockId)
 void ScopeSurface::changeSettings()
 {
     if (m_feed) {
-        m_feed->setSettings(m_settings);
+        m_feed->tell(this, m_settings, m_hold);
     }
     followFrames();
     update();
@@ -103,7 +103,7 @@ void ScopeSurface::setHold(bool on)
     if (on != m_hold) {
         m_hold = on;
         if (m_feed) {
-            m_feed->setHold(on);
+            m_feed->tell(this, m_settings, m_hold);
         }
         followFrames();
         update();
@@ -196,14 +196,14 @@ void ScopeSurface::adopt(ScopeFeed *feed)
     }
     if (m_feed) {
         disconnect(m_feed, nullptr, this, nullptr);
+        m_feed->forgetSurface(this);
         if (m_hub) {
             m_hub->unsubscribe(m_feed);
         }
     }
     m_feed = feed;
     if (m_feed) {
-        m_feed->setSettings(m_settings);
-        m_feed->setHold(m_hold);
+        m_feed->tell(this, m_settings, m_hold);
         connect(m_feed, &ScopeFeed::refreshed, this, &ScopeSurface::onRefreshed);
         connect(m_feed, &ScopeFeed::stateChanged, this, &ScopeSurface::onStateChanged);
         startAfresh();

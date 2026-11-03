@@ -23,6 +23,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <vector>
 
 namespace rb::ui
 {
@@ -66,11 +67,17 @@ public:
         return m_blockId;
     }
 
-    /// What the block is set to. **Every surface of one block says the same
-    /// thing**, so whoever said it last is right.
+    /// What the block is set to, and whether to keep the trace it has and
+    /// take no new ones, as \a surface says. **Every surface of one block
+    /// says the same thing**, so whoever said it last is right, as long as it
+    /// is still there: one going away may have said something else on its
+    /// way, as a card being closed does, which is told it has no block.
+    /// Held, nothing is written for the block, as far as this window goes.
+    void tell(const void *surface, const ScopeSettings &settings, bool hold);
+    /// \a surface has gone: what it said no longer counts.
+    void forgetSurface(const void *surface);
+    /// The same, said by nobody in particular.
     void setSettings(const ScopeSettings &settings);
-    /// Keeps the trace it has and takes no new ones. Nothing is written for
-    /// the block meanwhile, as far as this window goes.
     void setHold(bool hold);
 
     [[nodiscard]] State state() const noexcept
@@ -123,6 +130,13 @@ Q_SIGNALS:
     void stateChanged();
 
 private:
+    /// What one surface said.
+    struct Said {
+        const void *surface = nullptr;
+        ScopeSettings settings;
+        bool hold = false;
+    };
+
     void setState(State state);
     void read(const rt::ScopeSlot &slot, double cycleMs, std::uint32_t sampleRate);
 
@@ -135,6 +149,8 @@ private:
     ScopeFrame m_frame;
     SpectrumAnalysis m_spectrum;
 
+    /// Oldest first: the last is what counts.
+    std::vector<Said> m_said;
     bool m_seenSlot = false;
     int m_slot = -1;
     std::uint32_t m_generation = 0;

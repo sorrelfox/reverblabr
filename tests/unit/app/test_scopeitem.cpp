@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 #include <private/qwindow_p.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <memory>
@@ -169,6 +170,50 @@ TEST_F(ScopeItemTest, TwoItemsOfOneBlockDrawFromOneFeed)
     card->work();
     EXPECT_EQ(tile->heights(0).size(), (300 + 1) * 2);
     EXPECT_EQ(card->heights(0).size(), (600 + 1) * 2);
+}
+
+TEST_F(ScopeItemTest, ACardThatClosesTakesWhatItSaidWithIt)
+{
+    // **A card is closed by being told it has no block**, and on its way out
+    // it may say what an unknown block's settings are, the defaults, before
+    // it lets go of the feed. The tile left showing must not be read for
+    // with those: it was a fifth of a second read for a whole one, drawn as
+    // a strip at the tile's right.
+    QQuickWindow window;
+    const std::unique_ptr<ScopeItem> tile = itemIn(window);
+    const std::unique_ptr<ScopeItem> card = itemIn(window);
+    tile->setSpanMs(1000.0);
+    card->setSpanMs(1000.0);
+    ASSERT_TRUE(show(window));
+    hear(60000);
+    const auto unheard = [](const ScopeItem &item) {
+        const QVariantList heights = item.heights(0);
+        return std::ranges::count_if(heights, [](const QVariant &height) { return !height.isValid(); }) / 2;
+    };
+    tile->work();
+    ASSERT_LE(unheard(*tile), 1);
+
+    card->setSpanMs(200.0);
+    card->setBlockId(QString{});
+    hear(1024);
+    tile->work();
+
+    EXPECT_LE(unheard(*tile), 1) << "the tile is read for what the closed card said";
+}
+
+TEST_F(ScopeItemTest, ACardThatClosesLeavesNoHoldBehind)
+{
+    QQuickWindow window;
+    const std::unique_ptr<ScopeItem> tile = itemIn(window);
+    const std::unique_ptr<ScopeItem> card = itemIn(window);
+    ASSERT_TRUE(show(window));
+
+    card->setHold(true);
+    card->setBlockId(QString{});
+
+    ScopeFeed *feed = hub.subscribe(u"scope"_s);
+    EXPECT_FALSE(feed->isHeld()) << "the tile, which holds nothing, is left held";
+    hub.unsubscribe(feed);
 }
 
 TEST_F(ScopeItemTest, WhatItShowsFollowsTheFeed)

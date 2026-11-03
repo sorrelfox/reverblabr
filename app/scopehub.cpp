@@ -49,6 +49,22 @@ ScopeFeed::ScopeFeed(ScopeHub *hub, const QString &blockId)
 
 ScopeFeed::~ScopeFeed() = default;
 
+void ScopeFeed::tell(const void *surface, const ScopeSettings &settings, bool hold)
+{
+    std::erase_if(m_said, [surface](const Said &said) { return said.surface == surface; });
+    m_said.push_back(Said{surface, settings, hold});
+    setSettings(settings);
+    setHold(hold);
+}
+
+void ScopeFeed::forgetSurface(const void *surface)
+{
+    if (std::erase_if(m_said, [surface](const Said &said) { return said.surface == surface; }) > 0 && !m_said.empty()) {
+        setSettings(m_said.back().settings);
+        setHold(m_said.back().hold);
+    }
+}
+
 void ScopeFeed::setSettings(const ScopeSettings &settings)
 {
     const bool slowerOrFaster = settings.refreshHz != m_settings.refreshHz;
