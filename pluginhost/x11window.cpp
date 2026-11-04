@@ -211,8 +211,13 @@ std::unique_ptr<X11Window> X11Window::open(MainLoop &loop,
     if (kept) {
         // **Where it was**, which a window manager takes from the hints
         // rather than from where the window was made.
+        //
+        // It was kept as the window's own place, inside the frame, so it is
+        // given as that (StaticGravity); as the frame's, it would move down
+        // by the title bar each time it was opened.
         XSizeHints hints{};
-        hints.flags = USPosition | USSize;
+        hints.flags = USPosition | USSize | PWinGravity;
+        hints.win_gravity = StaticGravity;
         hints.x = kept->x;
         hints.y = kept->y;
         hints.width = kept->width;
