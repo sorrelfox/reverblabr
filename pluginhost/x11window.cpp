@@ -138,6 +138,8 @@ struct X11Window::Private {
     std::function<void(int, int)> resized;
     int width = 0;
     int height = 0;
+    /// Whether a person may resize it; a window starts with no pin.
+    bool resizable = true;
     bool closing = false;
 };
 
@@ -261,6 +263,13 @@ void X11Window::resize(int width, int height)
     }
     d->width = width;
     d->height = height;
+    if (!d->resizable) {
+        // **The pin moves with the plugin's size**: a window manager keeps
+        // a window within its least and greatest size, so a pin left at
+        // the old size would hold the window there, and the plugin's
+        // controls past it would be cut off.
+        pinSize();
+    }
     XResizeWindow(d->display, m_window, static_cast<unsigned>(width), static_cast<unsigned>(height));
     XFlush(d->display);
 }
@@ -270,10 +279,17 @@ void X11Window::setResizable(bool resizable)
     if (d->lost.lost) {
         return;
     }
+    d->resizable = resizable;
+    pinSize();
+    XFlush(d->display);
+}
+
+void X11Window::pinSize()
+{
     XSizeHints hints{};
     long supplied = 0;
     XGetWMNormalHints(d->display, m_window, &hints, &supplied);
-    if (resizable) {
+    if (d->resizable) {
         hints.flags &= ~(PMinSize | PMaxSize);
     } else {
         hints.flags |= PMinSize | PMaxSize;
@@ -281,7 +297,6 @@ void X11Window::setResizable(bool resizable)
         hints.min_height = hints.max_height = d->height;
     }
     XSetWMNormalHints(d->display, m_window, &hints);
-    XFlush(d->display);
 }
 
 void X11Window::show()

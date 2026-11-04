@@ -75,9 +75,11 @@ public:
         return m_window;
     }
 
-    /// Makes it \a width by \a height: what the plugin asked for.
+    /// Makes it \a width by \a height: what the plugin asked for, whether
+    /// or not a person may resize it.
     void resize(int width, int height);
-    /// Whether a person may resize it.
+    /// Whether a person may resize it. One who may not is held at the
+    /// plugin's size, which moves with every resize().
     void setResizable(bool resizable);
     /// Puts it on the screen.
     void show();
@@ -93,6 +95,9 @@ public:
 
 private:
     X11Window() = default;
+    /// Sets the window manager's least and greatest size: the size it is
+    /// now when a person may not resize it, none when they may.
+    void pinSize();
 
     struct Private;
     std::unique_ptr<Private> d;

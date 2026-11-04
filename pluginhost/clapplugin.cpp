@@ -1326,11 +1326,11 @@ Editable::Opened ClapPlugin::openUi()
     ClapSaid stale;
     while (m_said.tryPop(stale)) { }
     m_windowListens.store(true, std::memory_order_release);
+    const std::string key = "clap " + m_id;
     if (embedded) {
         std::uint32_t width = 0;
         std::uint32_t height = 0;
         (void)gui->get_size(first, &width, &height);
-        const std::string key = "clap " + m_id;
         m_window = X11Window::open(
             *loop(),
             m_name,
@@ -1359,18 +1359,6 @@ Editable::Opened ClapPlugin::openUi()
             m_windowListens.store(false, std::memory_order_release);
             return Opened::Unavailable;
         }
-        const bool resizable = gui->can_resize(first);
-        m_window->setResizable(resizable);
-        if (const std::optional<WindowPlace> kept = placeOf(key); kept && resizable) {
-            // Its size from last time, as near as the plugin takes it.
-            auto w = static_cast<std::uint32_t>(kept->width);
-            auto h = static_cast<std::uint32_t>(kept->height);
-            if (gui->adjust_size(first, &w, &h) && gui->set_size(first, w, h)) {
-                m_window->resize(static_cast<int>(w), static_cast<int>(h));
-            }
-        } else if (width > 0 && height > 0) {
-            m_window->resize(static_cast<int>(width), static_cast<int>(height));
-        }
         clap_window parent{};
         parent.api = CLAP_WINDOW_API_X11;
         parent.x11 = m_window->id();
@@ -1378,13 +1366,37 @@ Editable::Opened ClapPlugin::openUi()
             closeUi();
             return Opened::Failed;
         }
-        m_window->show();
     } else {
         gui->suggest_title(first, m_name.c_str());
     }
     if (!gui->show(first)) {
         closeUi();
         return Opened::Failed;
+    }
+    if (m_window) {
+        // **Sized once the plugin is shown, and only then on the screen**:
+        // some plugins (LSP's) know neither their size nor whether it may
+        // change until they have a parent and have laid themselves out,
+        // and ask for their size from inside show().
+        const bool resizable = gui->can_resize(first);
+        std::uint32_t w = 0;
+        std::uint32_t h = 0;
+        bool sized = false;
+        if (const std::optional<WindowPlace> kept = placeOf(key); kept && resizable) {
+            // Its size from last time, as near as the plugin takes it; one
+            // it refuses (smaller than it can be) is not kept.
+            w = static_cast<std::uint32_t>(kept->width);
+            h = static_cast<std::uint32_t>(kept->height);
+            sized = gui->adjust_size(first, &w, &h) && gui->set_size(first, w, h);
+        }
+        if (!sized) {
+            sized = gui->get_size(first, &w, &h) && w > 0 && h > 0;
+        }
+        if (sized) {
+            m_window->resize(static_cast<int>(w), static_cast<int>(h));
+        }
+        m_window->setResizable(resizable);
+        m_window->show();
     }
     return Opened::Open;
 }
