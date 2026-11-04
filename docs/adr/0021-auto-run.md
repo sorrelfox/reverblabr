@@ -33,6 +33,7 @@ What there is:
 
 - A session set to run at login keeps the engine from exiting when idle, since something runs.
 - Turning Auto Run off everywhere, or deleting the last such session, disables the unit again; the next login starts nothing.
+- **The unit is ordered after `graphical-session.target`**, not only part of it. Started at login beside the compositor, the engine had no `DISPLAY` or `WAYLAND_DISPLAY` yet, and every plugin window it opened afterwards failed for want of a display until it was restarted.
 - The unit file must ship as `packaging/README.md` says, or Auto Run does nothing but say so.
 - The checks that need a real login (enabled unit, log out, log in, sessions running) are made by hand, on the desktop; the tests run against a service manager of their own on a private bus (`bus.autorun`).
 - **Not done here:** an XDG autostart entry for the window's tray at login, an optional extra; and a notice in the window when the daemon cannot enable the unit (masked, or no manager), which today is only in the log.

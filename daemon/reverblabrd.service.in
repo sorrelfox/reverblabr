@@ -4,10 +4,14 @@
 # The engine as a systemd user service (ADR-0017). Started on demand through
 # D-Bus activation; nothing starts it at login until a session asks for Auto
 # Run, which enables it. Its output goes to the journal.
+#
+# **After the graphical session, not beside it**: started at login with the
+# compositor, the engine would have no DISPLAY or WAYLAND_DISPLAY yet, and
+# every plugin window it opens later would fail for want of a display.
 [Unit]
 Description=Reverblabr audio engine
 PartOf=graphical-session.target
-After=pipewire.service
+After=pipewire.service graphical-session.target
 
 [Service]
 Type=dbus
