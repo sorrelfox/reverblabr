@@ -149,6 +149,11 @@ void AllocatesWhileProcessing::process(ProcessContext &context)
     // The mistake the trap exists to catch: scratch space taken per cycle
     // instead of in prepare().
     std::vector<float> scratch(context.frames, 0.0f);
+    // With link-time optimisation GCC can see the vector never leaves this
+    // function and leave out its allocation, and the trap would see nothing.
+    // Through the empty asm the pointer is one it cannot account for.
+    float *const taken = scratch.data();
+    __asm__ __volatile__("" : : "r"(taken) : "memory");
     const std::span<float> in = context.input.channel(0);
     const std::span<float> out = context.output.channel(0);
     for (std::uint32_t frame = 0; frame < context.frames; ++frame) {

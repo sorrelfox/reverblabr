@@ -303,6 +303,9 @@ TEST(Scope, AWriterGoingFlatOutNeverHandsAReaderATornOrOutOfOrderPoint)
     constexpr std::uint32_t kCycle = 512;
     constexpr std::uint32_t kWrap = 1U << 20; // A float counts to here exactly.
     std::atomic<bool> stop{false};
+    // The readers start once the writer has written: on a busy machine they
+    // could otherwise finish every round before it was ever scheduled.
+    std::atomic<bool> written{false};
     std::thread writing([&] {
         ScopeWriter writer;
         std::array<float, kCycle> left{};
@@ -315,6 +318,7 @@ TEST(Scope, AWriterGoingFlatOutNeverHandsAReaderATornOrOutOfOrderPoint)
                 right[frame] = -static_cast<float>(count);
             }
             writer.write(slot, left.data(), right.data(), kCycle, 48000);
+            written.store(true, std::memory_order_release);
         }
     });
 
@@ -327,6 +331,9 @@ TEST(Scope, AWriterGoingFlatOutNeverHandsAReaderATornOrOutOfOrderPoint)
     for (std::thread &reader : reading) {
         reader = std::thread([&] {
             std::vector<ScopePoint> room(kScopePoints);
+            while (!written.load(std::memory_order_acquire)) {
+                std::this_thread::yield();
+            }
             for (int round = 0; round < 4000; ++round) {
                 const ScopeRead read = readScope(slot, 0, room);
                 pointsRead.fetch_add(read.points, std::memory_order_relaxed);

@@ -58,7 +58,8 @@ int stopPipe[2] = {-1, -1};
 void onStopSignal(int)
 {
     const char byte = 1;
-    (void)::write(stopPipe[0], &byte, 1);
+    // A cast to void does not quiet glibc's warn_unused_result.
+    [[maybe_unused]] const ssize_t written = ::write(stopPipe[0], &byte, 1);
 }
 
 } // namespace

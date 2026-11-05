@@ -163,10 +163,11 @@ void TimeShiftSpill::writeFile(const float *frames, std::size_t count, std::uint
     while (done < count) {
         const std::uint64_t slot = (position + done) % m_fileFrames;
         const auto run = static_cast<std::size_t>(std::min<std::uint64_t>(count - done, m_fileFrames - slot));
-        (void)::pwrite(m_file,
-                       frames + done * kChannels,
-                       run * kChannels * sizeof(float),
-                       static_cast<off_t>(slot * kChannels * sizeof(float)));
+        // A cast to void does not quiet glibc's warn_unused_result.
+        [[maybe_unused]] const ssize_t written = ::pwrite(m_file,
+                                                          frames + done * kChannels,
+                                                          run * kChannels * sizeof(float),
+                                                          static_cast<off_t>(slot * kChannels * sizeof(float)));
         done += run;
     }
 }
@@ -227,10 +228,10 @@ bool TimeShiftSpill::fill()
         const std::uint64_t ringSlot = position % m_farFrames;
         const auto run = static_cast<std::size_t>(
             std::min<std::uint64_t>({frames - done, m_fileFrames - slot, m_farFrames - ringSlot}));
-        (void)::pread(m_file,
-                      &m_far[static_cast<std::size_t>(ringSlot) * kChannels],
-                      run * kChannels * sizeof(float),
-                      static_cast<off_t>(slot * kChannels * sizeof(float)));
+        [[maybe_unused]] const ssize_t got = ::pread(m_file,
+                                                     &m_far[static_cast<std::size_t>(ringSlot) * kChannels],
+                                                     run * kChannels * sizeof(float),
+                                                     static_cast<off_t>(slot * kChannels * sizeof(float)));
         done += run;
     }
     m_farFilled.store(filled + frames, std::memory_order_release);

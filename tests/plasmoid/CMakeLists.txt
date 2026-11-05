@@ -14,10 +14,12 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 # folder it is installed in and says the version VERSION says, every file
 # the QML needs is there, and kpackagetool6, where it is installed, takes
 # it into a folder of the test's own.
+# Where it is not, the test gets an empty path, not CMake's "-NOTFOUND".
 find_program(RB_KPACKAGETOOL kpackagetool6)
 add_test(NAME plasmoid.package
          COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_package.py
-                 ${RB_PLASMOID_PACKAGE} ${PROJECT_SOURCE_DIR}/plasmoid/package ${RB_PLASMOID_ID} ${PROJECT_SOURCE_DIR}/VERSION "${RB_KPACKAGETOOL}")
+                 ${RB_PLASMOID_PACKAGE} ${PROJECT_SOURCE_DIR}/plasmoid/package ${RB_PLASMOID_ID} ${PROJECT_SOURCE_DIR}/VERSION
+                 "$<$<BOOL:${RB_KPACKAGETOOL}>:${RB_KPACKAGETOOL}>")
 
 # **The list and the representations on a bus of their own.** The bus
 # has no activation files at all, so nothing on it can start an engine:

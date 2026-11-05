@@ -46,6 +46,18 @@ endif()
 if(NOT RB_TEST_SANDBOX)
     message(STATUS "Tests that signal by pid run without a PID namespace; unshare cannot make one here")
 endif()
+# **GoogleTest comes first on every test's link line.** Debian and Ubuntu
+# ship it as a static library built without LTO, and with LTO (Ubuntu's
+# default for packages) GNU ld 2.44 and later can then break the link: when a
+# project library comes before it and also holds a copy of a C++ library
+# function that GoogleTest calls (std::string::swap), the linker takes a
+# member of that library after the LTO step, though nothing needs it. Such
+# a member is linked as plain object code whose inline functions were
+# already given to the LTO step, so they are missing ("undefined reference
+# to rb::model::Description::Description()"). With GoogleTest first, its
+# calls are known before any project library is read, and the link picks
+# the same members with LTO as without it.
+link_libraries(GTest::gtest)
 add_subdirectory(unit)  # GoogleTest, one executable per engine layer
 add_subdirectory(sanitizers) # checks that the sanitizers catch what they should
 add_subdirectory(qml)   # Qt Quick Test for the QML user interface

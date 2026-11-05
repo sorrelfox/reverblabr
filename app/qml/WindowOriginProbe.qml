@@ -48,7 +48,11 @@ QtObject {
             probe.measured();
         } else if (!probe.asksTheDesktop) {
             const on = probe.window.screen;
+            // Qt 6.10 types a window's screen as a plain QObject, so the
+            // linter of that version does not know its virtualX and virtualY.
+            // qmllint disable missing-property
             probe.origin = Qt.point(probe.window.x - (on?.virtualX ?? 0), probe.window.y - (on?.virtualY ?? 0));
+            // qmllint enable missing-property
             probe.known = true;
             probe.measured();
         } else if (probe.askingWith === null) {

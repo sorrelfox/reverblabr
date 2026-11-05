@@ -79,6 +79,9 @@ Window {
         if (!surface.readsItsPlace || surface.movedByMargins || surface.inPercent || !on) {
             return;
         }
+        // Qt 6.10 types a window's screen as a plain QObject, so its qmllint
+        // does not know the screen's virtualX, virtualY and name.
+        // qmllint disable missing-property
         const left = surface.x - on.virtualX;
         const top = surface.y - on.virtualY;
         const moved = on.name !== (surface.placedOn?.name ?? on.name);
@@ -89,6 +92,7 @@ Window {
         if (moved && on.name !== "") {
             changes.screen = on.name;
         }
+        // qmllint enable missing-property
         FloatingSurface.setPlacement(surface.surfaceName, changes);
     }
 
