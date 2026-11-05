@@ -9,6 +9,7 @@
 
 #include <QDBusConnection>
 #include <QString>
+#include <QStringList>
 
 #include <chrono>
 #include <functional>
@@ -43,11 +44,26 @@ struct DaemonReachResult {
 /// would run its own engine beside one that was only slow.
 inline constexpr std::chrono::milliseconds kActivationTimeout{10000};
 
+/// Starts the daemon without the bus, and says whether the program could be
+/// run at all; the name comes later, or not.
+using DaemonStarter = std::function<bool()>;
+
 /// Asks \a bus whether the daemon is there, and has the bus start it if it
 /// is not. **Blocks** for as long as the start takes, up to \a timeout: it
 /// is asked once, before there is a window.
+///
+/// **With \a startItself**, the window starts the daemon itself and waits for
+/// it to take the name, and never asks the bus to start it: in a Flatpak, the
+/// host's bus has no activation file for the sandbox's engine, and one that is
+/// there belongs to a package installed beside it (ADR-0034). Without it, a
+/// bus that can't start the daemon is NotInstalled, as before.
 [[nodiscard]] DaemonReachResult reachDaemon(const QDBusConnection &bus,
-                                            std::chrono::milliseconds timeout = kActivationTimeout);
+                                            std::chrono::milliseconds timeout = kActivationTimeout,
+                                            const DaemonStarter &startItself = {});
+
+/// Runs \a program with \a arguments on its own, outliving the window that
+/// started it, which is what reachDaemon()'s \a startItself does in a Flatpak.
+[[nodiscard]] DaemonStarter detachedStarter(const QString &program, const QStringList &arguments = {});
 
 /// What the command line asked for.
 struct EngineRequest {

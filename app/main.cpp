@@ -21,6 +21,7 @@
 #include "globalshortcutregistry.h"
 #include "globalshortcuts.h"
 #include "launchrequests.h"
+#include "pw/sandbox.h"
 #include "texts.h"
 #include "trayicon.h"
 #include "traystate.h"
@@ -34,6 +35,7 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QDBusConnection>
+#include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLibraryInfo>
@@ -170,13 +172,23 @@ int main(int argc, char *argv[])
     // reach it runs its own engine, and says so, rather than coming up with
     // nothing behind it — which is where a build that has not been installed
     // always stands.
+    //
+    // **In a Flatpak the window starts it** (ADR-0034): the host's bus has no
+    // activation file for a name inside a sandbox, so the window runs the
+    // daemon beside itself, in the same sandbox, and it outlives the window
+    // as an activated one does.
+    const bool sandboxed = rb::pw::inFlatpak();
+    rb::ui::AppShell::setSandboxed(sandboxed);
+    const rb::bus::DaemonStarter startDaemon = sandboxed
+        ? rb::bus::detachedStarter(QDir(QCoreApplication::applicationDirPath()).filePath(u"reverblabrd"_s))
+        : rb::bus::DaemonStarter{};
     const rb::bus::EngineChoice choice =
         rb::bus::chooseEngine({.mock = parser.isSet(mockOption),
                                .inProcess = parser.isSet(inProcessOption),
                                .daemon = parser.isSet(daemonOption)},
-                              [] {
-                                  const rb::bus::DaemonReachResult reached =
-                                      rb::bus::reachDaemon(QDBusConnection::sessionBus());
+                              [&startDaemon] {
+                                  const rb::bus::DaemonReachResult reached = rb::bus::reachDaemon(
+                                      QDBusConnection::sessionBus(), rb::bus::kActivationTimeout, startDaemon);
                                   if (reached.reach != rb::bus::DaemonReach::Reached) {
                                       const QString why = reached.detail.isEmpty()
                                           ? rb::bus::reasonOf(reached.reach)

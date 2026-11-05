@@ -43,5 +43,8 @@ add_library(reverblabr-record STATIC
     tags.h
 )
 target_include_directories(reverblabr-record PUBLIC ${PROJECT_SOURCE_DIR}/engine)
-target_link_libraries(reverblabr-record PUBLIC reverblabr-rt PRIVATE PkgConfig::SNDFILE PkgConfig::SOXR PkgConfig::TAGLIB PkgConfig::FFMPEG)
+# **TagLib first**: its headers are named plainly (opusfile.h), and where
+# libsndfile's flags name /usr/include/opus, as on the KDE Flatpak SDK,
+# libopusfile's header of the same name would be found before TagLib's.
+target_link_libraries(reverblabr-record PUBLIC reverblabr-rt PRIVATE PkgConfig::TAGLIB PkgConfig::SNDFILE PkgConfig::SOXR PkgConfig::FFMPEG)
 set_target_properties(reverblabr-record PROPERTIES AUTOMOC OFF AUTORCC OFF)

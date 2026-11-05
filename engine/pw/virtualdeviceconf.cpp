@@ -7,12 +7,13 @@
 
 #include "pw/virtualdeviceconf.h"
 
+#include "pw/sandbox.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
 #include <QSet>
-#include <QStandardPaths>
 #include <QStringList>
 #include <QUuid>
 #include <QVariantMap>
@@ -642,10 +643,9 @@ VirtualDeviceStore::VirtualDeviceStore(VirtualDeviceScope scope, QString path)
 
 QString VirtualDeviceStore::userFile()
 {
-    // PipeWire reads $XDG_CONFIG_HOME, or ~/.config without it, which is
-    // exactly what Qt answers here.
-    return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + u'/' + kDropInDirectory + u'/'
-        + kUserFileName;
+    // PipeWire reads $XDG_CONFIG_HOME, or ~/.config without it: the host's
+    // in a Flatpak, where the sandbox's own would be read by nobody.
+    return pipeWireConfigHome(inFlatpak()) + u'/' + kDropInDirectory + u'/' + kUserFileName;
 }
 
 QString VirtualDeviceStore::systemFile(const QString &root)

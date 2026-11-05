@@ -242,7 +242,7 @@ QQC2.ScrollView {
 
                     objectName: "autoRunWhen"
                     // Only with the switch on: it is what the switch does.
-                    visible: AppShell.engineInBackground && autoRunSwitch.checked
+                    visible: AppShell.engineInBackground && !AppShell.sandboxed && autoRunSwitch.checked
                     text: AutoRunSetting.everyEngineStart
                         ? KI18n.i18nc("@info under the Auto Run switch; Settings and Auto Run are the menu's words",
                                       "Runs every time the background engine starts, even after you stopped it. Settings › Auto Run changes this for every session.")
@@ -257,8 +257,13 @@ QQC2.ScrollView {
                     id: autoRunNeedsBackground
 
                     objectName: "autoRunNeedsBackground"
-                    visible: !AppShell.engineInBackground
-                    text: KI18n.i18nc("@info under the Auto Run switch",
+                    // **A Flatpak has no Auto Run** (ADR-0034): nothing
+                    // there may start the engine at login.
+                    visible: !AppShell.engineInBackground || AppShell.sandboxed
+                    text: AppShell.sandboxed
+                        ? KI18n.i18nc("@info under the Auto Run switch",
+                                      "Reverblabr from a Flatpak can't run sessions when you log in. The session keeps the setting.")
+                        : KI18n.i18nc("@info under the Auto Run switch",
                                       "Needs Reverblabr's background engine, which isn't installed here. The session keeps the setting.")
                     color: AppColors.muted
                     wrapMode: Text.WordWrap

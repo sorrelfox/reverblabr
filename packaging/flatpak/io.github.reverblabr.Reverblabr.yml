@@ -1,0 +1,265 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# Reverblabr as a Flatpak (ADR-0034): the window, the engine and the plugin hosts
+# in one sandbox. No Auto Run, no timers, no KRunner, no panel widget and no
+# all-users helper. packaging/flatpak/build-flatpak.sh builds it from this tree or
+# from a release tarball and makes a bundle.
+app-id: io.github.reverblabr.Reverblabr
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+command: reverblabr
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  # Not fallback-x11: a plugin's own window is an X11 window (ADR-0025),
+  # shown through XWayland on a Wayland desktop.
+  - --socket=x11
+  - --device=dri
+  # The audio system. Reverblabr is a PipeWire client, not a Pulse one.
+  - --filesystem=xdg-run/pipewire-0
+  # Virtual devices are PipeWire drop-ins in ~/.config/pipewire (ADR-0013).
+  - --filesystem=xdg-config/pipewire:create
+  # Recordings go to the Music folder unless a session says otherwise.
+  - --filesystem=xdg-music
+  # The engine runs in reverblabrd beside the window and owns its name; the
+  # window holds the notifier's name while it sends notifications itself.
+  - --own-name=io.github.reverblabr.Engine
+  - --own-name=io.github.reverblabr.Notifier
+  # One Reverblabr a desktop: KDBusService's name is made from the
+  # organisation domain and the program's name, all in lower case.
+  - --own-name=io.github.reverblabr.reverblabr
+  # Notifications from the engine while no window is open.
+  - --talk-name=org.freedesktop.Notifications
+  # The tray icon, and the global shortcuts in System Settings.
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.kde.kglobalaccel
+  # The Broadcast block's password, in the desktop's secret store.
+  - --talk-name=org.kde.kwalletd6
+  # Which media players are playing, for a session that captures one.
+  - --talk-name=org.mpris.MediaPlayer2.*
+  # Plugins come as extensions of org.freedesktop.LinuxAudio.Plugins.
+  - --env=LV2_PATH=/app/extensions/Plugins/lv2
+  - --env=LADSPA_PATH=/app/extensions/Plugins/ladspa
+  - --env=CLAP_PATH=/app/extensions/Plugins/clap
+  - --env=VST3_PATH=/app/extensions/Plugins/vst3
+
+add-extensions:
+  org.freedesktop.LinuxAudio.Plugins:
+    directory: extensions/Plugins
+    version: '25.08'
+    add-ld-path: lib
+    merge-dirs: ladspa;lv2;clap;vst3
+    subdirectories: true
+    no-autodownload: true
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/cmake
+  - /share/pkgconfig
+  - /share/man
+  - /share/doc/lv2
+  - '*.la'
+  - '*.a'
+
+# **Every library goes to /app/lib**, the runtime's library path: each
+# module says so (--libdir=lib, CMAKE_INSTALL_LIBDIR=lib), since meson's own
+# default is lib64 and only newer flatpak-builders pass lib for it.
+modules:
+  # **PipeWire 1.6**: the runtime has 1.4, below the minimum. Only the client
+  # library and the SPA plugins a client loads; the host's daemon is used.
+  - name: pipewire
+    buildsystem: meson
+    config-opts:
+      - --libdir=lib
+      - -Dauto_features=disabled
+      - -Dexamples=disabled
+      - -Dtests=disabled
+      - -Dpipewire-jack=disabled
+      - -Dpipewire-v4l2=disabled
+      - -Dvideoconvert=disabled
+      - -Dvideotestsrc=disabled
+      - -Daudiotestsrc=disabled
+      - -Dflatpak=disabled
+      - -Dsession-managers=[]
+      - -Drlimits-install=false
+    cleanup:
+      - /bin
+      - /etc
+      - /share/pipewire/*.conf.d
+      - /share/locale
+    sources:
+      - type: git
+        url: https://github.com/PipeWire/pipewire.git
+        tag: 1.6.11
+        commit: 4287f31510771fc999f8a58a024c81ca10b8d55f
+
+  # LV2: the specification, lilv to find and describe plugins, and suil for
+  # their own windows (X11 only).
+  - name: lv2
+    buildsystem: meson
+    config-opts: [--libdir=lib, -Ddocs=disabled, -Dplugins=disabled, -Dtests=disabled, -Donline_docs=false]
+    sources:
+      - type: archive
+        url: https://lv2plug.in/spec/lv2-1.18.10.tar.xz
+        sha256: 78c51bcf21b54e58bb6329accbb4dae03b2ed79b520f9a01e734bd9de530953f
+
+  - name: zix
+    buildsystem: meson
+    config-opts: [--libdir=lib, -Ddocs=disabled, -Dtests=disabled, -Dbenchmarks=disabled]
+    sources:
+      - type: archive
+        url: https://download.drobilla.net/zix-0.8.0.tar.xz
+        sha256: e9b6fe3ede984fa53f2edcebdabb35fb99ace807722772156aea49c079cad191
+
+  - name: serd
+    buildsystem: meson
+    config-opts: [--libdir=lib, -Ddocs=disabled, -Dtests=disabled, -Dtools=disabled, -Dman=disabled]
+    sources:
+      - type: archive
+        url: https://download.drobilla.net/serd-0.32.8.tar.xz
+        sha256: f47259bc38ba553b0deb8b6dab6b5b73d3630469a7c9439ccdca80e06d7c1ece
+
+  - name: sord
+    buildsystem: meson
+    config-opts: [--libdir=lib, -Ddocs=disabled, -Dtests=disabled, -Dtools=disabled, -Dman=disabled]
+    sources:
+      - type: archive
+        url: https://download.drobilla.net/sord-0.16.22.tar.xz
+        sha256: bb23b34b216579136795d518cffa73d91cf205594ce9accebfd408afb839173f
+
+  - name: sratom
+    buildsystem: meson
+    config-opts: [--libdir=lib, -Ddocs=disabled, -Dtests=disabled]
+    sources:
+      - type: archive
+        url: https://download.drobilla.net/sratom-0.6.22.tar.xz
+        sha256: 0209b7d0f22c96abb416722ed735b0933be47931ecff4aa4b26ded7760b4f252
+
+  - name: lilv
+    buildsystem: meson
+    config-opts:
+      - --libdir=lib
+      - -Ddocs=disabled
+      - -Dtests=disabled
+      - -Dtools=disabled
+      - -Dbindings_py=disabled
+      - -Ddefault_lv2_path=/app/extensions/Plugins/lv2:/app/lib/lv2
+    sources:
+      - type: archive
+        url: https://download.drobilla.net/lilv-0.26.4.tar.xz
+        sha256: 1c8b5fcb78718173e67d76e51ad423f5113a9ff68463f2566195ae46396089e3
+
+  - name: suil
+    buildsystem: meson
+    config-opts:
+      - --libdir=lib
+      - -Ddocs=disabled
+      - -Dtests=disabled
+      - -Dgtk2=disabled
+      - -Dgtk3=disabled
+      - -Dqt5=disabled
+      - -Dqt6=disabled
+      - -Dcocoa=disabled
+      - -Dx11=enabled
+    sources:
+      - type: archive
+        url: https://download.drobilla.net/suil-0.10.24.tar.xz
+        sha256: 0d15d407c8b1010484626cb63b3317ba0a012edf3308b66b0f7aa389bd99603b
+
+  # A recording at another rate than the session's.
+  - name: soxr
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      - -DBUILD_TESTS=OFF
+      - -DWITH_OPENMP=OFF
+      - -DWITH_LSR_BINDINGS=OFF
+    sources:
+      - type: archive
+        url: https://downloads.sourceforge.net/project/soxr/soxr-0.1.3-Source.tar.xz
+        sha256: b111c15fdc8c029989330ff559184198c161100a59312f5dc19ddeb9b5a15889
+
+  # Pitch Shift.
+  - name: soundtouch
+    buildsystem: cmake-ninja
+    config-opts: [-DCMAKE_INSTALL_LIBDIR=lib, -DSOUNDSTRETCH=OFF, -DBUILD_SHARED_LIBS=ON]
+    sources:
+      - type: archive
+        url: https://codeberg.org/soundtouch/soundtouch/archive/2.4.0.tar.gz
+        sha256: b54ca9724afcf0b8c5326a0afb1b1676f2b892ee01c57d5312232ce4bc27a077
+
+  # Speech Denoise (ADR-0016). The release tarball carries its model.
+  - name: rnnoise
+    buildsystem: autotools
+    config-opts: [--libdir=/app/lib, --disable-examples, --disable-doc, --disable-static]
+    sources:
+      - type: archive
+        url: https://github.com/xiph/rnnoise/releases/download/v0.2/rnnoise-0.2.tar.gz
+        sha256: 90fce4b00b9ff24c08dbfe31b82ffd43bae383d85c5535676d28b0a2b11c0d37
+
+  # CLAP and VST3 plugins: headers only, needed to build and not to run.
+  - name: clap
+    buildsystem: cmake-ninja
+    config-opts: [-DCMAKE_INSTALL_LIBDIR=lib, -DCLAP_BUILD_TESTS=OFF]
+    sources:
+      - type: archive
+        url: https://github.com/free-audio/clap/archive/refs/tags/1.2.7.tar.gz
+        sha256: 77fe893cbe6973afa85c736bc50f2a96888ba238b29b6aec8ecb60f81e2e899d
+
+  # The VST3 SDK's interface headers, 3.8 (MIT; ADR-0028), where a
+  # distribution's vst3sdk-devel puts them.
+  - name: vst3-pluginterfaces
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/include/vst3sdk/pluginterfaces
+      - cp -a base gui vst LICENSE.txt /app/include/vst3sdk/pluginterfaces/
+    sources:
+      - type: archive
+        url: https://github.com/steinbergmedia/vst3_pluginterfaces/archive/refs/tags/v3.8.0_build_66.tar.gz
+        sha256: c922f0a35f2c093dfcb24ccd95282e70d00cc2de42fc0c8ac1577398ffe7b6d4
+
+  # The Broadcast block's password (ADR-0026).
+  - name: qtkeychain
+    buildsystem: cmake-ninja
+    config-opts: [-DCMAKE_INSTALL_LIBDIR=lib, -DBUILD_WITH_QT6=ON, -DBUILD_TRANSLATIONS=OFF, -DBUILD_TEST_APPLICATION=OFF]
+    sources:
+      - type: archive
+        url: https://github.com/frankosterfeld/qtkeychain/archive/refs/tags/0.16.0.tar.gz
+        sha256: 3be26ec4ae30eecf0c2ff7572ba83799791b157c76e15a05ef35f23dc25e4054
+
+  - name: reverblabr
+    buildsystem: cmake-ninja
+    # Out of the source tree, as the project's build expects.
+    builddir: true
+    config-opts:
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTING=OFF
+      - -DRB_BUILD_HANDBOOK=ON
+      - -DRB_BUILD_SPEECH_DENOISE=ON
+      - -DRB_BUILD_CLAP=ON
+      - -DRB_BUILD_VST3=ON
+      - -DRB_BUILD_BROADCAST=ON
+      # Not in a Flatpak (ADR-0034).
+      - -DRB_BUILD_PLASMOID=OFF
+      - -DRB_BUILD_AUTH_HELPER=OFF
+      # ONNX Runtime is not built here.
+      - -DRB_BUILD_MODEL_BLOCK=OFF
+    post-install:
+      - mkdir -p /app/extensions/Plugins
+    # What the host's session needs and a sandbox can't give: D-Bus activation,
+    # the systemd user unit and the KRunner runner (ADR-0034).
+    cleanup:
+      - /share/dbus-1/services
+      - /lib/systemd
+      - /share/krunner
+    # The tree this manifest is in; build-flatpak.sh puts a release tarball
+    # here instead. Its own output, and any build folder, stays out.
+    sources:
+      - type: dir
+        path: ../..
+        skip: [build, .flatpak-builder]

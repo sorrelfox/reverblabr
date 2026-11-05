@@ -36,6 +36,7 @@ TestCase {
 
     function cleanup() {
         AppShell.engineInBackground = true;
+        AppShell.sandboxed = false;
         AppShell.sessionId = "";
     }
 
@@ -164,5 +165,16 @@ TestCase {
         verify(!window.schedulePane.needsBackground.visible);
         AppShell.engineInBackground = false;
         verify(window.schedulePane.needsBackground.visible);
+    }
+
+    // **A Flatpak has no timers** (ADR-0034), though its engine is the
+    // background one.
+    function test_inAFlatpakTimersSayTheyDoNotRun() {
+        const window = openWindow();
+        verify(!window.schedulePane.needsBackground.visible);
+        AppShell.sandboxed = true;
+        verify(window.schedulePane.needsBackground.visible);
+        verify(window.schedulePane.needsBackground.text.indexOf("Flatpak") >= 0,
+               window.schedulePane.needsBackground.text);
     }
 }

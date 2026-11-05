@@ -109,6 +109,10 @@ class AppShell : public QObject
     /// `--in-process` asked for it. Writable for the QML tests.
     Q_PROPERTY(bool engineInBackground READ engineInBackground WRITE setEngineInBackgroundHere NOTIFY
                    engineInBackgroundChanged)
+    /// **Whether Reverblabr runs in a Flatpak** (ADR-0034), where there is
+    /// no Auto Run, no timers and no devices for all users: the places
+    /// those appear say so. Writable for the QML tests.
+    Q_PROPERTY(bool sandboxed READ sandboxed WRITE setSandboxedHere NOTIFY sandboxedChanged)
 
 public:
     /// How often the status bar is worked out again. The task asks for at
@@ -142,6 +146,11 @@ public:
     static void setEngineInBackground(bool inBackground);
     [[nodiscard]] bool engineInBackground() const;
     void setEngineInBackgroundHere(bool inBackground);
+
+    /// Says whether this is a Flatpak, before any QML is loaded.
+    static void setSandboxed(bool sandboxed);
+    [[nodiscard]] bool sandboxed() const;
+    void setSandboxedHere(bool sandboxed);
 
     /// The QML singleton, made from whatever setEngine() was given.
     static AppShell *create(QQmlEngine *engine, QJSEngine *scriptEngine);
@@ -209,6 +218,7 @@ Q_SIGNALS:
     void stateChanged();
     void statusChanged();
     void engineInBackgroundChanged();
+    void sandboxedChanged();
 
 private:
     class Private;

@@ -22,6 +22,7 @@
 #include "freedesktopsender.h"
 #include "notifications.h"
 #include "opensessions.h"
+#include "pw/sandbox.h"
 #include "sessionrunner.h"
 #include "texts.h"
 #include "timerschedule.h"
@@ -176,8 +177,19 @@ int main(int argc, char **argv)
     // only one after a crash starts them again, unless the person chose that
     // every engine start runs them. Safe mode starts nothing, but the unit is
     // still kept in step with the settings.
-    rb::daemon::AutostartUnit autostartUnit(bus);
-    rb::daemon::AutoRun autoRun(engine.get(), &autostartUnit, sessionListing);
+    //
+    // **Neither in a Flatpak** (ADR-0034): a sandbox has no user service
+    // manager to enable a unit or a timer with, and an engine started by its
+    // window is no login's first. The sessions keep their settings.
+    const bool sandboxed = rb::pw::inFlatpak();
+    std::optional<rb::daemon::AutostartUnit> autostartUnit;
+    std::optional<rb::daemon::AutoRun> autoRun;
+    if (sandboxed) {
+        qCInfo(lcDaemon) << "in a Flatpak: no Auto Run and no timers";
+    } else {
+        autostartUnit.emplace(bus);
+        autoRun.emplace(engine.get(), &*autostartUnit, sessionListing);
+    }
     const rb::daemon::AutoRunMarker autoRunMarker(rb::daemon::AutoRunMarker::defaultPath());
     // **The sessions' timers**, as systemd user timers whose service runs
     // `reverblabr-ctl timer-fire`, installed beside this program; that call
@@ -186,7 +198,7 @@ int main(int argc, char **argv)
     // the mock engine**: a test's or a developer's pretend sessions must not
     // touch the person's systemd timers.
     std::optional<rb::daemon::TimerSchedule> timerSchedule;
-    if (!parser.isSet(mock)) {
+    if (!parser.isSet(mock) && !sandboxed) {
         timerSchedule.emplace(engine.get(),
                               bus,
                               rb::daemon::TimerSchedule::userUnitDirectory(),
@@ -201,11 +213,13 @@ int main(int argc, char **argv)
         // then this engine runs them whatever the note says, as every engine
         // did before ADR-0023. The note is still kept, so that choosing
         // once a login again holds from the next start on.
-        if (rb::daemon::autoRunEveryEngineStart(rb::daemon::defaultSettingsPath())) {
+        if (!autoRun) {
+            // In a Flatpak: nothing starts on its own.
+        } else if (rb::daemon::autoRunEveryEngineStart(rb::daemon::defaultSettingsPath())) {
             qCInfo(lcDaemon) << "Auto Run is set to run at every engine start";
-            autoRun.start();
+            autoRun->start();
         } else if (autoRunMarker.due()) {
-            autoRun.start();
+            autoRun->start();
         } else {
             qCInfo(lcDaemon) << "Auto Run has run in this login already: starting no session";
         }

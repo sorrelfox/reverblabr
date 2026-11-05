@@ -9,6 +9,7 @@
 // back, and when it is left alone. Whether PipeWire makes the devices it
 // describes is tests/pw/test_virtualdevices.cpp.
 
+#include "pw/sandbox.h"
 #include "pw/virtualdeviceconf.h"
 
 #include <QDir>
@@ -347,6 +348,82 @@ TEST(VirtualDeviceStore, TheFilesLiveWherePipeWireLooksForThem)
               u"/tmp/root/etc/pipewire/pipewire.conf.d/90-reverblabr-virtual-devices-system.conf"_s);
     EXPECT_EQ(VirtualDeviceStore(VirtualDeviceScope::User).path(), VirtualDeviceStore::userFile());
     EXPECT_EQ(VirtualDeviceStore(VirtualDeviceScope::System).path(), VirtualDeviceStore::systemFile());
+}
+
+// ---- In a Flatpak (ADR-0034) -----------------------------------------------
+
+namespace
+{
+
+/// Sets an environment variable for one test, and puts back what was there.
+class ScopedVariable
+{
+public:
+    ScopedVariable(const char *name, const QString &value)
+        : m_name(name)
+        , m_was(qgetenv(name))
+        , m_wasSet(qEnvironmentVariableIsSet(name))
+    {
+        if (value.isNull()) {
+            qunsetenv(name);
+        } else {
+            qputenv(name, value.toLocal8Bit());
+        }
+    }
+    ~ScopedVariable()
+    {
+        if (m_wasSet) {
+            qputenv(m_name, m_was);
+        } else {
+            qunsetenv(m_name);
+        }
+    }
+    ScopedVariable(const ScopedVariable &) = delete;
+    ScopedVariable &operator=(const ScopedVariable &) = delete;
+
+private:
+    const char *m_name;
+    QByteArray m_was;
+    bool m_wasSet;
+};
+
+} // namespace
+
+TEST(Sandbox, AFlatpakIsToldByTheFileFlatpakPutsInEverySandbox)
+{
+    QTemporaryDir root;
+    ASSERT_TRUE(root.isValid());
+    const QString marker = root.filePath(u".flatpak-info"_s);
+    EXPECT_FALSE(inFlatpak(marker));
+    QFile file(marker);
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    file.close();
+    EXPECT_TRUE(inFlatpak(marker));
+    EXPECT_EQ(QString::fromLatin1(kFlatpakInfo), u"/.flatpak-info"_s);
+}
+
+TEST(Sandbox, OutsideAFlatpakPipeWiresConfigurationIsXdgConfigHome)
+{
+    const QString config = qEnvironmentVariable("XDG_CONFIG_HOME");
+    ASSERT_FALSE(config.isEmpty());
+    const ScopedVariable host("HOST_XDG_CONFIG_HOME", u"/somewhere/else"_s);
+    EXPECT_EQ(pipeWireConfigHome(false), config) << "HOST_XDG_CONFIG_HOME counts only in a sandbox";
+}
+
+TEST(Sandbox, InAFlatpakPipeWiresConfigurationIsTheHostsNotTheSandboxs)
+{
+    // XDG_CONFIG_HOME is the app's own folder in a sandbox, which PipeWire
+    // never reads: a device written there would never be made.
+    {
+        const ScopedVariable host("HOST_XDG_CONFIG_HOME", u"/home/someone/.config-elsewhere"_s);
+        EXPECT_EQ(pipeWireConfigHome(true), u"/home/someone/.config-elsewhere"_s);
+    }
+    {
+        // Flatpak passes it on only when the host has one; PipeWire then reads
+        // ~/.config, and the sandbox's home is the person's.
+        const ScopedVariable host("HOST_XDG_CONFIG_HOME", QString());
+        EXPECT_EQ(pipeWireConfigHome(true), QDir::homePath() + u"/.config"_s);
+    }
 }
 
 TEST(VirtualDeviceStore, NoFileIsNoDevices)

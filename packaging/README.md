@@ -155,4 +155,20 @@ The release workflow does both for each distribution from the release tarball an
 
 ## A Flatpak
 
-A Flatpak has no systemd user unit to hand. The daemon would have to run inside the sandbox, own `io.github.reverblabr.Engine` (`--own-name`), and be started by the window instead of by activation. That isn't done yet.
+[`flatpak/io.github.reverblabr.Reverblabr.yml`](flatpak/io.github.reverblabr.Reverblabr.yml) builds Reverblabr on the KDE runtime 6.11, sandboxed and reduced ([ADR-0034](../docs/adr/0034-flatpak.md)). The window, the engine and the plugin hosts run in one sandbox. The host's bus can't start the engine there, so the window starts `reverblabrd` itself, and the sandbox owns `io.github.reverblabr.Engine`. Everything the runtime lacks is built in the manifest from a pinned source: PipeWire 1.6, lilv and suil with the libraries they need, SoX Resampler, SoundTouch, RNNoise, the CLAP and VST3 headers and QtKeychain.
+
+**Not in the Flatpak:** Auto Run, timers, KRunner, the panel widget, devices for all users and the Model block. The window says so where Auto Run, timers and devices for all users appear. The activation file, the systemd unit and the KRunner file are removed from it.
+
+Plugins come from Flathub's extensions of `org.freedesktop.LinuxAudio.Plugins` (branch 25.08), in `/app/extensions/Plugins/`; plugins installed on the host are not seen. A plugin's own window is an X11 window, so the sandbox gets X11 beside Wayland. Virtual devices are written to the host's `~/.config/pipewire/`, the only part of `~/.config` it can reach. Recordings go to the Music folder.
+
+[`flatpak/build-flatpak.sh`](flatpak/build-flatpak.sh) builds it, from this tree or from a release tarball, and makes the bundle. It needs `flatpak-builder` and Flathub as a remote; it installs the KDE SDK and runtime for the user when they are missing:
+
+```sh
+flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+packaging/flatpak/build-flatpak.sh dist/reverblabr-0.1.0.tar.xz dist/flatpak   # dist/flatpak/reverblabr-0.1.0-x86_64.flatpak
+packaging/flatpak/smoke-flatpak.sh dist/flatpak/reverblabr-0.1.0-x86_64.flatpak
+```
+
+[`flatpak/smoke-flatpak.sh`](flatpak/smoke-flatpak.sh) installs the bundle for the user, runs every program's `--version` in the sandbox, and opens the window offscreen for a few seconds on a session bus of its own, with no PipeWire socket, checking that the engine it starts takes its name. It removes the install again unless it was there before. The release workflow builds the bundle from the release tarball on a GitHub runner, runs this check, and attaches the bundle to the draft release.
+
+The bundle is installed with `flatpak install --user reverblabr-0.1.0-x86_64.flatpak`; Flathub must be a remote, for the runtime. The command-line tool is `flatpak run --command=reverblabr-ctl io.github.reverblabr.Reverblabr`.

@@ -155,6 +155,104 @@ TEST(DaemonReach, TheBusStartsTheDaemonAndItIsReached)
     }
 }
 
+// **In a Flatpak the window starts the daemon itself** (ADR-0034): the
+// host's bus has no activation file for it, which is the empty bus here.
+
+namespace
+{
+
+/// A starter that says how often it was asked, and runs \a program.
+struct Started {
+    int count = 0;
+    bus::DaemonStarter run;
+
+    [[nodiscard]] bus::DaemonStarter start()
+    {
+        return [this] {
+            ++count;
+            return run ? run() : false;
+        };
+    }
+};
+
+/// Stops the daemon that has the name, and waits for the name to go.
+void stopTheDaemon()
+{
+    QDBusConnectionInterface *daemon = QDBusConnection::sessionBus().interface();
+    const QDBusReply<uint> pid = daemon->servicePid(bus::kServiceName);
+    ASSERT_TRUE(pid.isValid()) << pid.error().message().toStdString();
+    const auto gone = [daemon] { return !daemon->isServiceRegistered(bus::kServiceName).value(); };
+    ASSERT_TRUE(signalProcess(static_cast<qint64>(pid.value()), SIGTERM));
+    if (!waitFor(gone, 5000)) {
+        (void)signalProcess(static_cast<qint64>(pid.value()), SIGKILL);
+        EXPECT_TRUE(waitFor(gone, 5000)) << "the daemon kept its name after SIGKILL";
+    }
+}
+
+} // namespace
+
+TEST(DaemonReach, WithAStarterAWindowStartsTheDaemonItselfAndReachesIt)
+{
+    RB_ONLY_ON("empty");
+    QDBusConnectionInterface *daemon = QDBusConnection::sessionBus().interface();
+    ASSERT_FALSE(daemon->isServiceRegistered(bus::kServiceName).value()) << "nothing has started it yet";
+    Started started{.run = bus::detachedStarter(QStringLiteral(RB_DAEMON), {u"--mock"_s})};
+    const bus::DaemonReachResult result =
+        bus::reachDaemon(QDBusConnection::sessionBus(), bus::kActivationTimeout, started.start());
+    EXPECT_EQ(result.reach, bus::DaemonReach::Reached) << result.detail.toStdString();
+    EXPECT_EQ(started.count, 1);
+    ASSERT_TRUE(daemon->isServiceRegistered(bus::kServiceName).value()) << "reached, but nobody has the name";
+
+    // **Started once**: a second window finds it there.
+    const bus::DaemonReachResult again =
+        bus::reachDaemon(QDBusConnection::sessionBus(), bus::kActivationTimeout, started.start());
+    EXPECT_EQ(again.reach, bus::DaemonReach::Reached);
+    EXPECT_EQ(started.count, 1) << "a daemon that was there was started again";
+
+    // Gone before the bus is, as in TheBusStartsTheDaemonAndItIsReached.
+    stopTheDaemon();
+}
+
+TEST(DaemonReach, AStarterThatCannotRunTheProgramIsRefusedAtOnce)
+{
+    RB_ONLY_ON("empty");
+    QElapsedTimer clock;
+    clock.start();
+    Started started{.run = bus::detachedStarter(u"/nonexistent/reverblabrd"_s)};
+    const bus::DaemonReachResult result =
+        bus::reachDaemon(QDBusConnection::sessionBus(), bus::kActivationTimeout, started.start());
+    EXPECT_EQ(result.reach, bus::DaemonReach::Refused);
+    EXPECT_FALSE(result.detail.isEmpty()) << "something goes to the log";
+    EXPECT_EQ(started.count, 1);
+    EXPECT_LT(clock.elapsed(), 2000) << "waited for a program that never ran";
+}
+
+TEST(DaemonReach, ADaemonThatNeverTakesTheNameIsRefusedWithinTheWait)
+{
+    RB_ONLY_ON("empty");
+    QElapsedTimer clock;
+    clock.start();
+    Started started{.run = bus::detachedStarter(QStringLiteral(RB_FALSE))};
+    const bus::DaemonReachResult result = bus::reachDaemon(QDBusConnection::sessionBus(), 2s, started.start());
+    EXPECT_EQ(result.reach, bus::DaemonReach::Refused);
+    EXPECT_FALSE(result.detail.isEmpty());
+    EXPECT_GE(clock.elapsed(), 1900) << "gave up before the wait was over";
+    EXPECT_LT(clock.elapsed(), 4000);
+}
+
+TEST(DaemonReach, AStarterIsUsedEvenWhereTheBusCouldStartIt)
+{
+    // In a Flatpak, a bus that can start the engine has it from a package
+    // installed beside the Flatpak: that engine would run outside the sandbox.
+    RB_ONLY_ON("activated");
+    Started started{.run = bus::detachedStarter(QStringLiteral(RB_DAEMON), {u"--mock"_s})};
+    const bus::DaemonReachResult result =
+        bus::reachDaemon(QDBusConnection::sessionBus(), bus::kActivationTimeout, started.start());
+    EXPECT_EQ(result.reach, bus::DaemonReach::Reached) << result.detail.toStdString();
+    EXPECT_EQ(started.count, 1) << "the bus was asked to start the host's engine";
+    stopTheDaemon();
+}
+
 // **The choice itself** needs no bus: what the command line asked for, and
 // what the bus answered, stood in for.
 

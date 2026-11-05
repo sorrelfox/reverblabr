@@ -189,6 +189,18 @@ TestCase {
         compare(TestHelper.requests, 0, "the helper was asked for the user's own device");
     }
 
+    // **A Flatpak has no all-users helper** (ADR-0034), and says that
+    // rather than that the build left it out.
+    function test_inAFlatpakEveryUserCannotBeChosenAndItSaysWhy() {
+        const window = testCase.openWindow();
+        window.allUsersAvailable = false;
+        window.sandboxed = true;
+        window.addDialog.open();
+        tryVerify(() => window.addDialog.opened, testCase.noticeMs);
+        verify(!window.addDialog.allUsersChoice.enabled, "every user can be chosen in a Flatpak");
+        verify(window.addDialog.allUsersChoice.whyNot.indexOf("Flatpak") >= 0, window.addDialog.allUsersChoice.whyNot);
+    }
+
     function test_everyUserCannotBeChosenWithoutTheHelper() {
         const window = testCase.openWindow();
         window.allUsersAvailable = false;

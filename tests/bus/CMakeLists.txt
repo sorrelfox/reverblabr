@@ -75,6 +75,8 @@ find_program(RB_FALSE false REQUIRED)
 add_executable(reverblabr-reach-test test_daemonreach.cpp)
 target_link_libraries(reverblabr-reach-test PRIVATE reverblabr-enginebus Qt6::DBus GTest::gtest)
 add_dependencies(reverblabr-reach-test reverblabrd)
+# The daemon a window in a Flatpak starts itself, and a program that exits.
+target_compile_definitions(reverblabr-reach-test PRIVATE RB_DAEMON="$<TARGET_FILE:reverblabrd>" RB_FALSE="${RB_FALSE}")
 
 # A bus with no activation files, and one whose only file starts a program
 # that exits at once.

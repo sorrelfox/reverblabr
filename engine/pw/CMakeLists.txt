@@ -10,6 +10,8 @@
 # It reads the file with SPA's JSON parser, which is all in PipeWire's
 # headers, so it needs their include path and not the library.
 add_library(reverblabr-pwconf STATIC
+    sandbox.cpp
+    sandbox.h
     virtualdeviceconf.cpp
     virtualdeviceconf.h
 )

@@ -233,8 +233,13 @@ FocusScope {
 
             Layout.fillWidth: true
             Layout.margins: AppMetrics.libraryInset
-            visible: !AppShell.engineInBackground
-            text: KI18n.i18nc("@info under the Schedule tab's timers",
+            // **A Flatpak has no timers** (ADR-0034): they are systemd
+            // timers on the host, which a sandbox can't make.
+            visible: !AppShell.engineInBackground || AppShell.sandboxed
+            text: AppShell.sandboxed
+                ? KI18n.i18nc("@info under the Schedule tab's timers",
+                              "Timers don't run in Reverblabr from a Flatpak. The session keeps them.")
+                : KI18n.i18nc("@info under the Schedule tab's timers",
                               "Timers need Reverblabr's background engine, which isn't installed here. The session keeps them.")
             color: AppColors.muted
             wrapMode: Text.WordWrap

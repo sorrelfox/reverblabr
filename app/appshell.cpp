@@ -28,6 +28,7 @@ std::function<const core::TelemetrySlot *(const QString &)> g_telemetry;
 std::function<const rt::ScopePool *(const QString &)> g_scopes;
 std::pair<QString, QString> g_startupNotice;
 bool g_engineInBackground = true;
+bool g_sandboxed = false;
 
 [[nodiscard]] qint64 steadyMilliseconds()
 {
@@ -119,6 +120,25 @@ void AppShell::setEngineInBackgroundHere(bool inBackground)
     }
     g_engineInBackground = inBackground;
     Q_EMIT engineInBackgroundChanged();
+}
+
+void AppShell::setSandboxed(bool sandboxed)
+{
+    g_sandboxed = sandboxed;
+}
+
+bool AppShell::sandboxed() const
+{
+    return g_sandboxed;
+}
+
+void AppShell::setSandboxedHere(bool sandboxed)
+{
+    if (g_sandboxed == sandboxed) {
+        return;
+    }
+    g_sandboxed = sandboxed;
+    Q_EMIT sandboxedChanged();
 }
 
 core::EngineFacade *AppShell::engine()

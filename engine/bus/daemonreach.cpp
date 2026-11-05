@@ -13,13 +13,52 @@
 #include <QDBusError>
 #include <QDBusMessage>
 #include <QDBusReply>
+#include <QDBusServiceWatcher>
+#include <QEventLoop>
+#include <QProcess>
+#include <QTimer>
 
 using namespace Qt::StringLiterals;
 
 namespace rb::bus
 {
 
-DaemonReachResult reachDaemon(const QDBusConnection &bus, std::chrono::milliseconds timeout)
+namespace
+{
+
+/// Starts the daemon with \a start and waits up to \a timeout for somebody to
+/// take the name, which is the daemon once it has opened what it had open.
+DaemonReachResult
+startAndWait(const QDBusConnection &bus, std::chrono::milliseconds timeout, const DaemonStarter &start)
+{
+    const QString name(kServiceName);
+    QDBusServiceWatcher watcher(name, bus, QDBusServiceWatcher::WatchForRegistration);
+    QEventLoop loop;
+    QObject::connect(&watcher, &QDBusServiceWatcher::serviceRegistered, &loop, &QEventLoop::quit);
+    QTimer::singleShot(timeout, &loop, &QEventLoop::quit);
+    if (!start()) {
+        return {DaemonReach::Refused, u"the engine's program could not be run"_s};
+    }
+    // **Asked again after the start**: a daemon quicker than the watcher's
+    // match rule took the name without a signal anybody saw.
+    if (!bus.interface()->isServiceRegistered(name).value()) {
+        loop.exec();
+    }
+    if (bus.interface()->isServiceRegistered(name).value()) {
+        return {DaemonReach::Reached, {}};
+    }
+    return {DaemonReach::Refused, u"the engine did not take its name in time"_s};
+}
+
+} // namespace
+
+DaemonStarter detachedStarter(const QString &program, const QStringList &arguments)
+{
+    return [program, arguments] { return QProcess::startDetached(program, arguments); };
+}
+
+DaemonReachResult
+reachDaemon(const QDBusConnection &bus, std::chrono::milliseconds timeout, const DaemonStarter &startItself)
 {
     QDBusConnectionInterface *const daemon = bus.isConnected() ? bus.interface() : nullptr;
     if (daemon == nullptr) {
@@ -27,6 +66,12 @@ DaemonReachResult reachDaemon(const QDBusConnection &bus, std::chrono::milliseco
     }
     if (daemon->isServiceRegistered(kServiceName).value()) {
         return {DaemonReach::Reached, {}};
+    }
+    // **A starter goes first, before the bus is asked**: in a Flatpak, an
+    // activation file on the host's bus belongs to a package installed beside
+    // it, and would start that engine, outside the sandbox (ADR-0034).
+    if (startItself) {
+        return startAndWait(bus, timeout, startItself);
     }
     // **Asked before starting**, so that a build nobody has installed is told
     // apart from a daemon that would not start: the first is where anybody

@@ -47,6 +47,7 @@ TestCase {
         TestEngine.setAudioSystemRunning(true);
         TestEngine.reconnectAudioSystem();
         AppShell.engineInBackground = true;
+        AppShell.sandboxed = false;
         AppShell.sessionId = "";
         AutoRunSetting.everyEngineStart = false;
     }
@@ -141,6 +142,24 @@ TestCase {
         AppShell.engineInBackground = false;
         tryVerify(() => pane.autoRunNeedsBackground.visible, 1000,
                   "a window running its own engine said nothing about Auto Run");
+    }
+
+    // **A Flatpak has no Auto Run** (ADR-0034), though its engine is the
+    // background one: the tab says so, and not when it would run.
+    function test_inAFlatpakAutoRunSaysItDoesNotRun() {
+        const window = createTemporaryObject(mainWindow, testCase);
+        openSession();
+        window.sidebarIndex = window.sidebar.infoTab;
+        const pane = window.infoPane;
+        SessionModel.setAutoRun("login");
+        tryVerify(() => pane.autoRunWhen.visible, 1000, "nothing said when the session runs");
+        verify(!pane.autoRunNeedsBackground.visible);
+
+        AppShell.sandboxed = true;
+        tryVerify(() => pane.autoRunNeedsBackground.visible, 1000, "a Flatpak said nothing about Auto Run");
+        verify(pane.autoRunNeedsBackground.text.indexOf("Flatpak") >= 0, pane.autoRunNeedsBackground.text);
+        verify(!pane.autoRunWhen.visible, "said when Auto Run runs, in a Flatpak that has none");
+        compare(SessionModel.autoRun, "login", "the session lost its setting");
     }
 
     // **When Auto Run runs is one choice for every session**, in the

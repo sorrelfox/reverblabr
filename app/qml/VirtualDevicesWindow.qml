@@ -111,6 +111,9 @@ QQC2.ApplicationWindow {
     /// Whether devices for every user can be asked for at all: the build has
     /// the helper. A test may say otherwise.
     property bool allUsersAvailable: VirtualDevices.allUsersAvailable
+    /// A Flatpak has no all-users helper (ADR-0034), and says so. A test may
+    /// say otherwise.
+    property bool sandboxed: AppShell.sandboxed
 
     /// Whether the engine has said there are none at all, with nothing
     /// hidden by a file it could not read.
@@ -497,7 +500,10 @@ QQC2.ApplicationWindow {
                     QQC2.ButtonGroup.group: scopeGroup
                     Accessible.description: allUsersChoice.whyNot
                     // **Why it can't be chosen**, on the choice itself.
-                    readonly property string whyNot: !root.allUsersAvailable
+                    readonly property string whyNot: !root.allUsersAvailable && root.sandboxed
+                        ? KI18n.i18nc("@info:tooltip",
+                                      "Reverblabr from a Flatpak can't make devices for all users.")
+                        : !root.allUsersAvailable
                         ? KI18n.i18nc("@info:tooltip",
                                       "This copy of Reverblabr was built without the part that makes devices for all users.")
                         : VirtualDevices.authorizing
