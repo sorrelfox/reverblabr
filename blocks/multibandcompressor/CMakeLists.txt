@@ -15,6 +15,7 @@ rb_add_block(multibandcompressor
         ui/MultibandCompressorFace.qml
         ui/MultibandCompressorHelp.qml
         ui/MultibandCompressorPanel.qml
+        ui/MultibandCompressorUi.qml
         ui/MultibandWords.qml
     ICONS
         ui/effect.multibandcompressor.svg

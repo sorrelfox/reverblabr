@@ -15,6 +15,7 @@ rb_add_block(wave
         ui/WaveFace.qml
         ui/WaveHelp.qml
         ui/WavePanel.qml
+        ui/WaveUi.qml
         ui/WaveWords.qml
     ICONS
         ui/output.wave.svg

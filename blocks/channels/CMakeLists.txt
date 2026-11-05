@@ -15,6 +15,7 @@ rb_add_block(channels
         ui/ChannelsFace.qml
         ui/ChannelsHelp.qml
         ui/ChannelsPanel.qml
+        ui/ChannelsUi.qml
         ui/ChannelsWords.qml
     ICONS
         ui/effect.channels.svg

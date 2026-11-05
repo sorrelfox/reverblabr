@@ -76,8 +76,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockFaces.faceFor("advanced.sync") !== null, "the Sync block has no face");
-        verify(BlockPanels.panelFor("advanced.sync") !== null, "the Sync block is not in the panel register");
+        verify(BlockRegister.faceFor("advanced.sync") !== null, "the Sync block has no face");
+        verify(BlockRegister.panelFor("advanced.sync") !== null, "the Sync block is not in the panel register");
         compare(BlockCatalogue.describe("advanced.sync").face, "value");
         compare(BlockPresentation.category("advanced.sync"), "advanced");
     }

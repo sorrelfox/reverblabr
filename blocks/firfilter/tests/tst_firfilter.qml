@@ -55,7 +55,7 @@ TestCase {
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("advanced.firfilter"), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("advanced.firfilter"), testCase, { width: 180, height: 90 });
         face.blockId = "fir";
         return face;
     }
@@ -97,8 +97,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("advanced.firfilter") !== null, "the FIR Filter is in the panel register");
-        verify(BlockFaces.faceFor("advanced.firfilter") !== null, "the FIR Filter is in the face register");
+        verify(BlockRegister.panelFor("advanced.firfilter") !== null, "the FIR Filter is in the panel register");
+        verify(BlockRegister.faceFor("advanced.firfilter") !== null, "the FIR Filter is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn() {

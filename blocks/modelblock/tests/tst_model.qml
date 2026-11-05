@@ -58,7 +58,7 @@ TestCase {
                 id: holder
 
                 anchors.fill: parent
-                sourceComponent: BlockFaces.faceFor(testCase.typeId)
+                sourceComponent: BlockRegister.faceFor(testCase.typeId)
             }
         }
     }
@@ -120,8 +120,8 @@ TestCase {
     }
 
     function test_itHasAFaceAPanelAndHelpOfItsOwn() {
-        verify(BlockPanels.panelFor(testCase.typeId) !== null, "the Model is in the panel register");
-        verify(BlockFaces.faceFor(testCase.typeId) !== null, "the Model is in the face register");
+        verify(BlockRegister.panelFor(testCase.typeId) !== null, "the Model is in the panel register");
+        verify(BlockRegister.faceFor(testCase.typeId) !== null, "the Model is in the face register");
     }
 
     // --- the Beta mark ---

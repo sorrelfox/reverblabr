@@ -20,12 +20,14 @@ rb_add_block(frequencymove
         ui/FrequencyLoweringFace.qml
         ui/FrequencyLoweringHelp.qml
         ui/FrequencyLoweringPanel.qml
+        ui/FrequencyLoweringUi.qml
         ui/FrequencyMoveFace.qml
         ui/FrequencyMovePanel.qml
         ui/FrequencyMoves.qml
         ui/FrequencyRaisingFace.qml
         ui/FrequencyRaisingHelp.qml
         ui/FrequencyRaisingPanel.qml
+        ui/FrequencyRaisingUi.qml
     ICONS
         ui/hearing.frequencylowering.svg
         ui/hearing.frequencyraising.svg

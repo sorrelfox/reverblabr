@@ -22,13 +22,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.pitchshift"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.pitchshift"), testCase, { width: 340 });
         panel.blockId = "ps";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.pitchshift"), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.pitchshift"), testCase, { width: 180, height: 90 });
         face.blockId = "ps";
         return face;
     }
@@ -51,8 +51,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.pitchshift") !== null, "Pitch Shift is in the panel register");
-        verify(BlockFaces.faceFor("effect.pitchshift") !== null, "Pitch Shift is in the face register");
+        verify(BlockRegister.panelFor("effect.pitchshift") !== null, "Pitch Shift is in the panel register");
+        verify(BlockRegister.faceFor("effect.pitchshift") !== null, "Pitch Shift is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn() {

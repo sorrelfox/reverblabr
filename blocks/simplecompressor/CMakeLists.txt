@@ -15,6 +15,7 @@ rb_add_block(simplecompressor
         ui/SimpleCompressorFace.qml
         ui/SimpleCompressorHelp.qml
         ui/SimpleCompressorPanel.qml
+        ui/SimpleCompressorUi.qml
     ICONS
         ui/effect.simplecompressor.svg
     TESTS

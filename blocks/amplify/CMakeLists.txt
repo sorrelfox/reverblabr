@@ -15,6 +15,7 @@ rb_add_block(amplify
         ui/AmplifyFace.qml
         ui/AmplifyHelp.qml
         ui/AmplifyPanel.qml
+        ui/AmplifyUi.qml
     ICONS
         ui/effect.amplify.svg
     TESTS

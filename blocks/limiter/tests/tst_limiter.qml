@@ -23,13 +23,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.limiter"), testCase, { width: 320 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.limiter"), testCase, { width: 320 });
         panel.blockId = "lim";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.limiter"), testCase,
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.limiter"), testCase,
                                            { width: 220, height: 120 });
         face.blockId = "lim";
         return face;
@@ -69,8 +69,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.limiter") !== null, "the Limiter is in the panel register");
-        verify(BlockFaces.faceFor("effect.limiter") !== null, "the Limiter is in the face register");
+        verify(BlockRegister.panelFor("effect.limiter") !== null, "the Limiter is in the panel register");
+        verify(BlockRegister.faceFor("effect.limiter") !== null, "the Limiter is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn() {

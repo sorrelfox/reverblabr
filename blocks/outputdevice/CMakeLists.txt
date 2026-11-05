@@ -14,6 +14,7 @@ rb_add_block(outputdevice
     UI
         ui/OutputDeviceHelp.qml
         ui/OutputDevicePanel.qml
+        ui/OutputDeviceUi.qml
     ICONS
         ui/output.device.svg
     TESTS

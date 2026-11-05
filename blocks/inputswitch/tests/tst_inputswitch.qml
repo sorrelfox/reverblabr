@@ -85,8 +85,8 @@ TestCase {
     function test_itIsInAdvancedWithInputsAAndB() {
         verify(BlockCatalogue.types.indexOf("advanced.inputswitch") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("advanced.inputswitch"), "advanced");
-        verify(BlockFaces.faceFor("advanced.inputswitch") !== null, "it has no face");
-        verify(BlockPanels.panelFor("advanced.inputswitch") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("advanced.inputswitch") !== null, "it has no face");
+        verify(BlockRegister.panelFor("advanced.inputswitch") !== null, "it has no panel");
         const inputs = BlockCatalogue.describe("advanced.inputswitch").inputs;
         compare(inputs.lanes, ["a", "b"]);
         compare(BlockPresentation.laneName("a"), "Input A");

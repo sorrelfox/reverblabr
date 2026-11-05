@@ -80,8 +80,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("output.wave") >= 0, "the engine does not offer Wave");
         compare(BlockPresentation.category("output.wave"), "outputs");
         compare(BlockPresentation.name("output.wave"), "Wave");
-        verify(BlockFaces.faceFor("output.wave") !== null, "Wave has no face");
-        verify(BlockPanels.panelFor("output.wave") !== null, "Wave has no panel");
+        verify(BlockRegister.faceFor("output.wave") !== null, "Wave has no face");
+        verify(BlockRegister.panelFor("output.wave") !== null, "Wave has no panel");
     }
 
     function test_theIdsTheInterfaceSpellsOutAreTheOnesTheEngineOffers() {

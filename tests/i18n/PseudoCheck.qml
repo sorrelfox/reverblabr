@@ -391,7 +391,7 @@ QtObject {
             // **Every block's help that is written, and one that is not**:
             // a page of text, which has to wrap rather than run out of its
             // column in a language 40 % longer.
-            for (const typeId of Object.keys(BlockHelp.pages).concat(["effect.echo"])) {
+            for (const typeId of BlockRegister.typesWithHelp.concat(["effect.echo"])) {
                 let help = null;
                 step("help " + typeId, () => {
                     help = BlockHelp.show(typeId, window);

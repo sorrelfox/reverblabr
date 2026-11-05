@@ -40,13 +40,13 @@ TestCase {
     }
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("meter.soundside"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("meter.soundside"), testCase, { width: 340 });
         panel.blockId = "sides";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("meter.soundside"), testCase, { width: 200, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("meter.soundside"), testCase, { width: 200, height: 90 });
         face.blockId = "sides";
         return face;
     }

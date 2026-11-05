@@ -16,6 +16,7 @@ rb_add_block(sync
         ui/SyncHelp.qml
         ui/SyncPanel.qml
         ui/SyncScale.qml
+        ui/SyncUi.qml
     ICONS
         ui/advanced.sync.svg
     TESTS

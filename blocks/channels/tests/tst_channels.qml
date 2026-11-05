@@ -22,13 +22,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.channels"), testCase, { width: 320 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.channels"), testCase, { width: 320 });
         panel.blockId = "ch";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.channels"), testCase,
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.channels"), testCase,
                                            { width: 180, height: 90 });
         face.blockId = "ch";
         return face;
@@ -54,8 +54,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.channels") !== null, "Channels is in the panel register");
-        verify(BlockFaces.faceFor("effect.channels") !== null, "Channels is in the face register");
+        verify(BlockRegister.panelFor("effect.channels") !== null, "Channels is in the panel register");
+        verify(BlockRegister.faceFor("effect.channels") !== null, "Channels is in the face register");
     }
 
     function test_theActionsAreTheEnginesEachWithWords() {

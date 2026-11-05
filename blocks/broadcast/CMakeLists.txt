@@ -20,6 +20,7 @@ rb_add_block(broadcast
         ui/BroadcastPanel.qml
         ui/broadcaststatus.cpp
         ui/broadcaststatus.h
+        ui/BroadcastUi.qml
         ui/BroadcastWords.qml
         ui/mediaplayers.cpp
         ui/mediaplayers.h
@@ -39,6 +40,7 @@ rb_add_block(livestream
     UI
         ui/LiveStreamHelp.qml
         ui/LiveStreamPanel.qml
+        ui/LiveStreamUi.qml
         ui/LiveStreamWords.qml
     ICONS
         ui/output.livestream.svg

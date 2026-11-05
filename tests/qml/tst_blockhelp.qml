@@ -119,7 +119,7 @@ TestCase {
         // named here that a page written later would take away: a plugin
         // block never has one (tests/tools/help-pending.txt leaves them out),
         // so there is always one to ask about.
-        const typeId = BlockCatalogue.types.find(type => BlockHelp.pageFor(type) === null) ?? "";
+        const typeId = BlockCatalogue.types.find(type => BlockRegister.pageFor(type) === null) ?? "";
         verify(typeId !== "", "every block of the catalogue has a page, and none is left to show the placeholder");
         const help = BlockHelp.show(typeId, null);
         tryVerify(() => help.visible, 2000);
@@ -158,7 +158,7 @@ TestCase {
     // --- every page against its panel ---
 
     function test_everyPageNamesEveryControlOfItsPanel_data() {
-        return Object.keys(BlockHelp.pages).map(typeId => ({ tag: typeId, typeId: typeId }));
+        return BlockRegister.typesWithHelp.map(typeId => ({ tag: typeId, typeId: typeId }));
     }
 
     /// The names a page gives: every heading, and what each section says
@@ -218,7 +218,7 @@ TestCase {
         if (Object.keys(BlockCatalogue.describe(data.typeId)).length === 0) {
             skip(data.typeId + " is not in this build");
         }
-        const component = BlockHelp.pageFor(data.typeId);
+        const component = BlockRegister.pageFor(data.typeId);
         verify(component !== null);
         const page = createTemporaryObject(component, null);
         verify(page !== null, "the page for " + data.typeId + " was not made");
@@ -238,7 +238,7 @@ TestCase {
 
         const id = "help-" + data.typeId.replace(/\./g, "-");
         addBlock(id, data.typeId);
-        const panelComponent = BlockPanels.panelFor(data.typeId) ?? genericComponent;
+        const panelComponent = BlockRegister.panelFor(data.typeId) ?? genericComponent;
         const panel = createTemporaryObject(panelComponent, null, { blockId: id, width: 360 });
         verify(panel !== null, "no panel for " + data.typeId);
         wait(50);

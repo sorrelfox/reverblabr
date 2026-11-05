@@ -21,6 +21,7 @@ rb_add_block(modelblock
         ui/ModelHelp.qml
         ui/ModelPanel.qml
         ui/ModelState.qml
+        ui/ModelUi.qml
     ICONS
         ui/effect.model.svg
     TESTS

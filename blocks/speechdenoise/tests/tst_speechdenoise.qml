@@ -49,7 +49,7 @@ TestCase {
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor(testCase.typeId), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor(testCase.typeId), testCase, { width: 180, height: 90 });
         face.blockId = "sd";
         return face;
     }
@@ -90,8 +90,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor(testCase.typeId) !== null, "Speech Denoise is in the panel register");
-        verify(BlockFaces.faceFor(testCase.typeId) !== null, "Speech Denoise is in the face register");
+        verify(BlockRegister.panelFor(testCase.typeId) !== null, "Speech Denoise is in the panel register");
+        verify(BlockRegister.faceFor(testCase.typeId) !== null, "Speech Denoise is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn() {

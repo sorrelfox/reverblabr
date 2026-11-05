@@ -15,6 +15,7 @@ rb_add_block(volume
         ui/VolumeFace.qml
         ui/VolumeHelp.qml
         ui/VolumePanel.qml
+        ui/VolumeUi.qml
     ICONS
         ui/effect.volume.svg
     PRESETS

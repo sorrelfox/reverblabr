@@ -66,8 +66,8 @@ TestCase {
     }
 
     function test_theBlockHasAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.volume") !== null, "the Volume block is in the register");
-        verify(BlockFaces.faceFor("effect.volume") !== null, "the Volume block has a face");
+        verify(BlockRegister.panelFor("effect.volume") !== null, "the Volume block is in the register");
+        verify(BlockRegister.faceFor("effect.volume") !== null, "the Volume block has a face");
     }
 
     function test_theIdsTheInterfaceSpellsOutAreTheOnesTheEngineOffers() {

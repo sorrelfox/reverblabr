@@ -89,8 +89,8 @@ TestCase {
     }
 
     function test_theBlockHasAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("meter.peakrms") !== null, "the Peak/RMS block is in the register");
-        verify(BlockFaces.faceFor("meter.peakrms") !== null, "the Peak/RMS block has a face");
+        verify(BlockRegister.panelFor("meter.peakrms") !== null, "the Peak/RMS block is in the register");
+        verify(BlockRegister.faceFor("meter.peakrms") !== null, "the Peak/RMS block has a face");
     }
 
     function test_theIdsTheInterfaceSpellsOutAreTheOnesTheEngineOffers() {

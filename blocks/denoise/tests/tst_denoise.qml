@@ -35,13 +35,13 @@ TestCase {
     readonly property string oldProfile: "v1;rate=48000;size=2048;seconds=3.0;db=" + new Array(1025).fill("-60.0").join(",")
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("advanced.denoise"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("advanced.denoise"), testCase, { width: 340 });
         panel.blockId = "dn";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("advanced.denoise"), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("advanced.denoise"), testCase, { width: 180, height: 90 });
         face.blockId = "dn";
         return face;
     }
@@ -79,8 +79,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("advanced.denoise") !== null, "Denoise is in the panel register");
-        verify(BlockFaces.faceFor("advanced.denoise") !== null, "Denoise is in the face register");
+        verify(BlockRegister.panelFor("advanced.denoise") !== null, "Denoise is in the panel register");
+        verify(BlockRegister.faceFor("advanced.denoise") !== null, "Denoise is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn() {

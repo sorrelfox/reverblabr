@@ -547,7 +547,7 @@ Primitives.ShadowedRectangle {
                 // **A block with no panel of its own is not a lesser
                 // block.** The generic panel is generated from what it says
                 // about itself, which for most blocks is the right panel.
-                sourceComponent: BlockPanels.panelFor(panel.typeId) ?? generic
+                sourceComponent: BlockRegister.panelFor(panel.typeId) ?? generic
             }
 
             // **A block's own panel is told which block it is.** The

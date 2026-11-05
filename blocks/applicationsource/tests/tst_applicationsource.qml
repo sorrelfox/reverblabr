@@ -61,7 +61,7 @@ TestCase {
             Loader {
                 id: faceLoader
 
-                sourceComponent: BlockFaces.faceFor(tile.typeId)
+                sourceComponent: BlockRegister.faceFor(tile.typeId)
             }
 
             Binding {
@@ -108,7 +108,7 @@ TestCase {
                                            { typeId: "source.application", blockId: "app" });
         tryVerify(() => tile.face !== null && tile.face.subtitle === "Choose an app", testCase.noticeMs,
                   "a Loader could not draw the Application face");
-        verify(BlockPanels.panelFor("source.application") !== null, "the Application block has no panel");
+        verify(BlockRegister.panelFor("source.application") !== null, "the Application block has no panel");
     }
 
     function test_aBlockPointedAtNothingSaysSo() {

@@ -25,13 +25,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("advanced.declick"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("advanced.declick"), testCase, { width: 340 });
         panel.blockId = "dc";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("advanced.declick"), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("advanced.declick"), testCase, { width: 180, height: 90 });
         face.blockId = "dc";
         return face;
     }
@@ -58,8 +58,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("advanced.declick") !== null, "Declick is in the panel register");
-        verify(BlockFaces.faceFor("advanced.declick") !== null, "Declick is in the face register");
+        verify(BlockRegister.panelFor("advanced.declick") !== null, "Declick is in the panel register");
+        verify(BlockRegister.faceFor("advanced.declick") !== null, "Declick is in the face register");
     }
 
     function test_theRangeIsTheEnginesOwn() {

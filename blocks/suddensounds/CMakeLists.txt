@@ -16,6 +16,7 @@ rb_add_block(suddensounds
         ui/SuddenSoundsHelp.qml
         ui/SuddenSoundsPanel.qml
         ui/SuddenSoundsState.qml
+        ui/SuddenSoundsUi.qml
         ui/SuddenSoundsWords.qml
     ICONS
         ui/hearing.suddensounds.svg

@@ -119,8 +119,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf(testCase.typeId) >= 0, "the engine does not offer it");
         compare(BlockPresentation.category(testCase.typeId), "hearing");
         compare(BlockPresentation.name(testCase.typeId), "Hearing Compensation 64");
-        verify(BlockFaces.faceFor(testCase.typeId) !== null, "it has no face");
-        verify(BlockPanels.panelFor(testCase.typeId) !== null, "it has no panel");
+        verify(BlockRegister.faceFor(testCase.typeId) !== null, "it has no face");
+        verify(BlockRegister.panelFor(testCase.typeId) !== null, "it has no panel");
         const hz = BlockCatalogue.describeParam(testCase.typeId, "point0Hz");
         compare(hz.minimum, 100);
         compare(hz.maximum, 16000);

@@ -23,13 +23,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.autolevel"), testCase, { width: 320 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.autolevel"), testCase, { width: 320 });
         panel.blockId = "al";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.autolevel"), testCase,
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.autolevel"), testCase,
                                            { width: 220, height: 120 });
         face.blockId = "al";
         return face;
@@ -89,8 +89,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.autolevel") !== null, "Auto Level is in the panel register");
-        verify(BlockFaces.faceFor("effect.autolevel") !== null, "Auto Level is in the face register");
+        verify(BlockRegister.panelFor("effect.autolevel") !== null, "Auto Level is in the panel register");
+        verify(BlockRegister.faceFor("effect.autolevel") !== null, "Auto Level is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn() {

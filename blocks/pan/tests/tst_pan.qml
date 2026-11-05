@@ -24,13 +24,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.pan"), testCase, { width: 320 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.pan"), testCase, { width: 320 });
         panel.blockId = "pan1";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.pan"), testCase, { width: 220, height: 120 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.pan"), testCase, { width: 220, height: 120 });
         face.blockId = "pan1";
         return face;
     }
@@ -55,8 +55,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.pan") !== null, "Pan is in the panel register");
-        verify(BlockFaces.faceFor("effect.pan") !== null, "Pan is in the face register");
+        verify(BlockRegister.panelFor("effect.pan") !== null, "Pan is in the panel register");
+        verify(BlockRegister.faceFor("effect.pan") !== null, "Pan is in the face register");
     }
 
     function test_theRangeTheInterfaceOffersIsTheOneTheEngineTakes() {

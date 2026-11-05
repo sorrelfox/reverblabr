@@ -21,6 +21,7 @@ rb_add_block(pluginblock
     UI
         ui/PluginFace.qml
         ui/PluginPanel.qml
+        ui/PluginUi.qml
     ICONS
         ui/plugin.builtin.svg
         ui/plugin.clap.svg

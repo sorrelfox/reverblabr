@@ -25,13 +25,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("advanced.timeshift"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("advanced.timeshift"), testCase, { width: 340 });
         panel.blockId = "ts";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("advanced.timeshift"), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("advanced.timeshift"), testCase, { width: 180, height: 90 });
         face.blockId = "ts";
         return face;
     }
@@ -64,8 +64,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("advanced.timeshift") !== null, "Time Shift is in the panel register");
-        verify(BlockFaces.faceFor("advanced.timeshift") !== null, "Time Shift is in the face register");
+        verify(BlockRegister.panelFor("advanced.timeshift") !== null, "Time Shift is in the panel register");
+        verify(BlockRegister.faceFor("advanced.timeshift") !== null, "Time Shift is in the face register");
     }
 
     function test_theRangeIsTheEnginesOwn() {

@@ -63,8 +63,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("advanced.ducking") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("advanced.ducking"), "advanced");
         compare(BlockPresentation.name("advanced.ducking"), "Ducking");
-        verify(BlockFaces.faceFor("advanced.ducking") !== null, "it has no face");
-        verify(BlockPanels.panelFor("advanced.ducking") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("advanced.ducking") !== null, "it has no face");
+        verify(BlockRegister.panelFor("advanced.ducking") !== null, "it has no panel");
         const inputs = BlockCatalogue.describe("advanced.ducking").inputs;
         compare(inputs.laneWidth, 2);
         compare(inputs.lanes, ["main", "background"]);

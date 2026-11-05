@@ -18,7 +18,9 @@ rb_add_block(cutofffilter
         ui/CutoffFace.qml
         ui/CutoffPanel.qml
         ui/HighPassHelp.qml
+        ui/HighPassUi.qml
         ui/LowPassHelp.qml
+        ui/LowPassUi.qml
     ICONS
         ui/effect.highpass.svg
         ui/effect.lowpass.svg

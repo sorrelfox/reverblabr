@@ -112,8 +112,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("advanced.parametriceq") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("advanced.parametriceq"), "advanced");
         compare(BlockPresentation.name("advanced.parametriceq"), "Parametric EQ");
-        verify(BlockFaces.faceFor("advanced.parametriceq") !== null, "it has no face");
-        verify(BlockPanels.panelFor("advanced.parametriceq") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("advanced.parametriceq") !== null, "it has no face");
+        verify(BlockRegister.panelFor("advanced.parametriceq") !== null, "it has no panel");
     }
 
     function test_theBandTypesAreTheOnesTheEngineOffers() {

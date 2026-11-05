@@ -23,8 +23,8 @@ import org.kde.ki18n
 //
 // **This is a fallback, not a lesser face.** For a block whose settings are
 // a list of settings it is the right face and will stay, the same way the
-// generic settings panel is. A block that wants something else adds its own
-// component to BlockFaces, and this stops being asked.
+// generic settings panel is. A block that wants something else names its own
+// face in its entry (BlockRegister), and this stops being asked.
 //
 // **There is no generic curve.** A response curve is worked out from what
 // the block does to a signal, which is the block's business and nothing the

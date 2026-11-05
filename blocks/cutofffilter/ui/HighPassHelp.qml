@@ -9,10 +9,11 @@ import QtQuick
 import org.kde.ki18n
 
 // The High Pass Filter's help page (docs/dev/block-help.md). The facts are
-// the block's (engine/blocks/highpassfilter.h: the range and the start;
-// engine/blocks/cutofffilter.h: the slopes, 3 dB down at the cutoff, the
-// glides) and the panel's (CutoffPanel and FilterWords, as BlockPanels sets
-// them up for this block; CutoffFace for the slider on the tile).
+// the block's (blocks/cutofffilter/highpassfilter.h: the range and the
+// start; blocks/cutofffilter/cutofffilter.h: the slopes, 3 dB down at the
+// cutoff, the glides) and the panel's (CutoffPanel and FilterWords, as
+// HighPassUi sets them up for this block; CutoffFace for the slider on the
+// tile).
 HelpPage {
     typeId: "effect.highpass"
     summary: KI18n.i18nc("@info help page of the High Pass Filter block", "Takes away the deep sound below a pitch you choose, and lets everything above it pass. Use it to clean rumble, hum from handling and the boom of a room out of a voice.")

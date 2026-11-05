@@ -87,8 +87,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("effect.basstreble") >= 0, "the engine does not offer Bass & Treble");
         compare(BlockPresentation.category("effect.basstreble"), "effects");
         compare(BlockPresentation.name("effect.basstreble"), "Bass & Treble");
-        verify(BlockFaces.faceFor("effect.basstreble") !== null, "Bass & Treble has no face");
-        verify(BlockPanels.panelFor("effect.basstreble") !== null, "Bass & Treble has no panel");
+        verify(BlockRegister.faceFor("effect.basstreble") !== null, "Bass & Treble has no face");
+        verify(BlockRegister.panelFor("effect.basstreble") !== null, "Bass & Treble has no panel");
     }
 
     function test_theRangeIsTheOneTheEngineOffers() {

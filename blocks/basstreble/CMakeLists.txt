@@ -15,6 +15,7 @@ rb_add_block(basstreble
         ui/BassTrebleFace.qml
         ui/BassTrebleHelp.qml
         ui/BassTreblePanel.qml
+        ui/BassTrebleUi.qml
     ICONS
         ui/effect.basstreble.svg
     TESTS

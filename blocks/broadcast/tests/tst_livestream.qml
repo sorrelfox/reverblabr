@@ -78,7 +78,7 @@ TestCase {
 
     function test_itIsAnOutputWithAPanelOfItsOwn() {
         compare(BlockPresentation.category("output.livestream"), "outputs");
-        verify(BlockPanels.panelFor("output.livestream") !== null, "it has no panel");
+        verify(BlockRegister.panelFor("output.livestream") !== null, "it has no panel");
     }
 
     function test_theWordsCoverWhatTheEngineOffers() {

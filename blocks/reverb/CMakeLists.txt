@@ -15,6 +15,7 @@ rb_add_block(reverb
         ui/ReverbFace.qml
         ui/ReverbHelp.qml
         ui/ReverbPanel.qml
+        ui/ReverbUi.qml
         ui/ReverbWords.qml
     ICONS
         ui/effect.reverb.svg

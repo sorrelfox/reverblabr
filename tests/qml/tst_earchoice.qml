@@ -69,7 +69,7 @@ TestCase {
 
         Meters.watch(testCase.sessionId);
         const window = createTemporaryObject(shownPanel, null);
-        window.loader.sourceComponent = BlockPanels.panelFor(data.typeId);
+        window.loader.sourceComponent = BlockRegister.panelFor(data.typeId);
         const panel = window.loader.item;
         verify(panel !== null, "no panel for " + data.typeId);
         panel.blockId = id;

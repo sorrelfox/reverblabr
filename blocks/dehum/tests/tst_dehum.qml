@@ -65,8 +65,8 @@ TestCase {
     function test_itIsAnAdvancedBlockWithAFaceAndAPanelOfItsOwn() {
         verify(BlockCatalogue.types.indexOf("advanced.dehum") >= 0, "the engine does not offer Dehum");
         compare(BlockPresentation.category("advanced.dehum"), "advanced");
-        verify(BlockFaces.faceFor("advanced.dehum") !== null, "Dehum has no face");
-        verify(BlockPanels.panelFor("advanced.dehum") !== null, "Dehum has no panel");
+        verify(BlockRegister.faceFor("advanced.dehum") !== null, "Dehum has no face");
+        verify(BlockRegister.panelFor("advanced.dehum") !== null, "Dehum has no panel");
     }
 
     function test_theRangesAreTheOnesTheEngineOffers() {

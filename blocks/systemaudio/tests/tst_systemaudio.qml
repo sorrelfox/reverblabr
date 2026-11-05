@@ -60,7 +60,7 @@ TestCase {
             Loader {
                 id: faceLoader
 
-                sourceComponent: BlockFaces.faceFor(tile.typeId)
+                sourceComponent: BlockRegister.faceFor(tile.typeId)
             }
 
             Binding {
@@ -167,7 +167,7 @@ TestCase {
                                            { typeId: "source.system", blockId: "sys" });
         tryVerify(() => tile.face !== null && tile.face.subtitle === "All system audio", testCase.noticeMs,
                   "a Loader could not draw the System Audio face");
-        verify(BlockPanels.panelFor("source.system") !== null, "the System Audio block has no panel");
+        verify(BlockRegister.panelFor("source.system") !== null, "the System Audio block has no panel");
     }
 
     function test_theAlertsCheckboxWritesTheBlocksOwnParameter() {

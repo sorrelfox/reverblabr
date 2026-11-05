@@ -15,6 +15,7 @@ rb_add_block(ducking
         ui/DuckingFace.qml
         ui/DuckingHelp.qml
         ui/DuckingPanel.qml
+        ui/DuckingUi.qml
         ui/DuckingWords.qml
     ICONS
         ui/advanced.ducking.svg

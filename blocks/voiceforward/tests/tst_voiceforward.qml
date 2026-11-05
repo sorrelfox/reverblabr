@@ -27,13 +27,13 @@ TestCase {
     readonly property var words: VoiceForwardWords {}
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.voiceforward"), testCase, { width: 380 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.voiceforward"), testCase, { width: 380 });
         panel.blockId = "forward";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.voiceforward"), testCase, { width: 200, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.voiceforward"), testCase, { width: 200, height: 90 });
         face.blockId = "forward";
         return face;
     }

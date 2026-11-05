@@ -87,8 +87,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("meter.vu") !== null, "the VU block is not in the panel register");
-        verify(BlockFaces.faceFor("meter.vu") !== null, "the VU block has no face");
+        verify(BlockRegister.panelFor("meter.vu") !== null, "the VU block is not in the panel register");
+        verify(BlockRegister.faceFor("meter.vu") !== null, "the VU block has no face");
         compare(BlockCatalogue.describe("meter.vu").face, "vu");
         compare(BlockPresentation.category("meter.vu"), "meters");
     }

@@ -15,6 +15,7 @@ rb_add_block(dehum
         ui/DehumFace.qml
         ui/DehumHelp.qml
         ui/DehumPanel.qml
+        ui/DehumUi.qml
         ui/DehumWords.qml
     ICONS
         ui/advanced.dehum.svg

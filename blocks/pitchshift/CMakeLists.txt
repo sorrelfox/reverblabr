@@ -15,6 +15,7 @@ rb_add_block(pitchshift
         ui/PitchShiftFace.qml
         ui/PitchShiftHelp.qml
         ui/PitchShiftPanel.qml
+        ui/PitchShiftUi.qml
         ui/PitchShiftWords.qml
     ICONS
         ui/effect.pitchshift.svg

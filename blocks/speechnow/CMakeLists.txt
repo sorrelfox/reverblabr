@@ -17,6 +17,7 @@ rb_add_block(speechnow
         ui/SpeechNowHelp.qml
         ui/SpeechNowPanel.qml
         ui/SpeechNowState.qml
+        ui/SpeechNowUi.qml
     ICONS
         ui/meter.speechnow.svg
     PRESETS

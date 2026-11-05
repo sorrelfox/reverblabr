@@ -28,13 +28,13 @@ TestCase {
     readonly property int read: 2
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("hearing.oneearmix"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("hearing.oneearmix"), testCase, { width: 340 });
         panel.blockId = "mix";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("hearing.oneearmix"), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("hearing.oneearmix"), testCase, { width: 180, height: 90 });
         face.blockId = "mix";
         return face;
     }
@@ -78,8 +78,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("hearing.oneearmix") !== null);
-        verify(BlockFaces.faceFor("hearing.oneearmix") !== null);
+        verify(BlockRegister.panelFor("hearing.oneearmix") !== null);
+        verify(BlockRegister.faceFor("hearing.oneearmix") !== null);
     }
 
     function test_theRangesAreTheEnginesOwn() {

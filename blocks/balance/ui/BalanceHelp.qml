@@ -9,10 +9,10 @@ import QtQuick
 import org.kde.ki18n
 
 // The Balance block's help page (docs/dev/block-help.md). The facts are the
-// block's (engine/blocks/balance.h: the range and the glide;
+// block's (blocks/balance/balance.h: the range and the glide;
 // engine/dsp/stereogains.h: balanceGains(), the law) and the panel's
-// (StereoPositionPanel and StereoPositionWords, as BlockPanels sets them
-// up for Balance).
+// (StereoPositionPanel and StereoPositionWords, as BalanceUi sets them up
+// for Balance).
 HelpPage {
     typeId: "effect.balance"
     summary: KI18n.i18nc("@info help page of the Balance block", "Turns one side of a stereo lane down against the other, so the sound leans towards the left or the right.")

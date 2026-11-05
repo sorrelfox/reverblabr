@@ -66,8 +66,8 @@ TestCase {
     function test_itIsUnderPluginsWithAFaceAndAPanel() {
         verify(BlockCatalogue.types.indexOf("plugin.builtin") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("plugin.builtin"), "plugins");
-        verify(BlockFaces.faceFor("plugin.builtin") !== null, "it has no face");
-        verify(BlockPanels.panelFor("plugin.builtin") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("plugin.builtin") !== null, "it has no face");
+        verify(BlockRegister.panelFor("plugin.builtin") !== null, "it has no panel");
     }
 
     function test_theFaceSaysWhichPluginAndWhatItsHostIsDoing() {
@@ -207,9 +207,9 @@ TestCase {
         if (BlockCatalogue.types.indexOf("plugin.clap") < 0) {
             skip("this build has no CLAP SDK, so no CLAP block");
         }
-        verify(BlockPanels.panelFor("plugin.clap") === BlockPanels.panelFor("plugin.lv2"),
+        verify(BlockRegister.panelFor("plugin.clap") === BlockRegister.panelFor("plugin.lv2"),
                "a CLAP block has the plugin panel");
-        verify(BlockFaces.faceFor("plugin.clap") === BlockFaces.faceFor("plugin.lv2"),
+        verify(BlockRegister.faceFor("plugin.clap") === BlockRegister.faceFor("plugin.lv2"),
                "a CLAP block has the plugin face");
         // A CLAP plugin's settings are named by the plugin's own numbers.
         const clapParams = JSON.stringify([
@@ -241,9 +241,9 @@ TestCase {
         if (BlockCatalogue.types.indexOf("plugin.vst3") < 0) {
             skip("this build has no VST3 SDK, so no VST3 block");
         }
-        verify(BlockPanels.panelFor("plugin.vst3") === BlockPanels.panelFor("plugin.lv2"),
+        verify(BlockRegister.panelFor("plugin.vst3") === BlockRegister.panelFor("plugin.lv2"),
                "a VST3 block has the plugin panel");
-        verify(BlockFaces.faceFor("plugin.vst3") === BlockFaces.faceFor("plugin.lv2"),
+        verify(BlockRegister.faceFor("plugin.vst3") === BlockRegister.faceFor("plugin.lv2"),
                "a VST3 block has the plugin face");
         // Named by the plugin's own numbers; a value is the plain one.
         const vst3Params = JSON.stringify([

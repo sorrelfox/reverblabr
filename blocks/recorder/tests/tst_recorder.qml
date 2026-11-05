@@ -107,8 +107,8 @@ TestCase {
     function test_itIsAnOutputWithAFaceAndAPanelOfItsOwn() {
         verify(BlockCatalogue.types.indexOf("output.recorder") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("output.recorder"), "outputs");
-        verify(BlockFaces.faceFor("output.recorder") !== null, "it has no face");
-        verify(BlockPanels.panelFor("output.recorder") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("output.recorder") !== null, "it has no face");
+        verify(BlockRegister.panelFor("output.recorder") !== null, "it has no panel");
     }
 
     function test_theWordsCoverWhatTheEngineOffers() {

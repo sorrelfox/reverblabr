@@ -21,13 +21,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.amplify"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.amplify"), testCase, { width: 340 });
         panel.blockId = "amp";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.amplify"), testCase, { width: 200, height: 100 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.amplify"), testCase, { width: 200, height: 100 });
         face.blockId = "amp";
         return face;
     }
@@ -49,8 +49,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAPanelAndAHelpPageOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.amplify") !== null, "Amplify is in the panel register");
-        verify(BlockFaces.faceFor("effect.amplify") !== null, "Amplify is in the face register");
+        verify(BlockRegister.panelFor("effect.amplify") !== null, "Amplify is in the panel register");
+        verify(BlockRegister.faceFor("effect.amplify") !== null, "Amplify is in the face register");
         compare(BlockPresentation.name("effect.amplify"), "Amplify");
     }
 

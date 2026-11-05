@@ -22,13 +22,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.monoenhancer"), testCase, { width: 320 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.monoenhancer"), testCase, { width: 320 });
         panel.blockId = "me";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.monoenhancer"), testCase,
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.monoenhancer"), testCase,
                                            { width: 220, height: 120 });
         face.blockId = "me";
         return face;
@@ -54,8 +54,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.monoenhancer") !== null, "the Mono Enhancer is in the panel register");
-        verify(BlockFaces.faceFor("effect.monoenhancer") !== null, "the Mono Enhancer is in the face register");
+        verify(BlockRegister.panelFor("effect.monoenhancer") !== null, "the Mono Enhancer is in the panel register");
+        verify(BlockRegister.faceFor("effect.monoenhancer") !== null, "the Mono Enhancer is in the face register");
     }
 
     function test_theRangeIsTheOneTheEngineTakes() {

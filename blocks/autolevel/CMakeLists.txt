@@ -17,6 +17,7 @@ rb_add_block(autolevel
         ui/AutoLevelHelp.qml
         ui/AutoLevelPanel.qml
         ui/AutoLevelState.qml
+        ui/AutoLevelUi.qml
     ICONS
         ui/effect.autolevel.svg
     PRESETS

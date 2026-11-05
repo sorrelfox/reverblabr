@@ -19,6 +19,7 @@ rb_add_block(voicegauge
         ui/VoiceGaugePanel.qml
         ui/VoiceGaugeRow.qml
         ui/VoiceGaugeState.qml
+        ui/VoiceGaugeUi.qml
         ui/VoiceGaugeWords.qml
     ICONS
         ui/meter.voicegauge.svg

@@ -81,8 +81,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("effect.lowpass") >= 0, "the engine does not offer the Low Pass Filter");
         compare(BlockPresentation.category("effect.lowpass"), "effects");
         compare(BlockPresentation.name("effect.lowpass"), "Low Pass Filter");
-        verify(BlockFaces.faceFor("effect.lowpass") !== null, "the Low Pass Filter has no face");
-        verify(BlockPanels.panelFor("effect.lowpass") !== null, "the Low Pass Filter has no panel");
+        verify(BlockRegister.faceFor("effect.lowpass") !== null, "the Low Pass Filter has no face");
+        verify(BlockRegister.panelFor("effect.lowpass") !== null, "the Low Pass Filter has no panel");
     }
 
     function test_theIdsAndTheRangeAreTheOnesTheEngineOffers() {

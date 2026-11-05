@@ -117,7 +117,7 @@ QQC2.ApplicationWindow {
     Loader {
         id: pageLoader
 
-        sourceComponent: BlockHelp.pageFor(root.typeId)
+        sourceComponent: BlockRegister.pageFor(root.typeId)
     }
 
     Shortcut {

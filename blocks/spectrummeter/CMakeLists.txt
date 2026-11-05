@@ -20,6 +20,7 @@ rb_add_block(spectrummeter
         ui/SpectrumPanel.qml
         ui/SpectrumScope.qml
         ui/SpectrumState.qml
+        ui/SpectrumUi.qml
         ui/SpectrumWords.qml
     ICONS
         ui/meter.spectrum.svg

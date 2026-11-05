@@ -58,8 +58,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("effect.simplecompressor") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("effect.simplecompressor"), "effects");
         compare(BlockPresentation.name("effect.simplecompressor"), "Simple Compressor");
-        verify(BlockFaces.faceFor("effect.simplecompressor") !== null, "it has no face");
-        verify(BlockPanels.panelFor("effect.simplecompressor") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("effect.simplecompressor") !== null, "it has no face");
+        verify(BlockRegister.panelFor("effect.simplecompressor") !== null, "it has no panel");
     }
 
     function test_theModesAreTheOnesTheEngineOffersEachWithWords() {

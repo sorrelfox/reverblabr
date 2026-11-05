@@ -26,13 +26,13 @@ TestCase {
     readonly property var words: VoiceCompressorWords {}
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.voicecompressor"), testCase, { width: 380 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.voicecompressor"), testCase, { width: 380 });
         panel.blockId = "voice";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.voicecompressor"), testCase, { width: 200, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.voicecompressor"), testCase, { width: 200, height: 90 });
         face.blockId = "voice";
         return face;
     }
@@ -224,7 +224,7 @@ TestCase {
     }
 
     function test_theHelpSaysWhatTheLawDoes() {
-        const page = createTemporaryObject(BlockHelp.pageFor("effect.voicecompressor"), null);
+        const page = createTemporaryObject(BlockRegister.pageFor("effect.voicecompressor"), null);
         const lift = testCase.words.outputDb(-18, -12, -6, -80) + 18;
         fuzzyCompare(lift, 3.45, 0.001);
         verify(Array.from(page.sections).some(section => Array.from(section.paragraphs).some(

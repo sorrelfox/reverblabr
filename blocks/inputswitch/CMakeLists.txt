@@ -16,6 +16,7 @@ rb_add_block(inputswitch
         ui/InputSwitchFace.qml
         ui/InputSwitchHelp.qml
         ui/InputSwitchPanel.qml
+        ui/InputSwitchUi.qml
     ICONS
         ui/advanced.inputswitch.svg
     TESTS

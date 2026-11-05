@@ -16,6 +16,7 @@ rb_add_block(voiceforward
         ui/VoiceForwardHelp.qml
         ui/VoiceForwardPanel.qml
         ui/VoiceForwardState.qml
+        ui/VoiceForwardUi.qml
         ui/VoiceForwardWords.qml
     ICONS
         ui/effect.voiceforward.svg

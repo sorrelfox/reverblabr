@@ -14,6 +14,7 @@ rb_add_block(inputdevice
     UI
         ui/InputDeviceHelp.qml
         ui/InputDevicePanel.qml
+        ui/InputDeviceUi.qml
     ICONS
         ui/source.device.svg
     TESTS

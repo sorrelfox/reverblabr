@@ -16,6 +16,7 @@ rb_add_block(equalizer10
         ui/EqualizerFace.qml
         ui/EqualizerHelp.qml
         ui/EqualizerPanel.qml
+        ui/EqualizerUi.qml
     ICONS
         ui/effect.equalizer10.svg
     PRESETS

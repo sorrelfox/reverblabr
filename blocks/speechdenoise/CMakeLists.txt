@@ -17,6 +17,7 @@ rb_add_block(speechdenoise
         ui/SpeechDenoiseHelp.qml
         ui/SpeechDenoisePanel.qml
         ui/SpeechDenoiseState.qml
+        ui/SpeechDenoiseUi.qml
     ICONS
         ui/advanced.speechdenoise.svg
     TESTS

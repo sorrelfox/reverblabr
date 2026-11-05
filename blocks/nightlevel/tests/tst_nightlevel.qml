@@ -34,13 +34,13 @@ TestCase {
     readonly property int typed: 2
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.nightlevel"), testCase, { width: 380 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.nightlevel"), testCase, { width: 380 });
         panel.blockId = "night";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.nightlevel"), testCase, { width: 200, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.nightlevel"), testCase, { width: 200, height: 90 });
         face.blockId = "night";
         return face;
     }

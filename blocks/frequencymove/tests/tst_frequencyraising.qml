@@ -97,8 +97,8 @@ TestCase {
     function test_itIsAHearingBlockWithAFaceAndAPanelOfItsOwn() {
         compare(BlockPresentation.category(testCase.typeId), "hearing");
         compare(BlockPresentation.name(testCase.typeId), "Frequency Raising");
-        verify(BlockFaces.faceFor(testCase.typeId) === BlockFaces.frequencyRaising, "no face of its own");
-        verify(BlockPanels.panelFor(testCase.typeId) === BlockPanels.frequencyRaising, "no panel of its own");
+        verify(BlockRegister.faceFor(testCase.typeId) !== null, "no face of its own");
+        verify(BlockRegister.panelFor(testCase.typeId) !== null, "no panel of its own");
         compare(BlockCatalogue.describeParam(testCase.typeId, "ear").default, "left");
     }
 

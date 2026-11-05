@@ -79,7 +79,7 @@ TestCase {
     function test_itIsAnOutputWithAPanelOfItsOwn() {
         verify(BlockCatalogue.types.indexOf("output.broadcast") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("output.broadcast"), "outputs");
-        verify(BlockPanels.panelFor("output.broadcast") !== null, "it has no panel");
+        verify(BlockRegister.panelFor("output.broadcast") !== null, "it has no panel");
     }
 
     function test_theWordsCoverWhatTheEngineOffers() {

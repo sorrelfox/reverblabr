@@ -48,7 +48,7 @@ TestCase {
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor(testCase.typeId), testCase, { width: 180, height: 110 });
+        const face = createTemporaryObject(BlockRegister.faceFor(testCase.typeId), testCase, { width: 180, height: 110 });
         face.blockId = "mb";
         return face;
     }
@@ -107,8 +107,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor(testCase.typeId) !== null, "the panel register has it");
-        verify(BlockFaces.faceFor(testCase.typeId) !== null, "the face register has it");
+        verify(BlockRegister.panelFor(testCase.typeId) !== null, "the panel register has it");
+        verify(BlockRegister.faceFor(testCase.typeId) !== null, "the face register has it");
         compare(BlockPresentation.name(testCase.typeId), "Multiband Compressor");
     }
 

@@ -15,6 +15,7 @@ rb_add_block(echo
         ui/EchoFace.qml
         ui/EchoHelp.qml
         ui/EchoPanel.qml
+        ui/EchoUi.qml
     ICONS
         ui/effect.echo.svg
     TESTS

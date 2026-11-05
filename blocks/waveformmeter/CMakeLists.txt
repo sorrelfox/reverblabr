@@ -19,6 +19,7 @@ rb_add_block(waveformmeter
         ui/WaveformPanel.qml
         ui/WaveformScope.qml
         ui/WaveformState.qml
+        ui/WaveformUi.qml
     ICONS
         ui/meter.waveform.svg
     PRESETS

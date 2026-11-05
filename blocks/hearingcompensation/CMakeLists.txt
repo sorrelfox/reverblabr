@@ -14,7 +14,9 @@ rb_add_block(hearingcompensation
     UI
         ui/HearingBands.qml
         ui/HearingCompensation16Help.qml
+        ui/HearingCompensation16Ui.qml
         ui/HearingCompensation64Help.qml
+        ui/HearingCompensation64Ui.qml
         ui/HearingCompensationFace.qml
         ui/HearingCompensationPanel.qml
     ICONS

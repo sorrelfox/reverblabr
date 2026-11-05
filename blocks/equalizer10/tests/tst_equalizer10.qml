@@ -83,8 +83,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("effect.equalizer10") >= 0, "the engine does not offer the 10-Band EQ");
         compare(BlockPresentation.category("effect.equalizer10"), "effects");
         compare(BlockPresentation.name("effect.equalizer10"), "10-Band EQ");
-        verify(BlockFaces.faceFor("effect.equalizer10") !== null, "the 10-Band EQ has no face");
-        verify(BlockPanels.panelFor("effect.equalizer10") !== null, "the 10-Band EQ has no panel");
+        verify(BlockRegister.faceFor("effect.equalizer10") !== null, "the 10-Band EQ has no face");
+        verify(BlockRegister.panelFor("effect.equalizer10") !== null, "the 10-Band EQ has no panel");
     }
 
     function test_theBandsAreTheOnesTheEngineOffers() {

@@ -13,6 +13,7 @@ rb_add_block(pan
         pan.h
     UI
         ui/PanHelp.qml
+        ui/PanUi.qml
     ICONS
         ui/effect.pan.svg
     TESTS

@@ -15,6 +15,7 @@ rb_add_block(peakrmsmeter
         ui/PeakRmsFace.qml
         ui/PeakRmsHelp.qml
         ui/PeakRmsPanel.qml
+        ui/PeakRmsUi.qml
     ICONS
         ui/meter.peakrms.svg
     TESTS

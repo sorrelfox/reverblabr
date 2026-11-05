@@ -6,4 +6,5 @@
 # opens the window with what the library says of it and the way to the
 # handbook. tools.help-pages fails when a block here has a page, or when a
 # block that is neither here nor has a page is in the library: write the
-# page, add it to app/qml/BlockHelp.qml and take its line out of this file.
+# page, name it in the block's entry (blocks/<folder>/ui/<Name>Ui.qml) and
+# take its line out of this file.

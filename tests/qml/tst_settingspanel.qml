@@ -609,8 +609,8 @@ TestCase {
         // is most of them. The Dynamics block, the Echo, the Reverb and the
         // Pitch Shift all have panels of their own now, so the block named
         // here is one this build does not have yet.
-        compare(BlockPanels.panelFor("advanced.transcribe"), null);
-        compare(BlockPanels.panelFor("nosuch.block"), null);
+        compare(BlockRegister.panelFor("advanced.transcribe"), null);
+        compare(BlockRegister.panelFor("nosuch.block"), null);
 
         const panel = createTemporaryObject(panelComponent, null);
         panel.open("b2");

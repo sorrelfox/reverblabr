@@ -17,6 +17,7 @@ rb_add_block(voicecompressor
         ui/VoiceCompressorHelp.qml
         ui/VoiceCompressorPanel.qml
         ui/VoiceCompressorState.qml
+        ui/VoiceCompressorUi.qml
         ui/VoiceCompressorWords.qml
     ICONS
         ui/effect.voicecompressor.svg

@@ -16,6 +16,7 @@ rb_add_block(firfilter
         ui/FirFilterHelp.qml
         ui/FirFilterPanel.qml
         ui/FirFilterState.qml
+        ui/FirFilterUi.qml
     ICONS
         ui/advanced.firfilter.svg
     TESTS

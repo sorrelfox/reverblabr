@@ -15,6 +15,7 @@ rb_add_block(applicationsource
         ui/ApplicationSourceFace.qml
         ui/ApplicationSourceHelp.qml
         ui/ApplicationSourcePanel.qml
+        ui/ApplicationSourceUi.qml
     ICONS
         ui/source.application.svg
     TESTS

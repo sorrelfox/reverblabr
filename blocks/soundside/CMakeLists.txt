@@ -18,6 +18,7 @@ rb_add_block(soundside
         ui/SoundSidePanel.qml
         ui/SoundSideState.qml
         ui/SoundSideStrip.qml
+        ui/SoundSideUi.qml
         ui/SoundSideWords.qml
     ICONS
         ui/meter.soundside.svg

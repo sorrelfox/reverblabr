@@ -15,6 +15,7 @@ rb_add_block(nightlevel
         ui/NightLevelHelp.qml
         ui/NightLevelPanel.qml
         ui/NightLevelState.qml
+        ui/NightLevelUi.qml
         ui/NightLevelWords.qml
     ICONS
         ui/effect.nightlevel.svg

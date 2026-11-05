@@ -15,6 +15,7 @@ rb_add_block(limiter
         ui/LimiterFace.qml
         ui/LimiterHelp.qml
         ui/LimiterPanel.qml
+        ui/LimiterUi.qml
         ui/LimiterWords.qml
     ICONS
         ui/effect.limiter.svg

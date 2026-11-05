@@ -26,13 +26,13 @@ TestCase {
     readonly property var words: SuddenSoundsWords {}
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("hearing.suddensounds"), testCase, { width: 380 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("hearing.suddensounds"), testCase, { width: 380 });
         panel.blockId = "sudden";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("hearing.suddensounds"), testCase, { width: 200, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("hearing.suddensounds"), testCase, { width: 200, height: 90 });
         face.blockId = "sudden";
         return face;
     }

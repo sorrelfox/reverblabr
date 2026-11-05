@@ -26,8 +26,8 @@ ecm_add_qml_module(reverblabr-ui
 )
 # A QML singleton has to say so in the module's qmldir, or every use of it
 # is a type error that only qmllint sees.
-set_source_files_properties(qml/AppColors.qml qml/AppFonts.qml qml/AppMetrics.qml qml/BlockFaces.qml
-    qml/BlockPanels.qml qml/ParamFormat.qml qml/PluginWords.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/AppColors.qml qml/AppFonts.qml qml/AppMetrics.qml qml/BlockRegister.qml
+    qml/ParamFormat.qml qml/PluginWords.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The blocks' help pages, and the window they are shown in.
 set_source_files_properties(qml/BlockHelp.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # The prototype's own glyphs, by name.
@@ -60,12 +60,12 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/AutoLevelWords.qml
     qml/BetaBadge.qml
     qml/BetaNote.qml
-    qml/BlockFaces.qml
+    qml/BlockRegister.qml
     qml/BlockHelp.qml
     qml/BlockHelpWindow.qml
     qml/BlockLibrary.qml
     qml/BlockLibraryRow.qml
-    qml/BlockPanels.qml
+    qml/BlockUi.qml
     qml/BlockPort.qml
     qml/BlockTile.qml
     qml/CanvasPlaceholder.qml

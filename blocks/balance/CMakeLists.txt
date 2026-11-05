@@ -13,6 +13,7 @@ rb_add_block(balance
         balance.h
     UI
         ui/BalanceHelp.qml
+        ui/BalanceUi.qml
     ICONS
         ui/effect.balance.svg
     TESTS

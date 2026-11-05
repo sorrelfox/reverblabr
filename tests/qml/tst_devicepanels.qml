@@ -552,15 +552,15 @@ TestCase {
         // which is the canvas's decision rather than the register's. Named
         // here by one this build does not have yet: the Echo, the Reverb and
         // the Pitch Shift all have faces of their own now.
-        compare(BlockFaces.faceFor("advanced.transcribe"), null);
+        compare(BlockRegister.faceFor("advanced.transcribe"), null);
     }
 
     function test_bothDeviceBlocksHaveAPanelOfTheirOwn() {
-        verify(BlockPanels.panelFor("output.device") !== null, "the Output Device block has no panel");
-        verify(BlockPanels.panelFor("source.device") !== null, "the Input Device block has no panel");
+        verify(BlockRegister.panelFor("output.device") !== null, "the Output Device block has no panel");
+        verify(BlockRegister.panelFor("source.device") !== null, "the Input Device block has no panel");
         // And a block with no entry of its own gets the generic one, which
         // is not a lesser panel. Named by one this build does not have yet.
-        compare(BlockPanels.panelFor("advanced.transcribe"), null);
+        compare(BlockRegister.panelFor("advanced.transcribe"), null);
     }
 
     function test_theSettingsPanelLoadsTheBlocksOwnPanelAndTellsItWhichBlock() {
@@ -588,7 +588,7 @@ TestCase {
             Loader {
                 id: faceLoader
 
-                sourceComponent: BlockFaces.faceFor(tile.typeId)
+                sourceComponent: BlockRegister.faceFor(tile.typeId)
             }
 
             Binding {

@@ -16,6 +16,7 @@ rb_add_block(mixer
         ui/MixerHelp.qml
         ui/MixerPanel.qml
         ui/MixerStrip.qml
+        ui/MixerUi.qml
     ICONS
         ui/advanced.mixer.svg
     TESTS

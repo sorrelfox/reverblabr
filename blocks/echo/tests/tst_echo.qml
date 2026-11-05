@@ -22,13 +22,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.echo"), testCase, { width: 320 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.echo"), testCase, { width: 320 });
         panel.blockId = "echo";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.echo"), testCase, { width: 220, height: 120 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.echo"), testCase, { width: 220, height: 120 });
         face.blockId = "echo";
         return face;
     }
@@ -53,8 +53,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.echo") !== null, "the Echo is in the panel register");
-        verify(BlockFaces.faceFor("effect.echo") !== null, "the Echo is in the face register");
+        verify(BlockRegister.panelFor("effect.echo") !== null, "the Echo is in the panel register");
+        verify(BlockRegister.faceFor("effect.echo") !== null, "the Echo is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn_data() {

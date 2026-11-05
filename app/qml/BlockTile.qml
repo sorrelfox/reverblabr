@@ -550,7 +550,7 @@ Item {
                 // **A block with no face of its own is not a lesser block.**
                 // What it asked for — a meter, a number, a line of text — is
                 // drawn from what it already says about itself.
-                sourceComponent: BlockFaces.faceFor(tile.typeId) ?? genericFace
+                sourceComponent: BlockRegister.faceFor(tile.typeId) ?? genericFace
             }
 
             // **A face from the register is told which block it is.** The

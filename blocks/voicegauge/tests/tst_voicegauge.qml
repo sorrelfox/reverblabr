@@ -50,13 +50,13 @@ TestCase {
     readonly property int voice: 2
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("meter.voicegauge"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("meter.voicegauge"), testCase, { width: 340 });
         panel.blockId = "gauge";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("meter.voicegauge"), testCase, { width: 200, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("meter.voicegauge"), testCase, { width: 200, height: 90 });
         face.blockId = "gauge";
         return face;
     }

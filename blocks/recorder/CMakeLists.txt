@@ -16,6 +16,7 @@ rb_add_block(recorder
         ui/RecorderFileName.qml
         ui/RecorderHelp.qml
         ui/RecorderPanel.qml
+        ui/RecorderUi.qml
         ui/RecorderWords.qml
     ICONS
         ui/output.recorder.svg

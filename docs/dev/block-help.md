@@ -7,14 +7,16 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 Every block's settings card has a help button beside its ⋮ menu. It opens the block's help page in a window of its own. This guide says how to write a page: where it goes, what it says, in what voice, and how to check that what it says is true. Why the help is built this way is in [ADR-0029](../adr/0029-block-help.md).
 
-Three pages are written and serve as examples: `app/qml/VolumeHelp.qml` (a simple block), `app/qml/PeakRmsHelp.qml` (a meter) and `app/qml/RecorderHelp.qml` (a block with tabs and many settings). The blocks still without a page are listed in `tests/tools/help-pending.txt`.
+Three pages are written and serve as examples: `blocks/volume/ui/VolumeHelp.qml` (a simple block), `blocks/peakrmsmeter/ui/PeakRmsHelp.qml` (a meter) and `blocks/recorder/ui/RecorderHelp.qml` (a block with tabs and many settings). The blocks still without a page are listed in `tests/tools/help-pending.txt`.
 
 ## The steps
 
-1. Read the block's panel (`app/qml/<Block>Panel.qml`, or the generic panel's rows if it has none), its engine side (`engine/blocks/<block>.h` and `.cpp`) and its section in the handbook (`doc/index.docbook`, `block-<typeid>`).
-2. Write `app/qml/<Block>Help.qml`, a `HelpPage`, as below.
-3. Add it to `app/qml/BlockHelp.qml`: a `Component` property, and its line in `pages`.
-4. Add the file to the QML sources in `app/CMakeLists.txt`.
+Everything of a block is in its folder, `blocks/<folder>/` ([ADR-0035](../adr/0035-block-folders.md)).
+
+1. Read the block's panel (`ui/<Block>Panel.qml`, or the generic panel's rows if it has none), its engine side (`<block>.h` and `.cpp`) and its section in the handbook (`doc/index.docbook`, `block-<typeid>`).
+2. Write `ui/<Block>Help.qml`, a `HelpPage`, as below.
+3. Name it in the block's entry, `ui/<Block>Ui.qml`: `help: <Block>Help {}`.
+4. Add the file to the `UI` list in the folder's `CMakeLists.txt`.
 5. Take the block's line out of `tests/tools/help-pending.txt`.
 6. Run the checks (below), and look at the page in the window, in both appearances.
 
@@ -78,10 +80,10 @@ Every statement on a page must be true of the code as it is. For each setting, l
 
 | What | Where |
 |---|---|
-| Its range, its default, its choices | The block's `makeDescriptors()` in `engine/blocks/<block>.cpp`, or the catalogue (`BlockCatalogue.params(typeId)` in a QML test) |
-| What the panel calls it, and the choices' words | `app/qml/<Block>Panel.qml` and its `<Block>Words.qml` |
+| Its range, its default, its choices | The block's `makeDescriptors()` in `blocks/<folder>/<block>.cpp`, or the catalogue (`BlockCatalogue.params(typeId)` in a QML test) |
+| What the panel calls it, and the choices' words | `blocks/<folder>/ui/<Block>Panel.qml` and its `<Block>Words.qml` |
 | What it does to the sound | The block's `process()` and the header's comments; constants such as smoothing times and ceilings are in the header |
-| What the interface does with it (meters, holds, the tray) | The C++ behind the panel in `app/` (for example `app/meterhub.h`, `app/peakhold.cpp`) |
+| What the interface does with it (meters, holds, the tray) | The C++ behind the panel, in the block's `ui/` or in `app/` (for example `app/meterhub.h`, `app/peakhold.cpp`) |
 | What the user documentation already says | `doc/index.docbook` and `docs/*.md`; when they disagree with the code, the code is right, and the documentation needs fixing too |
 
 Name the source of the page's facts in the comment at the top of the file, so the next person knows where to look when the block changes. When you cannot find a fact in the code, leave the statement out.

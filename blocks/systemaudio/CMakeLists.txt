@@ -15,6 +15,7 @@ rb_add_block(systemaudio
         ui/SystemAudioFace.qml
         ui/SystemAudioHelp.qml
         ui/SystemAudioPanel.qml
+        ui/SystemAudioUi.qml
     ICONS
         ui/source.system.svg
     TESTS

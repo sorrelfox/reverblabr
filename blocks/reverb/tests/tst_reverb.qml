@@ -22,13 +22,13 @@ TestCase {
     property string sessionId: ""
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("effect.reverb"), testCase, { width: 320 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("effect.reverb"), testCase, { width: 320 });
         panel.blockId = "reverb";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("effect.reverb"), testCase, { width: 220, height: 120 });
+        const face = createTemporaryObject(BlockRegister.faceFor("effect.reverb"), testCase, { width: 220, height: 120 });
         face.blockId = "reverb";
         return face;
     }
@@ -55,8 +55,8 @@ TestCase {
     }
 
     function test_theBlockHasAFaceAndAPanelOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.reverb") !== null, "the Reverb is in the panel register");
-        verify(BlockFaces.faceFor("effect.reverb") !== null, "the Reverb is in the face register");
+        verify(BlockRegister.panelFor("effect.reverb") !== null, "the Reverb is in the panel register");
+        verify(BlockRegister.faceFor("effect.reverb") !== null, "the Reverb is in the face register");
     }
 
     function test_theRangesAreTheEnginesOwn_data() {

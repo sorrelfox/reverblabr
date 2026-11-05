@@ -39,7 +39,7 @@ TestCase {
     }
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("meter.spectrum"), testCase, { width: 520 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("meter.spectrum"), testCase, { width: 520 });
         panel.blockId = "bars";
         return panel;
     }
@@ -54,7 +54,7 @@ TestCase {
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("meter.spectrum"), testCase, { width: 200, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("meter.spectrum"), testCase, { width: 200, height: 90 });
         face.blockId = "bars";
         return face;
     }
@@ -177,7 +177,7 @@ TestCase {
 
     function test_theLibraryOffersItWithTheMeters() {
         compare(BlockCatalogue.describe("meter.spectrum").category, "meters");
-        verify(BlockHelp.pageFor("meter.spectrum") !== null);
+        verify(BlockRegister.pageFor("meter.spectrum") !== null);
     }
 
     function test_barsArriveOnBothSurfacesFromOneFeed() {
@@ -219,7 +219,7 @@ TestCase {
 
     function test_severalBlocksEachGetTheirOwnSlot() {
         const one = faceFor();
-        const two = createTemporaryObject(BlockFaces.faceFor("meter.spectrum"), testCase, { width: 200, height: 90 });
+        const two = createTemporaryObject(BlockRegister.faceFor("meter.spectrum"), testCase, { width: 200, height: 90 });
         two.blockId = "other";
         run();
         tryVerify(() => one.scope.showing && two.scope.showing, 2000);

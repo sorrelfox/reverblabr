@@ -16,6 +16,7 @@ rb_add_block(denoise
         ui/DenoiseHelp.qml
         ui/DenoisePanel.qml
         ui/DenoiseState.qml
+        ui/DenoiseUi.qml
     ICONS
         ui/advanced.denoise.svg
     TESTS

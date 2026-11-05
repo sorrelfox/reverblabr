@@ -15,6 +15,7 @@ rb_add_block(dynamics
         ui/DynamicsFace.qml
         ui/DynamicsHelp.qml
         ui/DynamicsPanel.qml
+        ui/DynamicsUi.qml
     ICONS
         ui/effect.dynamics.svg
     PRESETS

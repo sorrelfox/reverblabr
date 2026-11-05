@@ -15,6 +15,7 @@ rb_add_block(declick
         ui/DeclickFace.qml
         ui/DeclickHelp.qml
         ui/DeclickPanel.qml
+        ui/DeclickUi.qml
         ui/DeclickWords.qml
     ICONS
         ui/advanced.declick.svg

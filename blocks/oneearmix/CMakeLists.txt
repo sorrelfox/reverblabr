@@ -16,6 +16,7 @@ rb_add_block(oneearmix
         ui/OneEarMixHelp.qml
         ui/OneEarMixPanel.qml
         ui/OneEarMixState.qml
+        ui/OneEarMixUi.qml
         ui/OneEarMixWords.qml
     ICONS
         ui/hearing.oneearmix.svg

@@ -71,8 +71,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("effect.highpass") >= 0, "the engine does not offer the High Pass Filter");
         compare(BlockPresentation.category("effect.highpass"), "effects");
         compare(BlockPresentation.name("effect.highpass"), "High Pass Filter");
-        verify(BlockFaces.faceFor("effect.highpass") !== null, "the High Pass Filter has no face");
-        verify(BlockPanels.panelFor("effect.highpass") !== null, "the High Pass Filter has no panel");
+        verify(BlockRegister.faceFor("effect.highpass") !== null, "the High Pass Filter has no face");
+        verify(BlockRegister.panelFor("effect.highpass") !== null, "the High Pass Filter has no panel");
     }
 
     function test_theRangeAndTheStartAreTheEnginesOwn() {

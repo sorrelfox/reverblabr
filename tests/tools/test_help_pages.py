@@ -8,8 +8,9 @@
 
 """The blocks' help pages against the library, and against the format.
 
-Every block the engine has and the library shows has a help page in
-app/qml/BlockHelp.qml, or is listed in tests/tools/help-pending.txt as
+Every block the engine has and the library shows has a help page, named in
+its entry (blocks/<folder>/ui/<Name>Ui.qml, ADR-0035), or is listed in
+tests/tools/help-pending.txt as
 still to write; no block is both, and neither names a block that is not
 there. Plugin blocks are left alone, as the handbook's check leaves them.
 
@@ -28,7 +29,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 QML = REPO / "app" / "qml"
-REGISTER = QML / "BlockHelp.qml"
+REGISTER = QML / "BlockRegister.qml"
 PENDING = pathlib.Path(__file__).resolve().parent / "help-pending.txt"
 PRESENTATION = REPO / "app" / "blockpresentation.cpp"
 # A block's C++ is at the top of its folder, its pages in its ui/ (ADR-0035).
@@ -61,12 +62,18 @@ def qml_file(name):
 
 
 def registered_pages():
-    """Type id → the page component's file, from the register."""
-    text = REGISTER.read_text()
-    components = dict(re.findall(r"readonly property Component (\w+): Component \{\s*(\w+) \{\}", text))
+    """Type id → the page component's file, from the entries the register lists."""
+    listed = set(re.findall(r"^\s*(\w+Ui) \{\},?$", REGISTER.read_text(), re.M))
     pages = {}
-    for typeId, name in re.findall(r'"([a-z0-9.]+)":\s*help\.(\w+)', text):
-        pages[typeId] = qml_file(components.get(name, name))
+    for entry in sorted(BLOCKS.glob("*/ui/*Ui.qml")):
+        if entry.stem not in listed:
+            continue
+        text = entry.read_text()
+        types = re.search(r"typeIds:\s*\[([^\]]*)\]", text)
+        page = re.search(r"^\s*help:\s*(\w+)\s*\{", text, re.M)
+        if types and page:
+            for typeId in re.findall(r'"([a-z0-9.]+)"', types[1]):
+                pages[typeId] = qml_file(page[1])
     return pages
 
 
@@ -123,9 +130,9 @@ def main():
         if typeId in pages and typeId in pending:
             failures.append(f"{typeId} has a help page: take it out of {PENDING.name}")
         elif typeId not in pages and typeId not in pending:
-            failures.append(f"{typeId} has no help page (app/qml/BlockHelp.qml), and is not in {PENDING.name}")
+            failures.append(f"{typeId} has no help page in its entry (BlockRegister), and is not in {PENDING.name}")
     for typeId in sorted(set(pages) - library):
-        failures.append(f"BlockHelp.qml has a page for {typeId}, which the library does not have")
+        failures.append(f"an entry has a page for {typeId}, which the library does not have")
     for typeId in sorted(set(pending) - library):
         failures.append(f"{PENDING.name} lists {typeId}, which the library does not have")
     for typeId, path in sorted(pages.items()):

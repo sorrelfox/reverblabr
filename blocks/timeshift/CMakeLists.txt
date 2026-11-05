@@ -18,6 +18,7 @@ rb_add_block(timeshift
         ui/TimeShiftHelp.qml
         ui/TimeShiftPanel.qml
         ui/TimeShiftState.qml
+        ui/TimeShiftUi.qml
     ICONS
         ui/advanced.timeshift.svg
     TESTS

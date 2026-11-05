@@ -13,6 +13,7 @@ rb_add_block(joinlr
         joinlr.h
     UI
         ui/JoinLrHelp.qml
+        ui/JoinLrUi.qml
     ICONS
         ui/hearing.joinlr.svg
     TESTS

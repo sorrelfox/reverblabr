@@ -98,8 +98,8 @@ TestCase {
     }
 
     function test_theBlockHasAPanelAndAFaceOfItsOwn() {
-        verify(BlockPanels.panelFor("effect.dynamics") !== null, "the Dynamics block is in the panel register");
-        verify(BlockFaces.faceFor("effect.dynamics") !== null, "the Dynamics block has a face of its own");
+        verify(BlockRegister.panelFor("effect.dynamics") !== null, "the Dynamics block is in the panel register");
+        verify(BlockRegister.faceFor("effect.dynamics") !== null, "the Dynamics block has a face of its own");
     }
 
     function test_theDetailsAreClosedWhenThePanelOpens() {

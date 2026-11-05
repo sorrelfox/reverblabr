@@ -51,12 +51,13 @@ reviews.
   ``tst_*.qml`` files, run with all the others by ``qml.mainwindow``.
 ``REQUIRES``
   The build options the block needs. Where one is off, the block's C++ and
-  its GoogleTest sources are left out. Its interface, its presets and its
+  its ``TESTS`` are left out. Its interface, its presets and its
   QML tests are built all the same, because the interface names every block
   whether or not this build has it.
 
-A block needs an icon, a help page (a ``*Help.qml`` among ``UI``) and a
-test: without one, configuration stops and says which is missing.
+A block needs an icon, its entry in the interface (a ``*Ui.qml`` among
+``UI``, which BlockRegister lists), a help page (a ``*Help.qml``) and a test:
+without one, configuration stops and says which is missing.
 ``NO_HELP_PAGE`` is for the one kind of block that has none of its own, a
 plugin's, whose help is its maker's.
 
@@ -82,11 +83,17 @@ function(rb_add_block name)
         message(FATAL_ERROR "${where}: a block needs an icon (ICONS <typeId>.svg).")
     endif()
     set(help "")
+    set(entry "")
     foreach(file IN LISTS arg_UI)
         if(file MATCHES "Help\\.qml$")
             set(help "${file}")
+        elseif(file MATCHES "Ui\\.qml$")
+            set(entry "${file}")
         endif()
     endforeach()
+    if(NOT entry)
+        message(FATAL_ERROR "${where}: a block needs its entry in the interface (a *Ui.qml among UI).")
+    endif()
     if(NOT help AND NOT arg_NO_HELP_PAGE)
         message(FATAL_ERROR "${where}: a block needs a help page (a *Help.qml among UI).")
     endif()

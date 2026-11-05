@@ -115,8 +115,8 @@ TestCase {
         verify(BlockCatalogue.types.indexOf("hearing.compensation16") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("hearing.compensation16"), "hearing");
         compare(BlockPresentation.name("hearing.compensation16"), "Hearing Compensation 16");
-        verify(BlockFaces.faceFor("hearing.compensation16") !== null, "it has no face");
-        verify(BlockPanels.panelFor("hearing.compensation16") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("hearing.compensation16") !== null, "it has no face");
+        verify(BlockRegister.panelFor("hearing.compensation16") !== null, "it has no panel");
         // The panel's numbers are the block's: its ranges and defaults.
         const soft = BlockCatalogue.describeParam("hearing.compensation16", "band0SoftGainDb");
         compare(soft.minimum, -30);

@@ -18,6 +18,7 @@ rb_add_block(vumeter
         ui/VuPanel.qml
         ui/vuscale.cpp
         ui/vuscale.h
+        ui/VuUi.qml
     ICONS
         ui/meter.vu.svg
     TESTS

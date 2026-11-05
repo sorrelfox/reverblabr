@@ -18,6 +18,7 @@ rb_add_block(parametriceq
         ui/ParametricEqFace.qml
         ui/ParametricEqHelp.qml
         ui/ParametricEqPanel.qml
+        ui/ParametricEqUi.qml
     ICONS
         ui/advanced.parametriceq.svg
     TESTS

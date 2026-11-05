@@ -82,8 +82,8 @@ TestCase {
     function test_itIsInAdvancedWithFiveNamedInputs() {
         verify(BlockCatalogue.types.indexOf("advanced.mixer") >= 0, "the engine does not offer it");
         compare(BlockPresentation.category("advanced.mixer"), "advanced");
-        verify(BlockFaces.faceFor("advanced.mixer") !== null, "it has no face");
-        verify(BlockPanels.panelFor("advanced.mixer") !== null, "it has no panel");
+        verify(BlockRegister.faceFor("advanced.mixer") !== null, "it has no face");
+        verify(BlockRegister.panelFor("advanced.mixer") !== null, "it has no panel");
         const inputs = BlockCatalogue.describe("advanced.mixer").inputs;
         compare(inputs.laneWidth, 2);
         compare(inputs.lanes.length, 5);

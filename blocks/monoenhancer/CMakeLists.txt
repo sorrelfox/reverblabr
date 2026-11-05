@@ -15,6 +15,7 @@ rb_add_block(monoenhancer
         ui/MonoEnhancerFace.qml
         ui/MonoEnhancerHelp.qml
         ui/MonoEnhancerPanel.qml
+        ui/MonoEnhancerUi.qml
     ICONS
         ui/effect.monoenhancer.svg
     TESTS

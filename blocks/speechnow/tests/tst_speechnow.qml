@@ -44,13 +44,13 @@ TestCase {
     }
 
     function panelFor() {
-        const panel = createTemporaryObject(BlockPanels.panelFor("meter.speechnow"), testCase, { width: 340 });
+        const panel = createTemporaryObject(BlockRegister.panelFor("meter.speechnow"), testCase, { width: 340 });
         panel.blockId = "now";
         return panel;
     }
 
     function faceFor() {
-        const face = createTemporaryObject(BlockFaces.faceFor("meter.speechnow"), testCase, { width: 180, height: 90 });
+        const face = createTemporaryObject(BlockRegister.faceFor("meter.speechnow"), testCase, { width: 180, height: 90 });
         face.blockId = "now";
         return face;
     }
