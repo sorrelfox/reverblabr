@@ -200,7 +200,8 @@ public:
     /// Whole seconds of voice counted towards Use This Level, up to 20.
     [[nodiscard]] std::uint32_t secondsCounted() const noexcept RB_NONBLOCKING;
 
-    /// What kStateValue, kMarksValue and SpeechNow's detector word carry now.
+    /// What kStateValue, kMarksValue and the detector word (DetectorReading)
+    /// carry now.
     [[nodiscard]] float stateWord() const noexcept RB_NONBLOCKING;
     [[nodiscard]] float marksWord() const noexcept RB_NONBLOCKING;
     [[nodiscard]] float detectorReading() const noexcept RB_NONBLOCKING;

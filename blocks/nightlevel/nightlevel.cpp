@@ -7,7 +7,6 @@
 
 #include "blocks/nightlevel/nightlevel.h"
 
-#include "blocks/speechnow/speechnow.h"
 #include "blocks/shared/voicemodel.h"
 #include "dsp/decibel.h"
 
@@ -313,7 +312,7 @@ float NightLevel::state() const noexcept RB_NONBLOCKING
     } else if (m_found) {
         tracking = Found;
     }
-    const float detector = SpeechNow::detectorReadingOf(m_voice.modelState(), m_voice.detector());
+    const float detector = DetectorReading::of(m_voice.modelState(), m_voice.detector());
     return tracking + (m_actingSamples > 0 ? kPerActing : 0.0f) + detector * kPerDetector
         + std::floor(m_sinceVoiceSeconds) * kPerSecond;
 }

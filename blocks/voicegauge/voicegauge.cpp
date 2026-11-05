@@ -7,7 +7,6 @@
 
 #include "blocks/voicegauge/voicegauge.h"
 
-#include "blocks/speechnow/speechnow.h"
 #include "blocks/shared/voicemodel.h"
 
 #include <algorithm>
@@ -293,7 +292,7 @@ float VoiceGauge::marksWordOf(Marks marks) noexcept RB_NONBLOCKING
 
 float VoiceGauge::detectorReading() const noexcept RB_NONBLOCKING
 {
-    return SpeechNow::detectorReadingOf(m_voice.modelState(), preferred());
+    return DetectorReading::of(m_voice.modelState(), preferred());
 }
 
 void VoiceGauge::reset() noexcept RB_NONBLOCKING

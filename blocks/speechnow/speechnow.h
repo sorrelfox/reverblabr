@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "blocks/shared/voicemodel.h"
 #include "dsp/block.h"
 #include "dsp/paramstore.h"
 #include "dsp/voicelikelihood.h"
@@ -52,11 +53,12 @@ public:
     static constexpr float kSpeaking = 1.0f;
     static constexpr float kQuietAgain = 2.0f;
 
-    /// kDetectorValue: which detector runs, and why the model does not.
-    static constexpr float kModelListening = 0.0f;
-    static constexpr float kLevelAndRhythmChosen = 1.0f;
-    static constexpr float kNoModelInThisBuild = 2.0f;
-    static constexpr float kModelNeedsItsRate = 3.0f;
+    /// kDetectorValue: which detector runs, and why the model does not, in
+    /// the words every voice block says it with.
+    static constexpr float kModelListening = DetectorReading::kModelListening;
+    static constexpr float kLevelAndRhythmChosen = DetectorReading::kLevelAndRhythmChosen;
+    static constexpr float kNoModelInThisBuild = DetectorReading::kNoModelInThisBuild;
+    static constexpr float kModelNeedsItsRate = DetectorReading::kModelNeedsItsRate;
 
     enum Param : std::uint32_t {
         HoldMs = 0, ///< How long a voice may pause and still be Speaking.
@@ -101,10 +103,6 @@ public:
 
     /// What kDetectorValue carries now.
     [[nodiscard]] float detectorReading() const noexcept RB_NONBLOCKING;
-
-    /// That word for a detector in that state: Voice Gauge says the same.
-    [[nodiscard]] static float detectorReadingOf(dsp::VoiceModelState model,
-                                                 dsp::VoiceDetector preferred) noexcept RB_NONBLOCKING;
 
     /// How likely a voice was in the last whole frame, 0 to 1.
     [[nodiscard]] float voice() const noexcept RB_NONBLOCKING

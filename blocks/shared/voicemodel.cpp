@@ -7,6 +7,24 @@
 
 #include "blocks/shared/voicemodel.h"
 
+namespace rb::blocks
+{
+
+float DetectorReading::of(dsp::VoiceModelState model, dsp::VoiceDetector preferred) noexcept RB_NONBLOCKING
+{
+    switch (model) {
+    case dsp::VoiceModelState::NotInThisBuild:
+        return kNoModelInThisBuild;
+    case dsp::VoiceModelState::NeedsModelRate:
+        return kModelNeedsItsRate;
+    case dsp::VoiceModelState::Ready:
+        break;
+    }
+    return preferred == dsp::VoiceDetector::Model ? kModelListening : kLevelAndRhythmChosen;
+}
+
+} // namespace rb::blocks
+
 #ifdef RB_HAVE_RNNOISE
 
 #include <rnnoise.h>

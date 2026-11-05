@@ -122,8 +122,8 @@ public:
     static constexpr float kNoLevel = dsp::kSilentLufs;
 
     /// Whole units of kStateValue: what the level is, plus 10 while the ceiling
-    /// acts, plus 100 times SpeechNow's detector reading, plus 1000 times the
-    /// seconds of sound with no voice.
+    /// acts, plus 100 times the detector reading (DetectorReading), plus 1000
+    /// times the seconds of sound with no voice.
     enum Tracking : std::uint8_t {
         NoSpeechYet = 0,
         Found = 1,

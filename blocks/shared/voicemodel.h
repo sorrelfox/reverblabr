@@ -20,4 +20,17 @@ namespace rb::blocks
 /// was built for another frame. Allocates: call it from prepare().
 [[nodiscard]] std::unique_ptr<dsp::VoiceModel> makeVoiceModel();
 
+/// **The word a voice block's detector value carries**: which detector
+/// runs, and why the model does not. Speech Now, Night Level and Voice Gauge
+/// say it alike, so the interface reads it with one set of words.
+struct DetectorReading {
+    static constexpr float kModelListening = 0.0f;
+    static constexpr float kLevelAndRhythmChosen = 1.0f;
+    static constexpr float kNoModelInThisBuild = 2.0f;
+    static constexpr float kModelNeedsItsRate = 3.0f;
+
+    /// That word for a model in that state, with that detector preferred.
+    [[nodiscard]] static float of(dsp::VoiceModelState model, dsp::VoiceDetector preferred) noexcept RB_NONBLOCKING;
+};
+
 } // namespace rb::blocks

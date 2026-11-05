@@ -73,6 +73,11 @@ set_tests_properties(tools.handbook-blocks PROPERTIES PASS_REGULAR_EXPRESSION "P
 add_test(NAME tools.help-pages
          COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_help_pages.py)
 set_tests_properties(tools.help-pages PROPERTIES PASS_REGULAR_EXPRESSION "PASS: help pages")
+# **A block's folder is the whole block** (ADR-0035): every file in it is
+# built, and it takes nothing from another block's folder.
+add_test(NAME tools.block-folders
+         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_block_folders.py)
+set_tests_properties(tools.block-folders PROPERTIES PASS_REGULAR_EXPRESSION "PASS: block folders")
 # The release the handbook says it describes is VERSION's, as the AppStream
 # data's newest is (tools.desktop-entry).
 add_test(NAME tools.handbook-release

@@ -185,20 +185,7 @@ void SpeechNow::process(ProcessContext &context) noexcept RB_NONBLOCKING
 
 float SpeechNow::detectorReading() const noexcept RB_NONBLOCKING
 {
-    return detectorReadingOf(m_voice.modelState(), preferred());
-}
-
-float SpeechNow::detectorReadingOf(VoiceModelState model, VoiceDetector preferred) noexcept RB_NONBLOCKING
-{
-    switch (model) {
-    case VoiceModelState::NotInThisBuild:
-        return kNoModelInThisBuild;
-    case VoiceModelState::NeedsModelRate:
-        return kModelNeedsItsRate;
-    case VoiceModelState::Ready:
-        break;
-    }
-    return preferred == VoiceDetector::Model ? kModelListening : kLevelAndRhythmChosen;
+    return DetectorReading::of(m_voice.modelState(), preferred());
 }
 
 void SpeechNow::reset() noexcept RB_NONBLOCKING
