@@ -82,8 +82,8 @@ libsoxr-dev
 # Speech Denoise (ADR-0016) needs RNNoise, which Kubuntu 26.04 does not
 # package (librnnoise-dev arrives in a later release). The build leaves that
 # one block out; once there is a package, add librnnoise-dev here.
-# The Model block (ADR-0031) needs ONNX Runtime, which is not packaged here
-# either, and is left out the same way.
+# The Model block (ADR-0031)
+libonnxruntime-dev
 # A recording's tags
 libtag-dev
 # Pitch Shift: SoundTouch, LGPL-2.1, linked dynamically

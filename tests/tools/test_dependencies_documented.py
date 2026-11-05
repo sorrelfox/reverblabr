@@ -8,7 +8,7 @@
 
 """Every package the project installs is explained to the person installing it.
 
-tools/deps/fedora.txt and kubuntu.txt are what gets installed;
+tools/deps/fedora.txt, kubuntu.txt and debian.txt are what gets installed;
 docs/dependencies.md is where a person learns what each package is for and
 what goes missing without an optional one. A package added to a list and not
 to the page is a dependency nobody was told about, so each one has to be
@@ -21,7 +21,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 PAGE = REPO / "docs" / "dependencies.md"
-LISTS = [REPO / "tools" / "deps" / "fedora.txt", REPO / "tools" / "deps" / "kubuntu.txt"]
+LISTS = [REPO / "tools" / "deps" / name for name in ("fedora.txt", "kubuntu.txt", "debian.txt")]
 
 
 def packages(path):

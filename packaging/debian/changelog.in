@@ -1,0 +1,5 @@
+reverblabr (@VERSION@-1@SUFFIX@) @DISTRIBUTION@; urgency=medium
+
+  * Reverblabr @VERSION@; its notes are in the AppStream data.
+
+ -- sorrelfox <sorrelfox@users.noreply.github.com>  @DATE@

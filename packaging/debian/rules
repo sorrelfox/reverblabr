@@ -1,0 +1,86 @@
+#!/usr/bin/make -f
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The build, as the RPM spec makes it (packaging/rpm/reverblabr.spec.in).
+
+# Link-time optimisation is the distribution's choice: Ubuntu turns it on,
+# Debian does not. tests/CMakeLists.txt says what it takes for the tests to
+# link with it.
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# A block whose library the build profile leaves out is switched off by
+# name; every other block is asked for by name, so that a missing library
+# stops the build instead of leaving the block out. CLAP plugins need the
+# CLAP SDK, which neither Debian nor Ubuntu packages.
+on_unless = -D$(1)=$(if $(filter $(2),$(DEB_BUILD_PROFILES)),OFF,ON)
+
+ifneq (,$(filter nocheck,$(DEB_BUILD_OPTIONS) $(DEB_BUILD_PROFILES)))
+TESTING = OFF
+else
+TESTING = ON
+endif
+
+%:
+	dh $@ --buildsystem=cmake+ninja --builddirectory=debian/build
+
+# Warnings are not errors here, as the presets make them: the distribution's
+# flags differ from the ones the project builds with. The Live Stream
+# block's H.264 is whatever encoder the installed FFmpeg can use, found at
+# run time (docs/adr/0027). No more than two programs link at once: with
+# link-time optimisation the link of a large test program can take over
+# 4 GB, and four at once went over 12 GB on a 4-core builder.
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DBUILD_TESTING=$(TESTING) \
+		-DCMAKE_JOB_POOLS=link=2 \
+		-DCMAKE_JOB_POOL_LINK=link \
+		-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+		-DRB_BUILD_HANDBOOK=ON \
+		-DRB_BUILD_AUTH_HELPER=ON \
+		-DRB_BUILD_BROADCAST=ON \
+		-DRB_BUILD_LIVESTREAM=ON \
+		-DRB_BUILD_PLASMOID=ON \
+		-DRB_BUILD_CLAP=OFF \
+		$(call on_unless,RB_BUILD_SPEECH_DENOISE,pkg.reverblabr.nornnoise) \
+		$(call on_unless,RB_BUILD_MODEL_BLOCK,pkg.reverblabr.nomodel) \
+		$(call on_unless,RB_BUILD_VST3,pkg.reverblabr.novst3)
+
+# The tests of the engine's layers, which run offline, as the RPM's %check
+# runs them: a build has no PipeWire, no session bus, no display and no git
+# repository, so the rest run in the project's CI instead. The cost tests
+# hold the code to the developer's machine, and a builder is slower and
+# busier than that (one more than the RPM leaves out: ten minutes of
+# silence that must cost less than a tone, which a busy builder can upset).
+override_dh_auto_test:
+ifeq ($(TESTING),ON)
+	cd debian/build && LC_ALL=en_US.UTF-8 QT_QPA_PLATFORM=offscreen \
+		ctest --output-on-failure $(addprefix -j,$(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))) \
+		-R '^((rt|dsp|blocks|graph|record|plugin|helper|notify|ctl\.Lookup)\.|plasmoid\.package$$)' \
+		-E 'Costs?(LessThan|Little|Under|NoMore|Nothing)|FitQuantum'
+endif
+
+# The translations' folder is made before there are any catalogs. zsh on
+# Debian and Ubuntu looks for a package's completions in vendor-completions.
+execute_after_dh_auto_install:
+	rmdir --ignore-fail-on-non-empty debian/reverblabr/usr/share/locale
+	mkdir -p debian/reverblabr/usr/share/zsh/vendor-completions
+	mv debian/reverblabr/usr/share/zsh/site-functions/_reverblabr-ctl debian/reverblabr/usr/share/zsh/vendor-completions/
+	rmdir debian/reverblabr/usr/share/zsh/site-functions
+ifeq ($(TESTING),ON)
+	desktop-file-validate debian/reverblabr/usr/share/applications/io.github.reverblabr.Reverblabr.desktop
+	appstreamcli validate --no-net debian/reverblabr/usr/share/metainfo/io.github.reverblabr.Reverblabr.metainfo.xml
+endif
+
+# The engine's user unit is not enabled by the package: Auto Run enables it
+# while a session is set to run at login (docs/adr/0021). An upgrade does
+# not restart it either, which would stop every running session: the next
+# start of the engine is the new one.
+override_dh_installsystemduser:
+	dh_installsystemduser --no-enable
+
+# The texts of the licences copyright points to, which not every
+# distribution has in /usr/share/common-licenses, kept as they are named
+# there; and the handbook, which the help viewer reads as it is.
+override_dh_compress:
+	dh_compress -X.txt -X.docbook

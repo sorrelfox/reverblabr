@@ -86,7 +86,7 @@ It is built only when KAuth is found (`kf6-kauth-devel` on Fedora). Without it, 
 A few parts are built only when their library is there. The build's summary says which ones it left out:
 
 - **Speech Denoise** needs RNNoise (`rnnoise-devel`). Fedora packages it, Kubuntu 26.04 doesn't.
-- **Model** needs ONNX Runtime (`onnxruntime-devel`). Fedora packages it, Kubuntu 26.04 doesn't.
+- **Model** needs ONNX Runtime (`onnxruntime-devel`, `libonnxruntime-dev`). Fedora and Kubuntu 26.04 package it.
 - **CLAP plugins** need the CLAP SDK (`clap-devel`). Fedora packages it, Kubuntu 26.04 doesn't.
 - **VST3® plugins** need the VST3 SDK 3.8 or later (`vst3sdk-devel`). Fedora packages it; Kubuntu 26.04 has only 3.7, which the build doesn't use. VST is a registered trademark of Steinberg Media Technologies GmbH.
 - **Virtual devices for all users** need KAuth, as above.

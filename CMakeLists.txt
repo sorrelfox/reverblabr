@@ -97,6 +97,22 @@ pkg_check_modules(PIPEWIRE REQUIRED IMPORTED_TARGET libpipewire-0.3>=${PIPEWIRE_
 # Fedora packages it (rnnoise-devel) but Kubuntu 26.04 does not, and a build
 # without it has every other block and no Speech Denoise in the library.
 pkg_check_modules(RNNOISE QUIET IMPORTED_TARGET rnnoise>=0.2)
+# Debian's rnnoise.pc says "Version: unknown". Its header is 0.2's, which
+# is the first to have rnnoise_model_from_buffer(), so that is checked instead.
+if(NOT RNNOISE_FOUND)
+    pkg_check_modules(RNNOISE_ANY QUIET rnnoise)
+    if(RNNOISE_ANY_FOUND AND RNNOISE_ANY_VERSION STREQUAL "unknown")
+        include(CheckCXXSymbolExists)
+        set(CMAKE_REQUIRED_INCLUDES ${RNNOISE_ANY_INCLUDE_DIRS})
+        set(CMAKE_REQUIRED_LIBRARIES ${RNNOISE_ANY_LINK_LIBRARIES})
+        check_cxx_symbol_exists(rnnoise_model_from_buffer "cstdio;rnnoise.h" RB_RNNOISE_HAS_MODEL_FROM_BUFFER)
+        unset(CMAKE_REQUIRED_INCLUDES)
+        unset(CMAKE_REQUIRED_LIBRARIES)
+        if(RB_RNNOISE_HAS_MODEL_FROM_BUFFER)
+            pkg_check_modules(RNNOISE QUIET IMPORTED_TARGET rnnoise)
+        endif()
+    endif()
+endif()
 option(RB_BUILD_SPEECH_DENOISE "Build the Speech Denoise block (needs RNNoise 0.2)" ${RNNOISE_FOUND})
 if(RB_BUILD_SPEECH_DENOISE AND NOT RNNOISE_FOUND)
     message(FATAL_ERROR "RB_BUILD_SPEECH_DENOISE is on, but RNNoise 0.2 was not found (rnnoise-devel on Fedora)")

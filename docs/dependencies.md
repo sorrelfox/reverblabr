@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # What to install
 
-Reverblabr is built from source. This page lists every library and tool it uses, whether it is required, and what goes missing without each optional one. The package names are Fedora's and Kubuntu's. The same names are kept in [`tools/deps/fedora.txt`](../tools/deps/fedora.txt) and [`tools/deps/kubuntu.txt`](../tools/deps/kubuntu.txt), and a test checks that every package in those lists is described here.
+Reverblabr is built from source. This page lists every library and tool it uses, whether it is required, and what goes missing without each optional one. The package names are Fedora's and Kubuntu's; Debian testing uses Kubuntu's. The same names are kept in [`tools/deps/fedora.txt`](../tools/deps/fedora.txt), [`tools/deps/kubuntu.txt`](../tools/deps/kubuntu.txt) and [`tools/deps/debian.txt`](../tools/deps/debian.txt), and a test checks that every package in those lists is described here.
 
 ## Everything at once
 
@@ -21,6 +21,12 @@ sudo dnf install $(sed 's/#.*//' tools/deps/fedora.txt)
 
 ```sh
 sudo apt install $(sed 's/#.*//' tools/deps/kubuntu.txt)
+```
+
+**Debian testing:** Kubuntu's list and the libraries Kubuntu 26.04 lacks (RNNoise and the VST3 SDK 3.8).
+
+```sh
+sudo apt install $(sed 's/#.*//' tools/deps/debian.txt)
 ```
 
 Then check what was found:
@@ -102,10 +108,10 @@ The build finds these by itself and says in its summary which parts it could not
 
 | What | Fedora | Kubuntu | Gives you | Without it |
 |---|---|---|---|---|
-| RNNoise | `rnnoise-devel` | not packaged in 26.04 | the **Speech Denoise** block | that block is not in the library. `-DRB_BUILD_SPEECH_DENOISE=OFF` leaves it out on purpose ([ADR-0016](adr/0016-rnnoise-optional.md)) |
-| ONNX Runtime, 1.20 or later | `onnxruntime-devel` | not packaged in 26.04 | the **Model** block, whose host process runs models from a folder. Fedora's package runs them on the processor | that block is not in the library. `-DRB_BUILD_MODEL_BLOCK=OFF` leaves it out on purpose ([ADR-0031](adr/0031-model-block.md)) |
+| RNNoise | `rnnoise-devel` | not packaged in 26.04; `librnnoise-dev` on Debian testing | the **Speech Denoise** block | that block is not in the library. `-DRB_BUILD_SPEECH_DENOISE=OFF` leaves it out on purpose ([ADR-0016](adr/0016-rnnoise-optional.md)) |
+| ONNX Runtime, 1.20 or later | `onnxruntime-devel` | `libonnxruntime-dev` | the **Model** block, whose host process runs models from a folder. Fedora's package runs them on the processor | that block is not in the library. `-DRB_BUILD_MODEL_BLOCK=OFF` leaves it out on purpose ([ADR-0031](adr/0031-model-block.md)) |
 | The CLAP SDK | `clap-devel` | not packaged in 26.04 | **CLAP plugins**: the CLAP block, and CLAP plugins in the library | no CLAP block, and CLAP plugins are not looked for. `-DRB_BUILD_CLAP=OFF` leaves them out on purpose |
-| The VST3 SDK, 3.8 or later | `vst3sdk-devel` | 26.04 has only 3.7 (`libvst3sdk-dev`), which is not used | **VST3® plugins**: the VST3 block, and VST3 plugins in the library. Only the SDK's interface headers are used, from 3.8 on, which is MIT-licensed ([ADR-0028](adr/0028-vst3-hosting.md)) | no VST3 block, and VST3 plugins are not looked for. `-DRB_BUILD_VST3=OFF` leaves them out on purpose. An SDK of your own: `-DVST3SDK_INCLUDE_DIR=<the folder with pluginterfaces in it>` |
+| The VST3 SDK, 3.8 or later | `vst3sdk-devel` | 26.04 has only 3.7 (`libvst3sdk-dev`), which is not used; Debian testing has 3.8 | **VST3® plugins**: the VST3 block, and VST3 plugins in the library. Only the SDK's interface headers are used, from 3.8 on, which is MIT-licensed ([ADR-0028](adr/0028-vst3-hosting.md)) | no VST3 block, and VST3 plugins are not looked for. `-DRB_BUILD_VST3=OFF` leaves them out on purpose. An SDK of your own: `-DVST3SDK_INCLUDE_DIR=<the folder with pluginterfaces in it>` |
 | QtKeychain for Qt 6 | `qtkeychain-qt6-devel` | `qtkeychain-qt6-dev` | the **Broadcast** block, whose password is kept in the desktop's password store (KWallet on Plasma, the Secret Service elsewhere) and never in a session file | that block is not in the library. `-DRB_BUILD_BROADCAST=OFF` leaves it out on purpose ([ADR-0026](adr/0026-broadcast-streaming.md)) |
 | FreeType, HarfBuzz, fontconfig, and FFmpeg's libswscale | `freetype-devel`, `harfbuzz-devel`, `fontconfig-devel`, `libswscale-free-devel` | `libfreetype-dev`, `libharfbuzz-dev`, `libfontconfig-dev`, `libswscale-dev` | the **Live Stream** block, whose picture is drawn with the desktop's own fonts and converted to video. It needs QtKeychain too, for its stream key | that block is not in the library. `-DRB_BUILD_LIVESTREAM=OFF` leaves it out on purpose ([ADR-0027](adr/0027-live-stream.md)) |
 | KAuth and polkit | `kf6-kauth-devel`, `polkit` | `libkf6auth-dev`, `polkitd` | **virtual devices for all users**, after the administrator's password | virtual devices are for your own account only. The password prompt also needs the helper installed once; see [Installing](installing.md#virtual-devices-for-all-users) |

@@ -1,0 +1,110 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# The source package for Debian testing and Ubuntu 26.04. build-deb.sh puts
+# this folder in the release tarball's tree as debian/ and builds it there
+# (packaging/README.md). Three blocks need a library some distributions do
+# not package; each has a build profile that leaves it out, and build-deb.sh
+# sets the profile where the library is missing.
+
+Source: reverblabr
+Section: sound
+Priority: optional
+Maintainer: sorrelfox <sorrelfox@users.noreply.github.com>
+Rules-Requires-Root: no
+Standards-Version: 4.7.3
+Homepage: https://github.com/sorrelfox/reverblabr
+Vcs-Browser: https://github.com/sorrelfox/reverblabr
+Vcs-Git: https://github.com/sorrelfox/reverblabr.git -b dev
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ ninja-build,
+ pkgconf,
+ extra-cmake-modules,
+ qt6-base-dev,
+ qt6-base-dev-tools,
+ qt6-base-private-dev,
+ qt6-declarative-dev,
+ qt6-declarative-dev-tools,
+ qt6-svg-dev,
+ qt6-shadertools-dev,
+ libkirigami-dev,
+ libkf6i18n-dev,
+ libkf6coreaddons-dev,
+ libkf6config-dev,
+ libkf6windowsystem-dev,
+ libkf6kio-dev,
+ libkf6guiaddons-dev,
+ libkf6notifications-dev,
+ libkf6statusnotifieritem-dev,
+ libkf6globalaccel-dev,
+ libkf6dbusaddons-dev,
+ libkf6auth-dev,
+ libkf6doctools-dev,
+ qtkeychain-qt6-dev,
+ libpipewire-0.3-dev,
+ libsndfile1-dev,
+ libsoxr-dev,
+ librnnoise-dev <!pkg.reverblabr.nornnoise>,
+ libonnxruntime-dev (>= 1.20) <!pkg.reverblabr.nomodel>,
+ libtag-dev,
+ libsoundtouch-dev,
+ libavformat-dev,
+ libavcodec-dev,
+ libavutil-dev,
+ libswscale-dev,
+ libgnutls28-dev,
+ libfreetype-dev,
+ libharfbuzz-dev,
+ libfontconfig-dev,
+ liblilv-dev,
+ lv2-dev,
+ libsuil-dev,
+ libx11-dev,
+ libvst3sdk-dev (>= 3.8) <!pkg.reverblabr.novst3>,
+ gettext,
+ libgtest-dev <!nocheck>,
+ ladspa-sdk <!nocheck>,
+ locales-all <!nocheck>,
+ python3,
+ git,
+ dbus-daemon,
+ desktop-file-utils <!nocheck>,
+ appstream <!nocheck>,
+
+Package: reverblabr
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ default-dbus-session-bus | dbus-session-bus,
+ hicolor-icon-theme,
+ ca-certificates,
+ libqt6sql6-sqlite,
+ qml6-module-org-kde-desktop,
+ qml6-module-org-kde-ki18n,
+ qml6-module-org-kde-kirigami,
+ qml6-module-qtcore,
+ qml6-module-qtqml-workerscript,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts,
+ qml6-module-qtquick-shapes,
+ qml6-module-qtquick-templates,
+ qml6-module-qtquick-window,
+ qt6-svg-plugins,
+Recommends:
+ polkitd,
+ qml6-module-org-kde-layershell,
+Description: capture, process and route audio on your desktop
+ Reverblabr takes the sound of an application, a microphone or everything
+ the computer plays, sends it through a chain of effects, and plays it,
+ records it or hands it to other applications as a microphone of its own.
+ Sessions run in a background engine, so they go on with the window closed,
+ and a command-line tool runs and changes them from a terminal or a script.
+ .
+ The package holds the window, the engine and its plugin hosts, the
+ command-line tool, the Plasma panel widget, the KRunner runner and the
+ helper that makes virtual devices for all users.

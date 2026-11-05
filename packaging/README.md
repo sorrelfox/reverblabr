@@ -121,6 +121,38 @@ sudo dnf copr enable OWNER/reverblabr
 sudo dnf install reverblabr
 ```
 
+## Debian and Ubuntu
+
+[`debian/`](debian/) is the source package's `debian/` folder, for Debian testing and Ubuntu 26.04; its `changelog` is a template, `changelog.in`. [`debian/build-deb.sh`](debian/build-deb.sh) builds the packages from a release tarball, in a plain `debian:testing` or `ubuntu:26.04` system:
+
+```sh
+podman run --rm -v "$PWD:/src:ro,z" -v "$PWD/dist:/dist:z" docker.io/library/debian:testing \
+    /src/packaging/debian/build-deb.sh /dist/reverblabr-0.1.0.tar.xz /dist/debian
+```
+
+As `srpm.sh` does, the script takes the packaging from the tarball, the version from the tarball's name, and the changelog's date from the release's entry in the AppStream data. On Ubuntu the version gets `~ubuntu26.04`, so the two packages have different names and Debian's is the newer. As root the script installs the build tools and the build dependencies with apt; then it runs `dpkg-buildpackage` and lintian, which must report no errors. The folder gets the `.deb`, the source package (`.dsc`, `.orig.tar.xz`, `.debian.tar.xz`), the `.buildinfo` and the `.changes`.
+
+One package holds everything on this page, as on Fedora. Its folders are Debian's: the plugin host and the model host are in `/usr/lib/x86_64-linux-gnu/libexec/`, the all-users helper where KAuth puts helpers (`/usr/lib/kf6/kauth/libexec/`), the panel widget's QML module in `/usr/lib/x86_64-linux-gnu/qt6/qml/`, and the zsh completion in `/usr/share/zsh/vendor-completions/`. The build runs the same tests as the RPM's `%check`, with link-time optimisation where the distribution turns it on (Ubuntu does, Debian does not), and the package does not enable the engine's unit.
+
+The distributions do not package every library. A block whose library is missing, or too old, is left out through a build profile, which the script sets by itself:
+
+| Profile | Leaves out | Debian testing | Ubuntu 26.04 |
+|---|---|---|---|
+| `pkg.reverblabr.nornnoise` | Speech Denoise (RNNoise) | built | left out: no `librnnoise-dev` |
+| `pkg.reverblabr.nomodel` | the Model block (ONNX Runtime) | built | built |
+| `pkg.reverblabr.novst3` | VST3 hosting (the VST3 SDK 3.8) | built | left out: 3.7 only |
+
+CLAP hosting is off on both: neither packages the CLAP SDK.
+
+[`debian/install-check.sh`](debian/install-check.sh) installs the package in a throwaway container of the same distribution, runs every program's `--version`, checks the files above are where they belong and that the engine's unit is not enabled, and purges the package again:
+
+```sh
+podman run --rm -v "$PWD/dist/debian:/debs:ro,z" -v "$PWD/packaging/debian:/check:ro,z" \
+    docker.io/library/debian:testing /check/install-check.sh /debs
+```
+
+The release workflow does both for each distribution from the release tarball and attaches the two `.deb` files to the draft release (not the `-dbgsym` package).
+
 ## A Flatpak
 
 A Flatpak has no systemd user unit to hand. The daemon would have to run inside the sandbox, own `io.github.reverblabr.Engine` (`--own-name`), and be started by the window instead of by activation. That isn't done yet.

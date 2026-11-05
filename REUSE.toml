@@ -67,3 +67,12 @@ path = "tests/unit/pw/graphs/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Reverblabr contributors"
 SPDX-License-Identifier = "CC0-1.0"
+
+# The Debian packaging's files that dpkg reads in a set format, with no room
+# for a header: the copyright file, the changelog's template, the source
+# format and the list of documents.
+[[annotations]]
+path = ["packaging/debian/copyright", "packaging/debian/changelog.in", "packaging/debian/source/format", "packaging/debian/reverblabr.docs"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Reverblabr contributors"
+SPDX-License-Identifier = "CC0-1.0"

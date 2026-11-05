@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The window is started from the launcher and the engine by the session bus,
+# not typed in a terminal, and both answer --help. reverblabr-ctl, the
+# program meant for a terminal, has its page.
+no-manual-page [usr/bin/reverblabr]
+no-manual-page [usr/bin/reverblabrd]
+
+# The package is built for the project's releases, not uploaded to Debian's
+# archive, so there is no bug that asks for it.
+initial-upload-closes-no-bugs [usr/share/doc/reverblabr/changelog.Debian.gz:1]

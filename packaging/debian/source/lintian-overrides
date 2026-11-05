@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The licence's full text is installed beside the copyright file, as
+# /usr/share/doc/reverblabr/CC-BY-SA-4.0.txt: Ubuntu has no copy in
+# /usr/share/common-licenses.
+incomplete-creative-commons-license cc-by-sa-4.0 [debian/copyright:*]

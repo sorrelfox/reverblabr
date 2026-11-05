@@ -1,0 +1,82 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Reverblabr
+Upstream-Contact: https://github.com/sorrelfox/reverblabr/issues
+Source: https://github.com/sorrelfox/reverblabr
+
+Files: *
+Copyright: 2026 Reverblabr contributors
+License: MPL-2.0
+
+Files: dbus/*
+Copyright: 2026 Reverblabr contributors
+License: MIT
+
+Files: app/icons/*
+ app/appicon/*
+ ctl/reverblabr-ctl.1
+ doc/index.docbook
+ docs/*
+ *.md
+Copyright: 2026 Reverblabr contributors
+License: CC-BY-SA-4.0
+
+Files: app/io.github.reverblabr.Reverblabr.metainfo.xml
+ notify/reverblabr.notifyrc
+ helper/io.github.reverblabr.virtualdevices.actions
+ engine/presets/*
+ plasmoid/package/metadata.json
+ packaging/rpm/reverblabr.*
+ packaging/debian/*
+ tools/deps/*
+ VERSION
+ CMakePresets.json
+ REUSE.toml
+Copyright: 2026 Reverblabr contributors
+License: CC0-1.0
+
+Files: packaging/*/*.sh
+Copyright: 2026 Reverblabr contributors
+License: MPL-2.0
+
+Files: app/fonts/NotoSans-*.ttf
+Copyright: 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+License: OFL-1.1
+
+Files: app/fonts/JetBrainsMono-*.ttf
+Copyright: 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+License: OFL-1.1
+
+License: MPL-2.0
+ On Debian systems, the full text of the Mozilla Public License 2.0 can be
+ found in /usr/share/common-licenses/MPL-2.0.
+
+License: CC0-1.0
+ On Debian systems, the full text of the CC0 1.0 Universal license can be
+ found in /usr/share/common-licenses/CC0-1.0.
+
+License: CC-BY-SA-4.0
+ The full text of the Creative Commons Attribution-ShareAlike 4.0
+ International license is in /usr/share/doc/reverblabr/CC-BY-SA-4.0.txt.
+
+License: OFL-1.1
+ The full text of the SIL Open Font License 1.1 is in
+ /usr/share/doc/reverblabr/OFL-1.1.txt.
+
+License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
