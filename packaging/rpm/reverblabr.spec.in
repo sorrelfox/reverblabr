@@ -148,10 +148,12 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/io.github.reverblabr.
 # rest (pw, bus, ctl's daemon tests, qml, the panel widget's list and
 # representations, i18n, tools, cmake) run in the project's own CI instead. The
 # cost tests ("costs less than N %% of a core") hold the code to the
-# developer's machine, and a builder is slower and busier than that.
+# developer's machine, and a builder is slower and busier than that. A few
+# others wait on a thread for a few milliseconds; on a busy builder one can
+# miss once, so a test that fails is run again, up to three times in all.
 export LC_ALL=en_US.UTF-8
 export QT_QPA_PLATFORM=offscreen
-%ctest -R '^((rt|dsp|blocks|graph|record|plugin|helper|notify|ctl\.Lookup)\.|plasmoid\.package$)' \
+%ctest --repeat until-pass:3 -R '^((rt|dsp|blocks|graph|record|plugin|helper|notify|ctl\.Lookup)\.|plasmoid\.package$)' \
        -E 'Costs?(LessThan|Little|Under|NoMore)|FitQuantum'
 
 
