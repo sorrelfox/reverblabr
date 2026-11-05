@@ -18,12 +18,12 @@
 // what its block is prepared for, as Frequency Raising's lowest move does,
 // and then only when it crosses the line.
 
-#include "blocks/applicationsource.h"
+#include "blocks/applicationsource/applicationsource.h"
 #include "blocks/builtinblocks.h"
-#include "blocks/frequencyraising.h"
-#include "blocks/mixer.h"
-#include "blocks/outputdevice.h"
-#include "blocks/systemaudio.h"
+#include "blocks/frequencymove/frequencyraising.h"
+#include "blocks/mixer/mixer.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/systemaudio/systemaudio.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/session.h"

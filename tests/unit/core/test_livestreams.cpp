@@ -9,7 +9,7 @@
 // off it, the status the facade carries, the encoders the catalogue says
 // are missing, and the key going where a Broadcast block's password goes.
 
-#include "blocks/livestream.h"
+#include "blocks/broadcast/livestream.h"
 #include "core/broadcasts.h"
 #include "core/editcommand.h"
 #include "core/livestreams.h"

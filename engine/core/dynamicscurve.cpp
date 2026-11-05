@@ -7,7 +7,7 @@
 
 #include "core/dynamicscurve.h"
 
-#include "blocks/dynamics.h"
+#include "blocks/dynamics/dynamics.h"
 #include "core/paramjson.h"
 #include "dsp/dynamics.h"
 

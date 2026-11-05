@@ -7,7 +7,7 @@
 
 #include "core/equalizercurve.h"
 
-#include "blocks/parametriceq.h"
+#include "blocks/parametriceq/parametriceq.h"
 #include "core/paramjson.h"
 
 #include <QJsonValue>

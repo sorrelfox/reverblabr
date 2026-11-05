@@ -9,7 +9,7 @@
 // read from a session's wires.
 
 #include "blocks/builtinblocks.h"
-#include "blocks/outputdevice.h"
+#include "blocks/outputdevice/outputdevice.h"
 #include "core/lastlimit.h"
 #include "core/session.h"
 #include "dsp/blockregistry.h"

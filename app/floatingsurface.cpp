@@ -8,8 +8,8 @@
 #include "floatingsurface.h"
 
 #include "appshell.h"
-#include "blocks/speechnow.h"
-#include "blocks/voicegauge.h"
+#include "blocks/speechnow/speechnow.h"
+#include "blocks/voicegauge/voicegauge.h"
 #include "traystate.h"
 #include "windowstate.h"
 

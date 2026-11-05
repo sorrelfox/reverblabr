@@ -13,12 +13,13 @@
 # This follows KDE's Messages.sh convention: the caller sets $XGETTEXT (xgettext
 # with the KI18n keywords) and $podir. Run tools/extract-messages.sh, or build
 # the extract-messages target, instead of calling it directly. The GUI is
-# scanned, and the desktop notifications' words (notify/), which the
+# scanned, with each block's own interface (blocks/*/ui), and the desktop
+# notifications' words (notify/), which the
 # daemon says too, and the daemon's own (daemon/, what KRunner shows), and
 # reverblabr-ctl's (ctl/) into a template of their own; the engine never
 # produces user-visible text.
 
-$XGETTEXT $(find app notify daemon -name '*.cpp' -o -name '*.h' -o -name '*.qml' | sort) -o "$podir/reverblabr.pot"
+$XGETTEXT $(find app blocks/*/ui notify daemon -name '*.cpp' -o -name '*.h' -o -name '*.qml' | sort) -o "$podir/reverblabr.pot"
 # reverblabr-ctl has a catalog of its own: it translates with plain gettext,
 # through ctlTr(context, text) and ctlTrn(context, singular, plural, n).
 # **The panel widget has a catalog of its own**, named as Plasma looks it up:

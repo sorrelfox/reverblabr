@@ -117,6 +117,7 @@ Mark those functions `noexcept` and `RB_NONBLOCKING`. Test them with the `rtsan`
 - **Where tests live:**
   - GoogleTest cases in `tests/unit/<layer>/`, one executable per layer, registered with CTest as `<layer>.<Suite>.<Test>`
   - Qt Quick tests in `tests/qml/tst_<name>.qml`
+  - a block's own tests, of both kinds, in its folder: `blocks/<folder>/tests/` ([ADR-0035](adr/0035-block-folders.md))
   - integration tests against a private PipeWire instance in `tests/pw/`, using the fixture and helpers described in [tests/pw/README.md](../tests/pw/README.md)
 - **Tests are deterministic.** Seed random generators with a fixed value, never depend on the wall clock, and don't sleep to wait for events: poll for the condition with a time limit.
 - **Test the behaviour, not the implementation.** For DSP, prefer measured properties: levels, frequency response, maximum sample jump, latency.

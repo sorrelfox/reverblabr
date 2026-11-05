@@ -12,10 +12,10 @@
 // with the session and with a block taken out for good. And its title,
 // from a media player of the test's own on the harness's private bus.
 
-#include "blocks/applicationsource.h"
-#include "blocks/broadcast.h"
+#include "blocks/applicationsource/applicationsource.h"
+#include "blocks/broadcast/broadcast.h"
 #include "blocks/builtinblocks.h"
-#include "blocks/wave.h"
+#include "blocks/wave/wave.h"
 #include "core/broadcasts.h"
 #include "core/editcommand.h"
 #include "core/engine.h"

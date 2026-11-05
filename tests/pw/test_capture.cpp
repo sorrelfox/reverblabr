@@ -8,9 +8,9 @@
 // Capturing one application against a real PipeWire: the tone arrives,
 // the application never notices, and it is captured again every time it comes
 // back. What the block does with the channels once they arrive is measured
-// offline in tests/unit/blocks/test_applicationsource.cpp.
+// offline in blocks/applicationsource/tests/test_applicationsource.cpp.
 
-#include "blocks/applicationsource.h"
+#include "blocks/applicationsource/applicationsource.h"
 #include "blocks/builtinblocks.h"
 #include "core/sessionplan.h"
 #include "core/sessionruntime.h"

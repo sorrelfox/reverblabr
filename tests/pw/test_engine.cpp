@@ -9,9 +9,9 @@
 // session, build a chain in it, start it, hear it, stop it. The same flow
 // the mock walks, against a real PipeWire.
 
-#include "blocks/oneearmix.h"
-#include "blocks/spectrummeter.h"
-#include "blocks/waveformmeter.h"
+#include "blocks/oneearmix/oneearmix.h"
+#include "blocks/spectrummeter/spectrummeter.h"
+#include "blocks/waveformmeter/waveformmeter.h"
 #include "core/audiosystem.h"
 #include "core/editcommand.h"
 #include "core/engine.h"

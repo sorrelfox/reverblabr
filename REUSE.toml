@@ -14,7 +14,7 @@ SPDX-License-Identifier = "CC0-1.0"
 # The factory presets. They are data, not code: a JSON file cannot carry
 # a comment, and these are meant to be copied, read and quoted freely.
 [[annotations]]
-path = "engine/presets/**"
+path = "blocks/*/presets/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Reverblabr contributors"
 SPDX-License-Identifier = "CC0-1.0"

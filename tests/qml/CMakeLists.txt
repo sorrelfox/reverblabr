@@ -5,11 +5,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-# Runs every tst_*.qml file in this directory against the real QML module.
+# Runs every tst_*.qml file in this directory and in each block's folder
+# (ADR-0035) against the real QML module. The runner reads one folder and
+# every folder under it, so it is given a folder of links to them all.
 # With a block for one ear of the tests' own, from the unit tests.
 add_executable(reverblabr-qml-test tst_qml.cpp ../unit/dsp/earblock.cpp ../unit/dsp/earblock.h)
+set(RB_QML_TEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/qml-tests")
+rb_blocks_get(QML_TEST_DIRS rb_block_qml_test_dirs)
+foreach(dir IN LISTS rb_block_qml_test_dirs ITEMS "${CMAKE_CURRENT_SOURCE_DIR}")
+    file(RELATIVE_PATH link "${PROJECT_SOURCE_DIR}" "${dir}")
+    get_filename_component(parent "${RB_QML_TEST_DIR}/${link}" DIRECTORY)
+    file(MAKE_DIRECTORY "${parent}")
+    file(CREATE_LINK "${dir}" "${RB_QML_TEST_DIR}/${link}" SYMBOLIC)
+endforeach()
 target_compile_definitions(reverblabr-qml-test PRIVATE
-    QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    QUICK_TEST_SOURCE_DIR="${RB_QML_TEST_DIR}"
 )
 target_link_libraries(reverblabr-qml-test PRIVATE
     reverblabr-ui

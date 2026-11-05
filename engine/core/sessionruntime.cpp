@@ -7,9 +7,9 @@
 
 #include "core/sessionruntime.h"
 
-#include "blocks/applicationsource.h"
-#include "blocks/outputdevice.h"
-#include "blocks/pluginblock.h"
+#include "blocks/applicationsource/applicationsource.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/pluginblock/pluginblock.h"
 #include "core/broadcasts.h"
 #include "core/lastlimit.h"
 #include "core/paramjson.h"

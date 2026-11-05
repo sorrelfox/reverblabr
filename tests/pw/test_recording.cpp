@@ -9,11 +9,11 @@
 // against a real PipeWire: two Recorders on one tone, one of them switched
 // off and on again while the session runs, and every file read back.
 
-#include "blocks/applicationsource.h"
+#include "blocks/applicationsource/applicationsource.h"
 #include "blocks/builtinblocks.h"
-#include "blocks/outputdevice.h"
-#include "blocks/recorder.h"
-#include "blocks/wave.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/recorder/recorder.h"
+#include "blocks/wave/wave.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/session.h"

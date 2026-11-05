@@ -101,7 +101,8 @@ add_library(reverblabr-engine STATIC
     virtualdevices.h
     xrunhistory.h
 )
-target_include_directories(reverblabr-engine PUBLIC ${PROJECT_SOURCE_DIR}/engine)
+# The blocks are included as "blocks/<folder>/<file>.h", from the top (ADR-0035).
+target_include_directories(reverblabr-engine PUBLIC ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/engine)
 target_link_libraries(reverblabr-engine
     PUBLIC Qt6::Core reverblabr-telemetry
     # The recordings index is SQLite, through Qt: a Qt module with no
@@ -126,73 +127,18 @@ set_target_properties(reverblabr-engine PROPERTIES AUTOMOC ON AUTORCC ON)
 # **The factory presets travel inside the binary**. They are read-only
 # because there is no file for anybody to edit, rather than because of a
 # permission somebody could change — and because they are compiled in, there
-# is no installation step that can leave them behind. Listed one by one
-# rather than globbed, so that adding one is a change somebody reviews.
+# is no installation step that can leave them behind. Each block's folder
+# lists its own (blocks/<folder>/presets/<typeId>/), one by one rather than
+# globbed, so that adding one is a change somebody reviews; here they are
+# kept under the type id, as before.
+rb_blocks_get(PRESETS rb_factory_presets)
+foreach(preset IN LISTS rb_factory_presets)
+    get_filename_component(preset_name "${preset}" NAME)
+    get_filename_component(preset_dir "${preset}" DIRECTORY)
+    get_filename_component(preset_type "${preset_dir}" NAME)
+    set_source_files_properties("${preset}" PROPERTIES QT_RESOURCE_ALIAS "${preset_type}/${preset_name}")
+endforeach()
 qt_add_resources(reverblabr-engine "reverblabr-factory-presets"
     PREFIX "/io/github/reverblabr/presets"
-    BASE "../presets"
-    FILES
-        ../presets/advanced.dehum/10-mains50Hz.json
-        ../presets/advanced.dehum/20-mains60Hz.json
-        ../presets/effect.autolevel/10-voiceEvener.json
-        ../presets/effect.dynamics/10-default.json
-        ../presets/effect.dynamics/20-gentleLeveling.json
-        ../presets/effect.dynamics/30-voice.json
-        ../presets/effect.dynamics/40-noiseGate.json
-        ../presets/effect.dynamics/50-hardLimiting.json
-        ../presets/effect.nightlevel/10-light.json
-        ../presets/effect.nightlevel/20-night.json
-        ../presets/effect.nightlevel/30-strong.json
-        ../presets/effect.voicecompressor/10-soft-voice.json
-        ../presets/effect.voicecompressor/20-speech.json
-        ../presets/effect.voicecompressor/30-strong-voice.json
-        ../presets/effect.voicecompressor/40-singing.json
-        ../presets/effect.voiceforward/10-music-stays.json
-        ../presets/effect.voiceforward/20-voices-first.json
-        ../presets/effect.equalizer10/010-flat.json
-        ../presets/effect.equalizer10/020-bassBoost.json
-        ../presets/effect.equalizer10/030-lessBass.json
-        ../presets/effect.equalizer10/040-trebleBoost.json
-        ../presets/effect.equalizer10/050-lessTreble.json
-        ../presets/effect.equalizer10/060-vocalPresence.json
-        ../presets/effect.equalizer10/070-podcastVoice.json
-        ../presets/effect.equalizer10/080-loudness.json
-        ../presets/effect.equalizer10/090-headphones.json
-        ../presets/effect.equalizer10/100-laptopSpeakers.json
-        ../presets/effect.equalizer10/110-warm.json
-        ../presets/effect.equalizer10/120-bright.json
-        ../presets/effect.equalizer10/130-telephone.json
-        ../presets/effect.equalizer10/140-oldRadio.json
-        ../presets/effect.equalizer10/150-rumbleCut.json
-        ../presets/effect.equalizer10/160-hissCut.json
-        ../presets/effect.equalizer10/170-lessMud.json
-        ../presets/effect.equalizer10/180-lessHarshness.json
-        ../presets/effect.equalizer10/190-air.json
-        ../presets/effect.equalizer10/200-smile.json
-        ../presets/effect.reverb/10-smallRoom.json
-        ../presets/effect.reverb/20-hall.json
-        ../presets/effect.reverb/30-plate.json
-        ../presets/effect.volume/10-halfVolume.json
-        ../presets/effect.volume/20-unityVolume.json
-        ../presets/effect.volume/30-doubleVolume.json
-        ../presets/hearing.compensation16/010-flat.json
-        ../presets/hearing.compensation16/020-gentleSlope.json
-        ../presets/hearing.compensation16/030-steeperSlope.json
-        ../presets/hearing.compensation64/010-flat.json
-        ../presets/hearing.compensation64/020-gentleSlope.json
-        ../presets/hearing.compensation64/030-steeperSlope.json
-        ../presets/meter.speechnow/10-quick.json
-        ../presets/meter.speechnow/20-steady.json
-        ../presets/meter.voicegauge/10-quick.json
-        ../presets/meter.voicegauge/20-steady.json
-        ../presets/meter.waveform/10-speaking.json
-        ../presets/meter.waveform/20-singleTone.json
-        ../presets/meter.waveform/30-longView.json
-        ../presets/meter.waveform/40-leftAndRight.json
-        ../presets/meter.spectrum/10-musicBalance.json
-        ../presets/meter.spectrum/20-fineDetail.json
-        ../presets/meter.spectrum/30-quickLook.json
-        ../presets/meter.spectrum/40-ledBars.json
-        ../presets/meter.soundside/10-wholeMix.json
-        ../presets/meter.soundside/20-higherSounds.json
+    FILES ${rb_factory_presets}
 )

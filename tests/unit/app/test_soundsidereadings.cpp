@@ -9,7 +9,7 @@
 // whatever draws it. The drawing is in tst_soundside.qml.
 
 #include "appshell.h"
-#include "blocks/soundside.h"
+#include "blocks/soundside/soundside.h"
 #include "core/editcommand.h"
 #include "core/mockengine.h"
 #include "soundsidereadings.h"

@@ -272,7 +272,7 @@ Run each suite whole. `-R` is for narrowing things down while you work on one pr
 
 `release` and `asan` aren't extras for changes that look risky. A check you only run when you already suspect something doesn't catch the problems nobody suspected. Each suite takes around four minutes on my machine, and all of them together well under a quarter of an hour.
 
-`rtsan-offline` leaves out the suites under `tests/pw` that start a private PipeWire, which keeps it short. When a change reaches the audio path (`engine/rt`, `engine/dsp`, `engine/blocks`, `engine/graph`, or the node and processor in `engine/pw`), run the whole `ctest --preset rtsan` on top: those suites are the ones where a real process callback runs on a real real-time thread. Add `ctest --preset tsan` when a change touches threads or state shared between them.
+`rtsan-offline` leaves out the suites under `tests/pw` that start a private PipeWire, which keeps it short. When a change reaches the audio path (`engine/rt`, `engine/dsp`, `blocks`, `engine/graph`, or the node and processor in `engine/pw`), run the whole `ctest --preset rtsan` on top: those suites are the ones where a real process callback runs on a real real-time thread. Add `ctest --preset tsan` when a change touches threads or state shared between them.
 
 Leave the PipeWire suites out by label, not by name. `-E '^pw\.'` looks the same and isn't: the pw layer's own unit tests are called `pw.SessionProcessorTest.*`, `pw.VirtualDeviceConf.*` and so on. They need no daemon and include the tests of the code that runs in the process callback.
 

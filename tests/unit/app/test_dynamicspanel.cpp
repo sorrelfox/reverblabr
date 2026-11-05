@@ -12,7 +12,7 @@
 // parameter the session does not mention is the block's own default.
 
 #include "analysis.h"
-#include "blocks/dynamics.h"
+#include "blocks/dynamics/dynamics.h"
 #include "dsp/decibel.h"
 #include "dynamicsplot.h"
 #include "offlinerunner.h"

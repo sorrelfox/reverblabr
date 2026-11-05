@@ -12,6 +12,7 @@ Copyright: 2026 Reverblabr contributors
 License: MIT
 
 Files: app/icons/*
+ blocks/*/ui/*.svg
  app/appicon/*
  ctl/reverblabr-ctl.1
  doc/index.docbook
@@ -23,7 +24,7 @@ License: CC-BY-SA-4.0
 Files: app/io.github.reverblabr.Reverblabr.metainfo.xml
  notify/reverblabr.notifyrc
  helper/io.github.reverblabr.virtualdevices.actions
- engine/presets/*
+ blocks/*/presets/*
  plasmoid/package/metadata.json
  packaging/rpm/reverblabr.*
  packaging/debian/*

@@ -10,7 +10,7 @@
 // the panel writes into, the spellings of the capture modes, and the one
 // rule that the three fields a session stores an application by come to.
 
-#include "blocks/applicationsource.h"
+#include "blocks/applicationsource/applicationsource.h"
 #include "inventory.h"
 
 #include <QString>

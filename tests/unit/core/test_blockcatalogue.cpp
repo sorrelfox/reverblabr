@@ -9,15 +9,15 @@
 // settings panel is generated from exactly this, so a block that describes
 // itself badly here is a block with no interface.
 
-#include "blocks/applicationsource.h"
+#include "blocks/applicationsource/applicationsource.h"
 #include "blocks/builtinblocks.h"
-#include "blocks/ducking.h"
-#include "blocks/dynamics.h"
-#include "blocks/inputdevice.h"
-#include "blocks/mixer.h"
-#include "blocks/outputdevice.h"
-#include "blocks/systemaudio.h"
-#include "blocks/volume.h"
+#include "blocks/ducking/ducking.h"
+#include "blocks/dynamics/dynamics.h"
+#include "blocks/inputdevice/inputdevice.h"
+#include "blocks/mixer/mixer.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/systemaudio/systemaudio.h"
+#include "blocks/volume/volume.h"
 #include "core/blockcatalogue.h"
 
 #include <QJsonArray>

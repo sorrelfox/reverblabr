@@ -15,16 +15,16 @@
 // through the session's segments and hosts in the same cycle, a cycle late,
 // or not at all, and at what gain.
 
-#include "blocks/applicationsource.h"
+#include "blocks/applicationsource/applicationsource.h"
 #include "blocks/builtinblocks.h"
-#include "blocks/inputdevice.h"
+#include "blocks/inputdevice/inputdevice.h"
 #ifdef RB_HAVE_MODEL_BLOCK
-#include "blocks/modelblock.h"
+#include "blocks/modelblock/modelblock.h"
 #include "onnxbytes.h"
 #endif
-#include "blocks/outputdevice.h"
-#include "blocks/peakrmsmeter.h"
-#include "blocks/pluginblock.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/peakrmsmeter/peakrmsmeter.h"
+#include "blocks/pluginblock/pluginblock.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/pluginscanner.h"

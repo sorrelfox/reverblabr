@@ -9,8 +9,8 @@
 // off it, the status the facade carries, where its password is kept, and
 // the password going to a store and never into the session.
 
-#include "blocks/applicationsource.h"
-#include "blocks/broadcast.h"
+#include "blocks/applicationsource/applicationsource.h"
+#include "blocks/broadcast/broadcast.h"
 #include "core/broadcasts.h"
 #include "core/editcommand.h"
 #include "core/mockengine.h"

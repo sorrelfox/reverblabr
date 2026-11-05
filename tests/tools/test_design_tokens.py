@@ -45,7 +45,9 @@ RULES = [
 
 failures = []
 checked = 0
-for path in sorted(QML.glob("*.qml")) + sorted(STYLE.glob("*.qml")):
+# Each block's own QML is the interface's too (ADR-0035).
+BLOCKS = sorted((REPO / "blocks").glob("*/ui/*.qml"))
+for path in sorted(QML.glob("*.qml")) + sorted(STYLE.glob("*.qml")) + BLOCKS:
     if path.name in TOKENS:
         continue
     checked += 1

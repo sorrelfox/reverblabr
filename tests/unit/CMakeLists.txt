@@ -134,7 +134,6 @@ if(RB_BUILD_MODEL_BLOCK)
             graph/testblocks.h
             model/onnxbytes.cpp
             model/onnxbytes.h
-            model/test_modelblock.cpp
             model/test_modelfolder.cpp
         LIBRARIES
             reverblabr-blocks
@@ -153,75 +152,15 @@ rb_add_gtest(reverblabr-blocks-test
     SOURCES
         dsp/earblock.cpp
         dsp/earblock.h
-        blocks/test_applicationsource.cpp
-        blocks/test_autolevel.cpp
-        blocks/test_balance.cpp
-        blocks/test_basstreble.cpp
-        blocks/test_channels.cpp
-        blocks/test_declick.cpp
-        blocks/test_denoise.cpp
-        blocks/test_ducking.cpp
-        blocks/test_dehum.cpp
-        blocks/test_dynamics.cpp
-        blocks/test_echo.cpp
-        blocks/test_equalizer10.cpp
-        blocks/test_firfilter.cpp
-        blocks/test_frequencylowering.cpp
         blocks/test_gainreach.cpp
         blocks/test_unconnectedinput.cpp
-        blocks/test_frequencyraising.cpp
-        blocks/test_highpassfilter.cpp
-        blocks/test_inputdevice.cpp
-        blocks/test_inputswitch.cpp
-        blocks/test_hearingcompensation.cpp
-        blocks/test_hearingcompensation64.cpp
-        blocks/test_joinlr.cpp
-        blocks/test_limiter.cpp
-        blocks/test_lowpassfilter.cpp
-        blocks/test_mixer.cpp
-        blocks/test_monoenhancer.cpp
-        blocks/test_multibandcompressor.cpp
-        blocks/test_oneearmix.cpp
-        blocks/test_speechnow.cpp
-        blocks/test_outputdevice.cpp
-        blocks/test_pan.cpp
-        blocks/test_parametriceq.cpp
-        blocks/test_peakrmsmeter.cpp
-        blocks/test_pitchshift.cpp
-        blocks/test_pluginblock.cpp
-        blocks/test_recorder.cpp
-        blocks/test_reverb.cpp
-        blocks/test_simplecompressor.cpp
-        blocks/test_sync.cpp
-        blocks/test_systemaudio.cpp
-        blocks/test_timeshift.cpp
-        blocks/test_amplify.cpp
-        blocks/test_volume.cpp
-        blocks/test_voicegauge.cpp
-        blocks/test_waveformmeter.cpp
-        blocks/test_spectrummeter.cpp
-        blocks/test_soundside.cpp
-        blocks/test_nightlevel.cpp
-        blocks/test_voicecompressor.cpp
-        blocks/test_suddensounds.cpp
-        blocks/test_voiceforward.cpp
         blocks/test_voicemodel.cpp
-        blocks/test_vumeter.cpp
-        blocks/test_wave.cpp
     LIBRARIES reverblabr-blocks reverblabr-dsp-testkit
 )
-# Speech Denoise, where the build has RNNoise (ADR-0016).
-if(RB_BUILD_SPEECH_DENOISE)
-    target_sources(reverblabr-blocks-test PRIVATE blocks/test_speechdenoise.cpp)
-endif()
-# Broadcast, where the build can keep its password (ADR-0026).
-if(RB_BUILD_BROADCAST)
-    target_sources(reverblabr-blocks-test PRIVATE blocks/test_broadcast.cpp)
-endif()
-# Live Stream, where the build has it (ADR-0027).
-if(RB_BUILD_LIVESTREAM)
-    target_sources(reverblabr-blocks-test PRIVATE blocks/test_livestream.cpp)
-endif()
+# Each block's own tests are in its folder, and come in at the end of this
+# file; these are the ones about blocks in general. The test block for one
+# ear is found by its name from there too.
+target_include_directories(reverblabr-blocks-test PRIVATE dsp)
 set_target_properties(reverblabr-blocks-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
 # Recordings on the disk. Read back through libsndfile directly, which
@@ -473,7 +412,6 @@ rb_add_gtest(reverblabr-app-test
         app/test_blockmodel.cpp
         app/test_blockpresentation.cpp
         app/test_dynamicspanel.cpp
-        app/test_equalizerplot.cpp
         app/test_errormessages.cpp
         app/test_errorsurface.cpp
         app/test_diagnostics.cpp
@@ -491,9 +429,7 @@ rb_add_gtest(reverblabr-app-test
         app/test_recentapplications.cpp
         app/test_recordingstatus.cpp
         app/test_scopehub.cpp
-        app/test_scopeitem.cpp
         app/test_scopeview.cpp
-        app/test_spectrumitem.cpp
         app/test_spectrumview.cpp
         app/test_sessionmodel.cpp
         app/test_sessionoverview.cpp
@@ -503,7 +439,6 @@ rb_add_gtest(reverblabr-app-test
         app/test_virtualdevices.cpp
         app/test_volumepanel.cpp
         app/test_waveformitem.cpp
-        app/test_vuscale.cpp
         app/test_windowframe.cpp
         app/test_windowstate.cpp
         app/test_wiremodel.cpp
@@ -528,3 +463,14 @@ rb_add_gtest(reverblabr-diagnostics-clipboard-test
     SOURCES app/test_diagnosticsclipboard.cpp
     LIBRARIES reverblabr-ui
 )
+
+# **Each block's own tests are in its folder** (ADR-0035): rb_add_block()
+# names the binary they go into, and they run under the same names as before.
+rb_blocks_get(TEST_TARGETS rb_block_test_targets)
+foreach(target IN LISTS rb_block_test_targets)
+    if(NOT TARGET ${target})
+        message(FATAL_ERROR "A block's tests go into ${target}, which this build does not have.")
+    endif()
+    rb_blocks_get(TESTS_${target} rb_block_tests)
+    target_sources(${target} PRIVATE ${rb_block_tests})
+endforeach()

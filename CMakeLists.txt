@@ -43,6 +43,7 @@ include(ECMQmlModule)
 include(ECMSetupVersion)
 include(ECMInstallIcons)
 include(RbTranslateDataFile)
+include(RbBlocks)
 include(FeatureSummary)
 
 # Our own code reports errors as values, but the standard library can throw,

@@ -12,7 +12,7 @@
 // frame.
 
 #include "analysis.h"
-#include "blocks/peakrmsmeter.h"
+#include "blocks/peakrmsmeter/peakrmsmeter.h"
 #include "dsp/decibel.h"
 #include "meterhub.h"
 #include "meteritem.h"

@@ -20,6 +20,8 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 EXPECTED = [
     # (context, start of msgid, file the string comes from)
     ("@title:window", "Reverblabr", "app/qml/Main.qml"),
+    # A block's own interface, from its folder (ADR-0035).
+    ("@label:slider how long a Reverb's room rings", "Decay", "blocks/reverb/ui/ReverbPanel.qml"),
     ("@title", "Reverblabr", "app/main.cpp"),
     ("@info", "The connections in this session form a loop.", "app/errormessages.cpp"),
     ("@info KRunner", "Nothing is being recorded", "daemon/sessionrunner.cpp"),
@@ -64,7 +66,7 @@ def check(entries, expected, failures):
     for refs, ctx, msgid in entries:
         if ctx is None:
             failures.append(f'"{msgid}" has no context; use i18nc with a context marker')
-        if any(ref.startswith("engine/") for ref in refs):
+        if any(ref.startswith("engine/") or (ref.startswith("blocks/") and "/ui/" not in ref) for ref in refs):
             failures.append(f'"{msgid}" comes from the engine, which must not produce user-visible text')
 
 

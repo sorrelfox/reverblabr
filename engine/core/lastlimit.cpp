@@ -7,8 +7,8 @@
 
 #include "core/lastlimit.h"
 
-#include "blocks/joinlr.h"
-#include "blocks/outputdevice.h"
+#include "blocks/joinlr/joinlr.h"
+#include "blocks/outputdevice/outputdevice.h"
 #include "dsp/ear.h"
 
 #include <QHash>

@@ -9,7 +9,7 @@
 // itself: the place in the telemetry the stream count arrives at, and the
 // parameters the panel writes into.
 
-#include "blocks/systemaudio.h"
+#include "blocks/systemaudio/systemaudio.h"
 
 #include <gtest/gtest.h>
 

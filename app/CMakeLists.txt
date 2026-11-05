@@ -56,22 +56,10 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/AppPromptDialog.qml
     qml/Announcer.qml
     qml/ApplicationPicker.qml
-    qml/ApplicationSourceFace.qml
-    qml/ApplicationSourceHelp.qml
-    qml/ApplicationSourcePanel.qml
-    qml/AutoLevelFace.qml
-    qml/AutoLevelGraph.qml
-    qml/AutoLevelHelp.qml
     qml/AutoLevelHistory.qml
-    qml/AutoLevelPanel.qml
-    qml/AutoLevelState.qml
     qml/AutoLevelWords.qml
-    qml/BalanceHelp.qml
     qml/BetaBadge.qml
     qml/BetaNote.qml
-    qml/BassTrebleFace.qml
-    qml/BassTrebleHelp.qml
-    qml/BassTreblePanel.qml
     qml/BlockFaces.qml
     qml/BlockHelp.qml
     qml/BlockHelpWindow.qml
@@ -80,161 +68,46 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/BlockPanels.qml
     qml/BlockPort.qml
     qml/BlockTile.qml
-    qml/BroadcastHelp.qml
-    qml/BroadcastPanel.qml
-    qml/BroadcastWords.qml
-    qml/LiveStreamHelp.qml
-    qml/LiveStreamPanel.qml
-    qml/LiveStreamWords.qml
-    qml/NowPlayingRows.qml
     qml/CanvasPlaceholder.qml
     qml/CanvasWire.qml
-    qml/ChannelsFace.qml
-    qml/ChannelsHelp.qml
-    qml/ChannelsPanel.qml
-    qml/ChannelsWords.qml
     qml/ChoiceWords.qml
     qml/CollapsibleSection.qml
     qml/CompressorWords.qml
-    qml/CutoffFace.qml
-    qml/CutoffPanel.qml
-    qml/DeclickFace.qml
-    qml/DeclickHelp.qml
-    qml/DeclickPanel.qml
-    qml/DeclickWords.qml
-    qml/DehumFace.qml
-    qml/DehumHelp.qml
-    qml/DehumPanel.qml
-    qml/DehumWords.qml
-    qml/DenoiseFace.qml
-    qml/DenoiseHelp.qml
-    qml/DenoisePanel.qml
-    qml/DenoiseState.qml
     qml/DestructiveMenuItem.qml
     qml/DeviceChannelRows.qml
     qml/DeviceFace.qml
     qml/DevicePicker.qml
     qml/DeviceState.qml
     qml/DiagnosticsSection.qml
-    qml/DuckingFace.qml
-    qml/DuckingHelp.qml
-    qml/DuckingPanel.qml
-    qml/DuckingWords.qml
-    qml/DynamicsFace.qml
-    qml/DynamicsHelp.qml
-    qml/DynamicsPanel.qml
     qml/EarChoice.qml
-    qml/EqualizerBands.qml
-    qml/EqualizerFace.qml
-    qml/EqualizerHelp.qml
-    qml/EqualizerPanel.qml
-    qml/EchoFace.qml
-    qml/EchoHelp.qml
-    qml/EchoPanel.qml
     qml/EchoWords.qml
     qml/ElidedLabel.qml
     qml/ErrorBanner.qml
     qml/FilesPane.qml
     qml/FilterWords.qml
-    qml/FirFilterFace.qml
-    qml/FirFilterHelp.qml
-    qml/FirFilterPanel.qml
-    qml/FirFilterState.qml
-    qml/FrequencyLoweringFace.qml
-    qml/FrequencyLoweringHelp.qml
-    qml/FrequencyLoweringPanel.qml
-    qml/FrequencyMoveFace.qml
-    qml/FrequencyMovePanel.qml
-    qml/FrequencyMoves.qml
     qml/FrequencyMoveWords.qml
-    qml/FrequencyRaisingFace.qml
-    qml/FrequencyRaisingHelp.qml
-    qml/FrequencyRaisingPanel.qml
     qml/GenericFace.qml
     qml/GenericParamPanel.qml
-    qml/HearingBands.qml
     qml/HelpPage.qml
     qml/HelpSection.qml
-    qml/HearingCompensation16Help.qml
-    qml/HearingCompensation64Help.qml
-    qml/HearingCompensationFace.qml
-    qml/HearingCompensationPanel.qml
-    qml/HighPassHelp.qml
     qml/InfoLine.qml
     qml/HearingNotice.qml
     qml/HoldForBefore.qml
-    qml/InputDeviceHelp.qml
-    qml/InputDevicePanel.qml
-    qml/InputSwitchControl.qml
-    qml/InputSwitchFace.qml
-    qml/InputSwitchHelp.qml
-    qml/InputSwitchPanel.qml
-    qml/JoinLrHelp.qml
     qml/LevelBar.qml
     qml/LevelMeter.qml
     qml/LimitActing.qml
     qml/LimitRow.qml
-    qml/LimiterFace.qml
-    qml/LimiterHelp.qml
-    qml/LimiterPanel.qml
-    qml/LimiterWords.qml
-    qml/LowPassHelp.qml
-    qml/MixerFace.qml
-    qml/MixerHelp.qml
-    qml/MixerPanel.qml
-    qml/MixerStrip.qml
     qml/Main.qml
-    qml/ModelFace.qml
-    qml/ModelHelp.qml
-    qml/ModelPanel.qml
-    qml/ModelState.qml
-    qml/MonoEnhancerFace.qml
-    qml/MonoEnhancerHelp.qml
-    qml/MonoEnhancerPanel.qml
-    qml/MultibandCompressorFace.qml
-    qml/MultibandCompressorHelp.qml
-    qml/MultibandCompressorPanel.qml
-    qml/MultibandWords.qml
-    qml/OneEarMixFace.qml
-    qml/OneEarMixHelp.qml
-    qml/OneEarMixPanel.qml
-    qml/OneEarMixState.qml
-    qml/OneEarMixWords.qml
-    qml/OutputDeviceHelp.qml
-    qml/OutputDevicePanel.qml
-    qml/PanHelp.qml
     qml/PanelLayerWindow.qml
     qml/PanelWindow.qml
     qml/ParamFormat.qml
     qml/ParamRow.qml
-    qml/ParametricEqBands.qml
-    qml/ParametricEqFace.qml
-    qml/ParametricEqHelp.qml
-    qml/ParametricEqPanel.qml
-    qml/PeakRmsFace.qml
-    qml/PeakRmsHelp.qml
-    qml/PeakRmsPanel.qml
-    qml/PitchShiftFace.qml
-    qml/PitchShiftHelp.qml
-    qml/PitchShiftPanel.qml
     qml/PlotAxes.qml
-    qml/PitchShiftWords.qml
     qml/PlaceholderMessage.qml
-    qml/PluginFace.qml
-    qml/PluginPanel.qml
     qml/PluginWords.qml
     qml/PresetsFooter.qml
     qml/RecordingInspectorWindow.qml
-    qml/RecorderFace.qml
-    qml/RecorderFileName.qml
-    qml/RecorderHelp.qml
-    qml/RecorderPanel.qml
-    qml/RecorderWords.qml
     qml/RecordingCard.qml
-    qml/ReverbFace.qml
-    qml/ReverbHelp.qml
-    qml/ReverbPanel.qml
-    qml/ReverbWords.qml
     qml/SegmentedChoice.qml
     qml/SegmentedFrame.qml
     qml/SessionBound.qml
@@ -245,108 +118,22 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/SessionTabs.qml
     qml/SettingsPanel.qml
     qml/SidebarPane.qml
-    qml/SimpleCompressorFace.qml
-    qml/SimpleCompressorHelp.qml
-    qml/SimpleCompressorPanel.qml
-    qml/SpeechDenoiseFace.qml
-    qml/SpeechDenoiseHelp.qml
-    qml/SpeechDenoisePanel.qml
-    qml/SpeechDenoiseState.qml
     qml/StatusBarRow.qml
     qml/StereoPositionFace.qml
     qml/StereoPositionPanel.qml
     qml/StereoPositionWords.qml
-    qml/SyncFace.qml
-    qml/SyncHelp.qml
-    qml/SyncPanel.qml
-    qml/SyncScale.qml
-    qml/SystemAudioFace.qml
-    qml/SystemAudioHelp.qml
-    qml/SystemAudioPanel.qml
-    qml/TimeShiftFace.qml
-    qml/TimeShiftHelp.qml
-    qml/TimeShiftPanel.qml
     qml/ShortcutTargets.qml
-    qml/TimeShiftState.qml
     qml/TimerDialog.qml
     qml/ToolBarRow.qml
-    qml/VolumeFace.qml
-    qml/VolumeHelp.qml
-    qml/AmplifyFace.qml
-    qml/AmplifyHelp.qml
-    qml/SpeechNowDot.qml
-    qml/SpeechNowFace.qml
-    qml/SpeechNowHelp.qml
-    qml/SpeechNowPanel.qml
-    qml/SpeechNowState.qml
     qml/SpeechNowWords.qml
     qml/LaneProgram.qml
-    qml/NightLevelFace.qml
-    qml/NightLevelGraph.qml
-    qml/NightLevelHelp.qml
-    qml/NightLevelPanel.qml
-    qml/NightLevelState.qml
-    qml/NightLevelWords.qml
-    qml/SoundSideFace.qml
-    qml/SoundSideHelp.qml
-    qml/SoundSideOverlay.qml
-    qml/SoundSidePanel.qml
-    qml/SoundSideState.qml
-    qml/SoundSideStrip.qml
-    qml/SoundSideWords.qml
-    qml/VoiceCompressorFace.qml
-    qml/VoiceCompressorGraph.qml
-    qml/VoiceCompressorHelp.qml
-    qml/VoiceCompressorPanel.qml
-    qml/VoiceCompressorState.qml
-    qml/VoiceCompressorWords.qml
-    qml/SuddenSoundsFace.qml
-    qml/SuddenSoundsHelp.qml
-    qml/SuddenSoundsPanel.qml
-    qml/SuddenSoundsState.qml
-    qml/SuddenSoundsWords.qml
-    qml/VoiceForwardFace.qml
-    qml/VoiceForwardHelp.qml
-    qml/VoiceForwardPanel.qml
-    qml/VoiceForwardState.qml
-    qml/VoiceForwardWords.qml
-    qml/VoiceGaugeBar.qml
-    qml/VoiceGaugeDot.qml
-    qml/VoiceGaugeFace.qml
-    qml/VoiceGaugeHelp.qml
-    qml/VoiceGaugePanel.qml
-    qml/VoiceGaugeRow.qml
-    qml/VoiceGaugeState.qml
-    qml/VoiceGaugeWords.qml
-    qml/WaveformFace.qml
-    qml/WaveformHelp.qml
-    qml/WaveformPanel.qml
-    qml/WaveformScope.qml
-    qml/WaveformState.qml
     qml/WaveformWords.qml
-    qml/ScopeChoiceRow.qml
-    qml/SpectrumFace.qml
-    qml/SpectrumHelp.qml
-    qml/SpectrumPanel.qml
-    qml/SpectrumScope.qml
-    qml/SpectrumState.qml
-    qml/SpectrumWords.qml
     qml/TypedValueRow.qml
     qml/FloatingLabel.qml
     qml/FloatingPlaceSection.qml
     qml/FloatingLayerWindow.qml
     qml/FloatingWindow.qml
     qml/FloatingWindows.qml
-    qml/VuFace.qml
-    qml/VuGauge.qml
-    qml/VuHelp.qml
-    qml/VuPanel.qml
-    qml/WaveFace.qml
-    qml/VolumePanel.qml
-    qml/AmplifyPanel.qml
-    qml/WaveHelp.qml
-    qml/WavePanel.qml
-    qml/WaveWords.qml
     # The slider as the prototype draws it: one groove and one ring,
     # which the control style's Slider and a tile's face both draw with.
     qml/FaceSlider.qml
@@ -373,68 +160,34 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
 )
 
 # **The block icons ride with the QML module.** They are ours, drawn for
-# this application and licensed CC-BY-SA-4.0 (app/icons), and each one is a
-# single-colour mask so the theme and the block's category tint colour it.
-# In the module's own resource root, a build that has the interface has the
-# icons, with no install step and nothing to find at run time.
+# this application and licensed CC-BY-SA-4.0 (each block's ui/, and
+# app/icons), and each one is a single-colour mask so the theme and the
+# block's category tint colour it. In the module's own resource root, a
+# build that has the interface has the icons, with no install step and
+# nothing to find at run time.
 qt_target_qml_sources(reverblabr-ui RESOURCES
-    icons/advanced.declick.svg
-    icons/advanced.dehum.svg
-    icons/advanced.denoise.svg
-    icons/advanced.ducking.svg
-    icons/advanced.firfilter.svg
-    icons/advanced.inputswitch.svg
-    icons/advanced.mixer.svg
-    icons/advanced.parametriceq.svg
-    icons/advanced.speechdenoise.svg
-    icons/advanced.sync.svg
-    icons/advanced.timeshift.svg
     icons/advanced.transcribe.svg
-    icons/effect.autolevel.svg
     icons/voice.svg
-    icons/effect.balance.svg
-    icons/effect.basstreble.svg
-    icons/effect.channels.svg
-    icons/effect.dynamics.svg
-    icons/effect.echo.svg
-    icons/effect.equalizer10.svg
-    icons/effect.highpass.svg
-    icons/effect.limiter.svg
-    icons/effect.lowpass.svg
-    icons/effect.monoenhancer.svg
-    icons/effect.multibandcompressor.svg
-    icons/effect.model.svg
-    icons/effect.pan.svg
-    icons/effect.pitchshift.svg
-    icons/effect.reverb.svg
-    icons/effect.simplecompressor.svg
-    icons/effect.volume.svg
-    icons/effect.amplify.svg
-    icons/meter.peakrms.svg
-    icons/meter.speechnow.svg
-    icons/meter.voicegauge.svg
-    icons/meter.waveform.svg
-    icons/meter.spectrum.svg
-    icons/meter.soundside.svg
-    icons/effect.nightlevel.svg
-    icons/effect.voicecompressor.svg
-    icons/effect.voiceforward.svg
-    icons/meter.vu.svg
-    icons/output.broadcast.svg
-    icons/output.device.svg
-    icons/output.livestream.svg
-    icons/output.recorder.svg
     icons/output.virtualdevice.svg
-    icons/output.wave.svg
-    icons/plugin.builtin.svg
-    icons/plugin.clap.svg
-    icons/plugin.ladspa.svg
-    icons/plugin.lv2.svg
-    icons/plugin.vst3.svg
-    icons/source.application.svg
-    icons/source.device.svg
-    icons/source.system.svg
 )
+
+# **Each block's interface comes from its folder** (ADR-0035): its QML, the
+# C++ only it uses, and its icon, at icons/ like the ones above. A QML file
+# keeps its file name as its type name, so nothing that names one has to
+# know where it is.
+rb_blocks_get(UI rb_block_ui)
+set(rb_block_qml "")
+set(rb_block_cpp "")
+foreach(file IN LISTS rb_block_ui)
+    if(file MATCHES "\\.qml$")
+        list(APPEND rb_block_qml "${file}")
+    else()
+        list(APPEND rb_block_cpp "${file}")
+    endif()
+endforeach()
+ecm_target_qml_sources(reverblabr-ui SOURCES ${rb_block_qml})
+rb_blocks_get(ICONS rb_block_icons)
+ecm_target_qml_sources(reverblabr-ui SOURCES ${rb_block_icons} PATH icons)
 # **The prototype's own line glyphs**: the few places it draws its own
 # icon rather than one an icon theme would have — the header's "+", Run and
 # Stop, the theme button and the window buttons (the last two are for our
@@ -464,13 +217,6 @@ qt_target_qml_sources(reverblabr-ui RESOURCES
     icons/glyph.window-restore.svg
     icons/glyph.zoom-in.svg
     icons/glyph.zoom-out.svg
-    icons/hearing.compensation16.svg
-    icons/hearing.compensation64.svg
-    icons/hearing.frequencylowering.svg
-    icons/hearing.frequencyraising.svg
-    icons/hearing.joinlr.svg
-    icons/hearing.oneearmix.svg
-    icons/hearing.suddensounds.svg
 )
 
 # **The Reverblabr appearance's two typefaces ride with it too**: the
@@ -529,8 +275,6 @@ target_sources(reverblabr-ui PRIVATE
     blockpresentation.h
     dynamicsplot.cpp
     dynamicsplot.h
-    equalizerplot.cpp
-    equalizerplot.h
     installedplugins.cpp
     installedplugins.h
     inventory.cpp
@@ -541,8 +285,6 @@ target_sources(reverblabr-ui PRIVATE
     launchrequests.h
     meteritem.cpp
     meteritem.h
-    scopeitem.cpp
-    scopeitem.h
     scopesurface.cpp
     scopesurface.h
     tracegeometry.h
@@ -564,14 +306,8 @@ target_sources(reverblabr-ui PRIVATE
     recordinglist.h
     recordingpreview.cpp
     recordingpreview.h
-    modelfolderreader.cpp
-    modelfolderreader.h
     recordingstatus.cpp
     recordingstatus.h
-    broadcaststatus.cpp
-    broadcaststatus.h
-    mediaplayers.cpp
-    mediaplayers.h
     sessionoverview.cpp
     sessionoverview.h
     trayicon.cpp
@@ -594,16 +330,12 @@ target_sources(reverblabr-ui PRIVATE
     scopehub.h
     scopeview.cpp
     scopeview.h
-    spectrumitem.cpp
-    spectrumitem.h
     spectrumview.cpp
     spectrumview.h
     volumescale.cpp
     volumescale.h
     waveformitem.cpp
     waveformitem.h
-    vuscale.cpp
-    vuscale.h
     wiremodel.cpp
     wiremodel.h
     windowframe.cpp
@@ -620,6 +352,11 @@ target_sources(reverblabr-ui PRIVATE
     systemdevicewriter.h
 )
 target_include_directories(reverblabr-ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# A block's own interface C++, from its folder. Its header is found by its
+# name alone, as the QML type registration includes it.
+target_sources(reverblabr-ui PRIVATE ${rb_block_cpp})
+rb_blocks_get(UI_INCLUDE_DIRS rb_block_ui_include_dirs)
+target_include_directories(reverblabr-ui PUBLIC ${rb_block_ui_include_dirs})
 target_link_libraries(reverblabr-ui
     PUBLIC
         reverblabr-engine

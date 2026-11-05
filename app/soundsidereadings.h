@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "blocks/soundside.h"
+#include "blocks/soundside/soundside.h"
 #include "telemetrywatch.h"
 
 #include <QElapsedTimer>

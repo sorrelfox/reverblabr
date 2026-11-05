@@ -7,7 +7,7 @@
 
 #include "core/livestreams.h"
 
-#include "blocks/livestream.h"
+#include "blocks/broadcast/livestream.h"
 #include "core/broadcasts.h"
 #include "dsp/block.h"
 

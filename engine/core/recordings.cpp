@@ -7,7 +7,7 @@
 
 #include "core/recordings.h"
 
-#include "blocks/recorder.h"
+#include "blocks/recorder/recorder.h"
 #include "dsp/block.h"
 #include "record/repair.h"
 

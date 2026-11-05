@@ -34,7 +34,8 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 HANDBOOK = REPO / "doc" / "index.docbook"
 PRESENTATION = REPO / "app" / "blockpresentation.cpp"
-ENGINE_BLOCKS = REPO / "engine" / "blocks"
+# A block's C++ is at the top of its folder (ADR-0035).
+BLOCKS = REPO / "blocks"
 
 
 def library_blocks():
@@ -49,7 +50,7 @@ def engine_blocks():
     """The type ids the engine's blocks declare."""
     declared = re.compile(r'k\w*TypeId\w*\s*=\s*"([^"]+)"')
     ids = set()
-    for path in ENGINE_BLOCKS.glob("*.h"):
+    for path in BLOCKS.glob("*/*.h"):
         ids.update(declared.findall(path.read_text()))
     return ids
 

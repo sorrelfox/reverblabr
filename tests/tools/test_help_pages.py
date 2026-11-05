@@ -31,7 +31,8 @@ QML = REPO / "app" / "qml"
 REGISTER = QML / "BlockHelp.qml"
 PENDING = pathlib.Path(__file__).resolve().parent / "help-pending.txt"
 PRESENTATION = REPO / "app" / "blockpresentation.cpp"
-ENGINE_BLOCKS = REPO / "engine" / "blocks"
+# A block's C++ is at the top of its folder, its pages in its ui/ (ADR-0035).
+BLOCKS = REPO / "blocks"
 
 # The arrays a page's text is in, and one line of them: a KI18n call with a
 # context and a text, nothing joined to it.
@@ -45,11 +46,18 @@ def library_blocks():
     entry = re.compile(r'Entry\{\s*"([a-z0-9.]+)",\s*"([a-z]+)",\s*kli18nc\(\s*"(?:[^"\\]|\\.)*",\s*"([^"]+)"\)')
     declared = re.compile(r'k\w*TypeId\w*\s*=\s*"([^"]+)"')
     engine = set()
-    for path in ENGINE_BLOCKS.glob("*.h"):
+    for path in BLOCKS.glob("*/*.h"):
         engine.update(declared.findall(path.read_text()))
     return {
         m[1] for m in entry.finditer(PRESENTATION.read_text()) if m[1] in engine and m[2] != "plugins"
     }
+
+
+def qml_file(name):
+    """Where the QML type of that name is: the interface's, or a block's own."""
+    found = [QML / f"{name}.qml"] if (QML / f"{name}.qml").exists() else []
+    found += sorted(BLOCKS.glob(f"*/ui/{name}.qml"))
+    return found[0] if found else QML / f"{name}.qml"
 
 
 def registered_pages():
@@ -58,7 +66,7 @@ def registered_pages():
     components = dict(re.findall(r"readonly property Component (\w+): Component \{\s*(\w+) \{\}", text))
     pages = {}
     for typeId, name in re.findall(r'"([a-z0-9.]+)":\s*help\.(\w+)', text):
-        pages[typeId] = QML / f"{components.get(name, name)}.qml"
+        pages[typeId] = qml_file(components.get(name, name))
     return pages
 
 

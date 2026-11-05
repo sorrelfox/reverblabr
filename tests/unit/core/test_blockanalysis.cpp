@@ -10,8 +10,8 @@
 // values. Run over a real block in a compiled graph played offline, which
 // is the path the audio takes on its way to the rings in a session.
 
-#include "blocks/inputdevice.h"
-#include "blocks/lowpassfilter.h"
+#include "blocks/cutofffilter/lowpassfilter.h"
+#include "blocks/inputdevice/inputdevice.h"
 #include "core/telemetry.h"
 #include "dsp/block.h"
 #include "graph/compiledgraph.h"

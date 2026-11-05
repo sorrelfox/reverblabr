@@ -7,10 +7,10 @@
 
 #include "core/sessionplan.h"
 
-#include "blocks/applicationsource.h"
-#include "blocks/inputdevice.h"
-#include "blocks/outputdevice.h"
-#include "blocks/systemaudio.h"
+#include "blocks/applicationsource/applicationsource.h"
+#include "blocks/inputdevice/inputdevice.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/systemaudio/systemaudio.h"
 #include "pw/sessionnode.h"
 
 #include <QHash>

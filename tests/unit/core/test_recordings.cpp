@@ -9,7 +9,7 @@
 // recordings and their journal.
 
 #include "blocks/builtinblocks.h"
-#include "blocks/recorder.h"
+#include "blocks/recorder/recorder.h"
 #include "core/blockcatalogue.h"
 #include "core/engine.h"
 #include "core/recordings.h"

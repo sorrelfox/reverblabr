@@ -7,9 +7,9 @@
 
 #include "core/broadcasts.h"
 
-#include "blocks/broadcast.h"
+#include "blocks/broadcast/broadcast.h"
 #ifdef RB_HAVE_LIVESTREAM
-#include "blocks/livestream.h"
+#include "blocks/broadcast/livestream.h"
 #include "core/livestreams.h"
 #include "stream/livestream.h"
 #endif

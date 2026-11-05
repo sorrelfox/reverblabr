@@ -7,8 +7,8 @@
 
 #include "core/compressormodes.h"
 
-#include "blocks/dynamics.h"
-#include "blocks/simplecompressor.h"
+#include "blocks/dynamics/dynamics.h"
+#include "blocks/simplecompressor/simplecompressor.h"
 #include "dsp/dynamics.h"
 
 #include <string_view>

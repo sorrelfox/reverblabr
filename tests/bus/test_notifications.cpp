@@ -10,7 +10,7 @@
 // server, both against **a notification server of the test's own** on a
 // private bus, so that nothing here reaches anybody's desktop.
 
-#include "blocks/recorder.h"
+#include "blocks/recorder/recorder.h"
 #include "bus/enginebus.h"
 #include "bus/remoteengine.h"
 #include "core/editcommand.h"

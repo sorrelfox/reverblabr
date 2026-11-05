@@ -9,7 +9,7 @@
 // with no window. The windows themselves are in tst_speechnow.qml.
 
 #include "appshell.h"
-#include "blocks/speechnow.h"
+#include "blocks/speechnow/speechnow.h"
 #include "core/editcommand.h"
 #include "core/mockengine.h"
 #include "floatingsurface.h"

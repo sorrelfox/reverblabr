@@ -12,7 +12,7 @@
 // long runs (test_soak.cpp), which build bigger sessions the same way.
 
 #include "blocks/builtinblocks.h"
-#include "blocks/dynamics.h"
+#include "blocks/dynamics/dynamics.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/session.h"

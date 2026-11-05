@@ -9,10 +9,10 @@
 // written out by hand. The links it turns into are made against a real
 // server in tests/pw/test_capture.cpp.
 
-#include "blocks/applicationsource.h"
-#include "blocks/inputdevice.h"
-#include "blocks/outputdevice.h"
-#include "blocks/systemaudio.h"
+#include "blocks/applicationsource/applicationsource.h"
+#include "blocks/inputdevice/inputdevice.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/systemaudio/systemaudio.h"
 #include "core/sessionplan.h"
 
 #include <QJsonArray>

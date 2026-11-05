@@ -12,8 +12,8 @@
 // preview in what it plays.
 
 #include "blocks/builtinblocks.h"
-#include "blocks/outputdevice.h"
-#include "blocks/wave.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/wave/wave.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/session.h"

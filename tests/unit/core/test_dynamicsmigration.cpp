@@ -10,7 +10,7 @@
 // what the old curve did, and that the shipped presets still do what they
 // are called.
 
-#include "blocks/dynamics.h"
+#include "blocks/dynamics/dynamics.h"
 #include "core/dynamicsmigration.h"
 #include "core/presetstore.h"
 #include "core/sessionstore.h"

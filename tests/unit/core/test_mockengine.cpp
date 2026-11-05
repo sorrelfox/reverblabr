@@ -10,7 +10,7 @@
 // awkward parts — numbered patches, refusals, codes rather than text — or an
 // interface written against it finds out the hard way.
 
-#include "blocks/outputdevice.h"
+#include "blocks/outputdevice/outputdevice.h"
 #include "core/audiosystem.h"
 #include "core/editcommand.h"
 #include "core/mockengine.h"

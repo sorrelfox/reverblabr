@@ -8,19 +8,19 @@
 // The Output Device block against a real PipeWire: which device the
 // sound reaches, what happens when the default moves, and what happens when
 // the device is unplugged. What the block does to the signal on the way is
-// measured offline in tests/unit/blocks/test_outputdevice.cpp.
+// measured offline in blocks/outputdevice/tests/test_outputdevice.cpp.
 //
 // The device these tests play to is a capture filter that calls itself a
 // sink, so that what arrived can be measured sample for sample — a null sink
 // would swallow it.
 
-#include "blocks/applicationsource.h"
+#include "blocks/applicationsource/applicationsource.h"
 #include "blocks/builtinblocks.h"
-#include "blocks/inputdevice.h"
-#include "blocks/oneearmix.h"
-#include "blocks/outputdevice.h"
-#include "blocks/peakrmsmeter.h"
-#include "blocks/volume.h"
+#include "blocks/inputdevice/inputdevice.h"
+#include "blocks/oneearmix/oneearmix.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/peakrmsmeter/peakrmsmeter.h"
+#include "blocks/volume/volume.h"
 #include "core/editcommand.h"
 #include "core/engine.h"
 #include "core/sessionplan.h"

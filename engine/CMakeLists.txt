@@ -9,7 +9,9 @@
 # never those after it. The top-level CMakeLists.txt checks the rules.
 add_subdirectory(rt)    # plain C++23: lock-free channels to the audio thread
 add_subdirectory(dsp)   # plain C++23: DSP primitives and the block SDK
-add_subdirectory(blocks) # plain C++23: the blocks a session is built from
+# plain C++23: the blocks a session is built from, a folder each at the top
+# of the tree with their interface, presets and tests (ADR-0035)
+add_subdirectory(${PROJECT_SOURCE_DIR}/blocks ${PROJECT_BINARY_DIR}/blocks)
 add_subdirectory(graph) # plain C++23: graph compiler and real-time runtime
 add_subdirectory(record) # plain C++23 and libsndfile: recordings on the disk
 add_subdirectory(stream) # plain C++23 and FFmpeg: streams to an internet radio server

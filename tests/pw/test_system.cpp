@@ -10,8 +10,8 @@
 // so that what did and did not arrive can be read off one recording.
 
 #include "blocks/builtinblocks.h"
-#include "blocks/outputdevice.h"
-#include "blocks/systemaudio.h"
+#include "blocks/outputdevice/outputdevice.h"
+#include "blocks/systemaudio/systemaudio.h"
 #include "core/sessionplan.h"
 #include "core/sessionruntime.h"
 #include "dsp/blockregistry.h"

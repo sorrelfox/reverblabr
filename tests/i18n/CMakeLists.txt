@@ -47,7 +47,10 @@ set_tests_properties(i18n.catalog PROPERTIES
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME i18n.extract COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_extract.py)
 add_test(NAME i18n.lint-selftest COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_lint_i18n.py)
-add_test(NAME i18n.lint-app COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/lint-i18n.py ${PROJECT_SOURCE_DIR}/app)
+# The interface, with each block's own from its folder (ADR-0035).
+rb_blocks_get(UI rb_block_ui)
+add_test(NAME i18n.lint-app COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/lint-i18n.py ${PROJECT_SOURCE_DIR}/app
+         ${rb_block_ui})
 add_test(NAME i18n.lint-plasmoid COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/lint-i18n.py ${PROJECT_SOURCE_DIR}/plasmoid)
 set_tests_properties(i18n.extract PROPERTIES PASS_REGULAR_EXPRESSION "PASS: extraction")
 set_tests_properties(i18n.lint-selftest PROPERTIES PASS_REGULAR_EXPRESSION "PASS: lint-i18n fixtures")

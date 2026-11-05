@@ -7,7 +7,7 @@
 
 #include "core/recordingnames.h"
 
-#include "blocks/recorder.h"
+#include "blocks/recorder/recorder.h"
 #include "core/recordings.h"
 #include "record/audiofile.h"
 #include "record/filename.h"

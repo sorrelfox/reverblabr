@@ -220,7 +220,7 @@ An audiogram's frequencies (125 Hz to 8 kHz) do not fall on either set, and shou
 
 The first block on this filterbank, Hearing Compensation 16, found one thing the spike could not: **with the gain depending on the level, the bands' levels have to be read per channel.** The spike's 16-band option took each band's level as the summed power of the channels nearest it and gave each channel the two nearest bands' gains. A steady tone at one band's centre then also goes through the channels between it and the next band, and they lift it by the next band's soft gain, since that band hears nothing. On the block: a tone at the average level came out 2.9 dB too loud and one at the loud level 4.6 dB, and a band's ceiling held nothing back.
 
-So every channel reads its own level (the channels within 1 ERB of it at full weight, none by 2, scaled so a sine at its centre reads its level) and then takes the loudest such reading within the 16 bands' spacing, 2.42 ERB; its settings are the two nearest bands', interpolated in dB. Worked out from the channels' responses, a sine anywhere reads its level within 0.06 dB in every channel within 1.5 ERB of it. The block's tests, in `tests/unit/blocks/test_hearingcompensation.cpp` and `tests/unit/dsp/test_hearingbands.cpp`:
+So every channel reads its own level (the channels within 1 ERB of it at full weight, none by 2, scaled so a sine at its centre reads its level) and then takes the loudest such reading within the 16 bands' spacing, 2.42 ERB; its settings are the two nearest bands', interpolated in dB. Worked out from the channels' responses, a sine anywhere reads its level within 0.06 dB in every channel within 1.5 ERB of it. The block's tests, in `blocks/hearingcompensation/tests/test_hearingcompensation.cpp` and `tests/unit/dsp/test_hearingbands.cpp`:
 
 ```
 [measure] 64 gammatone channels at 48.0 kHz sum flat within 0.22 dB (worst at 161 Hz)
@@ -236,7 +236,7 @@ The formant contrast is **better than section 6's 86 %**, because the harmonics 
 
 ## As built: Hearing Compensation 64
 
-Hearing Compensation 64 reads levels as the 16-band block does, each channel its own reading and then the loudest within ±2 ERB, and gives each channel its own settings, from curves through up to 24 control points. Its tests, in `tests/unit/blocks/test_hearingcompensation64.cpp` and `tests/unit/dsp/test_hearingbands.cpp`:
+Hearing Compensation 64 reads levels as the 16-band block does, each channel its own reading and then the loudest within ±2 ERB, and gives each channel its own settings, from curves through up to 24 control points. Its tests, in `blocks/hearingcompensation/tests/test_hearingcompensation64.cpp` and `tests/unit/dsp/test_hearingbands.cpp`:
 
 ```
 [measure] 200 random curves through up to 24 points: 0 readings beyond their two points (worst 0.000 dB)

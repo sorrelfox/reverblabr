@@ -11,7 +11,7 @@
 // it says so and the likelihood falls back.
 
 #include "allocationtrap.h"
-#include "blocks/voicemodel.h"
+#include "blocks/shared/voicemodel.h"
 #include "dsp/voicelikelihood.h"
 #include "signals.h"
 

@@ -7,8 +7,8 @@
 
 #include "core/engine.h"
 
-#include "blocks/broadcast.h"
-#include "blocks/pluginblock.h"
+#include "blocks/broadcast/broadcast.h"
+#include "blocks/pluginblock/pluginblock.h"
 #include "buildversion.h"
 #include "core/audiosystem.h"
 #include "core/blockcatalogue.h"

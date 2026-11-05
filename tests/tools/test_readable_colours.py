@@ -22,7 +22,8 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
-FOLDERS = [REPO / "app" / "qml", REPO / "app" / "style"]
+# The interface's QML, its control style's, and each block's own (ADR-0035).
+FOLDERS = [REPO / "app" / "qml", REPO / "app" / "style", *sorted((REPO / "blocks").glob("*/ui"))]
 TOKENS = {"AppColors.qml"}
 TEXT = re.compile(r"^(Text|Label|QQC2\.Label|ElidedLabel|Kirigami\.Heading|Kirigami\.SelectableLabel|TextEdit|TextInput)\b")
 FILLS = re.compile(r"AppColors\.(accent|live|ok|warning|danger)\b(?!\w)")

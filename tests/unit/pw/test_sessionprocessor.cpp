@@ -12,8 +12,8 @@
 
 #include "../dsp/gainblock.h"
 #include "allocationtrap.h"
-#include "blocks/frequencyraising.h"
-#include "blocks/recorder.h"
+#include "blocks/frequencymove/frequencyraising.h"
+#include "blocks/recorder/recorder.h"
 #include "dsp/fft.h"
 #include "graph/graphspec.h"
 #include "pw/sessionprocessor.h"
