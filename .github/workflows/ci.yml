@@ -27,6 +27,7 @@ jobs:
     name: Sign-off, clean-room, licences, formatting, RPM spec
     runs-on: ubuntu-24.04
     container: registry.fedoraproject.org/fedora:44
+    timeout-minutes: 20
     steps:
       - name: Tools
         run: |
@@ -34,7 +35,7 @@ jobs:
           # The job is root in the container and the checkout is not, which
           # git refuses to read ("dubious ownership") until told it is ours.
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The sign-off and clean-room checks read the commits being added.
           fetch-depth: 0
@@ -88,9 +89,10 @@ jobs:
         run: |
           dnf -y install git > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Packages (tools/deps/fedora.txt)
-        run: dnf -y install $(sed 's/#.*//' tools/deps/fedora.txt) > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+        run: |
+          { sed 's/#.*//' tools/deps/fedora.txt | xargs dnf -y install; } > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
       - name: Configure
         run: cmake --preset debug
       # Four at a time, not one per core: a C++ compiler is the hungriest
@@ -109,7 +111,7 @@ jobs:
             echo "::error::qmllint found problems; see the warnings above."
             exit 1
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -136,9 +138,10 @@ jobs:
         run: |
           { apt-get update && apt-get -y install --no-install-recommends git ca-certificates; } > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Packages (tools/deps/kubuntu.txt)
-        run: apt-get -y install --no-install-recommends $(sed 's/#.*//' tools/deps/kubuntu.txt) > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
+        run: |
+          { sed 's/#.*//' tools/deps/kubuntu.txt | xargs apt-get -y install --no-install-recommends; } > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
       - name: Configure
         run: cmake --preset debug
       - name: Build
@@ -156,7 +159,7 @@ jobs:
             echo "::error::qmllint found problems; see the warnings above."
             exit 1
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-ubuntu

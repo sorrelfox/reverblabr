@@ -3,11 +3,14 @@
 #
 # A release. A pushed tag vX.Y.Z has to be VERSION's (tools/check-release-tag.sh).
 # The workflow makes the source tarball, builds and tests Reverblabr from that
-# tarball on Fedora 44, builds the Fedora packages from it, and creates a draft
-# GitHub Release with the tarball, the RPMs and SHA256SUMS, to be reviewed and
-# published by hand. Publishing it sends the source RPM to COPR (copr.yml). The tarball gets a build
-# provenance attestation, which `gh attestation verify` checks. The Release's
-# notes are the version's entry in the AppStream data (tools/release-notes.py).
+# tarball on Fedora 44, and builds the packages from it: the Fedora RPMs, the
+# .debs for Debian testing and Ubuntu 26.04, and a Flatpak bundle. Each is
+# installed and started in a clean system. Then it creates a draft GitHub
+# Release with the tarball, the packages and SHA256SUMS, to be reviewed and
+# published by hand. Publishing it sends the source RPM to COPR (copr.yml).
+# The released files get a build provenance attestation, which
+# `gh attestation verify` checks. The Release's notes are the version's entry
+# in the AppStream data (tools/release-notes.py).
 # "Run workflow" (workflow_dispatch) builds and tests without releasing.
 name: Release
 
@@ -27,8 +30,9 @@ jobs:
   sources:
     name: Source tarball
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: The tag is VERSION's
         if: startsWith(github.ref, 'refs/tags/')
         run: tools/check-release-tag.sh
@@ -38,7 +42,7 @@ jobs:
           mkdir dist
           git archive --format=tar --prefix="reverblabr-$version/" HEAD | xz -9 > "dist/reverblabr-$version.tar.xz"
           (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sources
           path: dist/
@@ -53,7 +57,7 @@ jobs:
     container: registry.fedoraproject.org/fedora:44
     timeout-minutes: 150
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: sources, path: dist }
       - name: Unpack
         run: |
@@ -62,7 +66,8 @@ jobs:
           mv reverblabr-*/ src
       - name: Packages (tools/deps/fedora.txt)
         working-directory: src
-        run: dnf -y install $(sed 's/#.*//' tools/deps/fedora.txt) > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+        run: |
+          { sed 's/#.*//' tools/deps/fedora.txt | xargs dnf -y install; } > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
       - name: Build
         working-directory: src
         run: |
@@ -87,7 +92,7 @@ jobs:
             echo "$program: $answer"
             [ "${answer##* }" = "$version" ] || { echo "::error::$program says \"$answer\", the release is $version"; exit 1; }
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -103,10 +108,24 @@ jobs:
     name: RPM packages (Fedora 44)
     needs: sources
     runs-on: ubuntu-24.04
-    container: registry.fedoraproject.org/fedora:44
+    container:
+      image: registry.fedoraproject.org/fedora:44
+      # The runner's own SDKs, which nothing here uses, so that the first
+      # step can delete them. The build tree with its debug information and
+      # LTO objects takes about 15 GB, more than a runner has free.
+      volumes:
+        - /usr/local/lib/android:/host/android
+        - /usr/share/dotnet:/host/dotnet
+        - /opt/hostedtoolcache:/host/toolcache
+        - /usr/local/.ghcup:/host/ghcup
     timeout-minutes: 150
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Disk space
+        run: |
+          df -h /
+          for folder in /host/*; do find "$folder" -mindepth 1 -delete 2> /dev/null || true; done
+          df -h /
+      - uses: actions/download-artifact@v8
         with: { name: sources, path: dist }
       - name: Tools
         run: dnf -y install rpm-build rpmlint xz tar 'dnf-command(builddep)' > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
@@ -125,7 +144,7 @@ jobs:
         run: |
           find rpmbuild/RPMS -name '*.rpm' -exec cp -t rpm {} +
           rpmlint -r src/packaging/rpm/reverblabr.rpmlintrc rpm/reverblabr.spec rpm/*.rpm
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rpm
           path: rpm/*.rpm
@@ -138,22 +157,146 @@ jobs:
     needs: [sources, rpm]
     runs-on: ubuntu-24.04
     container: registry.fedoraproject.org/fedora:44
+    timeout-minutes: 30
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: sources, path: dist }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: rpm, path: rpm }
       - name: Install, run and remove
         run: |
           dnf -y install xz tar > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
           tar -xf dist/reverblabr-*.tar.xz
-          reverblabr-*/packaging/rpm/install-check.sh rpm
+          mv reverblabr-*/ src
+          src/packaging/rpm/install-check.sh rpm
+
+  # The Debian and Ubuntu packages, from the tarball, each in a plain system
+  # of its distribution (packaging/debian/build-deb.sh installs what it
+  # needs). lintian fails the job on an error.
+  deb:
+    name: DEB (${{ matrix.name }})
+    needs: sources
+    strategy:
+      # Each distribution's result counts on its own.
+      fail-fast: false
+      matrix:
+        include:
+          - { name: debian-testing, image: "docker.io/library/debian:testing" }
+          - { name: ubuntu-26.04, image: "docker.io/library/ubuntu:26.04" }
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    timeout-minutes: 150
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      # Four compilers at a time, as in the other build jobs: the job has to
+      # fit in 12 GB, and the runner's CPU count is not a promise.
+      DEB_BUILD_OPTIONS: parallel=4
+    steps:
+      - uses: actions/download-artifact@v8
+        with: { name: sources, path: dist }
+      - name: Unpack
+        run: |
+          { apt-get update && apt-get install -y --no-install-recommends xz-utils; } > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
+          tar -xf dist/reverblabr-*.tar.xz
+          mv reverblabr-*/ src
+      # The build's tests run as the RPM's do.
+      - name: Build, test, lintian
+        run: src/packaging/debian/build-deb.sh dist/reverblabr-*.tar.xz deb
+      # Not the debug symbols (reverblabr-dbgsym): they are for a
+      # distribution's own archive.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: deb-${{ matrix.name }}
+          path: deb/reverblabr_*.deb
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: deb-log-${{ matrix.name }}
+          path: deb/build-*.log
+          if-no-files-found: ignore
+
+  deb-install:
+    name: Install the DEB (${{ matrix.name }})
+    needs: [sources, deb]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: debian-testing, image: "docker.io/library/debian:testing" }
+          - { name: ubuntu-26.04, image: "docker.io/library/ubuntu:26.04" }
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    timeout-minutes: 30
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - uses: actions/download-artifact@v8
+        with: { name: sources, path: dist }
+      - uses: actions/download-artifact@v8
+        with: { name: "deb-${{ matrix.name }}", path: deb }
+      - name: Install, run and purge
+        run: |
+          { apt-get update && apt-get install -y --no-install-recommends xz-utils; } > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
+          tar -xf dist/reverblabr-*.tar.xz
+          mv reverblabr-*/ src
+          src/packaging/debian/install-check.sh deb
+
+  # The Flatpak, on the runner itself rather than in a container:
+  # flatpak-builder sandboxes every build step with bubblewrap, which needs
+  # user namespaces a container doesn't give. The KDE SDK comes from Flathub.
+  flatpak:
+    name: Flatpak
+    needs: sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with: { name: sources, path: dist }
+      # The SDK, the build and the repository take many GB; the runner's
+      # own SDKs, which nothing here uses, make room.
+      - name: Disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache /usr/local/.ghcup
+          df -h /
+      - name: flatpak-builder, and Flathub for the SDK
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq flatpak flatpak-builder dbus
+          # bubblewrap needs unprivileged user namespaces, which Ubuntu's
+          # AppArmor restricts by default.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      # Four compilers at a time, as in the other build jobs: the job has to
+      # fit in 12 GB.
+      - name: Build the bundle from the tarball
+        env:
+          RB_FLATPAK_JOBS: 4
+        run: packaging/flatpak/build-flatpak.sh dist/reverblabr-*.tar.xz flatpak
+      # Installed for the user, every program's --version, and the window
+      # with the engine it starts, on a bus of its own and without PipeWire.
+      - name: Install and start
+        run: packaging/flatpak/smoke-flatpak.sh flatpak/reverblabr-*-x86_64.flatpak
+      - uses: actions/upload-artifact@v7
+        with:
+          name: flatpak
+          path: flatpak/reverblabr-*.flatpak
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: flatpak-log
+          path: flatpak/build.log
+          if-no-files-found: ignore
 
   release:
     name: Draft release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [sources, build, rpm, rpm-install]
+    needs: [sources, build, rpm, rpm-install, deb, deb-install, flatpak]
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: write
       # For the attestation: a short-lived signing certificate, and the
@@ -161,23 +304,33 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: sources, path: dist }
+      - uses: actions/checkout@v7
+      # Every artifact of the run, each in a folder of its name.
+      - uses: actions/download-artifact@v8
+        with: { path: artifacts }
       # The packages go beside the tarball, and into the checksums with it.
       # Not the debug information: that is for COPR's own repository.
-      - uses: actions/download-artifact@v4
-        with: { name: rpm, path: rpm }
-      - name: Packages and checksums
+      - name: Files and checksums
         run: |
-          find rpm -name '*.rpm' ! -name '*-debuginfo-*' ! -name '*-debugsource-*' -exec cp -t dist {} +
-          (cd dist && sha256sum -- *.tar.xz *.rpm > SHA256SUMS && cat SHA256SUMS)
+          mkdir dist
+          cp -t dist artifacts/sources/reverblabr-*.tar.xz
+          find artifacts/rpm -name '*.rpm' ! -name '*-debuginfo-*' ! -name '*-debugsource-*' -exec cp -t dist {} +
+          cp -t dist artifacts/deb-*/reverblabr_*.deb artifacts/flatpak/reverblabr-*.flatpak
+          # GitHub renames an asset whose name has a character such as the
+          # "~" of Ubuntu's version, and SHA256SUMS would then name a file
+          # the release doesn't have. apt doesn't mind the file's name.
+          for file in dist/*~*; do
+            [ -e "$file" ] && mv -- "$file" "${file//\~/.}"
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
       - name: Build provenance attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/*.tar.xz
             dist/*.rpm
+            dist/*.deb
+            dist/*.flatpak
       - name: Draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

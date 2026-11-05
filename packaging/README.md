@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Packaging
 
-Distribution packaging goes in this folder. There is an RPM spec for Fedora, in [`rpm/`](rpm/); packages for Debian-based distributions and a Flatpak come later, after the first release.
+Distribution packaging goes in this folder. There is an RPM spec for Fedora, in [`rpm/`](rpm/), a Debian source package for Debian testing and Ubuntu 26.04, in [`debian/`](debian/), and a Flatpak manifest, in [`flatpak/`](flatpak/). A release on GitHub carries all three: the RPMs and the source RPM, a `.deb` for each of the two distributions, and a Flatpak bundle, beside the source tarball and `SHA256SUMS`.
 
 No packaging file writes the version itself. It comes from [`VERSION`](../VERSION): a spec or changelog template takes it as `@VERSION@`, filled in from that file or from the release tarball's name (`reverblabr-X.Y.Z`). Releases are made with `tools/release.sh` ([Making a release](../docs/development.md#making-a-release)).
 

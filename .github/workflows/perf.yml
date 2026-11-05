@@ -67,7 +67,7 @@ jobs:
       INJECT_COST: ${{ inputs.inject-cost || '0' }}
       OUT: ${{ github.workspace }}/perf-out
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Dependencies
         # Installed on the machine once (docs/development.md); checked here
@@ -137,7 +137,7 @@ jobs:
           cat "$OUT/report.md" >> "$GITHUB_STEP_SUMMARY"
           exit "${status:-0}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: perf-results

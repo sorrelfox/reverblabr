@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# actionlint's settings for the workflows: the label of the self-hosted
+# runner perf.yml asks for, which actionlint cannot know.
+self-hosted-runner:
+  labels:
+    - reverblabr-perf
