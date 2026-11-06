@@ -1,0 +1,412 @@
+<!doctype html>
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; media-src 'self'; font-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>Features: Reverblabr</title>
+<meta name="description" content="Everything Reverblabr does: every block by group, the window, recording, virtual devices, plugins, the hearing blocks, the background engine, the tray, shortcuts, KRunner, the panel widget, Auto Run, timers, reverblabr-ctl and the D-Bus API.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eff0f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1e20" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://sorrelfox.github.io/reverblabr/features.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/noto-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/noto-sans-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="site.css">
+<script src="site.js" defer></script>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Reverblabr">
+<meta property="og:locale" content="en_GB">
+<meta property="og:title" content="Everything Reverblabr does">
+<meta property="og:description" content="Every block by group, recording, virtual devices, plugins, hearing, the background engine and how it fits into KDE Plasma.">
+<meta property="og:url" content="https://sorrelfox.github.io/reverblabr/features.html">
+<meta property="og:image" content="https://sorrelfox.github.io/reverblabr/social.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Reverblabr icon and name beside a session of blocks wired together on its canvas.">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./"><img src="icon.svg" alt="" width="32" height="32"><span>Reverblabr</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="features.html" aria-current="page">Features</a></li>
+        <li><a href="download.html">Download</a></li>
+        <li><a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/README.md">Docs</a></li>
+        <li><a href="https://github.com/sorrelfox/reverblabr">Source code</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="canvas page-head" aria-labelledby="title">
+  <div class="wrap">
+    <h1 id="title">Everything Reverblabr does</h1>
+    <p class="lede">Reverblabr works in sessions. A session takes sound from sources, runs it through effects and meters, and sends it to outputs. You build it on a canvas from blocks, and you can change anything while it plays. This page lists all of it; the <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/README.md">documentation</a> has the details.</p>
+  </div>
+</section>
+
+<div class="wrap with-toc">
+  <nav class="toc" aria-labelledby="toc-title">
+    <h2 id="toc-title">On this page</h2>
+    <ul>
+      <li><a href="#blocks">The blocks</a></li>
+      <li><a href="#window">The window</a></li>
+      <li><a href="#recording">Recording</a></li>
+      <li><a href="#virtual-devices">Virtual devices</a></li>
+      <li><a href="#plugins">Plugins</a></li>
+      <li><a href="#hearing">Hearing</a></li>
+      <li><a href="#background">In the background</a></li>
+      <li><a href="#desktop">On the desktop</a></li>
+      <li><a href="#scripting">Scripting</a></li>
+      <li><a href="#streaming">Radio and video streams</a></li>
+      <li><a href="#model">The Model block</a></li>
+      <li><a href="#accessibility">Without a mouse</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="#languages">Languages</a></li>
+    </ul>
+  </nav>
+
+  <div class="chapters">
+
+    <section aria-labelledby="blocks">
+      <h2 id="blocks">The blocks</h2>
+      <p>The library sorts the blocks into seven groups, in the colours the window gives them. Click one to add it after the selected block; with automatic connections on, it is wired in as well. Every block has its settings, presets of its own and a help window. A few blocks are built only where the library they need is there: they are marked, and <a href="download.html#compare">the download page</a> says which package has them.</p>
+
+      <figure class="shot">
+        <img src="images/equaliser.webp" width="1400" height="900" loading="lazy" decoding="async" alt="A light window: music through a 10-Band EQ whose card shows ten sliders from 31 Hz to 16 kHz, set by the Headphones preset.">
+        <figcaption>A block's card: the 10-Band EQ, here set by its Headphones preset.</figcaption>
+      </figure>
+
+      <div class="group tint-sources">
+        <div class="group-head"><h3>Sources</h3><span class="count">3</span></div>
+        <dl class="blocks">
+          <div><dt>Application</dt><dd>Sound from one application</dd></div>
+          <div><dt>Input Device</dt><dd>A microphone or other recording input</dd></div>
+          <div><dt>System Audio</dt><dd>Everything this machine is playing</dd></div>
+        </dl>
+      </div>
+
+      <div class="group tint-outputs">
+        <div class="group-head"><h3>Outputs</h3><span class="count">5</span></div>
+        <dl class="blocks">
+          <div><dt>Broadcast</dt><dd>A stream for an internet radio server</dd></div>
+          <div><dt>Live Stream</dt><dd>A video stream for a streaming platform</dd></div>
+          <div><dt>Output Device</dt><dd>Speakers, headphones or another output</dd></div>
+          <div><dt>Recorder</dt><dd>A recording of the session, written to a file</dd></div>
+          <div><dt>Wave</dt><dd>A test tone or noise, on either side or both</dd></div>
+        </dl>
+      </div>
+
+      <div class="group tint-effects">
+        <div class="group-head"><h3>Built-in Effects</h3><span class="count">23</span></div>
+        <dl class="blocks">
+          <div><dt>10-Band EQ</dt><dd>Shapes the tone with ten fixed bands</dd></div>
+          <div><dt>Amplify</dt><dd>Makes a source louder, up to ten times, and nothing else</dd></div>
+          <div><dt>Auto Level</dt><dd>Evens out a source whose loudness keeps changing</dd></div>
+          <div><dt>Balance</dt><dd>Trims one side of a stereo signal against the other</dd></div>
+          <div><dt>Bass &amp; Treble</dt><dd>Lifts or cuts the low and the high end</dd></div>
+          <div><dt>Channels</dt><dd>Swaps, mutes or folds the left and right channels</dd></div>
+          <div><dt>Dynamics Processor</dt><dd>Holds loud sound back and lifts quiet sound</dd></div>
+          <div><dt>Echo</dt><dd>Repeats the sound, each repeat quieter than the last</dd></div>
+          <div><dt>High Pass Filter</dt><dd>Rolls off everything below a chosen frequency</dd></div>
+          <div><dt>Limiter</dt><dd>Holds the signal below a ceiling it cannot cross</dd></div>
+          <div><dt>Low Pass Filter</dt><dd>Rolls off everything above a chosen frequency</dd></div>
+          <div><dt>Model <span class="tag">Beta</span> <a class="tag" href="download.html#compare">Not in the Flatpak</a></dt><dd>Runs the sound through a trained model from a folder (<a href="#model">below</a>)</dd></div>
+          <div><dt>Mono Enhancer</dt><dd>Widens a mono recording without breaking it</dd></div>
+          <div><dt>Multiband Compressor</dt><dd>Steadies the low, middle and high ranges apart</dd></div>
+          <div><dt>Night Level</dt><dd>Keeps speech where it is and brings louder and quieter sounds towards it</dd></div>
+          <div><dt>Pan</dt><dd>Places a sound between the left and the right</dd></div>
+          <div><dt>Pitch Shift</dt><dd>Moves the pitch up or down, at the same speed</dd></div>
+          <div><dt>Reverb</dt><dd>Puts the sound in a room, from a booth to a hall</dd></div>
+          <div><dt>Simple Compressor</dt><dd>Steadies the level from one choice, not six controls</dd></div>
+          <div><dt>Voice Compressor</dt><dd>Holds a voice steady with three controls: compression, gate, ceiling</dd></div>
+          <div><dt>Voice Evener</dt><dd>Keeps voices even: quiet talkers come up and loud ones come down</dd></div>
+          <div><dt>Voice Forward</dt><dd>Moves voices forward against music and effects</dd></div>
+          <div><dt>Volume</dt><dd>Turns a source up or down to match the others</dd></div>
+        </dl>
+      </div>
+
+      <div class="group tint-meters">
+        <div class="group-head"><h3>Meters</h3><span class="count">7</span></div>
+        <dl class="blocks">
+          <div><dt>Peak/RMS</dt><dd>A level meter for any point in a lane</dd></div>
+          <div><dt>Sound Side</dt><dd>Shows which side of the mix is louder right now</dd></div>
+          <div><dt>Spectrum</dt><dd>Shows how much of each frequency there is at this point in a lane</dd></div>
+          <div><dt>Speech Now</dt><dd>Shows a word and a dot while someone is speaking on this lane</dd></div>
+          <div><dt>Voice Gauge</dt><dd>Shows the level of a voice on this lane against marks you place</dd></div>
+          <div><dt>VU</dt><dd>A pair of needles following the average level</dd></div>
+          <div><dt>Waveform</dt><dd>Draws the sound at this point in a lane as it goes by</dd></div>
+        </dl>
+      </div>
+
+      <div class="group tint-advanced">
+        <div class="group-head"><h3>Advanced</h3><span class="count">11</span></div>
+        <dl class="blocks">
+          <div><dt>Declick</dt><dd>Takes out clicks, pops and crackle</dd></div>
+          <div><dt>Dehum</dt><dd>Takes out the steady hum of the mains supply</dd></div>
+          <div><dt>Denoise</dt><dd>Takes out a steady noise once it has been learned</dd></div>
+          <div><dt>Ducking</dt><dd>Turns a background source down under a voice</dd></div>
+          <div><dt>FIR Filter</dt><dd>Applies a correction measured from a file</dd></div>
+          <div><dt>Input Switch</dt><dd>Passes one of two inputs and fades between them</dd></div>
+          <div><dt>Mixer</dt><dd>Combines up to five sources, each with its own strip</dd></div>
+          <div><dt>Parametric EQ</dt><dd>Shapes the tone with bands you place yourself</dd></div>
+          <div><dt>Speech Denoise <a class="tag" href="download.html#compare">Not in the Ubuntu package</a></dt><dd>Clears noise from speech with nothing to set up</dd></div>
+          <div><dt>Sync</dt><dd>Delays a lane to line it up with another</dd></div>
+          <div><dt>Time Shift</dt><dd>Pauses and rewinds sound that is still arriving</dd></div>
+        </dl>
+      </div>
+
+      <div class="group tint-hearing">
+        <div class="group-head"><h3>Hearing</h3><span class="count">7</span></div>
+        <dl class="blocks">
+          <div><dt>Frequency Lowering</dt><dd>Moves high sounds down to where one ear hears them</dd></div>
+          <div><dt>Frequency Raising <span class="tag">Experimental in parts</span></dt><dd>Moves low sounds up to where one ear hears them</dd></div>
+          <div><dt>Hearing Compensation 16</dt><dd>Lifts quiet sound for one ear, in sixteen bands</dd></div>
+          <div><dt>Hearing Compensation 64</dt><dd>Lifts quiet sound for one ear, in sixty-four bands set with points</dd></div>
+          <div><dt>Join L/R</dt><dd>Puts a left and a right lane back into one stereo pair</dd></div>
+          <div><dt>One Ear Mix</dt><dd>A mono mix that puts both sides into one ear</dd></div>
+          <div><dt>Sudden Sounds</dt><dd>Softens sudden sharp sounds such as clicks and knocks</dd></div>
+        </dl>
+      </div>
+
+      <div class="group tint-plugins">
+        <div class="group-head"><h3>Plugins</h3><span class="count">5</span></div>
+        <dl class="blocks">
+          <div><dt>CLAP <a class="tag" href="download.html#compare">Not in the Debian and Ubuntu packages</a></dt><dd>A CLAP plugin installed on this machine</dd></div>
+          <div><dt>LADSPA</dt><dd>A LADSPA plugin installed on this machine</dd></div>
+          <div><dt>LV2</dt><dd>An LV2 plugin installed on this machine</dd></div>
+          <div><dt>Test Plugin</dt><dd>A plugin built in, for checking that plugins run</dd></div>
+          <div><dt>VST3 <a class="tag" href="download.html#compare">Not in the Ubuntu package</a></dt><dd>A VST3 plugin installed on this machine</dd></div>
+        </dl>
+      </div>
+
+      <p class="muted">Speech Now, Voice Gauge and Night Level listen for a voice with a small voice model where Speech Denoise is built, and otherwise by its level and rhythm, which can be wrong more often.</p>
+    </section>
+
+    <section aria-labelledby="window">
+      <h2 id="window">The window</h2>
+      <figure class="shot">
+        <picture>
+          <source srcset="images/overview-light.webp" media="(prefers-color-scheme: light)" width="1400" height="900">
+          <img src="images/overview.webp" width="1400" height="900" loading="lazy" decoding="async" alt="A running session with three lanes: music through an equaliser to headphones, a microphone cleaned up and recorded, and a browser's sound shaped for one ear.">
+        </picture>
+        <figcaption>Three lanes in one session: music, a voice being recorded, and sound shaped for one ear. The picture follows your light or dark setting, as the window can.</figcaption>
+      </figure>
+      <ul class="points">
+        <li><strong>Sessions in tabs.</strong> Several sessions, one tab each, saved as you work. A session opens stopped: it never starts making sound just because Reverblabr was opened. <strong>All Sessions</strong> lists every session you have, with what it is doing, to run or stop several at once, sorted and with the columns you choose.</li>
+        <li><strong>The canvas.</strong> Click a block in the library to add it after the selected one. With automatic connections it is wired in too; with manual ones, hold <kbd>Ctrl</kbd> and drag from an output to an input. Several wires into one input are mixed there. <kbd>Ctrl</kbd>+<kbd>9</kbd> fits the whole session in the window.</li>
+        <li><strong>Undo for everything.</strong> Every change, moving a block or a wire included, can be undone, and the Edit menu says which change it would take back.</li>
+        <li><strong>Find a block by typing.</strong> <kbd>Ctrl</kbd>+<kbd>F</kbd> goes to the library's search, the best match comes first, and <kbd>Enter</kbd> adds it.</li>
+        <li><strong>Presets.</strong> Every block keeps presets of its own, and sixteen come with 63 factory presets between them. Reset to Default Settings puts a block back the way a new one starts.</li>
+        <li><strong>Help beside the settings.</strong> The <strong>?</strong> on a block's settings opens its help in a window you can keep open. <kbd>F1</kbd> opens the handbook.</li>
+        <li><strong>Settings outside the window.</strong> A block's settings can be pulled off the main window and dragged anywhere on the desktop, across screens, and Reverblabr puts them back there the next time it opens the session. On Wayland this needs <code>layer-shell-qt</code>, which comes with Plasma.</li>
+        <li><strong>Meters over other programs.</strong> Speech Now and Voice Gauge can show their reading in a small window that stays above other programs, and Sound Side a thin strip on the screen. Meters can show in the system tray too.</li>
+        <li><strong>The Info tab</strong> (<kbd>Ctrl</kbd>+<kbd>3</kbd>) holds a session's title and notes, its connections, its sample rate and latency (Default, Low or Very low), Auto Run, the audio system it runs on, and Diagnostics, with <strong>Copy Diagnostics</strong> for a bug report.</li>
+        <li><strong>Dark, light or your own.</strong> Reverblabr Dark and Reverblabr Light, switched in the top row, or Follow System for your Plasma colours, fonts and title bar.</li>
+      </ul>
+      <figure class="shot tall">
+        <img src="images/block-help.webp" width="600" height="820" loading="lazy" decoding="async" alt="The help window of the Frequency Lowering block, explaining in plain words what it does.">
+        <figcaption>Each block opens a help window that says what it does.</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="recording">
+      <h2 id="recording">Recording</h2>
+      <ul class="points">
+        <li><strong>The Recorder block</strong> writes what reaches it to a file and passes the sound on unchanged, so a lane can go on to your speakers. Several Recorders can record the same sound, each to its own file.</li>
+        <li><strong>Formats:</strong> WAV (RF64 past 4 GB), AIFF, FLAC, MP3, Opus and Ogg Vorbis, and AAC and Apple Lossless in M4A where your system's FFmpeg can write them. Quality comes as Voice, Standard and High-quality MP3, High-quality AAC, Lossless and Uncompressed, or set by hand.</li>
+        <li><strong>Split and pause.</strong> Split ends the file and starts the next with no gap; Pause leaves the paused time out.</li>
+        <li><strong>Limits:</strong> a new file every so many minutes, hours or megabytes, a stop after a while, or something done about silence: leave it out, start a new file after it, or stop.</li>
+        <li><strong>Names and tags.</strong> File names from the session, the date, the time and a counter, with your own words; tags such as title, artist and album written into each file.</li>
+        <li><strong>A crash doesn't cost you the recording.</strong> The file plays as it is up to the last few seconds, and Reverblabr restores the rest the next time it starts.</li>
+        <li><strong>The Files tab</strong> (<kbd>Ctrl</kbd>+<kbd>2</kbd>) lists what a session recorded, newest first, with each file's outline, length, format and size. Play it, start from any point, open its folder, open it in another program or move it to the trash.</li>
+        <li><strong>The Recording Inspector</strong> renames a file and fills in its tags.</li>
+      </ul>
+      <figure class="shot narrow">
+        <img src="images/recording-inspector.webp" width="820" height="520" loading="lazy" decoding="async" alt="The window for one recording: its waveform, play controls, file name and tag fields, with buttons to open its folder, open it in another program or move it to the trash.">
+        <figcaption>Listen to a recording, rename it and fill in its tags.</figcaption>
+      </figure>
+      <p>Before you record anyone but yourself, read <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/privacy.md">Privacy</a>: in many places it is against the law to record a call without the agreement of everyone in it.</p>
+    </section>
+
+    <section aria-labelledby="virtual-devices">
+      <h2 id="virtual-devices">Virtual devices</h2>
+      <p>A virtual device is a sound card with no hardware behind it. Other programs list it like any other sound card, and a session can record from it or play into it. That puts a session between your programs and your real sound card, in either direction.</p>
+      <div class="two-up">
+        <div>
+          <h3>Process the sound of your programs</h3>
+          <p>Make a virtual output and send your browser, your music player or every program to it. A session takes it in with an Input Device block, runs it through an equaliser, a compressor or the Hearing blocks, and plays the result on your real speakers or headphones.</p>
+        </div>
+        <div>
+          <h3>Process your microphone for other programs</h3>
+          <p>Take your real microphone into a session, clean it up, and end the lane at a virtual microphone. Pick that in your call or recording program. Set the session to run at login, and the processed microphone is simply there.</p>
+        </div>
+      </div>
+      <ul class="points">
+        <li>Outputs and inputs, stereo or mono, as many as you need. Rename them, switch them off or delete them in the Virtual Devices window.</li>
+        <li><strong>They belong to your desktop</strong>, not to Reverblabr: they stay until you delete them, whether Reverblabr is running or not, and come back after a restart.</li>
+        <li><strong>For every user</strong> of the computer too, after an administrator's password. Not in the Flatpak.</li>
+        <li><strong>No feedback howl.</strong> A connection that would feed a session's sound back into its own input is refused, and Reverblabr says so.</li>
+      </ul>
+      <figure class="shot narrow">
+        <img src="images/virtual-devices.webp" width="640" height="440" loading="lazy" decoding="async" alt="The Virtual Devices window, with two virtual outputs, one of them switched off, and one virtual microphone.">
+        <figcaption>Two virtual outputs, one switched off, and a virtual microphone.</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="plugins">
+      <h2 id="plugins">Plugins</h2>
+      <ul class="points">
+        <li><strong>LV2, CLAP, VST3 and LADSPA</strong> plugins installed on your computer, beside the built-in blocks. Which formats a package can host is on <a href="download.html#compare">the download page</a>.</li>
+        <li>The library lists every plugin it found by name, under its format, and its search looks through them all. <strong>Look for plugins again</strong> finds the ones you install later.</li>
+        <li><strong>Plugin Window</strong> opens an LV2, CLAP or VST3 plugin's own window, and it and the panel follow each other. A LADSPA plugin gets a panel built from its settings. The plugin's own presets are listed, and the ones you save go where other programs that use the plugin find them.</li>
+        <li><strong>Each plugin runs in a process of its own.</strong> If one crashes or hangs, its block is bypassed, the sound goes on without it, and Restart brings it back with its settings. A plugin that crashes while Reverblabr looks for plugins is left out, and the search finishes.</li>
+      </ul>
+      <p class="muted">VST is a registered trademark of Steinberg Media Technologies GmbH.</p>
+    </section>
+
+    <section aria-labelledby="hearing">
+      <h2 id="hearing">Hearing</h2>
+      <p>The blocks in the Hearing group shape sound one ear at a time. They lift quiet sound band by band, hold each band under a limit you set, and move sound from one range to another. Each ear has settings of its own, and they can start from an audiogram. They were made with someone who has partly lost his hearing, for everyday listening.</p>
+      <figure class="shot">
+        <img src="images/appstream-hearing.webp" width="1400" height="900" loading="lazy" decoding="async" alt="The Frequency Lowering card for the left ear: sound from 4 to 8 kHz is squeezed into 2.5 to 4 kHz, drawn as an arrow on a frequency chart.">
+        <figcaption>High sounds moved into a range that is easier to hear.</figcaption>
+      </figure>
+      <ul class="points tint-hearing">
+        <li><strong>Hearing Compensation 16</strong> gives one ear more of what it hears faintly: in each of sixteen bands, a gain for soft, average and loud sound and a ceiling nothing goes above. <strong>Fit from Audiogram</strong> sets every band in one step. <strong>Hearing Compensation 64</strong> lifts quiet sound in sixty-four bands, set with points.</li>
+        <li><strong>Frequency Lowering</strong> moves sound from a high range the ear doesn't hear into a lower one it does, so the hiss of s, sh and f comes back. <strong>Frequency Raising</strong> works the other way round, and is experimental in parts.</li>
+        <li><strong>Sudden Sounds</strong> softens sudden sharp sounds such as clicks and knocks, and leaves a sound that stays loud alone.</li>
+        <li><strong>One Ear Mix</strong> puts both sides into one ear, and <strong>Join L/R</strong> brings a left and a right lane back together, lined up in time, so each ear can have blocks of its own.</li>
+        <li><strong>Limits built in:</strong> a ceiling for the output and the most gain a band may get. Raising a limit takes one more step and the sound rises to it slowly. Where a block that can add gain comes after the last limit, the Output Device adds a limit of its own and says why.</li>
+        <li><strong>Not a medical device.</strong> Reverblabr measures nothing about anybody's health and doesn't replace an audiologist or a hearing aid. Its limits work on the numbers inside the computer: how loud that is at your ear depends on your volume and your headphones. A safety notice comes up before the first Hearing block is added.</li>
+      </ul>
+      <p><a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/hearing.md">Hearing</a> in the documentation explains them, safety first.</p>
+    </section>
+
+    <section aria-labelledby="background">
+      <h2 id="background">In the background</h2>
+      <ul class="points">
+        <li><strong>The background engine</strong>, <code>reverblabrd</code>, runs your sessions. The first call to it starts it, sessions keep playing when the window closes or crashes, and it leaves by itself a minute after nothing runs or uses it. Started again after a crash, it opens the sessions it had open, stopped.</li>
+        <li><strong>Auto Run.</strong> Set a session to <strong>Run when I log in</strong>, and the engine starts it when you log in, without opening the window. Once per login by default, so a session you stopped stays stopped, or every time the engine starts.</li>
+        <li><strong>Timers.</strong> The Schedule tab (<kbd>Ctrl</kbd>+<kbd>4</kbd>) starts a session once on a date, every day, Monday to Friday or on the days you choose, at a time and for as long as you set. When it is done it can ask the applications the session captures to quit. Timers are systemd user timers, so Reverblabr doesn't have to be open; they don't wake a computer that is asleep.</li>
+      </ul>
+      <p class="muted">Auto Run and timers need an installed Reverblabr, from a package or an installed build. The Flatpak can't have them.</p>
+    </section>
+
+    <section aria-labelledby="desktop">
+      <h2 id="desktop">On the desktop</h2>
+      <ul class="points">
+        <li><strong>The tray icon</strong> lists every session with its level and Run or Stop, and the meters you choose. A middle click shows or hides the window. A red dot means something is being recorded, a warning sign that something went wrong.</li>
+        <li><strong>The panel widget</strong>, Reverblabr Sessions, puts your sessions in a Plasma panel, with the window closed: a dot for running and one for recording, and a list with levels and Run or Stop.</li>
+        <li><strong>KRunner.</strong> Type <kbd>rb</kbd> and part of a session's name to run or stop it, or <kbd>rb rec</kbd> to see which sessions are recording. It works with the window closed.</li>
+        <li><strong>Global shortcuts</strong> run or stop each session, show the window, play A or B of an Input Switch, control Time Shift, start a new recording file, show Sound Side's strip, and have your screen reader say who is speaking or how loud a voice is. No keys are set until you choose them in System Settings.</li>
+        <li><strong>Notifications</strong> when a recording finishes, a device disconnects, an application stops playing or plays again, a plugin stops, the disk under a recording is nearly full, or a connection that would feed a session back into itself is refused.</li>
+        <li><strong>The launcher</strong> offers New Session and All Sessions on Reverblabr's entry, and only one Reverblabr runs at a time: starting it again brings its window forward.</li>
+      </ul>
+      <p class="muted">The panel widget and KRunner need an installed Reverblabr as well; the Flatpak has neither.</p>
+    </section>
+
+    <section aria-labelledby="scripting">
+      <h2 id="scripting">Scripting</h2>
+      <p><code>reverblabr-ctl</code> runs and changes sessions from a terminal, a script or cron: <code>list</code>, <code>status</code>, <code>start</code>, <code>stop</code>, <code>split</code>, <code>switch</code>, <code>set</code> and <code>timers list</code>. It answers in JSON with <code>--json</code>, its exit codes are documented, and it comes with a manual page and completion for bash and zsh.</p>
+<pre class="cmd" data-what="reverblabr-ctl examples"><code>reverblabr-ctl start "Evening radio"
+reverblabr-ctl set "Evening radio" Voice gain 0.5
+reverblabr-ctl split "Evening radio"
+reverblabr-ctl status --json</code></pre>
+      <p><strong>The D-Bus API</strong>, <code>io.github.reverblabr.Engine1</code> on the session bus, does everything the window does: the window uses nothing else. Nothing released in it is taken away or changed, only added to, and the same holds for the exit codes and the JSON of <code>reverblabr-ctl</code>. See <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/ctl.md">reverblabr-ctl</a> and <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/dbus-api.md">the D-Bus API</a>.</p>
+    </section>
+
+    <section aria-labelledby="streaming">
+      <h2 id="streaming">Radio and video streams</h2>
+      <ul class="points">
+        <li><strong>Broadcast</strong> sends a lane to an internet radio server, Icecast or SHOUTcast, as MP3, Opus, Ogg Vorbis or AAC, over TLS to an Icecast server that offers it. The title listeners see comes from a text file or from a media player, and the block reconnects by itself when the server goes away.</li>
+        <li><strong>Live Stream</strong> sends a lane to a video streaming service over RTMP or RTMPS, with a picture made for it: a title, a logo, what is playing, and a waveform, spectrum or level meter that moves with the sound. 1024 &times; 576 at 15 frames a second, 1280 &times; 720 at 30 or 1920 &times; 1080 at 30, in H.264 from the graphics card (VA-API or NVENC), x264 or OpenH264, with AAC sound. It needs an H.264 encoder that works; on Fedora that is <code>openh264</code> or the full FFmpeg from RPM Fusion.</li>
+        <li>A Broadcast password and a stream key are kept in your desktop's password store, KWallet on Plasma, never in the session file.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="model">
+      <h2 id="model">The Model block <span class="tag">Beta</span></h2>
+      <p>The Model block runs the sound through a trained model from a folder you choose, in a process of its own, so a model that is slow or crashes can't stop the session: a streaming DeepFilterNet export to clean up a voice, an RVC-style voice, or any ONNX model a small <code>reverblabr-model.json</code> describes.</p>
+      <ul class="points">
+        <li>Reverblabr includes no models and never downloads one.</li>
+        <li>Sound leaves the block only after the model has processed it. Whenever the model isn't there, it is silent rather than passing the sound around it.</li>
+        <li>It is Beta: still being debugged. Fedora's ONNX Runtime runs it on the processor only, and a voice adds about 390 ms of delay. It needs ONNX Runtime, so the Flatpak doesn't have it.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="accessibility">
+      <h2 id="accessibility">Without a mouse</h2>
+      <ul class="points">
+        <li>A session can be built, wired and run from the keyboard: <kbd>Ctrl</kbd>+<kbd>F</kbd> to add a block, <kbd>Tab</kbd> from block to block, <kbd>C</kbd> to wire one to the next, <kbd>D</kbd> to remove a wire, <kbd>Enter</kbd> for its settings and <kbd>Space</kbd> to run.</li>
+        <li>The canvas works with a screen reader, which says each block's name, whether it is on and what it is wired to. <strong>Show as List</strong> lays a session out lane by lane, which is often easier to follow.</li>
+        <li>Meters are read out as progress bars named after their block, and a clipping meter is announced once.</li>
+        <li>In the Reverblabr appearances, text and every mark that means something meet the contrast of WCAG 2.1 AA. Follow System takes your own colour scheme, high contrast included.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="privacy">
+      <h2 id="privacy">Privacy</h2>
+      <p>Reverblabr doesn't use the network on its own account: no usage statistics and no update checks. Only Broadcast and Live Stream send anything, to the server you name. <strong>Copy Diagnostics</strong> leaves out your home folder, user name and computer name. A running session shows up by name in PipeWire's own tools, such as <code>wpctl status</code>, so you can see what is listening. <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/privacy.md">Privacy</a> says more, about recording other people too.</p>
+    </section>
+
+    <section aria-labelledby="languages">
+      <h2 id="languages">Languages</h2>
+      <p>Reverblabr is in English only so far. Every word in the window goes through KDE's translation system, so a new language is a matter of translating it.</p>
+    </section>
+
+    <p class="actions"><a class="button primary" href="download.html"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Download Reverblabr @VERSION@</a></p>
+  </div>
+</div>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="./"><img src="icon.svg" alt="" width="32" height="32"><span>Reverblabr</span></a>
+        <p>Capture, process and route audio on your desktop. Version @VERSION@, released on <time datetime="@DATE@">@DATE_TEXT@</time>.</p>
+      </div>
+      <nav aria-label="Project">
+        <h2>Project</h2>
+        <ul>
+          <li><a href="https://github.com/sorrelfox/reverblabr">Source code</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/releases">All releases</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/issues">Report a bug</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/CONTRIBUTING.md">Contributing</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="Documentation">
+        <h2>Documentation</h2>
+        <ul>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/getting-started.md">Getting started</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/blocks.md">Blocks</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/privacy.md">Privacy</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/troubleshooting.md">When something goes wrong</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="legal">
+      <p>The code is under the <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/LICENSE">Mozilla Public License 2.0</a>; the documentation and this site's words and pictures under CC-BY-SA-4.0. The name and the logo are covered by the <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/TRADEMARKS.md">trademark policy</a>.</p>
+      <p>VST is a registered trademark of Steinberg Media Technologies GmbH. The typefaces are Noto Sans and JetBrains Mono, under the <a href="fonts/OFL-1.1.txt">SIL Open Font License 1.1</a>.</p>
+      <p>This site sets no cookies and loads nothing from other sites.</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

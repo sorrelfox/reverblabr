@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The website is published from its own branch by tools/publish-website.sh,
+# not built or installed with the program, so a release's source tarball
+# (git archive) leaves it and its tool out. The site's demonstration clip
+# would otherwise be the biggest file in it.
+/website export-ignore
+/tools/publish-website.sh export-ignore
