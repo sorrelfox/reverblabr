@@ -1200,9 +1200,10 @@ Item {
     /// Whether audio is going through the block a wire leaves. **A wire
     /// takes its colour from its source**, because that is where what is on
     /// it came from: a wire into a bypassed block is still carrying what
-    /// the block before it put out.
+    /// the block before it put out, and so is a wire out of one: it reads
+    /// `passing`, not `active`, which is false for a block switched off.
     function wireIsLive(fromBlock: string): bool {
-        return Meters.frame >= 0 && Meters.live && (Meters.levels(fromBlock).active ?? false);
+        return Meters.frame >= 0 && Meters.live && (Meters.levels(fromBlock).passing ?? false);
     }
 
     // --- what a wire may be ---

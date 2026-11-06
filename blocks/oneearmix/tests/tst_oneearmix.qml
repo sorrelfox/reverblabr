@@ -187,7 +187,14 @@ TestCase {
         const face = testCase.faceFor();
         SessionModel.setParam("mix", "sendTo", "left");
         SessionModel.setBlockEnabled("mix", false);
-        testCase.play();
+        // **A block switched off publishes nothing to show**, so this
+        // waits for it to be read as off rather than for its values.
+        Meters.watch(testCase.sessionId);
+        TestEngine.start(testCase.sessionId);
+        TestEngine.setFakeLevel(testCase.sessionId, "mix", 0.5);
+        tryVerify(() => Meters.live && Meters.levels("mix").enabled === false, 1000, "the block never ran switched off");
+        verify(Meters.levels("mix").values === undefined, "a block switched off still showed its values");
+        verify(!Meters.levels("mix").active, "a block switched off was shown at work");
         tryCompare(face, "headline", "Off");
         compare(face.captionLabel.text, "Stereo, as it came");
         compare(face.dot, "off");

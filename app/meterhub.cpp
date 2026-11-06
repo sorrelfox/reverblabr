@@ -133,12 +133,19 @@ namespace
         && QString::fromUtf8(static_cast<const char *>(latest.analysedId)) == blockId;
 }
 
+/// Whether \a levels are of a block that is switched off, whose spectrum
+/// and band values are not shown either.
+[[nodiscard]] bool isOff(const BlockLevels *levels)
+{
+    return levels != nullptr && !levels->enabled;
+}
+
 } // namespace
 
 std::span<const float> MeterHub::spectrum(const QString &blockId) const
 {
     const core::TelemetrySnapshot &latest = d->latest;
-    if (!analysing(latest, blockId)) {
+    if (!analysing(latest, blockId) || isOff(block(blockId))) {
         return {};
     }
     return std::span<const float>(latest.spectrum, std::min<std::size_t>(latest.spectrumBands, core::kSpectrumBands));
@@ -147,7 +154,7 @@ std::span<const float> MeterHub::spectrum(const QString &blockId) const
 std::span<const float> MeterHub::inputSpectrum(const QString &blockId) const
 {
     const core::TelemetrySnapshot &latest = d->latest;
-    if (!analysing(latest, blockId)) {
+    if (!analysing(latest, blockId) || isOff(block(blockId))) {
         return {};
     }
     return std::span<const float>(latest.inputSpectrum,
@@ -157,7 +164,7 @@ std::span<const float> MeterHub::inputSpectrum(const QString &blockId) const
 std::span<const float> MeterHub::bandValues(const QString &blockId) const
 {
     const core::TelemetrySnapshot &latest = d->latest;
-    if (!analysing(latest, blockId)) {
+    if (!analysing(latest, blockId) || isOff(block(blockId))) {
         return {};
     }
     return std::span<const float>(latest.bandValues, std::min<std::size_t>(latest.bandValueCount, rt::kMaxBandValues));
@@ -202,7 +209,8 @@ bool MeterHub::tick()
         }
         into.channelCount = std::min<std::uint32_t>(from.channelCount, rt::kMaxMeterChannels);
         into.enabled = from.enabled;
-        into.active = from.active;
+        into.passing = from.active;
+        into.active = from.active && from.enabled;
         into.scopeSlot = from.scopeSlot;
         into.latencyMs = snapshot.sampleRate > 0
             ? 1000.0f * static_cast<float>(from.latencySamples) / static_cast<float>(snapshot.sampleRate)
@@ -212,6 +220,20 @@ bool MeterHub::tick()
         // This block's own wait and fall, not the window's: two meters in
         // one session hold for the times they were each given.
         const Private::Timing timing = d->timingOf(into.id);
+        if (!from.enabled) {
+            // Switched off: nothing held, nothing lit, and nothing left over
+            // from before to fall or go out once it is switched on again.
+            into.peakDb = silentChannels();
+            into.rmsDb = silentChannels();
+            into.holdDb = silentChannels();
+            into.values = {};
+            into.clipped = false;
+            into.clippedChannels = {};
+            d->heldAt[index] = {};
+            d->clippedAt[index] = 0;
+            d->clippedChannelsAt[index] = {};
+            continue;
+        }
         for (std::uint32_t channel = 0; channel < into.channelCount; ++channel) {
             const float peakDb = dsp::gainToDb(from.peak[channel]);
             into.peakDb[channel] = peakDb;

@@ -247,6 +247,58 @@ TEST(MeterHubTest, AClipLightStaysOnLongEnoughToSee)
     EXPECT_FALSE(hub.block(u"b1"_s)->clipped);
 }
 
+TEST(MeterHubTest, ABlockSwitchedOffShowsNothingButStillPassesTheSound)
+{
+    // **Off is not the same as quiet.** A block in the middle of a lane that
+    // is switched off still passes the signal, and the engine meters it; a
+    // meter that went on moving would say the block is still at work.
+    Publisher published;
+    Hand hand;
+    core::BlockTelemetry &meter = published.block(0, "meter");
+    meter.peak[0] = 1.0f;
+    meter.peak[1] = 0.5f;
+    meter.rms[0] = 0.25f;
+    meter.rms[1] = 0.25f;
+    meter.values[0] = -6.0f;
+    meter.clipped = true;
+    meter.active = true;
+    published.publish();
+
+    MeterHub hub;
+    hub.setClock(hand.clock());
+    hub.watch(&published.slot());
+    ASSERT_TRUE(hub.tick());
+    ASSERT_TRUE(hub.block(u"meter"_s)->active);
+    ASSERT_TRUE(hub.block(u"meter"_s)->clipped);
+
+    published.snapshot().blocks[0].enabled = false;
+    published.publish();
+    hand.wind(16);
+    ASSERT_TRUE(hub.tick());
+    const BlockLevels *off = hub.block(u"meter"_s);
+    ASSERT_NE(off, nullptr);
+    EXPECT_FALSE(off->enabled);
+    EXPECT_FALSE(off->active) << "a block switched off was shown at work";
+    EXPECT_TRUE(off->passing) << "the wire out of a block switched off still carries the sound";
+    EXPECT_FALSE(off->clipped) << "the clip light of a block switched off stayed on";
+    for (std::uint32_t channel = 0; channel < 2; ++channel) {
+        EXPECT_EQ(off->peakDb[channel], dsp::kSilenceDb);
+        EXPECT_EQ(off->rmsDb[channel], dsp::kSilenceDb);
+        EXPECT_EQ(off->holdDb[channel], dsp::kSilenceDb) << "the peak line of a block switched off was left up";
+        EXPECT_FALSE(off->clippedChannels[channel]);
+    }
+    EXPECT_EQ(off->values[0], 0.0f);
+
+    // Switched on again, it reads afresh, with nothing held from before.
+    published.publishSilence();
+    published.snapshot().blocks[0].enabled = true;
+    published.publish();
+    hand.wind(16);
+    ASSERT_TRUE(hub.tick());
+    EXPECT_EQ(hub.block(u"meter"_s)->holdDb[0], dsp::kSilenceDb);
+    EXPECT_FALSE(hub.block(u"meter"_s)->clipped);
+}
+
 TEST(MeterHubTest, TheSameSnapshotTwiceIsNotNews)
 {
     Publisher published;

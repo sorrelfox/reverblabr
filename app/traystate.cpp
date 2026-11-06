@@ -685,12 +685,19 @@ void TrayState::readLevels()
             watch.saw(snapshot, d->sinceStart.elapsed());
             const core::BlockTelemetry *levels = TelemetryWatch::find(snapshot, blockId);
             said.watch = QString(watch.stateOf(levels != nullptr, d->sinceStart.elapsed()));
-            if (levels != nullptr) {
+            // **A meter switched off shows nothing in the tray either**: the
+            // level stays at silence and the meter is not active, as on its
+            // tile.
+            if (levels != nullptr && levels->enabled) {
                 const std::uint32_t channels = std::min<std::uint32_t>(levels->channelCount, rt::kMaxMeterChannels);
                 for (std::uint32_t channel = 0; channel < channels; ++channel) {
                     loudest = std::max(loudest, dsp::gainToDb(rmsOnly ? levels->rms[channel] : levels->peak[channel]));
                 }
                 active = levels->active;
+            }
+            // What a gauge says goes by `enabled` first, so it is told
+            // whether the block is on as well as what it last published.
+            if (levels != nullptr) {
                 said.enabled = levels->enabled;
                 for (const float value : levels->values) {
                     said.values.append(static_cast<double>(value));

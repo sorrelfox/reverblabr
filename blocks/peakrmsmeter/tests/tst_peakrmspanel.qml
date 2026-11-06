@@ -284,6 +284,41 @@ TestCase {
         Meters.watch("");
     }
 
+    function test_aMeterSwitchedOffShowsNoActivity() {
+        // **Off is not quiet, and it shows nothing.** A meter switched off
+        // in the middle of a lane still has sound going through it, and the
+        // engine still measures it there; neither the tile nor the panel
+        // may show it, and neither may the wire out of it go dark.
+        Meters.watch(testCase.sessionId);
+        TestEngine.start(testCase.sessionId);
+        tryVerify(() => Meters.live, 2000, "the session published nothing to be live from");
+        TestEngine.setFakeLevel(testCase.sessionId, "met", 0.5);
+
+        const face = createTemporaryObject(faceComponent, null);
+        face.blockId = "met";
+        const panel = createTemporaryObject(panelComponent, null);
+        panel.blockId = "met";
+        tryVerify(() => face.active && panel.active, 2000, "the meter never went live");
+
+        SessionModel.setBlockEnabled("met", false);
+        tryVerify(() => !face.active, 2000, "the tile went on showing a meter switched off");
+        compare(panel.active, false, "the panel went on showing a meter switched off");
+        compare(face.detail, "Idle");
+        const bars = [face.meter.sideBars[0].bar, face.meter.sideBars[1].bar,
+                      panel.meter.sideBars[0].bar, panel.meter.sideBars[1].bar];
+        for (const bar of bars) {
+            compare(bar.active, false, "a bar of a meter switched off still moved");
+        }
+        compare(Meters.levels("met").passing, true, "the sound through a meter switched off was lost to its wire");
+
+        SessionModel.setBlockEnabled("met", true);
+        tryVerify(() => face.active && panel.active, 2000, "switched on again, the meter stayed idle");
+
+        TestEngine.clearFakeLevels(testCase.sessionId);
+        TestEngine.stop(testCase.sessionId);
+        Meters.watch("");
+    }
+
     function test_theNumbersAreWrittenToATenthOfADecibelInTheReadersLocale() {
         // The criterion's other half: a −18 dBFS sine reads −18.0 and
         // −21.0, and what makes those two numbers out of two amplitudes is

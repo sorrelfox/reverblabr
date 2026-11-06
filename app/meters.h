@@ -61,9 +61,14 @@ public:
     Q_INVOKABLE void watch(const QString &sessionId);
 
     /// One block's levels, as a meter draws them: channelCount, rmsDb,
-    /// peakDb, holdDb, values, clipped, clippedChannels, active. Empty for a
-    /// block the snapshot has nothing about, which is a block that is not
-    /// running.
+    /// peakDb, holdDb, values, clipped, clippedChannels, active, passing,
+    /// enabled. Empty for a block the snapshot has nothing about, which is a
+    /// block that is not running.
+    ///
+    /// **A block that is switched off reads as silent and not active**, with
+    /// no `values` key, so that no face or panel shows it at work; `passing` is
+    /// whether sound still goes through it, which is what a wire out of it
+    /// shows.
     ///
     /// **`values` is whatever the block publishes about itself** — a gain
     /// reduction, whether its device is there — exactly as it published it.

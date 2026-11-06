@@ -157,18 +157,26 @@ QVariantMap Meters::levels(const QString &blockId) const
     if (block == nullptr) {
         return {};
     }
-    return QVariantMap{
+    QVariantMap levels{
         {"channelCount"_L1, static_cast<int>(block->channelCount)},
         {"rmsDb"_L1, QVariant::fromValue(asList(block->rmsDb, block->channelCount))},
         {"peakDb"_L1, QVariant::fromValue(asList(block->peakDb, block->channelCount))},
         {"holdDb"_L1, QVariant::fromValue(asList(block->holdDb, block->channelCount))},
-        {"values"_L1, QVariant::fromValue(asValues(block->values))},
         {"clipped"_L1, block->clipped},
         {"clippedChannels"_L1, QVariant::fromValue(asFlags(block->clippedChannels, block->channelCount))},
         {"active"_L1, block->active},
+        {"passing"_L1, block->passing},
         {"enabled"_L1, block->enabled},
         {"latencyMs"_L1, block->latencyMs},
     };
+    // **No values at all from a block that is switched off**, rather than
+    // the noughts the hub keeps: a nought is a reading. Left out, as they
+    // are for a session that is not running, which every face already
+    // reads as nothing to show.
+    if (block->enabled) {
+        levels.insert("values"_L1, QVariant::fromValue(asValues(block->values)));
+    }
+    return levels;
 }
 
 QString Meters::watchState(const QString &blockId) const

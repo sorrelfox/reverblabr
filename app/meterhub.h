@@ -59,7 +59,19 @@ struct BlockLevels {
     /// that only says "something clipped" leaves a person guessing which of
     /// the two sides it was, which is the first thing they want to know.
     std::array<bool, rt::kMaxMeterChannels> clippedChannels{};
+    /// Whether the block is doing something a person should see: sound
+    /// going through it while it is switched on. **What a face, a panel and
+    /// a meter go by.**
     bool active = false;
+    /// Whether sound is going through it at all, switched on or off. **What
+    /// a wire goes by**: a block that is switched off still passes the
+    /// signal on, and the wire out of it carries it.
+    bool passing = false;
+    /// **A block that is switched off shows nothing.** Its levels are
+    /// silence, its clip lights are out and it is not active, whatever the
+    /// engine measured at its output: what comes out of a bypassed block is
+    /// the block before it, and a meter that went on moving would be a
+    /// meter that says the block is still at work.
     bool enabled = true;
     /// Which of the session's scope slots holds its sound, or -1.
     int scopeSlot = -1;
