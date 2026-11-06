@@ -51,6 +51,14 @@ TestCase {
     }
 
     Component {
+        id: sidebarAlone
+
+        SidebarPane {
+            height: Kirigami.Units.gridUnit * 10
+        }
+    }
+
+    Component {
         id: triggerSpy
 
         SignalSpy {
@@ -523,6 +531,78 @@ TestCase {
         compare(window.sidebarIndex, 0);
         window.sidebarIndex = 1;
         compare(window.sidebar.currentIndex, 1);
+    }
+
+    /// What is wrong with a row of sidebar tabs: each word cut short, as
+    /// "Schedule (in front): needs 76.4 px, has 49.5", and tabs that are
+    /// wider together than the row.
+    function cutTabs(bar: var): var {
+        const cut = [];
+        let together = (bar.count - 1) * bar.spacing;
+        for (let index = 0; index < bar.count; ++index) {
+            const tab = bar.itemAt(index);
+            together += tab.width;
+            if (tab.implicitContentWidth > tab.availableWidth + 0.01) {
+                cut.push(tab.text + (tab.checked ? " (in front)" : "") + ": needs "
+                         + tab.implicitContentWidth.toFixed(1) + " px, has " + tab.availableWidth.toFixed(1));
+            }
+        }
+        if (together > bar.availableWidth + 0.5) {
+            cut.push("the tabs take " + together.toFixed(1) + " px of a row of " + bar.availableWidth);
+        }
+        return cut;
+    }
+
+    /// A sidebar on its own, \a width wide, once its row of tabs is laid
+    /// out across it.
+    function sidebarOf(width: real): var {
+        const sidebar = createTemporaryObject(sidebarAlone, testCase, { width: width });
+        tryCompare(sidebar.tabBar, "width", width - Kirigami.Units.largeSpacing * 2, 1000,
+                   "the row of tabs never took the sidebar's width");
+        return sidebar;
+    }
+
+    function test_everySidebarTabShowsItsWholeWordAtTheDefaultWidth_data() {
+        // Each run in the appearances its style draws.
+        return Appearance.ownStyle
+            ? [{ tag: "dark", mode: Appearance.ReverblabrDark }, { tag: "light", mode: Appearance.ReverblabrLight }]
+            : [{ tag: "system", mode: Appearance.FollowSystem }];
+    }
+
+    // **A new window showed "Bl…" and "Sc…".** The tab bar gave the four tabs
+    // the same width whatever their words, and four with a glyph each were
+    // wider than the sidebar at its default width. Each word is looked at in
+    // front, where it is heavier, and behind.
+    //
+    // The sidebar is on its own, at the width a new window gives it: a
+    // window opens it as wide as the last one to close had it, and other
+    // tests close theirs.
+    function test_everySidebarTabShowsItsWholeWordAtTheDefaultWidth(data) {
+        Appearance.mode = data.mode;
+        const bar = testCase.sidebarOf(Kirigami.Units.gridUnit * 14).tabBar;
+        compare(bar.count, 4);
+        for (let front = 0; front < bar.count; ++front) {
+            bar.currentIndex = front;
+            compare(testCase.cutTabs(bar), [], "a tab's word is cut short");
+        }
+    }
+
+    function test_theSidebarsGlyphsComeBackWhenItHasRoomForThem_data() {
+        return [{ tag: "dark", mode: Appearance.ReverblabrDark }, { tag: "light", mode: Appearance.ReverblabrLight }];
+    }
+
+    // The glyphs give way to the words in a narrow sidebar, and only there.
+    function test_theSidebarsGlyphsComeBackWhenItHasRoomForThem(data) {
+        if (!Appearance.ownStyle) {
+            skip("the desktop's tabs have words only");
+        }
+        Appearance.mode = data.mode;
+        const bar = testCase.sidebarOf(Kirigami.Units.gridUnit * 20).tabBar;
+        for (let index = 0; index < bar.count; ++index) {
+            compare(bar.itemAt(index).display, QQC2.AbstractButton.TextBesideIcon,
+                    bar.itemAt(index).text + " has no glyph in a row " + bar.width + " px wide");
+        }
+        compare(testCase.cutTabs(bar), [], "a tab's word is cut short");
     }
 
     function test_theStatusBarSaysNothingRatherThanZero() {
