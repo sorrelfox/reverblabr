@@ -47,6 +47,7 @@ Reverblabr should also come as a Flatpak, built on the KDE runtime and attached 
 - **The Flatpak and a package share the engine's name.** With both installed, whichever engine takes the name first serves both windows: a package's engine started at login is reached by the Flatpak's window too, and the other way round.
 - Auto Run, timers, KRunner, the panel widget and devices for all users need a package. The window says so where they appear, and `packaging/README.md` says so.
 - Plugins installed on the host are not available in the Flatpak. Flathub's plugin extensions are.
+- **After PipeWire restarts, the Flatpak's engine stays cut off from it:** the sandbox keeps the socket file it was started with, so the engine can't reconnect as a package's does, until `flatpak kill io.github.reverblabr.Reverblabr` and a new start, with its sessions started again.
 - `--socket=x11` beside Wayland is wider than a Wayland-only app needs, for the plugins' windows.
 
 ## Alternatives considered

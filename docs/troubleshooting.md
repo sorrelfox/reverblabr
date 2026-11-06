@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # When something goes wrong
 
-Reverblabr is still in development and has bugs. This page lists the problems people are most likely to run into, and how to report the ones that aren't here.
+Reverblabr is new, and it has bugs. This page lists the problems people are most likely to run into, and how to report the ones that aren't here.
 
 ## Diagnostics
 
@@ -17,13 +17,13 @@ The **Info** tab (Ctrl+3) has a **Diagnostics** section under *Audio system*. Un
 
 **I hear the sound twice.** An Application block takes a copy of a program's sound and leaves the original playing. [Getting started](getting-started.md#run-it) shows how to hear only the processed sound, and [Virtual devices](virtual-devices.md#process-the-sound-of-your-programs) has the cleaner way.
 
-**A banner says the background engine isn't installed.** That's expected when you run Reverblabr from the build tree: the window runs the engine itself, and sessions stop when it closes. Install it to get the background engine ([Installing](installing.md#install-it)).
+**A banner says the background engine isn't installed.** That's expected when you run Reverblabr from the build tree: the window runs the engine itself, and sessions stop when it closes. Install a package, or install your build, to get the background engine ([Installing](installing.md)).
 
 **The sound drops out.** Look at the xrun counter in the status bar and at Diagnostics. A session without real-time priority is much more likely to drop out when the computer is busy, and Diagnostics says so. Real-time priority comes from rtkit, which Fedora and Kubuntu run by default. Heavy plugins, many sessions at once and a very small buffer size in PipeWire make dropouts more likely too.
 
 **Reverblabr refused a connection.** It refuses anything that would feed a session's sound back into its own input, because that would howl louder and louder. This usually means an Output Device is set to *Default output* while the default is the virtual device the session records from. Choose your real speakers by name.
 
-**A block is missing from the library.** Some blocks are only built when their library was found: Speech Denoise needs RNNoise, the CLAP block needs the CLAP SDK, the VST3 block needs the VST3 SDK 3.8 or later. The build's summary lists what it left out, and [What to install](dependencies.md#optional) has the details.
+**A block is missing from the library.** Some blocks are only built when their library was found: Speech Denoise needs RNNoise, Model needs ONNX Runtime, the CLAP block needs the CLAP SDK, the VST3 block needs the VST3 SDK 3.8 or later. [Installing](installing.md#what-each-one-has) says which package has which. In a build of your own, the build's summary lists what it left out, and [What to install](dependencies.md#optional) has the details.
 
 **A plugin stopped.** Plugins run in their own process, so a crash only takes the plugin down. Its block is bypassed and shows a button to restart it. If it keeps happening, try the plugin in another host, and tell me if it works there.
 
@@ -47,7 +47,7 @@ journalctl --user -u reverblabrd
 
 ## Reporting a bug
 
-Please open an issue at <https://github.com/sorrelfox/reverblabr/issues>. Tell me what you did, what you expected and what happened instead, and paste what **Copy Diagnostics** gives you. Steps that make the problem happen again are the most useful thing you can send, and a session file or a short recording of the sound can help too.
+Please open an issue at <https://github.com/sorrelfox/reverblabr/issues>. Tell me what you did, what you expected and what happened instead, which package you installed (or that you built Reverblabr yourself), and paste what **Copy Diagnostics** gives you. Steps that make the problem happen again are the most useful thing you can send, and a session file or a short recording of the sound can help too.
 
 I work on Reverblabr in my free time, so it may take me a while to answer.
 

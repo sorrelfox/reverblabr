@@ -55,7 +55,7 @@ A session is made of blocks: sources that bring sound in, effects and meters in 
 
 Beta: this block is still being debugged and may contain bugs. It is not yet fully tested.
 
-Runs the sound through a trained model from a folder you choose, and plays what the model makes of it. The model runs in a process of its own, so a model that is slow or crashes cannot stop the session or the other lanes. Reverblabr includes no models and never downloads one. If the folder has a licence file, the card names it. The build needs ONNX Runtime; without it this block is not in the library.
+Runs the sound through a trained model from a folder you choose, and plays what the model makes of it. The model runs in a process of its own, so a model that is slow or crashes cannot stop the session or the other lanes. Reverblabr includes no models and never downloads one. If the folder has a licence file, the card names it. The build needs ONNX Runtime; without it this block is not in the library, and the Flatpak doesn't have it.
 
 **Sound only leaves this block after the model has processed it.** In every other case the block is silent, and nothing reaches the next block: when it is switched off (it is not passed through, unlike other blocks), with no model chosen, while one loads, when one cannot be loaded, when the model falls behind, when its process crashes, hangs or restarts, and when it gives back something that is not sound. A very short fade on the model's own sound keeps a stop from clicking. The input is never faded in. The session keeps running, the other lanes are not touched, and the card says why it is silent.
 
@@ -240,7 +240,7 @@ Sound Side reads this lane's sound and does not touch the game. Some games and t
 | **Time Shift** | Pauses and rewinds sound that is still arriving, such as a radio stream or a call. Jump back 3, 10 or 30 seconds, forward again, or straight back to live. It keeps up to an hour: up to ten minutes in memory, a longer history on disk. |
 | **Declick** | Takes out clicks, pops and crackle (from a record, a bad cable or a digital dropout) and fills in what was underneath from the sound on either side. |
 | **Denoise** | Listens to ten seconds of a background noise on its own (a fan, hiss, or the buzzing and ticking a sound card picks up from the computer) and learns how loud it gets at every pitch, then removes that noise from everything that follows, following it when it grows. The noise it learned is saved with the session. |
-| **Speech Denoise** | Clears the background from a voice without learning anything first, using RNNoise, a model trained on speech. It works at 48 kHz and adds 30 ms of delay. It is only built where the distribution packages RNNoise, which Fedora does. |
+| **Speech Denoise** | Clears the background from a voice without learning anything first, using RNNoise, a model trained on speech. It works at 48 kHz and adds 30 ms of delay. It is only built where RNNoise is there: the Fedora and Debian packages and the Flatpak have it, the Ubuntu package doesn't, because Ubuntu doesn't package RNNoise. |
 | **Dehum** | Removes the 50 or 60 Hz hum of the mains and the whine of its harmonics, and leaves everything in between alone. With **Auto** on, it follows a hum whose frequency drifts. |
 | **FIR Filter** | Applies an impulse response from a file: the sound of a room, a speaker cabinet, or a correction for a pair of headphones. Mono, stereo or true stereo, resampled to the session's rate, with about 5 ms of delay. |
 
@@ -260,7 +260,7 @@ These blocks work on one ear at a time. They are described on their own page, [H
 
 ## Plugins
 
-Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK), **VST3®** (where the build has the VST3 SDK 3.8 or later) and **LADSPA**. The library lists what it found under **Plugins**, a heading for each format with the plugins under it in alphabetical order; click a heading to fold it away. The search looks through all of them. **Look for plugins again** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for. LSP's plugins are a good first set to try.
+Reverblabr can run plugins that are already installed on your computer: **LV2**, **CLAP** (where the build has the CLAP SDK), **VST3®** (where the build has the VST3 SDK 3.8 or later) and **LADSPA**. The library lists what it found under **Plugins**, a heading for each format with the plugins under it in alphabetical order; click a heading to fold it away. The search looks through all of them. **Look for plugins again** looks again after you install something new. [What to install](dependencies.md#plugins) says where each kind is looked for, and [Installing](installing.md#what-each-one-has) which package hosts which format. LSP's plugins are a good first set to try.
 
 Every plugin runs in a separate process, so a plugin that crashes or hangs takes nothing else down with it. Its block is bypassed (the Model block is not a plugin and is silent instead), the sound goes on without it, and the block shows a button to restart it. A plugin's settings appear in a panel built from the parameters it offers.
 

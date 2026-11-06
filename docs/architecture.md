@@ -480,7 +480,7 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
   "settings": { "autoConnect": true, "sampleRate": "auto", "latency": "default", "autoRun": "off" },
   "blocks": [
     { "id": "b1", "type": "source.application", "nickname": null, "enabled": true,
-      "pos": [40, 120], "params": { "match": { "binary": "firefox" } }, "preset": null },
+      "pos": [40, 120], "params": { "binary": "firefox" }, "preset": null },
     { "id": "b2", "type": "meter.peakrms", "nickname": null, "enabled": true,
       "pos": [220, 120], "params": {}, "preset": null },
     { "id": "b3", "type": "output.device", "nickname": null, "enabled": true,
@@ -488,7 +488,9 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
   ],
   "wires": [
     { "from": ["b1", 0], "to": ["b2", 0] },
-    { "from": ["b2", 0], "to": ["b3", 0] }
+    { "from": ["b1", 1], "to": ["b2", 1] },
+    { "from": ["b2", 0], "to": ["b3", 0] },
+    { "from": ["b2", 1], "to": ["b3", 1] }
   ],
   "timers": [
     { "id": "5b0e3c1a-8f2d-4d6e-b7a9-1c4e2f6a8d30", "enabled": true, "repeat": "weekdays",
@@ -499,6 +501,7 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
 ```
 
 - **`schemaVersion`** selects the migration path when the format changes.
+- **A wire joins one port**, and a stereo block's ports are its channels: `["b1", 0]` is the left and `["b1", 1]` the right. A link between two stereo blocks is two wires; a file with only the first carries only the left channel.
 - **Atomic save:** the file is written to a temporary file, flushed with `fsync`, then renamed over the old one.
 - **Locale-independent data:** numbers use `.` as the decimal separator, and dates are ISO 8601. Values are formatted for the user's locale only on screen.
 - **Stable references:** devices are stored by `node.name` and applications by match rules (binary, name, Flatpak ID), never by runtime object IDs.
@@ -510,7 +513,7 @@ Sessions are plain JSON files in `$XDG_DATA_HOME/reverblabr/sessions/<uuid>.rbse
 | Block | Type ID |
 |---|---|
 | Application | `source.application` |
-| Input Device | `source.input` |
+| Input Device | `source.device` |
 | System Audio | `source.system` |
 | Output Device | `output.device` |
 | Wave | `output.wave` |

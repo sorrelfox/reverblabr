@@ -60,7 +60,7 @@ A session like this is a good candidate for [Auto Run](desktop.md#sessions-that-
 
 **Only Me** is the usual choice when you add a device, and it needs nothing more. **All Users** makes the device for every account on the computer, and asks for an administrator's password. The password is remembered for a few minutes, so a few changes in a row only ask once. Devices for all users have a padlock in the list. Other users get the device the next time they log in.
 
-This needs a small helper that runs as root. A full install includes it; if you run Reverblabr from the build tree, [Installing](installing.md#virtual-devices-for-all-users) says how to install just the helper. Until it's installed, choosing All Users only tells you that it is missing.
+This needs a small helper that runs as root. The packages and a full install include it, and the Flatpak can't have it; if you run Reverblabr from the build tree, [Installing](installing.md#virtual-devices-for-all-users) says how to install just the helper. Until it's installed, choosing All Users only tells you that it is missing.
 
 ## Removing Reverblabr
 

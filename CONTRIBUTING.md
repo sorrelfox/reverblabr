@@ -9,7 +9,7 @@ Thanks for your interest. Reverblabr is a project I work on in my free time, so 
 
 ## Reporting bugs
 
-Open an issue on GitHub and use the bug template. Most useful are the steps that make the problem happen again, and the text **Copy Diagnostics** puts on the clipboard (the Info tab, under *Audio system*). It has the versions, how each session is keeping up, the audio graph around Reverblabr and its last log lines. [When something goes wrong](docs/troubleshooting.md) has more.
+Open an issue on GitHub and use the bug template. Most useful are the steps that make the problem happen again, and the text **Copy Diagnostics** puts on the clipboard (the Info tab, under *Audio system*). It has the versions, how each session is keeping up, the audio graph around Reverblabr and its last log lines. Please also say which package you installed (Fedora's, Debian's, Ubuntu's or the Flatpak) or that you built Reverblabr yourself: they don't all have the same parts ([Installing](docs/installing.md#what-each-one-has)). [When something goes wrong](docs/troubleshooting.md) has more.
 
 ## Changing the code
 

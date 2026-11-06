@@ -51,7 +51,7 @@ The first call starts the engine if it is installed and not running. It needs Qt
 
 **Timers** are made in the window's Schedule tab ([On the desktop](desktop.md#sessions-on-a-schedule)). For each timer that is on, Reverblabr keeps a systemd user timer whose service runs `reverblabr-ctl timer-fire --scheduled --` with the timer's id, so the session starts even with no window open; `systemctl --user list-timers 'reverblabr-timer-*'` shows them. Running `timer-fire` yourself is a way to try a timer out.
 
-**Not here yet:** scripts (`run-script`), after 1.0.
+**Not here yet:** scripts (`run-script`), planned for a later version.
 
 ## Exit status
 

@@ -10,7 +10,8 @@
 # published by hand. Publishing it sends the source RPM to COPR (copr.yml).
 # The released files get a build provenance attestation, which
 # `gh attestation verify` checks. The Release's notes are the version's entry
-# in the AppStream data (tools/release-notes.py).
+# in the AppStream data, followed by packaging/release-downloads.md
+# (tools/release-notes.py).
 # "Run workflow" (workflow_dispatch) builds and tests without releasing.
 name: Release
 

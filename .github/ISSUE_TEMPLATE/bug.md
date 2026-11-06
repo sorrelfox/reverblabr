@@ -8,6 +8,13 @@ labels: bug
 
 <!-- What you did, what you expected, and what happened instead. -->
 
+## How you installed Reverblabr
+
+<!--
+The Fedora package, the Debian or the Ubuntu package, the Flatpak, or your own
+build. Copy Diagnostics doesn't say which.
+-->
+
 ## How to make it happen again
 
 1.

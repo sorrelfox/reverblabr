@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # What to install
 
-Reverblabr is built from source. This page lists every library and tool it uses, whether it is required, and what goes missing without each optional one. The package names are Fedora's and Kubuntu's; Debian testing uses Kubuntu's. The same names are kept in [`tools/deps/fedora.txt`](../tools/deps/fedora.txt), [`tools/deps/kubuntu.txt`](../tools/deps/kubuntu.txt) and [`tools/deps/debian.txt`](../tools/deps/debian.txt), and a test checks that every package in those lists is described here.
+This page is for building Reverblabr from source; the [packages](installing.md) bring what they need with them. It lists every library and tool Reverblabr uses, whether it is required, and what goes missing without each optional one. The package names are Fedora's and Kubuntu's; Debian testing uses Kubuntu's. The same names are kept in [`tools/deps/fedora.txt`](../tools/deps/fedora.txt), [`tools/deps/kubuntu.txt`](../tools/deps/kubuntu.txt) and [`tools/deps/debian.txt`](../tools/deps/debian.txt), and a test checks that every package in those lists is described here.
 
 ## Everything at once
 

@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # On the desktop
 
-Reverblabr is meant to sit in the background and get on with it: sessions keep running with the window closed, the tray and a panel widget show what's going on, and shortcuts work from anywhere. Most of this needs an installed Reverblabr, because a build started from the source tree has no background engine (see [Installing](installing.md#run-it-from-the-build)).
+Reverblabr is meant to sit in the background and get on with it: sessions keep running with the window closed, the tray and a panel widget show what's going on, and shortcuts work from anywhere. Most of this needs an installed Reverblabr, because a build started from the source tree has no background engine (see [Installing](installing.md#run-it-from-the-build)). The Flatpak has the background engine, but not Auto Run, timers, KRunner or the panel widget ([The Flatpak](installing.md#the-flatpak)).
 
 ## All your sessions at once
 

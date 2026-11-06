@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Packaging
 
-Distribution packaging goes in this folder. There is an RPM spec for Fedora, in [`rpm/`](rpm/), a Debian source package for Debian testing and Ubuntu 26.04, in [`debian/`](debian/), and a Flatpak manifest, in [`flatpak/`](flatpak/). A release on GitHub carries all three: the RPMs and the source RPM, a `.deb` for each of the two distributions, and a Flatpak bundle, beside the source tarball and `SHA256SUMS`.
+Distribution packaging goes in this folder. There is an RPM spec for Fedora, in [`rpm/`](rpm/), a Debian source package for Debian testing and Ubuntu 26.04, in [`debian/`](debian/), and a Flatpak manifest, in [`flatpak/`](flatpak/). A release on GitHub carries all three: the Fedora package and its source RPM, a `.deb` for each of the two distributions, and a Flatpak bundle, beside the source tarball and `SHA256SUMS`. The release's text says which file is for which system, what each one lacks and how to check a download: [`release-downloads.md`](release-downloads.md), which `tools/release-notes.py` puts after the version's notes with `@VERSION@` filled in. A change to what a package holds, or to a file's name, changes that file too, and [Installing](../docs/installing.md).
 
 No packaging file writes the version itself. It comes from [`VERSION`](../VERSION): a spec or changelog template takes it as `@VERSION@`, filled in from that file or from the release tarball's name (`reverblabr-X.Y.Z`). Releases are made with `tools/release.sh` ([Making a release](../docs/development.md#making-a-release)).
 
@@ -103,7 +103,7 @@ podman run --rm -v ~/rpmbuild/RPMS:/rpms:Z -v "$PWD/packaging/rpm:/check:Z" \
     registry.fedoraproject.org/fedora:44 /check/install-check.sh /rpms
 ```
 
-The release workflow does all of this from the release tarball and attaches the RPMs and the source RPM to the draft release. The CI's checks fill in the spec from every change and run rpmlint on it.
+The release workflow does all of this from the release tarball and attaches the package and the source RPM to the draft release; the `-debuginfo` and `-debugsource` packages stay out. The CI's checks fill in the spec from every change and run rpmlint on it.
 
 ### COPR
 
@@ -130,9 +130,9 @@ podman run --rm -v "$PWD:/src:ro,z" -v "$PWD/dist:/dist:z" docker.io/library/deb
     /src/packaging/debian/build-deb.sh /dist/reverblabr-0.1.0.tar.xz /dist/debian
 ```
 
-As `srpm.sh` does, the script takes the packaging from the tarball, the version from the tarball's name, and the changelog's date from the release's entry in the AppStream data. On Ubuntu the version gets `~ubuntu26.04`, so the two packages have different names and Debian's is the newer. As root the script installs the build tools and the build dependencies with apt; then it runs `dpkg-buildpackage` and lintian, which must report no errors. The folder gets the `.deb`, the source package (`.dsc`, `.orig.tar.xz`, `.debian.tar.xz`), the `.buildinfo` and the `.changes`.
+As `srpm.sh` does, the script takes the packaging from the tarball, the version from the tarball's name, and the changelog's date from the release's entry in the AppStream data. On Ubuntu the version gets `~ubuntu26.04`, so the two packages have different names and Debian's is the newer. GitHub doesn't keep a `~` in a file's name, so the release workflow attaches that file with a `.` in its place (`reverblabr_X.Y.Z-1.ubuntu26.04_amd64.deb`); the version inside keeps the `~`. As root the script installs the build tools and the build dependencies with apt; then it runs `dpkg-buildpackage` and lintian, which must report no errors. The folder gets the `.deb`, the source package (`.dsc`, `.orig.tar.xz`, `.debian.tar.xz`), the `.buildinfo` and the `.changes`.
 
-One package holds everything on this page, as on Fedora. Its folders are Debian's: the plugin host and the model host are in `/usr/lib/x86_64-linux-gnu/libexec/`, the all-users helper where KAuth puts helpers (`/usr/lib/kf6/kauth/libexec/`), the panel widget's QML module in `/usr/lib/x86_64-linux-gnu/qt6/qml/`, and the zsh completion in `/usr/share/zsh/vendor-completions/`. The build runs the same tests as the RPM's `%check`, with link-time optimisation where the distribution turns it on (Ubuntu does, Debian does not), and the package does not enable the engine's unit.
+One package holds everything on this page, as on Fedora. Its folders are Debian's: the plugin host and the model host are in `/usr/lib/x86_64-linux-gnu/libexec/`, the all-users helper where KAuth puts helpers (`/usr/lib/kf6/kauth/libexec/`), the panel widget's QML module in `/usr/lib/x86_64-linux-gnu/qt6/qml/`, and the zsh completion in `/usr/share/zsh/vendor-completions/`. The build runs the tests of the RPM's `%check`, less one more cost test (ten minutes of silence that must cost less than a tone, which a busy builder can upset), and runs a failing test once, where the RPM gives it three tries. It builds with link-time optimisation where the distribution turns it on (Ubuntu does, Debian does not), and the package does not enable the engine's unit.
 
 The distributions do not package every library. A block whose library is missing, or too old, is left out through a build profile, which the script sets by itself:
 
@@ -157,9 +157,11 @@ The release workflow does both for each distribution from the release tarball an
 
 [`flatpak/io.github.reverblabr.Reverblabr.yml`](flatpak/io.github.reverblabr.Reverblabr.yml) builds Reverblabr on the KDE runtime 6.11, sandboxed and reduced ([ADR-0034](../docs/adr/0034-flatpak.md)). The window, the engine and the plugin hosts run in one sandbox. The host's bus can't start the engine there, so the window starts `reverblabrd` itself, and the sandbox owns `io.github.reverblabr.Engine`. Everything the runtime lacks is built in the manifest from a pinned source: PipeWire 1.6, lilv and suil with the libraries they need, SoX Resampler, SoundTouch, RNNoise, the CLAP and VST3 headers and QtKeychain.
 
-**Not in the Flatpak:** Auto Run, timers, KRunner, the panel widget, devices for all users and the Model block. The window says so where Auto Run, timers and devices for all users appear. The activation file, the systemd unit and the KRunner file are removed from it.
+**Not in the Flatpak:** Auto Run, timers, KRunner, the panel widget, devices for all users, the Model block, plugins installed on the host (below), and `reverblabr-ctl`'s manual page and shell completions. The window says so where Auto Run, timers and devices for all users appear. The activation file, the systemd unit, the KRunner file and the manual pages are removed from it. The handbook is built in, but F1 hands `help:/reverblabr` to the host's help viewer, which most likely can't read it inside the sandbox.
 
-Plugins come from Flathub's extensions of `org.freedesktop.LinuxAudio.Plugins` (branch 25.08), in `/app/extensions/Plugins/`; plugins installed on the host are not seen. A plugin's own window is an X11 window, so the sandbox gets X11 beside Wayland. Virtual devices are written to the host's `~/.config/pipewire/`, the only part of `~/.config` it can reach. Recordings go to the Music folder.
+**After PipeWire restarts, the Flatpak's engine stays cut off from it.** `--filesystem=xdg-run/pipewire-0` gives the sandbox the socket file as it is when the sandbox starts, and a restarted PipeWire makes a new one. A package's engine reconnects by itself; the Flatpak's needs `flatpak kill io.github.reverblabr.Reverblabr` and a new start, and its sessions have to be started again. The manifest can't change that: Flatpak has no permission for PipeWire's socket alone, and all of `xdg-run` would give the sandbox the session bus past its proxy.
+
+Plugins come from Flathub's extensions of `org.freedesktop.LinuxAudio.Plugins` (branch 25.08), in `/app/extensions/Plugins/`; plugins installed on the host are not seen. A plugin's own window is an X11 window, so the sandbox gets X11 beside Wayland. Virtual devices are written to the host's `~/.config/pipewire/`, the only part of `~/.config` the manifest gives it (the KDE runtime also shows it `kdeglobals`). Recordings go to the Music folder, which it may write to; a folder elsewhere hasn't been tried.
 
 [`flatpak/build-flatpak.sh`](flatpak/build-flatpak.sh) builds it, from this tree or from a release tarball, and makes the bundle. It needs `flatpak-builder` and Flathub as a remote; it installs the KDE SDK and runtime for the user when they are missing:
 
@@ -169,6 +171,6 @@ packaging/flatpak/build-flatpak.sh dist/reverblabr-0.1.0.tar.xz dist/flatpak   #
 packaging/flatpak/smoke-flatpak.sh dist/flatpak/reverblabr-0.1.0-x86_64.flatpak
 ```
 
-[`flatpak/smoke-flatpak.sh`](flatpak/smoke-flatpak.sh) installs the bundle for the user, runs every program's `--version` in the sandbox, and opens the window offscreen for a few seconds on a session bus of its own, with no PipeWire socket, checking that the engine it starts takes its name. It removes the install again unless it was there before. The release workflow builds the bundle from the release tarball on a GitHub runner, runs this check, and attaches the bundle to the draft release.
+[`flatpak/smoke-flatpak.sh`](flatpak/smoke-flatpak.sh) installs the bundle for the user, runs every program's `--version` in the sandbox, and opens the window offscreen for a few seconds on a session bus of its own, with no PipeWire socket, checking that the engine it starts takes its name. It removes the install again unless it was there before. The release workflow builds the bundle from the release tarball on a GitHub runner, runs this check, and attaches the bundle to the draft release. No check plays sound through the sandbox: this one leaves the PipeWire socket out on purpose, so real sound, the tray, notifications and global shortcuts in the Flatpak are still to be tried on a desktop.
 
-The bundle is installed with `flatpak install --user reverblabr-0.1.0-x86_64.flatpak`; Flathub must be a remote, for the runtime. The command-line tool is `flatpak run --command=reverblabr-ctl io.github.reverblabr.Reverblabr`.
+The bundle is installed with `flatpak install --user reverblabr-0.1.0-x86_64.flatpak`; Flathub must be a remote, for the runtime. The command-line tool is `flatpak run --command=reverblabr-ctl io.github.reverblabr.Reverblabr`; with no activation file it can't start the engine, so it reaches one only while the window's is running.

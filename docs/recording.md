@@ -12,7 +12,7 @@ Put a **Recorder** (under *Outputs*) anywhere in a lane. It writes what reaches 
 - **It records while the session runs.** The tile shows the format, a red **REC** with the time, and **Pause** and **Split** buttons. Split ends the current file and starts the next one, numbered on. Pause leaves the paused time out and joins the two parts.
 - **The file name** is built from **Session**, **Date**, **Time** and **Counter** pieces plus your own text, and the settings show what the next file will be called. Files go to a Reverblabr folder in your Music folder unless you choose another.
 - **Quality** offers Voice, Standard and High-quality MP3, High-quality AAC, Lossless (FLAC) and Uncompressed (WAV). **Format options** let you set the bit rate, bit depth, sample rate and mono by hand.
-- **AAC and Apple Lossless** are only offered if your system's FFmpeg can write them. On Fedora the full FFmpeg comes from RPM Fusion. FLAC and the other formats always work.
+- **AAC and Apple Lossless** are only offered if your system's FFmpeg can write them. Fedora's own FFmpeg (`ffmpeg-free`) writes both. FLAC and the other formats always work.
 - **Tags** (title, artist, album and so on) are written into each file when it's finished. The name pieces work in tags too, so a Track of `%counter` numbers the files of a split recording.
 - **Limits** start a new file every so many minutes, hours or megabytes, stop the recording after a while, or act on silence: leave it out, start a new file after it, or stop.
 - **A crash doesn't cost you the recording.** The file plays as it is up to the last few seconds, and Reverblabr restores the rest the next time it starts.

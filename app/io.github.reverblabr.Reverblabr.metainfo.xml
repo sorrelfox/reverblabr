@@ -27,11 +27,11 @@ SPDX-License-Identifier: CC0-1.0
     <p>What you can do with it:</p>
     <ul>
       <li>Make a call or a stream sound better: take the noise out of a voice, even out its level and shape its tone.</li>
-      <li>Record the sound of one application, or of a microphone and an application side by side, to WAV, FLAC, MP3, Opus or M4A.</li>
+      <li>Record the sound of one application, or of a microphone and an application side by side, to WAV, FLAC, MP3, Opus and more.</li>
       <li>Turn a quiet programme up, a loud one down, or duck the music whenever someone speaks.</li>
       <li>Shape the sound for one ear or both, with gain that depends on pitch and level, and move high or low sounds into a range that is easier to hear.</li>
       <li>Make virtual outputs and microphones that other applications can use.</li>
-      <li>Use LV2, CLAP and LADSPA plugins beside the built-in effects.</li>
+      <li>Use LV2 and LADSPA plugins beside the built-in effects, and CLAP and VST3 plugins where the package supports them.</li>
       <li>Keep sessions running with the window closed, from the system tray, from global shortcuts or from the command line.</li>
     </ul>
   </description>

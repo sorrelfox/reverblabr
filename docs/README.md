@@ -5,11 +5,11 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Reverblabr documentation
 
-These pages explain how to build Reverblabr, how to use it, and how it is put together inside. The program is still in development, so things described here can change, and some rough edges aren't described at all yet. If a page and the program disagree, one of them is wrong, and I'd like to know about it.
+These pages explain how to install Reverblabr, how to use it, and how it is put together inside. Reverblabr keeps changing, so things described here can change too, and some rough edges aren't described at all yet. If a page and the program disagree, one of them is wrong, and I'd like to know about it.
 
 ## Using Reverblabr
 
-- [Installing](installing.md): what you need, how to build it, and how to install it
+- [Installing](installing.md): the packages and the Flatpak, what each one lacks and why, and building it yourself
 - [Getting started](getting-started.md): your first session, from an application to your speakers
 - [Blocks](blocks.md): every block in the library and what it is for
 - [Virtual devices](virtual-devices.md): sound cards of your own, for routing programs through Reverblabr

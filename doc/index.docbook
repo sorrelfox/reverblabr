@@ -1042,8 +1042,9 @@ it.</para>
 <title>Speech Denoise</title>
 <para>Clears the background from a voice without learning anything first,
 using RNNoise, a model trained on speech. It works at 48 kHz and adds 30 ms of
-delay. It is only there where the distribution packages RNNoise, which Fedora
-does.</para>
+delay. It is only built where RNNoise is there: the Fedora and Debian packages
+and the Flatpak have it, the Ubuntu package doesn't, because Ubuntu doesn't
+package RNNoise.</para>
 </sect2>
 
 <sect2 id="block-advanced-sync">
@@ -1202,8 +1203,8 @@ MP3</guilabel>, <guilabel>High-quality MP3</guilabel>,
 <guilabel>High-quality AAC</guilabel>, <guilabel>Lossless</guilabel> (FLAC)
 and <guilabel>Uncompressed</guilabel> (WAV). The format options let you set
 the bit rate, bit depth, sample rate and mono by hand. AAC and Apple Lossless
-are only offered if your system's FFmpeg can write them; on Fedora the full
-FFmpeg comes from RPM Fusion. FLAC and the other formats always
+are only offered if your system's FFmpeg can write them; Fedora's own FFmpeg
+(ffmpeg-free) writes both. FLAC and the other formats always
 work.</para></listitem>
 </varlistentry>
 <varlistentry>
@@ -1281,7 +1282,8 @@ the next time you open the tab.</para>
 sessions keep running with the window closed, the tray and a panel widget
 show what is going on, and shortcuts work from anywhere. Most of this needs an installed
 &reverblabr;, because a build started from the source tree has no background
-engine.</para>
+engine. The Flatpak has the background engine, but not Auto Run, timers,
+KRunner or the panel widget.</para>
 
 <sect1 id="all-sessions">
 <title>All your sessions at once</title>
@@ -1678,7 +1680,8 @@ password is remembered for a few minutes, so a few changes in a row only ask
 once. Devices for all users have a padlock in the list. Other users get the
 device the next time they log in.</para>
 
-<para>This needs a small helper that runs as root. A full install includes it;
+<para>This needs a small helper that runs as root. The packages and a full
+install include it, and the Flatpak can't have it;
 until it is installed, choosing All Users only tells you that it is
 missing.</para>
 </sect1>
@@ -2146,7 +2149,7 @@ cleaner way.</para></answer>
 installed.</para></question>
 <answer><para>That is expected when you run &reverblabr; from the build tree:
 the window runs the engine itself, and sessions stop when it closes. Install
-&reverblabr; to get the background engine.</para></answer>
+a package, or install your build, to get the background engine.</para></answer>
 </qandaentry>
 <qandaentry>
 <question><para>The sound drops out.</para></question>
@@ -2169,8 +2172,11 @@ speakers by name.</para></answer>
 <question><para>A block is missing from the library.</para></question>
 <answer><para>Some blocks are only built when their library was found: Speech
 Denoise needs RNNoise, the CLAP block needs the CLAP SDK, the VST3 block needs
-the VST3 SDK 3.8 or later. Your distribution's
-package, or the build's summary, says what was left out.</para></answer>
+the VST3 SDK 3.8 or later, and Model needs ONNX Runtime. Which package has
+which is on the project's <ulink
+url="https://github.com/sorrelfox/reverblabr/blob/dev/docs/installing.md#what-each-one-has">Installing</ulink>
+page; in a build of your own, the build's summary lists what it left
+out.</para></answer>
 </qandaentry>
 <qandaentry>
 <question><para>A plugin stopped.</para></question>
@@ -2214,7 +2220,8 @@ this:</para>
 
 <para>Please open an issue at <ulink
 url="https://github.com/sorrelfox/reverblabr/issues">https://github.com/sorrelfox/reverblabr/issues</ulink>.
-Say what you did, what you expected and what happened instead, and paste what
+Say what you did, what you expected and what happened instead, which package
+you installed (or that you built &reverblabr; yourself), and paste what
 <guibutton>Copy Diagnostics</guibutton> gives you. Steps that make the problem
 happen again are the most useful thing you can send, and a session file or a
 short recording of the sound can help too.</para>

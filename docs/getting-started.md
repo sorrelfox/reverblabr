@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Getting started
 
-This page walks you through a first session: the sound of one application, measured, turned up or down, compressed, measured again and sent to your speakers. It takes about five minutes. If you haven't built Reverblabr yet, start with [Installing](installing.md).
+This page walks you through a first session: the sound of one application, measured, turned up or down, compressed, measured again and sent to your speakers. It takes about five minutes. If you haven't installed Reverblabr yet, start with [Installing](installing.md).
 
 ## The window
 
