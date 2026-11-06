@@ -37,10 +37,12 @@ version=${BASH_REMATCH[1]}
 top=reverblabr-$version
 
 # The newest release in the AppStream data is the version's: tools/release.sh
-# writes it, and tools/check-release-tag.sh holds a tag to it.
+# writes it, and tools/check-release-tag.sh holds a tag to it. grep reads to
+# the end: one that stopped at the first match could leave tar writing into a
+# closed pipe, and with pipefail that ends the script (SIGPIPE, 141).
 date=$(tar -xOJf "$tarball" "$top/app/io.github.reverblabr.Reverblabr.metainfo.xml" \
-    | grep -m 1 -o '<release version="[^"]*" date="[^"]*"' \
-    | sed -n "s/^<release version=\"$version\" date=\"\(.*\)\"$/\1/p")
+    | grep -o '<release version="[^"]*" date="[^"]*"' \
+    | sed -n "1s/^<release version=\"$version\" date=\"\(.*\)\"$/\1/p")
 [ -n "$date" ] || die "the newest release in the tarball's AppStream data is not $version"
 changelog_date=$(LC_ALL=C date -u -d "$date" '+%a %b %d %Y')
 
