@@ -15,7 +15,7 @@
         "License": "MPL-2.0",
         "Name": "Reverblabr Sessions",
         "Version": "@RB_VERSION@",
-        "Website": "https://github.com/sorrelfox/reverblabr"
+        "Website": "https://sorrelfox.github.io/reverblabr/"
     },
     "X-Plasma-API-Minimum-Version": "6.0"
 }

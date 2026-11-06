@@ -67,7 +67,7 @@ for url in re.findall(r"<image[^>]*>([^<]+)</image>", metainfo):
     if url.startswith(RAW):
         check((REPO / url[len(RAW):]).is_file(), f"the screenshot {url} is not in the tree")
 # The addresses the About dialog opens are the ones the AppStream data gives,
-# and none is on main, which is empty until the first release.
+# and none is on main, which only moves at a release.
 INFO = (REPO / "app" / "appinfo.cpp").read_text()
 for kind, constant in (("homepage", "kHomepage"), ("bugtracker", "kBugTracker"), ("contribute", "kContribute")):
     said = re.search(rf'{constant} = "([^"]+)"', INFO)
@@ -78,7 +78,7 @@ for kind, constant in (("homepage", "kHomepage"), ("bugtracker", "kBugTracker"),
         check(said.group(1) == listed.group(1),
               f"the {kind} address is {said.group(1)} in the program and {listed.group(1)} in the AppStream data")
 for url in re.findall(r"<url type=\"[^\"]+\">([^<]+)</url>", metainfo):
-    check("/blob/main/" not in url, f"{url} is on main, which is empty until the first release")
+    check("/blob/main/" not in url, f"{url} is on main, which only moves at a release")
 
 # The version is VERSION's: its newest release has to be that one,
 # with notes written for it.

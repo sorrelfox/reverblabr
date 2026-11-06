@@ -13,7 +13,7 @@ Priority: optional
 Maintainer: sorrelfox <sorrelfox@users.noreply.github.com>
 Rules-Requires-Root: no
 Standards-Version: 4.7.3
-Homepage: https://github.com/sorrelfox/reverblabr
+Homepage: https://sorrelfox.github.io/reverblabr/
 Vcs-Browser: https://github.com/sorrelfox/reverblabr
 Vcs-Git: https://github.com/sorrelfox/reverblabr.git -b dev
 Build-Depends:

@@ -22,8 +22,8 @@ namespace
 
 // **The project's addresses, in one place.** tools.desktop-entry holds them
 // against the AppStream data. Documents go to `dev`, the default branch:
-// `main` is empty until the first release, and `dev` outlives it.
-constexpr auto kHomepage = "https://github.com/sorrelfox/reverblabr";
+// `main` only moves at a release, and `dev` is where they are kept up to date.
+constexpr auto kHomepage = "https://sorrelfox.github.io/reverblabr/";
 constexpr auto kBugTracker = "https://github.com/sorrelfox/reverblabr/issues";
 constexpr auto kContribute = "https://github.com/sorrelfox/reverblabr/blob/dev/CONTRIBUTING.md";
 // As every source file's header gives it.

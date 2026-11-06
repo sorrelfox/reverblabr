@@ -33,7 +33,7 @@ TEST(AppInfoTest, TheRecordSaysWhereTheProjectIs)
     const KAboutData about = describedApplication();
     const AppInfo info;
 
-    EXPECT_EQ(about.homepage(), u"https://github.com/sorrelfox/reverblabr"_s);
+    EXPECT_EQ(about.homepage(), u"https://sorrelfox.github.io/reverblabr/"_s);
     EXPECT_EQ(info.homepageUrl().toString(), about.homepage());
     EXPECT_EQ(about.bugAddress(), u"https://github.com/sorrelfox/reverblabr/issues"_s);
 }
@@ -42,7 +42,7 @@ TEST(AppInfoTest, TheLinksGoToPagesThatAreThere)
 {
     const AppInfo info;
 
-    // Not main, which is empty until the first release.
+    // Not main, which only moves at a release.
     EXPECT_EQ(info.contributeUrl().toString(), u"https://github.com/sorrelfox/reverblabr/blob/dev/CONTRIBUTING.md"_s);
     EXPECT_EQ(info.licenceUrl().toString(), u"https://mozilla.org/MPL/2.0/"_s);
 }
