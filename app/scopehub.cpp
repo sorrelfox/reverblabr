@@ -22,8 +22,6 @@ namespace
 {
 
 constexpr double kDefaultRate = 48000.0;
-/// How often a surface that holds is still looked at, for the state.
-constexpr int kLeastTicksPerSecond = 10;
 
 [[nodiscard]] double sinceTheHubStarted()
 {
