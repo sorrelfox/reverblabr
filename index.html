@@ -1,0 +1,302 @@
+<!doctype html>
+<!--
+SPDX-FileCopyrightText: 2026 Reverblabr contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; media-src 'self'; font-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>Reverblabr: capture, process and route audio on your desktop</title>
+<meta name="description" content="Reverblabr takes the sound of an application, a microphone or everything your computer plays, sends it through effects you put together block by block, and plays it, records it or hands it to other programs. For Linux, on KDE Plasma with PipeWire.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eff0f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1e20" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://sorrelfox.github.io/reverblabr/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/noto-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/noto-sans-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="site.css">
+<script src="site.js" defer></script>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Reverblabr">
+<meta property="og:locale" content="en_GB">
+<meta property="og:title" content="Reverblabr: capture, process and route audio on your desktop">
+<meta property="og:description" content="Take the sound of an application, a microphone or the whole computer, put it through effects you wire together, and play it, record it or hand it to other programs. For KDE Plasma and PipeWire.">
+<meta property="og:url" content="https://sorrelfox.github.io/reverblabr/">
+<meta property="og:image" content="https://sorrelfox.github.io/reverblabr/social.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Reverblabr icon and name beside a session of blocks wired together on its canvas.">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./"><img src="icon.svg" alt="" width="32" height="32"><span>Reverblabr</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="download.html">Download</a></li>
+        <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/README.md">Docs</a></li>
+        <li><a href="https://github.com/sorrelfox/reverblabr">Source code</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="canvas hero" aria-labelledby="title">
+  <div class="wrap hero-grid">
+    <div class="hero-words">
+    <h1 id="title">Capture, process and route audio on your desktop</h1>
+    <p class="lede">Reverblabr takes the sound of an application, a microphone or everything your computer plays, sends it through effects you put together block by block, and plays it, records it or hands it to other programs as a microphone of its own.</p>
+    <p class="actions">
+      <a class="button primary" href="download.html"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Download Reverblabr 1.0.1</a>
+      <a class="button" href="features.html">See every feature</a>
+    </p>
+    <p class="fine">For Linux, on KDE Plasma 6 with PipeWire. Free software under the Mozilla Public License 2.0.</p>
+    </div>
+    <figure class="lane">
+      <ol aria-label="One lane of a session, from left to right">
+        <li class="tile tint-sources">
+          <span class="tile-head"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg>Input Device<span class="state" aria-hidden="true"></span></span>
+          <span class="tile-body"><svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><rect x="5.5" y="1" width="5" height="9" rx="2.5"/><path d="M3.2 7.4a.8.8 0 0 1 1.6 0 3.2 3.2 0 0 0 6.4 0 .8.8 0 0 1 1.6 0 4.8 4.8 0 0 1-4 4.7V14h1.7a.8.8 0 0 1 0 1.6H5.5a.8.8 0 0 1 0-1.6h1.7v-1.9a4.8 4.8 0 0 1-4-4.7z"/></svg><span class="note">USB Microphone</span></span>
+          <span class="port out" aria-hidden="true"></span>
+        </li>
+        <li class="tile tint-advanced">
+          <span class="port in" aria-hidden="true"></span>
+          <span class="tile-head"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8h2.5l1.5-4.5 2.5 9 2-6 1 1.5h3.5"/></svg>Denoise<span class="state" aria-hidden="true"></span></span>
+          <span class="tile-body"><span class="word">Active</span><span class="note">10.0 s noise learned</span></span>
+          <span class="port out" aria-hidden="true"></span>
+        </li>
+        <li class="tile tint-effects">
+          <span class="port in" aria-hidden="true"></span>
+          <span class="tile-head"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 10.5v-5M6 13V3M9.5 11V5M13 12.5V3.5"/></svg>Voice Evener<span class="state" aria-hidden="true"></span></span>
+          <span class="tile-body"><span class="reading">&minus;13 dB</span><span class="note">turning down</span><span class="bar" aria-hidden="true"></span></span>
+          <span class="port out" aria-hidden="true"></span>
+        </li>
+        <li class="tile tint-outputs">
+          <span class="port in" aria-hidden="true"></span>
+          <span class="tile-head"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h2.5L8 3v10L4.5 10H2zM11 5.5a3.5 3.5 0 0 1 0 5"/></svg>Output Device<span class="state" aria-hidden="true"></span></span>
+          <span class="tile-body"><svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M1.5 5.6h2.8L8.2 2.4v11.2L4.3 10.4H1.5z"/><path d="M10.6 5a.8.8 0 0 1 1.1-.1 4 4 0 0 1 0 6.2.8.8 0 1 1-1-1.2 2.4 2.4 0 0 0 0-3.8.8.8 0 0 1-.1-1.1z"/></svg><span class="note">Processed voice</span></span>
+        </li>
+      </ol>
+      <figcaption>One lane: a microphone, cleaned of a steady noise and evened out, played into a virtual microphone that a call program records from.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="showcase">
+  <div class="wrap">
+    <figure class="shot">
+      <img src="images/demo-session.webp" width="1600" height="921" fetchpriority="high" alt="Reverblabr with a five-lane session: two applications and two microphones go into a Mixer, then a Waveform and a Spectrum, while a third microphone is cleaned up and played into a virtual microphone. The Waveform and Peak/RMS cards are open.">
+      <figcaption>Four sources mixed into one, and a microphone cleaned up for calls, in one session.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section class="section" id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <h2 id="how-title">How a session works</h2>
+    <p class="intro">You build a session on a canvas. Sound comes in at its sources, travels along wires through the blocks you add, and leaves at its outputs. The wires turn orange while sound goes through them, and anything can be changed while it plays.</p>
+
+
+    <div class="stages">
+      <div class="stage tint-sources">
+        <h3>Sources</h3>
+        <p>The sound of one application, a microphone or another input, or everything the computer plays. Capturing an application doesn't move it: it goes on playing where it was, and nothing is installed into it.</p>
+      </div>
+      <div class="stage tint-effects">
+        <h3>Blocks in between</h3>
+        <p>More than twenty built-in effects, from volume, equalisers and compressors to noise and hum removal, reverb and pitch shift. Meters at any point in a lane. Blocks that shape the sound for each ear. And plugins in the LV2, LADSPA, CLAP and VST3 formats; which formats, and which plugins, depends on the package.</p>
+      </div>
+      <div class="stage tint-outputs">
+        <h3>Outputs</h3>
+        <p>Any speakers or headphones, a recording, or a virtual microphone for other programs. A lane can also go to an internet radio server, or to a video platform with a picture made for it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="uses" aria-labelledby="uses-title">
+  <div class="wrap">
+    <h2 id="uses-title">What you can do with it</h2>
+    <div class="uses">
+
+      <article class="use">
+        <div>
+          <h3>Make a call or a stream sound better</h3>
+          <p>Take the noise out of a voice, even out its level and shape its tone. Play the result into a virtual microphone and pick that in your call or streaming program, so everyone hears the cleaned-up voice.</p>
+          <p><a class="more" href="features.html#blocks">The blocks for voices</a></p>
+        </div>
+        <figure class="shot">
+          <img src="images/voice-for-calls.webp" width="1400" height="900" loading="lazy" decoding="async" alt="A microphone lane with Speech Denoise and the Voice Evener, whose card charts the level coming in against the level going out around a target of -23 LUFS.">
+          <figcaption>A voice made steady: noise taken out, quiet talkers lifted and loud ones brought down.</figcaption>
+        </figure>
+      </article>
+
+      <article class="use">
+        <div>
+          <h3>Send sound between programs</h3>
+          <p>Make virtual outputs and microphones. Other programs see them as ordinary sound cards, so you can run your browser or music player through a session before you hear it, or hand your processed voice to a call. They stay until you delete them, whether Reverblabr is running or not.</p>
+          <p><a class="more" href="features.html#virtual-devices">Virtual devices</a></p>
+        </div>
+        <figure class="shot narrow">
+          <img src="images/virtual-devices.webp" width="640" height="440" loading="lazy" decoding="async" alt="The Virtual Devices window, with two virtual outputs, one of them switched off, and one virtual microphone.">
+          <figcaption>Two virtual outputs and a virtual microphone.</figcaption>
+        </figure>
+      </article>
+
+      <article class="use">
+        <div>
+          <h3>Record what you hear</h3>
+          <p>Record one application, a microphone, or both side by side, to WAV, FLAC, MP3, Opus and more. A crash doesn't cost you the recording. The Files tab lists everything a session recorded, to play back, rename and tag.</p>
+          <p><a class="more" href="features.html#recording">Recording</a></p>
+        </div>
+        <figure class="shot">
+          <img src="images/recording-files.webp" width="1400" height="900" loading="lazy" decoding="async" alt="The Files tab lists a session's recordings, the newest still being written, each with a small waveform, its length, format and size.">
+          <figcaption>Every file a session records, listed in its Files tab.</figcaption>
+        </figure>
+      </article>
+
+      <article class="use">
+        <div>
+          <h3>Shape the sound for your ears</h3>
+          <p>The Hearing blocks lift quiet sound band by band, for each ear on its own, and can be set up from an audiogram. Others move high or low sounds into a range that is easier to hear. Every band stays under limits you set. Reverblabr is not a medical device and doesn't replace a hearing aid.</p>
+          <p><a class="more" href="features.html#hearing">Hearing</a></p>
+        </div>
+        <figure class="shot">
+          <img src="images/hearing-compensation.webp" width="1400" height="900" loading="lazy" decoding="async" alt="The Hearing Compensation 16 card for the left ear: a gain curve over sixteen bands that rises towards the high frequencies, from its Gentle slope preset.">
+          <figcaption>Sixteen bands of lift for one ear, here from the Gentle slope preset.</figcaption>
+        </figure>
+      </article>
+
+      <article class="use">
+        <div>
+          <h3>Change it while it plays</h3>
+          <p>Add a block to a running session and it connects itself. Open its card and change it while you listen: the sound follows without a click, and Undo takes any change back.</p>
+          <p><a class="more" href="features.html#window">The window</a></p>
+        </div>
+        <figure class="shot">
+          <video src="media/session-meters.webm" width="1280" height="900" poster="media/session-meters-poster.webp" controls muted loop playsinline preload="none" data-play-in-view aria-describedby="clip-words"></video>
+          <figcaption id="clip-words">A screen recording without sound: meters added to a running session connect themselves, then the Waveform card shows the live sound while its style is switched between line, filled, bars and dots.</figcaption>
+        </figure>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<section class="section" id="why" aria-labelledby="why-title">
+  <div class="wrap">
+    <h2 id="why-title">What it does differently</h2>
+    <ul class="rings">
+      <li>
+        <h3>It leaves your applications alone</h3>
+        <p>Capturing an application only adds a link. The application keeps playing where it was, and when Reverblabr stops, or even crashes, the link is gone.</p>
+      </li>
+      <li>
+        <h3>A plugin can't take the session down</h3>
+        <p>Every plugin runs in a process of its own. If one crashes or hangs, its block is bypassed and the sound goes on, and Restart brings it back with its settings.</p>
+      </li>
+      <li>
+        <h3>Sessions run without the window</h3>
+        <p>A small background engine plays them with the window closed, and through a crash of the window. Start them at login or on a timer, or from the tray, a panel widget, KRunner or a shortcut.</p>
+      </li>
+      <li>
+        <h3>Real-time rules, checked by tools</h3>
+        <p>Nothing on the audio thread allocates memory or takes a lock, and the compiler and a real-time sanitizer check that, not only a review. A session too heavy for the computer goes quiet instead of taking the program down.</p>
+      </li>
+      <li>
+        <h3>Private</h3>
+        <p>No usage statistics, no update checks, no network use of its own. Only the Broadcast and Live Stream blocks send anything, to the server you name, and their password or stream key stays in your desktop's password store.</p>
+      </li>
+      <li>
+        <h3>At home on Plasma and PipeWire</h3>
+        <p>It talks to PipeWire directly and leaves WirePlumber in charge. The tray icon, notifications, global shortcuts, KRunner, the panel widget and KWallet are the desktop's own.</p>
+      </li>
+      <li>
+        <h3>Scriptable, and it stays that way</h3>
+        <p>A D-Bus API does everything the window does, and <code>reverblabr-ctl</code> runs and changes sessions from a terminal or a script. Both are only ever added to, so a script keeps working.</p>
+      </li>
+      <li>
+        <h3>Works without a mouse</h3>
+        <p>Every step works from the keyboard and with a screen reader, and a session can be shown as a list. In its own light and dark looks, text and every mark that means something meet the contrast of WCAG 2.1 AA.</p>
+      </li>
+      <li>
+        <h3>Free, and open to any plugin</h3>
+        <p>The code is under the Mozilla Public License 2.0, chosen so that commercial plugins can be used as well as free ones.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="section" id="get" aria-labelledby="get-title">
+  <div class="wrap">
+    <h2 id="get-title">Get Reverblabr 1.0.1</h2>
+    <p class="intro">A package for three distributions, and a Flatpak for the rest. Each package says what it can't have, and why.</p>
+    <ul class="systems">
+      <li><a class="system" href="download.html#fedora"><span class="name">Fedora 44</span><span class="kind">RPM</span><span class="gives">Everything Reverblabr has.</span></a></li>
+      <li><a class="system" href="download.html#ubuntu"><span class="name">Ubuntu and Kubuntu 26.04</span><span class="kind">DEB</span><span class="gives">Without CLAP and VST3 plugins, Speech Denoise and the voice model.</span></a></li>
+      <li><a class="system" href="download.html#debian"><span class="name">Debian testing</span><span class="kind">DEB</span><span class="gives">Without CLAP plugins.</span></a></li>
+      <li><a class="system" href="download.html#flatpak"><span class="name">Any other distribution</span><span class="kind">Flatpak</span><span class="gives">In a sandbox, without Auto Run, timers, KRunner, the panel widget, devices for all users or the Model block, and with Flathub's plugins only.</span></a></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section" id="story" aria-labelledby="story-title">
+  <div class="wrap">
+    <div class="story">
+    <h2 id="story-title">How it started</h2>
+    <p>In 2023 I gave up Apple products and moved to Linux. I was tired of being told what to do and how to use my own device. The move went well, but I missed a program for managing audio streams and putting filters on them, and nothing on Linux did what I needed. So I started writing my own, by hand, and spent much of that time learning the KDE API.</p>
+    <p>About eight months later the first version ran in a terminal and could do very little, and it took most of another year to make it more or less stable. In 2025 it got its first design and became a real KDE application. A few people I know started using it and asking for more, and I learned QML to give it a look of its own.</p>
+    <p>In the middle of 2026 someone I know told me he had partly lost his hearing through an illness, had to wear a hearing aid all day, and found nothing on Linux to help him. Together we gathered what was needed, and I built the blocks in the Hearing group.</p>
+    <p>By then the program I had written for myself was one that other people need too, so I'm releasing it for everyone. I first wanted a GNU licence, but it would have kept commercial plugins out, and I want any plugin to work with Reverblabr. So I chose the Mozilla Public License 2.0. I'd be happy if you find it useful.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="./"><img src="icon.svg" alt="" width="32" height="32"><span>Reverblabr</span></a>
+        <p>Capture, process and route audio on your desktop. Version 1.0.1, released on <time datetime="2026-11-06">6 November 2026</time>.</p>
+      </div>
+      <nav aria-label="Project">
+        <h2>Project</h2>
+        <ul>
+          <li><a href="https://github.com/sorrelfox/reverblabr">Source code</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/releases">All releases</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/issues">Report a bug</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/CONTRIBUTING.md">Contributing</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="Documentation">
+        <h2>Documentation</h2>
+        <ul>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/getting-started.md">Getting started</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/blocks.md">Blocks</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/privacy.md">Privacy</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/troubleshooting.md">When something goes wrong</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="legal">
+      <p>The code is under the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/LICENSE">Mozilla Public License 2.0</a>; the documentation and this site's words and pictures under CC-BY-SA-4.0. The name and the logo are covered by the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/TRADEMARKS.md">trademark policy</a>.</p>
+      <p>VST is a registered trademark of Steinberg Media Technologies GmbH. The typefaces are Noto Sans and JetBrains Mono, under the <a href="fonts/OFL-1.1.txt">SIL Open Font License 1.1</a>.</p>
+      <p>This site sets no cookies and loads nothing from other sites.</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
