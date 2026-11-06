@@ -1,0 +1,37 @@
+{
+    "window": { "width": 1400, "height": 900 },
+    "sessionName": "Everyday",
+    "grid": { "x": 36, "y": 150, "column": 190, "row": 150 },
+    "blocks": [
+        { "name": "music", "type": "source.application", "column": 0, "row": 0,
+          "params": { "binary": "elisa", "name": "Elisa" } },
+        { "name": "eq", "type": "effect.equalizer10?preset=headphones", "column": 1, "row": 0 },
+        { "name": "volume", "type": "effect.volume", "column": 2, "row": 0 },
+        { "name": "spectrum", "type": "meter.spectrum?preset=musicBalance", "column": 3, "row": 0 },
+        { "name": "speakers", "type": "output.device", "column": 5, "row": 0 },
+        { "name": "microphone", "type": "source.device", "column": 0, "row": 1 },
+        { "name": "denoise", "type": "advanced.speechdenoise", "column": 1, "row": 1 },
+        { "name": "evener", "type": "effect.autolevel?preset=voiceEvener", "column": 2, "row": 1 },
+        { "name": "dynamics", "type": "effect.dynamics?preset=voice", "column": 3, "row": 1 },
+        { "name": "voicemeter", "type": "meter.peakrms", "column": 4, "row": 1 },
+        { "name": "recorder", "type": "output.recorder", "column": 5, "row": 1 },
+        { "name": "browser", "type": "source.application", "column": 0, "row": 2,
+          "params": { "binary": "firefox", "name": "Firefox" } },
+        { "name": "compensation", "type": "hearing.compensation16?preset=gentleSlope", "column": 1, "row": 2 },
+        { "name": "sudden", "type": "hearing.suddensounds", "column": 2, "row": 2,
+          "params": { "strength": "gentle" } },
+        { "name": "vu", "type": "meter.vu", "column": 3, "row": 2 },
+        { "name": "headphones", "type": "output.device", "column": 5, "row": 2 }
+    ],
+    "wires": [
+        ["music", "eq"], ["eq", "volume"], ["volume", "spectrum"], ["spectrum", "speakers"],
+        ["microphone", "denoise"], ["denoise", "evener"], ["evener", "dynamics"],
+        ["dynamics", "voicemeter"], ["voicemeter", "recorder"],
+        ["browser", "compensation"], ["compensation", "sudden"], ["sudden", "vu"], ["vu", "headphones"]
+    ],
+    "level": 0.5,
+    "screenshots": [
+        { "name": "overview", "theme": "dark", "running": true, "panel": null },
+        { "name": "overview-light", "theme": "light", "running": true, "panel": null }
+    ]
+}

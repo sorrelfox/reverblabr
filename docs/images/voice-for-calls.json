@@ -1,0 +1,18 @@
+{
+    "window": { "width": 1400, "height": 900 },
+    "sessionName": "Calls",
+    "grid": { "x": 36, "y": 330, "column": 190, "row": 120 },
+    "blocks": [
+        { "name": "microphone", "type": "source.device", "column": 0, "row": 0 },
+        { "name": "denoise", "type": "advanced.speechdenoise", "column": 1, "row": 0 },
+        { "name": "evener", "type": "effect.autolevel?preset=voiceEvener", "column": 2, "row": 0 },
+        { "name": "output", "type": "output.device", "column": 5, "row": 0 }
+    ],
+    "wires": [
+        ["microphone", "denoise"], ["denoise", "evener"], ["evener", "output"]
+    ],
+    "level": 0.5,
+    "screenshots": [
+        { "name": "voice-for-calls", "theme": "dark", "running": true, "panel": "evener" }
+    ]
+}

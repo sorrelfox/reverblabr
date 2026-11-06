@@ -1,0 +1,15 @@
+{
+    "window": { "width": 1400, "height": 900 },
+    "sessionName": "Listening",
+    "grid": { "x": 36, "y": 330, "column": 190, "row": 120 },
+    "blocks": [
+        { "name": "application", "type": "source.application", "column": 0, "row": 0,
+          "params": { "binary": "elisa", "name": "Elisa" } },
+        { "name": "lowering", "type": "hearing.frequencylowering", "column": 1, "row": 0 }
+    ],
+    "wires": [["application", "lowering"]],
+    "level": 0.5,
+    "screenshots": [
+        { "name": "block-help", "theme": "dark", "running": false, "panel": null, "help": "hearing.frequencylowering" }
+    ]
+}

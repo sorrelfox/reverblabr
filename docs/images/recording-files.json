@@ -1,0 +1,29 @@
+{
+    "window": { "width": 1400, "height": 900 },
+    "sessionName": "Podcast",
+    "grid": { "x": 36, "y": 270, "column": 190, "row": 150 },
+    "blocks": [
+        { "name": "microphone", "type": "source.device", "column": 0, "row": 0 },
+        { "name": "denoise", "type": "advanced.speechdenoise", "column": 1, "row": 0 },
+        { "name": "eq", "type": "effect.equalizer10?preset=podcastVoice", "column": 2, "row": 0 },
+        { "name": "dynamics", "type": "effect.dynamics?preset=voice", "column": 3, "row": 0 },
+        { "name": "recorder", "type": "output.recorder", "column": 4, "row": 0,
+          "params": { "format": "wav" } },
+        { "name": "output", "type": "output.device", "column": 4, "row": 1 }
+    ],
+    "wires": [
+        ["microphone", "denoise"], ["denoise", "eq"], ["eq", "dynamics"],
+        ["dynamics", "recorder"], ["dynamics", "output"]
+    ],
+    "recordings": [
+        { "name": "Podcast 2026-11-04 18-30-12.wav", "seconds": 9 },
+        { "name": "Podcast 2026-11-05 19-02-41.wav", "seconds": 6 },
+        { "name": "Podcast 2026-11-06 10-15-03.wav", "seconds": 4, "inProgress": true }
+    ],
+    "level": 0.5,
+    "screenshots": [
+        { "name": "recording-files", "theme": "dark", "running": true, "panel": null, "sidebar": "files" },
+        { "name": "recording-inspector", "theme": "dark", "running": false, "panel": null,
+          "inspector": "Podcast 2026-11-05 19-02-41.wav", "width": 820, "height": 520 }
+    ]
+}

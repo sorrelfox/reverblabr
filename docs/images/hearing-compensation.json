@@ -1,0 +1,18 @@
+{
+    "window": { "width": 1400, "height": 900 },
+    "sessionName": "Listening",
+    "grid": { "x": 36, "y": 330, "column": 190, "row": 120 },
+    "blocks": [
+        { "name": "application", "type": "source.application", "column": 0, "row": 0,
+          "params": { "binary": "elisa", "name": "Elisa" } },
+        { "name": "compensation", "type": "hearing.compensation16?preset=gentleSlope", "column": 1, "row": 0 },
+        { "name": "output", "type": "output.device", "column": 5, "row": 0 }
+    ],
+    "wires": [
+        ["application", "compensation"], ["compensation", "output"]
+    ],
+    "level": 0.5,
+    "screenshots": [
+        { "name": "hearing-compensation", "theme": "dark", "running": true, "panel": "compensation" }
+    ]
+}
