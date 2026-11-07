@@ -145,16 +145,21 @@ std::optional<QString> termOf(const QString &query)
 }
 
 /// Whether \a term asks what is being recorded: the start of "recording",
-/// three letters or more, in English or in the person's language.
+/// three letters or more, in English or in the person's language. **A
+/// translated word shorter than that** (録音 in Japanese) asks when it is
+/// typed whole, since no start of it is three letters long.
 bool asksForRecording(const QString &term)
 {
-    if (term.size() < kRecordingLetters) {
+    if (term.isEmpty()) {
         return false;
     }
-    // i18n: typed in KRunner after "rb" to see what is being recorded; three letters or more of it do
+    if (term.size() >= kRecordingLetters && u"recording"_s.startsWith(term, Qt::CaseInsensitive)) {
+        return true;
+    }
+    // i18n: typed in KRunner after "rb" to see what is being recorded; three letters of it or more, or all of it
     const notify::Message keyword = RB_I18NC("@info:keyword KRunner", "recording");
     const QString word = notify::translate(keyword);
-    return u"recording"_s.startsWith(term, Qt::CaseInsensitive) || word.startsWith(term, Qt::CaseInsensitive);
+    return term.size() >= std::min(kRecordingLetters, word.size()) && word.startsWith(term, Qt::CaseInsensitive);
 }
 
 QString stateText(const QString &state, bool recording)

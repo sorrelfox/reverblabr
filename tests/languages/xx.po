@@ -27,3 +27,8 @@ msgstr "[xx] Nothing is being recorded"
 msgctxt "@info:shell"
 msgid "Run against the mock engine, with no PipeWire and no audio"
 msgstr "[xx] Run against the mock engine, with no PipeWire and no audio"
+
+# A word for the keyword shorter than three letters, as some languages have.
+msgctxt "@info:keyword KRunner"
+msgid "recording"
+msgstr "录音"

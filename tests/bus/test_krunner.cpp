@@ -603,6 +603,31 @@ TEST_F(KRunner, OpenStartsTheWindowWithTheLanguageTheDaemonWasStartedWith)
     ASSERT_TRUE(waitFor([&] { return !windowSaid().isEmpty(); })) << "the window was not started again";
     EXPECT_EQ(windowSaid(), u"fr:de"_s) << "the window was handed the language the daemon follows";
 }
+
+TEST_F(KRunner, AKeywordTranslatedShorterThanThreeLettersAsksWhenTypedWhole)
+{
+    if (std::setlocale(LC_ALL, "") == nullptr || QByteArray(std::setlocale(LC_MESSAGES, nullptr)).startsWith("C")) {
+        GTEST_SKIP() << "Needs a real locale such as en_US.UTF-8 (Fedora: glibc-langpack-en); gettext ignores "
+                        "catalogs in the C locale.";
+    }
+    // The made-up "xx" says "recording" in two letters, as Chinese does.
+    const QString folder = home.filePath(u"data/locale/xx/LC_MESSAGES"_s);
+    ASSERT_TRUE(QDir().mkpath(folder));
+    ASSERT_TRUE(QFile::copy(QStringLiteral(RB_TEST_LANGUAGES_DIR) + u"/locale/xx/LC_MESSAGES/reverblabr.mo"_s,
+                            QDir(folder).filePath(u"reverblabr.mo"_s)));
+    QFile config(home.filePath(u"config/reverblabrrc"_s));
+    ASSERT_TRUE(config.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    ASSERT_GT(config.write("[General]\nLanguage=xx\n"), 0);
+    config.close();
+    ASSERT_NO_FATAL_FAILURE(startDaemon({u"--mock"_s, u"--idle-exit"_s, u"0"_s}));
+
+    EXPECT_TRUE(matchSaying(u"rb 录音"_s, u"[xx] Nothing is being recorded"_s).has_value())
+        << "the whole of a two-letter word did not ask what is being recorded";
+    EXPECT_FALSE(matchSaying(u"rb 录"_s, u"[xx] Nothing is being recorded"_s).has_value()) << "one letter is a name";
+    EXPECT_TRUE(matchSaying(u"rb rec"_s, u"[xx] Nothing is being recorded"_s).has_value())
+        << "the English word stopped asking";
+}
+
 int main(int argc, char **argv)
 {
     QCoreApplication application(argc, argv);
