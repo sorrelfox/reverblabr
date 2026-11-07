@@ -49,6 +49,12 @@ QtObject {
     readonly property var qtButtons: ["OK", "Cancel", "Close", "Apply", "Yes", "No", "Save", "Discard", "Reset", "Help",
                                       "Open", "Abort", "Retry", "Ignore"]
     readonly property var shortcut: /^((Ctrl|Alt|Shift|Meta)\+)*([^\s]{1,3}|F\d{1,2}|Space|Tab|Esc|Del|Delete|Backspace|Return|Enter|Home|End|PgUp|PgDown|Ins|Left|Right|Up|Down)$/
+    /// A menu item's own shortcut, written out the way its style writes it.
+    /// A standard key can be a key with a name: Qt 6.10's generic theme
+    /// gives Preferences the Settings key, written "Settings".
+    readonly property Shortcut keyText: Shortcut {
+        enabled: false
+    }
 
     property var window: null
     property var ids: []
@@ -115,6 +121,19 @@ QtObject {
         return parts.join(" > ");
     }
 
+    function isShortcutOfItsMenuItem(text: string, item: var): bool {
+        for (let at = item.parent; at !== null; at = at.parent) {
+            if (at instanceof QQC2.MenuItem) {
+                if (!at.action || at.action.shortcut === undefined || text === at.text) {
+                    return false;
+                }
+                keyText.sequence = at.action.shortcut;
+                return text === keyText.nativeText;
+            }
+        }
+        return false;
+    }
+
     function isData(text: string, item: var): bool {
         if (data.some(word => text === word || text.startsWith(word + " ") || text.endsWith(" " + word))) {
             return true;
@@ -125,6 +144,9 @@ QtObject {
             return true;
         }
         if (shortcut.test(text) || (qtButtons.indexOf(text) >= 0 && pathOf(item).indexOf("DialogButtonBox") >= 0)) {
+            return true;
+        }
+        if (isShortcutOfItsMenuItem(text, item)) {
             return true;
         }
         // A folder, as a field's placeholder shows the default one; and the
