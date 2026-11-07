@@ -13,7 +13,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 Reverblabr takes sound from your applications, microphones and other devices, lets you process it with filters and effects, and sends it where you want it: to your speakers, to a file, or to another program. It runs on Linux, on the KDE Plasma desktop, with PipeWire.
 
-This is the first release. It still has bugs, so please [tell me](#bugs-and-contributing) about the ones you find.
+Reverblabr is young and still has bugs, so please [tell me](#bugs-and-contributing) about the ones you find.
 
 ## Download and install
 
