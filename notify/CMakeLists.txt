@@ -10,10 +10,14 @@
 # **Shared by the window and the daemon**, so both decide the same way: the
 # window sends through KNotifications, the daemon, which has no KDE
 # Frameworks (ADR-0017), straight to org.freedesktop.Notifications. The words
-# come from the same `reverblabr` catalog as the window's, through gettext.
+# come from the same `reverblabr` catalog as the window's, through gettext,
+# in the language the person chose for Reverblabr, which both read here
+# (ADR-0036).
 add_library(reverblabr-notify STATIC
     freedesktopsender.cpp
     freedesktopsender.h
+    language.cpp
+    language.h
     notifications.cpp
     notifications.h
     texts.cpp

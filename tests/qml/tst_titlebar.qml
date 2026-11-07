@@ -168,6 +168,19 @@ TestCase {
                 }
             }
         }
+        // **Configure Reverblabr… ends the Settings menu in both**: the
+        // Settings window has no other way in from the menus.
+        for (const menus of [bar, button]) {
+            let settings = null;
+            for (let i = 0; i < menus.count; ++i) {
+                if (menus.menuAt(i).title === "Se&ttings") {
+                    settings = menus.menuAt(i);
+                }
+            }
+            verify(settings !== null, "no Settings menu");
+            const last = entries(settings);
+            verify(last[last.length - 1] === window.settingsWindowAction, "Settings does not end with Configure");
+        }
     }
 
     function test_ctrlMShowsAndHidesTheMenuBarAndTheButtonTakesItsPlace() {

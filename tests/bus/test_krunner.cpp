@@ -35,6 +35,8 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include <clocale>
+#include <cstdio>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -161,14 +163,17 @@ protected:
         return static_cast<qint64>(pid.value());
     }
 
-    /// Starts reverblabrd with \a arguments, in this test's home, and waits
-    /// until it has the name.
-    void startDaemon(const QStringList &arguments)
+    /// Starts reverblabrd with \a arguments, in this test's home, and \a more
+    /// in its environment, and waits until it has the name.
+    void startDaemon(const QStringList &arguments, const std::vector<std::pair<QString, QString>> &more = {})
     {
         auto process = std::make_unique<QProcess>();
         QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
         for (const auto &[variable, folder] : homeVariables()) {
             environment.insert(variable, folder);
+        }
+        for (const auto &[variable, value] : more) {
+            environment.insert(variable, value);
         }
         process->setProcessEnvironment(environment);
         process->setProcessChannelMode(QProcess::ForwardedErrorChannel);
@@ -492,6 +497,112 @@ TEST_F(KRunner, AutoRunRunsAtEveryEngineStartWhenThatIsChosen)
     EXPECT_EQ(callSaid(), u"Stopped"_s) << "the choice of once a login did not hold from the next start";
 }
 
+TEST_F(KRunner, ItsWordsFollowTheLanguageChosenInTheWindowAsItIsChosen)
+{
+    // **A real locale for the words**: gettext translates nothing in C, and
+    // the daemon is given this test's.
+    if (std::setlocale(LC_ALL, "") == nullptr || QByteArray(std::setlocale(LC_MESSAGES, nullptr)).startsWith("C")) {
+        GTEST_SKIP() << "Needs a real locale such as en_US.UTF-8 (Fedora: glibc-langpack-en); gettext ignores "
+                        "catalogs in the C locale.";
+    }
+    // Two made-up languages, installed where the daemon looks (ADR-0036).
+    for (const QString &language : {u"xx"_s, u"yy"_s}) {
+        const QString folder = home.filePath(u"data/locale/"_s + language + u"/LC_MESSAGES"_s);
+        ASSERT_TRUE(QDir().mkpath(folder));
+        ASSERT_TRUE(QFile::copy(QStringLiteral(RB_TEST_LANGUAGES_DIR) + u"/locale/"_s + language
+                                    + u"/LC_MESSAGES/reverblabr.mo"_s,
+                                QDir(folder).filePath(u"reverblabr.mo"_s)));
+    }
+    // **As the window saves its settings**: a new file renamed over the old.
+    const QString path = home.filePath(u"config/reverblabrrc"_s);
+    const auto save = [&path](const QByteArray &text) {
+        QFile file(path + u".new"_s);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        ASSERT_GT(file.write(text), 0);
+        file.close();
+        ASSERT_EQ(::rename(QFile::encodeName(file.fileName()).constData(), QFile::encodeName(path).constData()), 0);
+    };
+    ASSERT_NO_FATAL_FAILURE(save("[General]\nLanguage=xx\n"));
+    ASSERT_NO_FATAL_FAILURE(startDaemon({u"--mock"_s, u"--idle-exit"_s, u"0"_s}));
+    EXPECT_TRUE(matchSaying(u"rb rec"_s, u"[xx] Nothing is being recorded"_s).has_value())
+        << "the daemon did not start in the language chosen";
+
+    // **Chosen while the daemon runs**, which may be for days.
+    ASSERT_NO_FATAL_FAILURE(save("[General]\nLanguage=yy\n"));
+    EXPECT_TRUE(waitFor([this] { return matchSaying(u"rb rec"_s, u"[yy] Nothing is being recorded"_s).has_value(); }))
+        << "the daemon did not follow the language chosen";
+    // **The system's again**: the daemon's own environment's, English here.
+    ASSERT_NO_FATAL_FAILURE(save("[AutoRun]\nStart=once-a-login\n"));
+    EXPECT_TRUE(waitFor([this] { return matchSaying(u"rb rec"_s, u"Nothing is being recorded"_s).has_value(); }))
+        << "the daemon did not go back to the system's language";
+}
+
+TEST_F(KRunner, OpenStartsTheWindowWithTheLanguageTheDaemonWasStartedWith)
+{
+    // **Not the language chosen for Reverblabr** (ADR-0036): the window reads
+    // the choice for itself, and takes the LANGUAGE it is given for the
+    // desktop's. So it gets the daemon's as it was before the choice was put
+    // in it, before the daemon follows a change and after.
+    for (const QString &language : {u"xx"_s, u"yy"_s}) {
+        const QString folder = home.filePath(u"data/locale/"_s + language + u"/LC_MESSAGES"_s);
+        ASSERT_TRUE(QDir().mkpath(folder));
+        ASSERT_TRUE(QFile::copy(QStringLiteral(RB_TEST_LANGUAGES_DIR) + u"/locale/"_s + language
+                                    + u"/LC_MESSAGES/reverblabr.mo"_s,
+                                QDir(folder).filePath(u"reverblabr.mo"_s)));
+    }
+    const QString path = home.filePath(u"config/reverblabrrc"_s);
+    const auto save = [&path](const QByteArray &text) {
+        QFile file(path + u".new"_s);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        ASSERT_GT(file.write(text), 0);
+        file.close();
+        ASSERT_EQ(::rename(QFile::encodeName(file.fileName()).constData(), QFile::encodeName(path).constData()), 0);
+    };
+    ASSERT_NO_FATAL_FAILURE(save("[General]\nLanguage=xx\n"));
+
+    // **A window that writes down the LANGUAGE it was given**, in place of
+    // the real one.
+    const QString said = home.filePath(u"window-said"_s);
+    const QString window = home.filePath(u"window.sh"_s);
+    {
+        QFile script(window);
+        ASSERT_TRUE(script.open(QIODevice::WriteOnly));
+        script.write(
+            QStringLiteral("#!/bin/sh\nprintf '%s\\n' \"${LANGUAGE-unset}\" > \"%1.part\"\nmv \"%1.part\" \"%1\"\n")
+                .arg(said)
+                .toUtf8());
+        script.close();
+        ASSERT_TRUE(script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+    }
+    const auto windowSaid = [&said]() -> QString {
+        QFile file(said);
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()).trimmed() : QString();
+    };
+    ASSERT_NO_FATAL_FAILURE(
+        startDaemon({u"--mock"_s, u"--idle-exit"_s, u"0"_s, u"--window"_s, window}, {{u"LANGUAGE"_s, u"fr:de"_s}}));
+    const QString podcast = createSession(u"Podcast"_s);
+    ASSERT_FALSE(podcast.isEmpty());
+
+    run(podcast, u"open"_s);
+    ASSERT_TRUE(waitFor([&] { return !windowSaid().isEmpty(); })) << "the window was not started";
+    EXPECT_EQ(windowSaid(), u"fr:de"_s) << "the window was handed the language chosen for Reverblabr";
+
+    // **After the daemon has followed another choice**, which it can only be
+    // seen to do in a real locale.
+    if (std::setlocale(LC_ALL, "") == nullptr || QByteArray(std::setlocale(LC_MESSAGES, nullptr)).startsWith("C")) {
+        GTEST_SKIP() << "The rest needs a real locale such as en_US.UTF-8 (Fedora: glibc-langpack-en); gettext "
+                        "ignores catalogs in the C locale.";
+    }
+    ASSERT_TRUE(waitFor([this] { return matchSaying(u"rb rec"_s, u"[xx] Nothing is being recorded"_s).has_value(); }))
+        << "the daemon did not start in the language chosen";
+    ASSERT_NO_FATAL_FAILURE(save("[General]\nLanguage=yy\n"));
+    ASSERT_TRUE(waitFor([this] { return matchSaying(u"rb rec"_s, u"[yy] Nothing is being recorded"_s).has_value(); }))
+        << "the daemon did not follow the language chosen";
+    ASSERT_TRUE(QFile::remove(said));
+    run(podcast, u"open"_s);
+    ASSERT_TRUE(waitFor([&] { return !windowSaid().isEmpty(); })) << "the window was not started again";
+    EXPECT_EQ(windowSaid(), u"fr:de"_s) << "the window was handed the language the daemon follows";
+}
 int main(int argc, char **argv)
 {
     QCoreApplication application(argc, argv);

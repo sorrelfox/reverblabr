@@ -8,6 +8,7 @@
 #pragma once
 
 #include <QDBusConnection>
+#include <QProcessEnvironment>
 #include <QString>
 #include <QStringList>
 
@@ -63,7 +64,11 @@ using DaemonStarter = std::function<bool()>;
 
 /// Runs \a program with \a arguments on its own, outliving the window that
 /// started it, which is what reachDaemon()'s \a startItself does in a Flatpak.
-[[nodiscard]] DaemonStarter detachedStarter(const QString &program, const QStringList &arguments = {});
+/// With \a environment rather than the window's own when one is given: the
+/// window's, as it was before the person's choice of language was put in it
+/// (ADR-0036), so that the daemon reads that choice for itself.
+[[nodiscard]] DaemonStarter
+detachedStarter(const QString &program, const QStringList &arguments = {}, const QProcessEnvironment &environment = {});
 
 /// What the command line asked for.
 struct EngineRequest {

@@ -191,6 +191,10 @@ QQC2.ApplicationWindow {
     /// been opened — null until then.
     readonly property alias sessionsWindowAction: sessionsWindowAction
     readonly property SessionsWindow sessionsWindow: sessionsWindowLoader.item as SessionsWindow
+    /// The Settings window: its action, and the window once it has been
+    /// opened — null until then.
+    readonly property alias settingsWindowAction: settingsWindowAction
+    readonly property SettingsWindow settingsWindow: settingsWindowLoader.item as SettingsWindow
     /// Whether the floating windows may be up: until this window closes
     /// with no tray to come back from.
     property bool floatingAllowed: true
@@ -262,16 +266,7 @@ QQC2.ApplicationWindow {
     // last `onClosing` written and forgets the others, which is exactly the
     // sort of thing that works until somebody adds one.
     onClosing: {
-        WindowState.save(root.width, root.height, sidebar.width);
-        // The Virtual Devices window goes with this one, without a close of
-        // its own to write its size down.
-        if (root.virtualDevicesWindow !== null && root.virtualDevicesWindow.visible) {
-            root.virtualDevicesWindow.saveSize();
-        }
-        // And so does the Sessions window.
-        if (root.sessionsWindow !== null && root.sessionsWindow.visible) {
-            root.sessionsWindow.saveSize();
-        }
+        root.saveSizes();
         // **With no tray, closing is quitting**, and a floating window still
         // up would keep the application running with no way back to it.
         root.floatingAllowed = TrayState.available;
@@ -285,19 +280,48 @@ QQC2.ApplicationWindow {
             if (root.sessionsWindow !== null) {
                 root.sessionsWindow.close();
             }
+            if (root.settingsWindow !== null) {
+                root.settingsWindow.close();
+            }
         }
         // The Recording Inspectors go with it too: they are windows of
-        // this one, not applications of their own.
+        // this one, not applications of their own. Their sizes are written
+        // down above.
         // A copy, since each one takes itself out of the list as it closes.
         const inspectors = Array.from(root.inspectors);
         for (const inspector of inspectors) {
-            inspector.saveSize();
             inspector.close();
         }
         // Which sessions were open is written down as it changes too, so a
         // crash still resumes to something recent; this is the ordinary
         // close.
         Sessions.remember();
+    }
+
+    /// Writes down the sizes this window and its own windows were left at.
+    /// **The windows that belong to this one go with it**, without a close of
+    /// their own to write their sizes down: the Virtual Devices window, the
+    /// Sessions window, the Settings window and the Recording Inspectors,
+    /// whether this one closes or Reverblabr starts again.
+    function saveSizes() {
+        WindowState.save(root.width, root.height, sidebar.width);
+        for (const window of [root.virtualDevicesWindow, root.sessionsWindow, root.settingsWindow]) {
+            if (window !== null && window.visible) {
+                window.saveSize();
+            }
+        }
+        for (const inspector of root.inspectors) {
+            inspector.saveSize();
+        }
+    }
+
+    /// **Reverblabr started again** (ADR-0036), for a language or a control
+    /// style chosen in the Settings window: what closing writes down is
+    /// written, a copy is started, and this one quits as the tray's Quit
+    /// quits it. The copy opens at the sizes written here.
+    function restart() {
+        root.saveSizes();
+        Restart.now();
     }
 
     // --- what the window can do, in one place ---
@@ -852,6 +876,27 @@ QQC2.ApplicationWindow {
         window.requestActivate();
     }
 
+    // **Reverblabr's own settings, in a window of their own**: the
+    // language, the appearance and when Auto Run runs, where settings still
+    // to come will go. KDE's Configure entry and key, last in the Settings
+    // menu. One window: asked for again, it comes to the front.
+    QQC2.Action {
+        id: settingsWindowAction
+
+        text: KI18n.i18nc("@action:inmenu", "&Configure Reverblabr…")
+        icon.name: "configure"
+        shortcut: StandardKey.Preferences
+        onTriggered: root.showSettingsWindow()
+    }
+
+    function showSettingsWindow() {
+        settingsWindowLoader.active = true;
+        const window = root.settingsWindow;
+        window.show();
+        window.raise();
+        window.requestActivate();
+    }
+
     QQC2.Action {
         id: aboutAction
 
@@ -1039,6 +1084,12 @@ QQC2.ApplicationWindow {
             QQC2.MenuItem {
                 action: virtualDevicesAction
             }
+
+            QQC2.MenuSeparator {}
+
+            QQC2.MenuItem {
+                action: settingsWindowAction
+            }
         }
 
         QQC2.Menu {
@@ -1218,6 +1269,12 @@ QQC2.ApplicationWindow {
 
             QQC2.MenuItem {
                 action: virtualDevicesAction
+            }
+
+            QQC2.MenuSeparator {}
+
+            QQC2.MenuItem {
+                action: settingsWindowAction
             }
         }
 
@@ -1592,6 +1649,18 @@ QQC2.ApplicationWindow {
         sourceComponent: SessionsWindow {
             transientParent: root
             untitledName: root.untitledName
+        }
+    }
+
+    // And the Settings window the same way.
+    Loader {
+        id: settingsWindowLoader
+
+        active: false
+
+        sourceComponent: SettingsWindow {
+            transientParent: root
+            onRestartRequested: root.restart()
         }
     }
 

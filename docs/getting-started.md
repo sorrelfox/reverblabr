@@ -18,7 +18,15 @@ The window has four parts:
 - **The canvas** in the middle is where a session's blocks and the wires between them live.
 - **The status bar** at the bottom shows the rate and buffer size the audio system runs at, how busy the session is, and how many times it missed its deadline (an "xrun", heard as a dropout).
 
-If you'd rather have Reverblabr look like the rest of your desktop, choose **Settings → Appearance → Follow System**. The window then takes your colours, fonts and title bar from Plasma, starting the next time Reverblabr opens.
+If you'd rather have Reverblabr look like the rest of your desktop, choose **Settings → Appearance → Follow System**. The window then takes your colours and fonts from Plasma at once, and your controls and title bar the next time Reverblabr opens.
+
+**Settings → Configure Reverblabr…** (Ctrl+Shift+,) opens the Settings window, a section each for:
+
+- **Language**: the language Reverblabr speaks. **Follow System**, the default, says in brackets which language that gives you; then come English and every language Reverblabr is translated into, each named in its own language. It changes the words of the window, of its notifications and of what KRunner shows, and leaves numbers, dates and units in your desktop's formats. The panel widget, `reverblabr-ctl`, and what the launcher, System Settings and the software centre say about Reverblabr stay in your desktop's language; only Reverblabr's global shortcuts are listed in System Settings under the names the window gives them, in the language chosen.
+- **Appearance**: the same three looks as the Settings menu.
+- **Auto Run**: when the background engine starts the sessions set to Auto Run, as in the Settings menu ([Sessions that run when you log in](desktop.md#sessions-that-run-when-you-log-in)).
+
+A new language reaches the window when Reverblabr starts again, and so do the controls and title bar of a change between the Reverblabr looks and Follow System; until then the section says so, with a **Restart Now** button. If the engine runs in the window rather than in the background, restarting stops its sessions, and the section says that too. The background engine changes language at once.
 
 ## Build your first session
 

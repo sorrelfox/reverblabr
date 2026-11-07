@@ -12,6 +12,10 @@
 // ask. On a desktop's bus the second launch would reach the Reverblabr the
 // person has open, which is why this refuses to run anywhere else.
 //
+// **Restart Now's copy** (ADR-0036) is the exception: it waits for the
+// window it replaces to have gone, then takes its place. And a window
+// speaks the language chosen in the Settings window from its first word.
+//
 // Both run offscreen, in a home of the test's own, with the engine in the
 // window and no PipeWire to reach. What the first one was asked is read
 // from its log, the line LaunchRequests::deliver() writes.
@@ -22,12 +26,15 @@
 #include <QDBusReply>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QThread>
 #include <gtest/gtest.h>
 
+#include <clocale>
 #include <memory>
+#include <utility>
 #include <vector>
 
 using namespace Qt::StringLiterals;
@@ -86,10 +93,14 @@ protected:
         QDBusConnection::disconnectFromBus(u"launch-probe"_s);
     }
 
-    /// Starts Reverblabr with \a arguments; its log is collected as it comes.
-    QProcess *start(const QStringList &arguments)
+    /// Starts Reverblabr with \a arguments, and \a more in its environment;
+    /// its log is collected as it comes.
+    QProcess *start(const QStringList &arguments, const QList<std::pair<QString, QString>> &more = {})
     {
         QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+        for (const auto &[name, value] : more) {
+            environment.insert(name, value);
+        }
         environment.insert(u"HOME"_s, home.path());
         environment.insert(u"XDG_DATA_HOME"_s, home.filePath(u"data"_s));
         environment.insert(u"XDG_CONFIG_HOME"_s, home.filePath(u"config"_s));
@@ -169,6 +180,59 @@ TEST_F(Launch, ASecondLaunchHandsItsRequestToTheFirstAndEnds)
 
     EXPECT_EQ(bus.interface()->servicePid(kService).value(), owner) << "the name changed hands";
     EXPECT_EQ(first->state(), QProcess::Running) << "the first Reverblabr went";
+}
+
+TEST_F(Launch, ARestartsCopyWaitsForTheWindowItReplacesThenTakesItsPlace)
+{
+    QProcess *old = start({u"--in-process"_s});
+    ASSERT_TRUE(waitFor([&] { return serviceTaken() && asked(old, "Show"); }, kStartMs))
+        << "the first launch never took " << kService.toStdString() << " or never came up:\n"
+        << logOf(old).toStdString();
+
+    // **The copy Restart Now starts**, while the window it replaces is still
+    // there (ADR-0036): it waits, and neither takes the name nor hands its
+    // launch to the old window, which would have it come forward again and
+    // the copy end.
+    QProcess *copy = start({u"--in-process"_s, u"--restart-of=%1"_s.arg(old->processId())});
+    EXPECT_FALSE(waitFor([&] { return copy->state() == QProcess::NotRunning; }, 3000)) << "the copy did not wait:\n"
+                                                                                       << logOf(copy).toStdString();
+    EXPECT_EQ(logOf(old).count("launch request: Show"), 1) << "the copy handed its launch to the old window";
+    EXPECT_FALSE(asked(copy, "Show")) << "the copy came up beside the old window";
+
+    // **The old one goes**, as it does after Restart Now, and the copy takes
+    // its place.
+    old->terminate();
+    ASSERT_TRUE(old->waitForFinished(20000));
+    ASSERT_TRUE(waitFor([&] { return serviceTaken() && asked(copy, "Show"); }, kStartMs))
+        << "the copy never took the old window's place:\n"
+        << logOf(copy).toStdString();
+    EXPECT_EQ(bus.interface()->servicePid(kService).value(), static_cast<uint>(copy->processId()));
+}
+
+TEST_F(Launch, TheWindowSpeaksTheLanguageChosenFromItsFirstWord)
+{
+    // **A real locale for the words**: gettext translates nothing in C.
+    if (std::setlocale(LC_ALL, "en_US.UTF-8") == nullptr) {
+        GTEST_SKIP() << "Needs the locale en_US.UTF-8 (Fedora: glibc-langpack-en); gettext ignores catalogs in the "
+                        "C locale.";
+    }
+    // **The language chosen in the Settings window** (ADR-0036), and its
+    // catalog where the window looks for one.
+    const QString catalogs = home.filePath(u"data/locale/xx/LC_MESSAGES"_s);
+    ASSERT_TRUE(QDir().mkpath(catalogs));
+    ASSERT_TRUE(QFile::copy(QStringLiteral(RB_TEST_LANGUAGES_DIR "/locale/xx/LC_MESSAGES/reverblabr.mo"),
+                            QDir(catalogs).filePath(u"reverblabr.mo"_s)));
+    QFile settings(home.filePath(u"config/reverblabrrc"_s));
+    ASSERT_TRUE(settings.open(QIODevice::WriteOnly));
+    ASSERT_GT(settings.write("[General]\nLanguage=xx\n"), 0);
+    settings.close();
+
+    // **The words of --help are the first the window says**, before it has
+    // made anything: in the language chosen, though nothing in the
+    // environment asks for it.
+    QProcess *help = start({u"--help"_s}, {{u"LC_ALL"_s, u"en_US.UTF-8"_s}});
+    ASSERT_TRUE(waitFor([&] { return help->state() == QProcess::NotRunning; }, kStartMs));
+    EXPECT_TRUE(logOf(help).contains("[xx] Run against the mock engine")) << logOf(help).toStdString();
 }
 
 TEST_F(Launch, AWindowOnTheMockEngineStandsApart)

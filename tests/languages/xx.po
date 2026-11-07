@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+#
+# A made-up catalog for the language code "xx": with the other one beside it,
+# what the tests switch between to see that the words of the window and of
+# the daemon follow the language chosen in the window. Never installed.
+msgid ""
+msgstr ""
+"Project-Id-Version: reverblabr\n"
+"PO-Revision-Date: 2026-11-07 00:00+0000\n"
+"Last-Translator: Reverblabr contributors\n"
+"Language-Team: none\n"
+"Language: xx\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "@title a notification"
+msgid "Recording finished"
+msgstr "[xx] Recording finished"
+
+msgctxt "@info KRunner"
+msgid "Nothing is being recorded"
+msgstr "[xx] Nothing is being recorded"
+
+msgctxt "@info:shell"
+msgid "Run against the mock engine, with no PipeWire and no audio"
+msgstr "[xx] Run against the mock engine, with no PipeWire and no audio"

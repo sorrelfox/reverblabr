@@ -155,6 +155,8 @@ ecm_target_qml_sources(reverblabr-ui SOURCES
     qml/VirtualDeviceSection.qml
     # Every saved session in a table of its own.
     qml/SessionsWindow.qml
+    # Reverblabr's own settings: the language, the appearance, Auto Run.
+    qml/SettingsWindow.qml
     # The system tray's popover.
     qml/TrayPopover.qml
 )
@@ -281,6 +283,8 @@ target_sources(reverblabr-ui PRIVATE
     inventory.h
     keyboard.cpp
     keyboard.h
+    languagesetting.cpp
+    languagesetting.h
     launchrequests.cpp
     launchrequests.h
     meteritem.cpp
@@ -308,6 +312,8 @@ target_sources(reverblabr-ui PRIVATE
     recordingpreview.h
     recordingstatus.cpp
     recordingstatus.h
+    restart.cpp
+    restart.h
     sessionoverview.cpp
     sessionoverview.h
     trayicon.cpp

@@ -14,9 +14,12 @@
 
 #include "appearance.h"
 #include "appshell.h"
+#include "autorunsetting.h"
 #include "core/mockengine.h"
 #include "firstusenotice.h"
+#include "languagesetting.h"
 #include "recentapplications.h"
+#include "restart.h"
 #include "sessions.h"
 #include "windowstate.h"
 
@@ -138,6 +141,15 @@ int main(int argc, char *argv[])
     ui::Sessions::setConfig(state);
     ui::Appearance::setConfig(state);
     ui::FirstUseNotice::setConfig(state);
+    ui::AutoRunSetting::setConfig(state);
+    ui::LanguageSetting::setConfig(state);
+    // **The Settings window's languages as a person would see them**, each
+    // named in itself, whatever this machine has installed; and a restart
+    // that never starts anything.
+    ui::LanguageSetting::setCatalogsForTesting(
+        QStringList{u"de"_s, u"es"_s, u"fr"_s, u"ja"_s, u"pt_BR"_s, u"ru"_s, u"zh_CN"_s});
+    ui::Restart::setRunnerForTesting(
+        [](const QString &, const QStringList &, const QProcessEnvironment &) { return false; });
 
     core::MockEngine mock;
     mock.addFakeInventory();

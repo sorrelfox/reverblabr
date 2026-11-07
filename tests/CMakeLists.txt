@@ -58,6 +58,26 @@ endif()
 # calls are known before any project library is read, and the link picks
 # the same members with LTO as without it.
 link_libraries(GTest::gtest)
+# **Two made-up languages, "xx" and "yy"**, each a catalog of a few of the
+# daemon's words: what the tests switch between to see that those words
+# follow the language chosen in the window (ADR-0036). Compiled into a
+# `locale` folder of their own, which a test names as a data folder; never
+# installed.
+set(RB_TEST_LANGUAGES_DIR "${CMAKE_CURRENT_BINARY_DIR}/languages")
+set(_rb_test_languages "")
+foreach(language xx yy)
+    set(_rb_catalog "${RB_TEST_LANGUAGES_DIR}/locale/${language}/LC_MESSAGES/reverblabr.mo")
+    add_custom_command(
+        OUTPUT ${_rb_catalog}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${RB_TEST_LANGUAGES_DIR}/locale/${language}/LC_MESSAGES"
+        COMMAND ${GETTEXT_MSGFMT_EXECUTABLE} --check -o ${_rb_catalog} "${CMAKE_CURRENT_SOURCE_DIR}/languages/${language}.po"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/languages/${language}.po"
+        COMMENT "Compiling the ${language} test language"
+        VERBATIM
+    )
+    list(APPEND _rb_test_languages ${_rb_catalog})
+endforeach()
+add_custom_target(reverblabr-test-languages DEPENDS ${_rb_test_languages})
 add_subdirectory(unit)  # GoogleTest, one executable per engine layer
 add_subdirectory(sanitizers) # checks that the sanitizers catch what they should
 add_subdirectory(qml)   # Qt Quick Test for the QML user interface

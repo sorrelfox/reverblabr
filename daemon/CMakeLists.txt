@@ -12,12 +12,15 @@
 # kept in step with the sessions' timers. A library of its own so the unit
 # tests can drive it against the mock engine and a fake service manager.
 # The sessions in KRunner (ADR-0023) are here too: the runner the daemon
-# serves, with its words from the notifications' catalog.
+# serves, with its words from the notifications' catalog, in the language
+# the person chose, which it follows as it changes (ADR-0036).
 add_library(reverblabr-daemon-core STATIC
     autorun.cpp
     autorun.h
     autostartunit.cpp
     autostartunit.h
+    languagewatch.cpp
+    languagewatch.h
     sessionrunner.cpp
     sessionrunner.h
     timerschedule.cpp

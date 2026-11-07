@@ -318,16 +318,31 @@ rb_add_gtest(reverblabr-helper-test
 )
 set_target_properties(reverblabr-helper-test PROPERTIES AUTOMOC OFF AUTORCC OFF)
 
-# What is worth a desktop notification, and its words.
+# What is worth a desktop notification, and its words, in the language
+# chosen in the window.
 rb_add_gtest(reverblabr-notify-test
     LAYER notify
     SOURCES
+        notify/test_language.cpp
         notify/test_notifications.cpp
     LIBRARIES reverblabr-notify Qt6::Test
 )
 target_compile_definitions(reverblabr-notify-test PRIVATE
     RB_NOTIFYRC="${PROJECT_SOURCE_DIR}/notify/reverblabr.notifyrc"
-    RB_APP_DIR="${PROJECT_SOURCE_DIR}/app")
+    RB_APP_DIR="${PROJECT_SOURCE_DIR}/app"
+    RB_TEST_LANGUAGES_DIR="${RB_TEST_LANGUAGES_DIR}")
+add_dependencies(reverblabr-notify-test reverblabr-test-languages)
+
+# The daemon's own parts that need no bus: following a language chosen in
+# the window while it runs.
+rb_add_gtest(reverblabr-daemon-test
+    LAYER daemon
+    SOURCES
+        daemon/test_languagewatch.cpp
+    LIBRARIES reverblabr-daemon-core Qt6::Test
+)
+target_compile_definitions(reverblabr-daemon-test PRIVATE RB_TEST_LANGUAGES_DIR="${RB_TEST_LANGUAGES_DIR}")
+add_dependencies(reverblabr-daemon-test reverblabr-test-languages)
 
 rb_add_gtest(reverblabr-engine-test
     LAYER engine
@@ -420,6 +435,7 @@ rb_add_gtest(reverblabr-app-test
         app/test_soundsidereadings.cpp
         app/test_globalshortcuts.cpp
         app/test_inventory.cpp
+        app/test_languagesetting.cpp
         app/test_launchrequests.cpp
         app/test_levelmeter.cpp
         app/test_meterhub.cpp
@@ -428,6 +444,7 @@ rb_add_gtest(reverblabr-app-test
         app/test_peakrmspanel.cpp
         app/test_recentapplications.cpp
         app/test_recordingstatus.cpp
+        app/test_restart.cpp
         app/test_scopehub.cpp
         app/test_scopeview.cpp
         app/test_spectrumview.cpp

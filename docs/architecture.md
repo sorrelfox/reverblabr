@@ -752,6 +752,7 @@ The window turns it into one block of **English, untranslated** text, the way `r
 
 - Every user-visible string goes through KI18n: `i18nc()` with a context marker in C++, and `KI18n.i18nc()` from `org.kde.ki18n` in QML. The panel widget's QML is the exception: Plasma gives each widget its own translation domain through the global `i18nc()`, so it uses that ([ADR-0024](adr/0024-panel-widget.md)). The notifications' words, which the daemon says too, are marked `RB_I18NC(context, text)` in `notify/` and looked up with gettext in the same catalog.
 - The engine produces codes, not text (see [Errors](#errors)).
+- **The language is a setting of Reverblabr's own** ([ADR-0036](adr/0036-language-setting.md)): `[General] Language=` in `reverblabrrc`, read by every process with `rb::notify::chosenLanguage()`. The window sets `LANGUAGE` from it before `QApplication` exists and takes a change at its next start (Restart Now, `rb::ui::Restart`); the daemon sets it as it starts and follows a change while it runs (`rb::daemon::LanguageWatch`); what either starts gets `LANGUAGE` back as it was (`rb::notify::ProcessLanguage`). Only `LANGUAGE`: formats stay the system's.
 - Stored data is locale-independent; screens format with `QLocale`.
 - Version 1.0 ships in English only, but adding a language must need no code changes.
 - The details, and the tools that check them, are in [i18n.md](i18n.md).

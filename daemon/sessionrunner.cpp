@@ -8,6 +8,7 @@
 #include "sessionrunner.h"
 
 #include "core/enginefacade.h"
+#include "language.h"
 #include "texts.h"
 
 #include <QDBusMessage>
@@ -522,7 +523,11 @@ bool startWindow(const QDBusConnection &bus, const QString &program, const QStri
     QProcess process;
     process.setProgram(program);
     process.setArguments(arguments);
-    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+    // **The environment the daemon was started with** (ADR-0036): LANGUAGE
+    // as it was before the person's choice of language was put in it, so
+    // the window reads that choice for itself and is not handed Reverblabr's
+    // language as the desktop's.
+    QProcessEnvironment environment = notify::ProcessLanguage::originalEnvironment();
     // **What lets the window come forward on Wayland**, where a window may
     // not take the focus by itself; KDBusService in the window reads it, and
     // hands it on when another Reverblabr is running already.

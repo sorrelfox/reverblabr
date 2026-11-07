@@ -52,9 +52,18 @@ startAndWait(const QDBusConnection &bus, std::chrono::milliseconds timeout, cons
 
 } // namespace
 
-DaemonStarter detachedStarter(const QString &program, const QStringList &arguments)
+DaemonStarter
+detachedStarter(const QString &program, const QStringList &arguments, const QProcessEnvironment &environment)
 {
-    return [program, arguments] { return QProcess::startDetached(program, arguments); };
+    return [program, arguments, environment] {
+        QProcess process;
+        process.setProgram(program);
+        process.setArguments(arguments);
+        if (!environment.isEmpty()) {
+            process.setProcessEnvironment(environment);
+        }
+        return process.startDetached();
+    };
 }
 
 DaemonReachResult

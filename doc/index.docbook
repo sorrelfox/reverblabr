@@ -247,13 +247,15 @@ at, how busy the session is, and how many times it missed its deadline (an
 
 <para>To have &reverblabr; look like the rest of your desktop, choose
 <menuchoice><guimenu>Settings</guimenu><guisubmenu>Appearance</guisubmenu><guimenuitem>Follow
-System</guimenuitem></menuchoice>. The window then takes your colours, fonts
-and title bar from &plasma;, starting the next time &reverblabr; opens.
+System</guimenuitem></menuchoice>. The window then takes your colours and fonts
+from &plasma; at once, and your controls and title bar the next time
+&reverblabr; opens.
 <guimenuitem>Reverblabr Dark</guimenuitem> and <guimenuitem>Reverblabr
 Light</guimenuitem> are its own looks. In them, text and every mark that means
 something (a state dot, a wire, a meter, the keyboard focus) meet the contrast
 levels of WCAG 2.1 AA; with Follow System you get your colour scheme's own
-colours as they are.</para>
+colours as they are. The same choice, and the language &reverblabr; speaks,
+are in the Settings window; see <xref linkend="settings-window"/>.</para>
 
 <sect1 id="canvas">
 <title>The canvas</title>
@@ -467,6 +469,55 @@ session manager, the rate and cycle the graph runs at, and whether
 &reverblabr; can reach it, with <guilabel>Diagnostics</guilabel> underneath;
 see <xref linkend="diagnostics"/>.</para></listitem>
 </itemizedlist>
+</sect1>
+
+<sect1 id="settings-window">
+<title>The Settings window</title>
+
+<para><menuchoice><shortcut><keycombo
+action="simul">&Ctrl;&Shift;<keycap>,</keycap></keycombo></shortcut><guimenu>Settings</guimenu><guimenuitem>Configure
+&reverblabr;…</guimenuitem></menuchoice> opens the Settings window, where
+&reverblabr;'s own settings are, a section each:</para>
+
+<variablelist>
+<varlistentry>
+<term><guilabel>Language</guilabel></term>
+<listitem><para>The language &reverblabr; speaks: <guilabel>Follow
+System</guilabel>, which says in brackets which language that gives you,
+<guilabel>English</guilabel>, or any language &reverblabr; is translated into,
+each named in its own language. It changes the words of the window, of its
+notifications and of what &krunner; shows, and leaves numbers, dates and units
+in your desktop's formats. The panel widget, &ctl;, and what the application
+launcher, &systemsettings; and the software centre say about &reverblabr; stay
+in your desktop's language. Only &reverblabr;'s global shortcuts are listed in
+&systemsettings; under the names the window gives them, in the language
+chosen.</para>
+<para>The window changes language when it starts again. Until then the
+section says so, with a <guibutton>Restart Now</guibutton> button, which
+starts &reverblabr; again at once. If the engine runs in the window rather than
+in the background, restarting stops its sessions, and the section says that
+too. The background engine changes language as soon as you choose: what
+&krunner; shows, and the notifications it sends while &reverblabr; is not
+running.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><guilabel>Appearance</guilabel></term>
+<listitem><para><guilabel>Reverblabr Dark</guilabel>, <guilabel>Reverblabr
+Light</guilabel> or <guilabel>Follow System</guilabel>, as in the Settings
+menu. Colours and fonts change at once. Between the two Reverblabr looks and
+Follow System, the controls and the title bar change when &reverblabr; starts
+again, and the section offers <guibutton>Restart Now</guibutton> for
+that.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><guilabel>Auto Run</guilabel></term>
+<listitem><para>When the background engine starts the sessions set to Auto
+Run: <guilabel>Once per Login: Stopped Sessions Stay Stopped</guilabel> or
+<guilabel>Every Time the Background Engine Starts</guilabel>, as in the
+Settings menu, each with what it does; see <xref
+linkend="auto-run"/>.</para></listitem>
+</varlistentry>
+</variablelist>
 </sect1>
 </chapter>
 
@@ -1333,7 +1384,8 @@ Undo takes the setting back like any other change.</para></listitem>
 <listitem><para>If you would rather have these sessions start again whenever
 the background engine starts, after you stopped them too, choose
 <menuchoice><guimenu>Settings</guimenu><guisubmenu>Auto Run</guisubmenu><guimenuitem>Every
-Time the Background Engine Starts</guimenuitem></menuchoice>. The engine stops
+Time the Background Engine Starts</guimenuitem></menuchoice>, or the same in
+the <link linkend="settings-window">Settings window</link>. The engine stops
 by itself a minute after nothing is using it, so a session you stopped then
 starts again the next time anything wakes the engine, such as opening the
 window or typing <userinput>rb</userinput> in &krunner;. The choice is the
@@ -1561,6 +1613,13 @@ once a minute.</para>
 in &systemsettings;, under <guimenuitem>Notifications</guimenuitem>, where you
 can turn it off or give it a sound. Do Not Disturb silences them like any
 other.</para>
+
+<para>Notifications, and what &krunner; shows, are in the language chosen in
+the <link linkend="settings-window">Settings window</link>. &krunner; changes
+language at once, and so do the notifications the background engine sends
+while &reverblabr; is not running; &reverblabr; itself changes when it starts
+again. The kinds of notification in &systemsettings; are named in your
+desktop's language.</para>
 </sect1>
 </chapter>
 
@@ -2356,6 +2415,12 @@ Starts</guimenuitem>: when the sessions set to Auto Run are started; see
 <term><menuchoice><guimenu>Settings</guimenu><guimenuitem>Virtual Devices…</guimenuitem></menuchoice></term>
 <listitem><para>Opens the Virtual Devices window; see <xref
 linkend="virtual-devices"/>.</para></listitem>
+</varlistentry>
+<varlistentry>
+<term><menuchoice><shortcut><keycombo action="simul">&Ctrl;&Shift;<keycap>,</keycap></keycombo></shortcut><guimenu>Settings</guimenu><guimenuitem>Configure &reverblabr;…</guimenuitem></menuchoice></term>
+<listitem><para>Opens the Settings window: the language &reverblabr; speaks,
+its appearance and when Auto Run runs; see <xref
+linkend="settings-window"/>.</para></listitem>
 </varlistentry>
 </variablelist>
 </sect1>

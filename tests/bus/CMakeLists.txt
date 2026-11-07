@@ -236,8 +236,9 @@ set_tests_properties(bus.timers PROPERTIES
 # reach the Reverblabr the person has open, which the test refuses to do.
 add_executable(reverblabr-launch-bus-test test_launch.cpp)
 target_link_libraries(reverblabr-launch-bus-test PRIVATE Qt6::DBus GTest::gtest)
-target_compile_definitions(reverblabr-launch-bus-test PRIVATE RB_APP="$<TARGET_FILE:reverblabr>")
-add_dependencies(reverblabr-launch-bus-test reverblabr)
+target_compile_definitions(reverblabr-launch-bus-test PRIVATE RB_APP="$<TARGET_FILE:reverblabr>"
+                                                              RB_TEST_LANGUAGES_DIR="${RB_TEST_LANGUAGES_DIR}")
+add_dependencies(reverblabr-launch-bus-test reverblabr reverblabr-test-languages)
 add_test(NAME bus.launch
          COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-launch-bus-test>)
@@ -254,8 +255,9 @@ set_tests_properties(bus.launch PROPERTIES
 add_executable(reverblabr-krunner-bus-test test_krunner.cpp)
 target_link_libraries(reverblabr-krunner-bus-test PRIVATE
     reverblabr-daemon-core reverblabr-enginebus reverblabr-engine Qt6::DBus GTest::gtest)
-target_compile_definitions(reverblabr-krunner-bus-test PRIVATE RB_DAEMON="$<TARGET_FILE:reverblabrd>")
-add_dependencies(reverblabr-krunner-bus-test reverblabrd)
+target_compile_definitions(reverblabr-krunner-bus-test PRIVATE RB_DAEMON="$<TARGET_FILE:reverblabrd>"
+                                                               RB_TEST_LANGUAGES_DIR="${RB_TEST_LANGUAGES_DIR}")
+add_dependencies(reverblabr-krunner-bus-test reverblabrd reverblabr-test-languages)
 add_test(NAME bus.krunner
          COMMAND ${RB_TEST_SANDBOX} ${RB_DBUS_RUN_SESSION} --config-file=${RB_BUS_DIR}/session.conf
                  -- $<TARGET_FILE:reverblabr-krunner-bus-test>)

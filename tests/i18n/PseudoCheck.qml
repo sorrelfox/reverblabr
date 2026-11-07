@@ -18,8 +18,9 @@
 // The screens: the window with every block on the canvas, stopped and
 // running; the block library, Files and Info; every block's settings panel;
 // the main menu and each of its menus; the session dialogs; the Virtual
-// Devices window; the Sessions window; the tray's popover; the Recording
-// Inspector; the blocks' help.
+// Devices window; the Sessions window; the Settings window, with its list
+// of languages and with what waits for a restart; the tray's popover; the
+// Recording Inspector; the blocks' help.
 
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -113,6 +114,11 @@ QtObject {
 
     function isData(text: string, item: var): bool {
         if (data.some(word => text === word || text.startsWith(word + " ") || text.endsWith(" " + word))) {
+            return true;
+        }
+        // **A language is named in itself**, never in the language of the
+        // window: the Settings window's list.
+        if (LanguageSetting.languages.some(language => language.name === text)) {
             return true;
         }
         if (shortcut.test(text) || (qtButtons.indexOf(text) >= 0 && pathOf(item).indexOf("DialogButtonBox") >= 0)) {
@@ -365,6 +371,38 @@ QtObject {
                  () => window.sessionsWindow !== null && window.sessionsWindow.visible, 300);
             screen("sessions", () => window.sessionsWindow, () => [rootOf(window.sessionsWindow)], 0);
             step("sessions closed", () => window.sessionsWindow.close(), null, 50);
+
+            // **The Settings window**, as it opens; with its list of
+            // languages open; and with a language and an appearance chosen
+            // that wait for a restart, from an engine in the window, so
+            // that every row it can show is on show. At the window's least
+            // width, where the words have the least room.
+            step("settings", () => {
+                window.showSettingsWindow();
+                const settings = window.settingsWindow;
+                settings.width = settings.minimumWidth;
+                settings.height = 1100;
+            }, () => window.settingsWindow !== null && window.settingsWindow.visible, 300);
+            screen("settings", () => window.settingsWindow, () => [rootOf(window.settingsWindow)], 0);
+            step("settings languages", () => window.settingsWindow.languageBox.popup.open(),
+                 () => window.settingsWindow.languageBox.popup.opened, 200);
+            screen("settings-languages", () => window.settingsWindow,
+                   () => [window.settingsWindow.languageBox.popup.contentItem], 0);
+            step("settings languages closed", () => window.settingsWindow.languageBox.popup.close(), null, 50);
+            step("settings restart", () => {
+                LanguageSetting.chosen = "de";
+                Appearance.mode = Appearance.ownStyle ? Appearance.FollowSystem : Appearance.ReverblabrDark;
+                AppShell.engineInBackground = false;
+            }, () => window.settingsWindow.languageRestart.visible && window.settingsWindow.appearanceRestart.visible,
+                 300);
+            screen("settings-restart", () => window.settingsWindow, () => [rootOf(window.settingsWindow)], 0);
+            step("settings closed", () => {
+                LanguageSetting.chosen = "";
+                Appearance.mode = AppearanceName.startsWith("reverblabr-") ? Appearance.ReverblabrDark
+                                                                          : Appearance.FollowSystem;
+                AppShell.engineInBackground = true;
+                window.settingsWindow.close();
+            }, null, 50);
 
             // The tray's popover, with a meter marked for it and
             // something gone wrong, so every part of it is on show.

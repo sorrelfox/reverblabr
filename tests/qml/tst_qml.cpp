@@ -14,8 +14,10 @@
 #include "diagnostics.h"
 #include "fileactions.h"
 #include "firstusenotice.h"
+#include "languagesetting.h"
 #include "mediaplayers.h"
 #include "recentapplications.h"
+#include "restart.h"
 #include "sessions.h"
 #include "systemdevicewriter.h"
 #include "windowstate.h"
@@ -225,6 +227,60 @@ private:
     QString m_lastAction;
     QString m_lastPath;
     QString m_failNext;
+};
+
+/// **Restart Now, as the QML tests have it**: nothing is started and
+/// nothing quits. What a restart would have started is noted, for a test to
+/// read, and answered with `answer`.
+class FakeRestart : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(bool answer MEMBER m_answer NOTIFY changed)
+    Q_PROPERTY(int count READ count NOTIFY changed)
+    Q_PROPERTY(QString lastProgram READ lastProgram NOTIFY changed)
+    Q_PROPERTY(QStringList lastArguments READ lastArguments NOTIFY changed)
+
+public:
+    bool run(const QString &program, const QStringList &arguments)
+    {
+        ++m_count;
+        m_lastProgram = program;
+        m_lastArguments = arguments;
+        Q_EMIT changed();
+        return m_answer;
+    }
+
+    [[nodiscard]] int count() const
+    {
+        return m_count;
+    }
+    [[nodiscard]] QString lastProgram() const
+    {
+        return m_lastProgram;
+    }
+    [[nodiscard]] QStringList lastArguments() const
+    {
+        return m_lastArguments;
+    }
+
+    /// Back to a restart that would have started.
+    Q_INVOKABLE void reset()
+    {
+        m_answer = true;
+        m_count = 0;
+        m_lastProgram.clear();
+        m_lastArguments.clear();
+        Q_EMIT changed();
+    }
+
+Q_SIGNALS:
+    void changed();
+
+private:
+    bool m_answer = true;
+    int m_count = 0;
+    QString m_lastProgram;
+    QStringList m_lastArguments;
 };
 
 /// **The media players a test says are running**: never the ones on the
@@ -566,6 +622,18 @@ public Q_SLOTS:
         ui::Appearance::setConfig(m_state);
         // And when Auto Run runs, which the person's own engine would read.
         ui::AutoRunSetting::setConfig(m_state);
+        // And the language, which the person's own window and engine would
+        // read. **Three languages with a catalog, whatever is installed**:
+        // a test that picks one must not depend on what the machine running
+        // it has.
+        ui::LanguageSetting::setConfig(m_state);
+        ui::LanguageSetting::setCatalogsForTesting(QStringList{u"de"_s, u"pt_BR"_s, u"zh_CN"_s});
+        // **Restart Now never starts anything**, and nothing quits.
+        FakeRestart *restart = &m_restart;
+        ui::Restart::setRunnerForTesting(
+            [restart](const QString &program, const QStringList &arguments, const QProcessEnvironment &) {
+                return restart->run(program, arguments);
+            });
         // And the notice, which must not be answered by a run's last test.
         ui::FirstUseNotice::setConfig(m_state);
         // **Each run in the appearance its style goes with**, as the
@@ -631,6 +699,7 @@ public Q_SLOTS:
         engine->rootContext()->setContextProperty(u"TestClipboard"_s, &m_clipboard);
         engine->rootContext()->setContextProperty(u"TestPlayers"_s, &m_players);
         engine->rootContext()->setContextProperty(u"TestAccessibility"_s, &m_accessibility);
+        engine->rootContext()->setContextProperty(u"TestRestart"_s, &m_restart);
     }
 
 private:
@@ -640,6 +709,7 @@ private:
     std::unique_ptr<FakeFileActions> m_files;
     FakeClipboard m_clipboard;
     FakeMediaPlayers m_players;
+    FakeRestart m_restart;
     AccessibilityAudit m_accessibility;
     QTemporaryDir m_stateDirectory;
     KSharedConfig::Ptr m_state;

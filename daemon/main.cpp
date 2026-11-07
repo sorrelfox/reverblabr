@@ -20,6 +20,8 @@
 #include "core/mockengine.h"
 #include "dsp/blockregistry.h"
 #include "freedesktopsender.h"
+#include "language.h"
+#include "languagewatch.h"
 #include "notifications.h"
 #include "opensessions.h"
 #include "pw/sandbox.h"
@@ -67,6 +69,11 @@ void onStopSignal(int)
 
 int main(int argc, char **argv)
 {
+    // **The language the person chose in the window** (ADR-0036), before
+    // anything is translated and before there is a second thread: the
+    // notifications and KRunner's words are in it. The window's settings
+    // file, read here without KDE Frameworks, as Auto Run's choice is.
+    rb::notify::ProcessLanguage::applyAtStart(rb::notify::chosenLanguage(rb::daemon::defaultSettingsPath()));
     QCoreApplication app(argc, argv);
     // The last lines logged, which GetDiagnostics hands to a bug report;
     // the journal still gets every one.
@@ -139,6 +146,11 @@ int main(int argc, char **argv)
         qCCritical(lcDaemon) << "another engine already has" << rb::bus::kServiceName << "on this bus";
         return 1;
     }
+
+    // **A language chosen in the window while the daemon runs**, which may
+    // be for days, is followed: the next notification, and the next KRunner
+    // query, are in it.
+    rb::daemon::LanguageWatch language(rb::daemon::defaultSettingsPath());
 
     // **Notifications while no window is open**: the same events, in
     // the same words, as the window sends through KNotifications — straight

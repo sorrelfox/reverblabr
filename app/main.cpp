@@ -20,8 +20,10 @@
 #include "dsp/blockregistry.h"
 #include "globalshortcutregistry.h"
 #include "globalshortcuts.h"
+#include "language.h"
 #include "launchrequests.h"
 #include "pw/sandbox.h"
+#include "restart.h"
 #include "texts.h"
 #include "trayicon.h"
 #include "traystate.h"
@@ -65,6 +67,14 @@ int main(int argc, char *argv[])
     if (QLibraryInfo::version() < QVersionNumber(6, 11) && !qEnvironmentVariableIsSet("QV4_GC_TIMELIMIT")) {
         qputenv("QV4_GC_TIMELIMIT", "0");
     }
+    // **The language the person chose** (ADR-0036), for the whole process
+    // and before anything reads it: KI18n takes its languages once, and Qt
+    // and Kirigami load their own catalogs as the application starts. So it
+    // is read here, before there is an application to name the settings
+    // file, and a change takes effect at the next start. Only LANGUAGE
+    // changes: numbers, dates and units stay in the system's formats. What
+    // the window starts is given LANGUAGE back as it was.
+    rb::notify::ProcessLanguage::applyAtStart(rb::notify::chosenLanguage(rb::notify::settingsPath()));
     // QApplication rather than QGuiApplication: the native Breeze controls
     // (org.kde.desktop) draw through the widget style.
     QApplication app(argc, argv);
@@ -128,9 +138,25 @@ int main(int argc, char *argv[])
               "in this window"));
     parser.addOption(daemonOption);
     rb::ui::LaunchRequests::addOptions(parser);
+    // **Which Reverblabr a restart replaces** (ADR-0036): Restart Now's
+    // copy is told, and nobody else needs to know, so --help does not list
+    // it and its words are not translated.
+    QCommandLineOption restartOfOption(QString(rb::ui::Restart::kRestartOfOption),
+                                       u"Start once the Reverblabr with this process id has ended."_s,
+                                       u"pid"_s);
+    restartOfOption.setFlags(QCommandLineOption::HiddenFromHelp);
+    parser.addOption(restartOfOption);
     about.setupCommandLine(&parser);
     parser.process(app);
     about.processCommandLine(&parser);
+
+    // **A restart's copy waits for the window it replaces to have gone**,
+    // before it asks for Reverblabr's name on the bus below: the old one's
+    // name, tray icon and global shortcuts are free by then. It is looked
+    // at, never signalled.
+    if (parser.isSet(restartOfOption)) {
+        rb::ui::Restart::waitForExitOf(parser.value(restartOfOption).toLongLong());
+    }
 
     // **One Reverblabr a desktop**. A second launch, such as the
     // desktop entry's New Session, hands its arguments to the running one
@@ -179,8 +205,14 @@ int main(int argc, char *argv[])
     // as an activated one does.
     const bool sandboxed = rb::pw::inFlatpak();
     rb::ui::AppShell::setSandboxed(sandboxed);
+    // **With the environment the window was started with** (ADR-0036): the
+    // daemon reads the person's choice of language for itself, and follows
+    // it as it changes, which a LANGUAGE handed over from here would get in
+    // the way of.
     const rb::bus::DaemonStarter startDaemon = sandboxed
-        ? rb::bus::detachedStarter(QDir(QCoreApplication::applicationDirPath()).filePath(u"reverblabrd"_s))
+        ? rb::bus::detachedStarter(QDir(QCoreApplication::applicationDirPath()).filePath(u"reverblabrd"_s),
+                                   {},
+                                   rb::notify::ProcessLanguage::originalEnvironment())
         : rb::bus::DaemonStarter{};
     const rb::bus::EngineChoice choice =
         rb::bus::chooseEngine({.mock = parser.isSet(mockOption),

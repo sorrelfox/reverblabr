@@ -120,7 +120,8 @@
         "LSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/lsan.supp",
         "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1",
         "PIPEWIRE_DLCLOSE": "false"
-      }
+      },
+      "execution": { "noTestsAction": "error", "timeout": 900 }
     },
     {
       "name": "tsan",
@@ -129,7 +130,8 @@
       "description": "Qt and KDE Frameworks aren't built with ThreadSanitizer; tools/sanitizers/tsan.supp suppresses the false reports from inside them.",
       "environment": {
         "TSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/tsan.supp:halt_on_error=1:second_deadlock_stack=1"
-      }
+      },
+      "execution": { "noTestsAction": "error", "timeout": 900 }
     },
     {
       "name": "rtsan",

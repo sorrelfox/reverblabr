@@ -9,6 +9,7 @@
 
 #include "core/enginefacade.h"
 #include "core/session.h"
+#include "language.h"
 
 #include <QDir>
 #include <QFile>
@@ -18,7 +19,6 @@
 #include <QJsonObject>
 #include <QLoggingCategory>
 #include <QSettings>
-#include <QStandardPaths>
 
 using namespace Qt::StringLiterals;
 
@@ -253,7 +253,7 @@ bool autoRunEveryEngineStart(const QString &settingsPath)
 
 QString defaultSettingsPath()
 {
-    return QDir(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)).filePath(u"reverblabrrc"_s);
+    return notify::settingsPath();
 }
 
 } // namespace rb::daemon

@@ -25,6 +25,8 @@
 #include <QDBusConnectionInterface>
 #include <QDBusReply>
 #include <QElapsedTimer>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QThread>
 #include <gtest/gtest.h>
 #include <signal.h>
@@ -32,6 +34,7 @@
 
 #include <chrono>
 #include <limits>
+#include <optional>
 
 using namespace rb;
 using namespace Qt::StringLiterals;
@@ -211,6 +214,53 @@ TEST(DaemonReach, WithAStarterAWindowStartsTheDaemonItselfAndReachesIt)
 
     // Gone before the bus is, as in TheBusStartsTheDaemonAndItIsReached.
     stopTheDaemon();
+}
+
+TEST(DaemonReach, TheStarterGivesTheDaemonTheEnvironmentItIsGiven)
+{
+    // **The Flatpak's daemon gets LANGUAGE as the window was started with**
+    // (ADR-0036), not the language chosen for the window, which the daemon
+    // reads for itself and follows as it changes. A program that writes down
+    // what it was given stands in for the daemon; it needs no bus, so one
+    // situation is enough.
+    RB_ONLY_ON("empty");
+    QTemporaryDir folder;
+    ASSERT_TRUE(folder.isValid());
+    const QString said = folder.filePath(u"said"_s);
+    const QString program = folder.filePath(u"daemon.sh"_s);
+    {
+        QFile script(program);
+        ASSERT_TRUE(script.open(QIODevice::WriteOnly));
+        script.write("#!/bin/sh\nprintf '%s\\n' \"${LANGUAGE-unset}\" > \"$1.part\"\nmv \"$1.part\" \"$1\"\n");
+        script.close();
+        ASSERT_TRUE(script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+    }
+    const auto programSaid = [&said]() -> QString {
+        QFile file(said);
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()).trimmed() : QString();
+    };
+    // The window's own LANGUAGE, as the language chosen made it.
+    const std::optional<QByteArray> before =
+        qEnvironmentVariableIsSet("LANGUAGE") ? std::optional<QByteArray>(qgetenv("LANGUAGE")) : std::nullopt;
+    qputenv("LANGUAGE", "xx");
+
+    QProcessEnvironment given = QProcessEnvironment::systemEnvironment();
+    given.insert(u"LANGUAGE"_s, u"fr:de"_s);
+    EXPECT_TRUE(bus::detachedStarter(program, {said}, given)());
+    EXPECT_TRUE(waitFor([&] { return !programSaid().isEmpty(); }, 5000)) << "the program was not started";
+    EXPECT_EQ(programSaid(), u"fr:de"_s) << "the daemon was handed the window's language";
+
+    // **With none given**, the window's own, as a starter always gave it.
+    ASSERT_TRUE(QFile::remove(said));
+    EXPECT_TRUE(bus::detachedStarter(program, {said})());
+    EXPECT_TRUE(waitFor([&] { return !programSaid().isEmpty(); }, 5000)) << "the program was not started";
+    EXPECT_EQ(programSaid(), u"xx"_s);
+
+    if (before) {
+        qputenv("LANGUAGE", *before);
+    } else {
+        qunsetenv("LANGUAGE");
+    }
 }
 
 TEST(DaemonReach, AStarterThatCannotRunTheProgramIsRefusedAtOnce)

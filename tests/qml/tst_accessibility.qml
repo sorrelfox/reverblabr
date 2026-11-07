@@ -197,6 +197,18 @@ TestCase {
         waitForRendering(window.sessionsWindow.contentItem);
         problems = problems.concat(testCase.unnamedUnder("sessions", testCase.rootOf(window.sessionsWindow)));
         window.sessionsWindow.close();
+        // **The Settings window, with both of its restart rows up.**
+        LanguageSetting.chosen = LanguageSetting.inForce === "de" ? "pt_BR" : "de";
+        Appearance.mode = Appearance.ownStyle ? Appearance.FollowSystem : Appearance.ReverblabrDark;
+        window.showSettingsWindow();
+        tryVerify(() => window.settingsWindow !== null && window.settingsWindow.visible, 2000);
+        tryVerify(() => window.settingsWindow.languageRestart.visible && window.settingsWindow.appearanceRestart.visible,
+                  1000);
+        waitForRendering(window.settingsWindow.contentItem);
+        problems = problems.concat(testCase.unnamedUnder("settings", testCase.rootOf(window.settingsWindow)));
+        window.settingsWindow.close();
+        LanguageSetting.chosen = "";
+        Appearance.mode = SuiteAppearance;
 
         // **The tray's popover, with a row in each list.**
         const sessionsBefore = Sessions.open.length;
