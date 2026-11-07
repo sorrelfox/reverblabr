@@ -54,6 +54,14 @@ add_test(NAME i18n.lint-app COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/t
 add_test(NAME i18n.lint-plasmoid COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/lint-i18n.py ${PROJECT_SOURCE_DIR}/plasmoid)
 set_tests_properties(i18n.extract PROPERTIES PASS_REGULAR_EXPRESSION "PASS: extraction")
 set_tests_properties(i18n.lint-selftest PROPERTIES PASS_REGULAR_EXPRESSION "PASS: lint-i18n fixtures")
+# The shipped catalogs: what msgfmt --check refuses, and what a translation
+# must keep (placeholders, %-words, markup, accelerators, the header's language
+# and plural forms); and the self-test proving the check catches each fault.
+add_test(NAME i18n.translations
+         COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/check-translations.py ${PROJECT_SOURCE_DIR}/po)
+add_test(NAME i18n.translations-selftest
+         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_check_translations.py)
+set_tests_properties(i18n.translations-selftest PROPERTIES PASS_REGULAR_EXPRESSION "PASS: check-translations self-test")
 # The desktop entry, the notification events and the AppStream data:
 # extracted into reverblabr-data.pot, and a catalog merged back through the
 # same script the build uses.

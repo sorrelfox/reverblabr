@@ -15,6 +15,9 @@
 //   than it may show), or one that neither elides nor wraps and is wider
 //   than the room it was given.
 //
+// With a real language's catalog (`--language de`) only what is cut off is
+// reported: there is no ⟦ to look for, and a name or a unit rightly stays.
+//
 // The screens: the window with every block on the canvas, stopped and
 // running; the block library, Files and Info; every block's settings panel;
 // the main menu and each of its menus; the session dialogs; the Virtual
@@ -161,7 +164,7 @@ QtObject {
     }
 
     function lookAtWords(screen: string, item: var, text: string) {
-        if (text.indexOf("⟦") < 0 && /[A-Za-z]{2,}/.test(text) && !isData(text, item)) {
+        if (PseudoLocale && text.indexOf("⟦") < 0 && /[A-Za-z]{2,}/.test(text) && !isData(text, item)) {
             report(screen, "untranslated", item, text, "");
         }
     }

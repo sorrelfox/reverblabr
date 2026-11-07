@@ -15,9 +15,15 @@ reports untranslated or cut-off text. The template is made afresh on every
 run, so a string added a minute ago is in it.
 
     pseudo_check.py --checker BIN --out DIR --appearance NAME [--inject FAULT --expect KIND]
+    pseudo_check.py --checker BIN --out DIR --appearance NAME --catalog po/de/reverblabr.po
 
 With --inject, the run passes only if the checker catches the fault it was
 given, and reports it as KIND: the check proving that it can fail.
+
+With --catalog, the screens are drawn in that real translation instead (its
+Language header names it) and only text that is cut off is reported: whether
+a language's words fit, the longest (German) and those in other scripts
+(Japanese, Chinese) above all.
 """
 
 import argparse
@@ -37,19 +43,29 @@ def main() -> int:
     parser.add_argument("--appearance", required=True)
     parser.add_argument("--inject", default="")
     parser.add_argument("--expect", default="")
+    parser.add_argument("--catalog", default="")
     options = parser.parse_args()
 
     out = pathlib.Path(options.out)
     shutil.rmtree(out, ignore_errors=True)
-    catalog_dir = out / "locale" / "qps" / "LC_MESSAGES"
+    if options.catalog:
+        language = language_of(pathlib.Path(options.catalog))
+        if not language:
+            print(f"FAIL: {options.catalog} has no Language header")
+            return 1
+        source = pathlib.Path(options.catalog)
+    else:
+        language = "qps"
+        subprocess.run([str(REPO / "tools" / "extract-messages.sh"), str(out / "po")], check=True,
+                       stdout=subprocess.DEVNULL)
+        subprocess.run([sys.executable, str(REPO / "tools" / "pseudo-locale.py"), str(out / "po" / "reverblabr.pot"),
+                        str(out / "qps.po")], check=True, stdout=subprocess.DEVNULL)
+        source = out / "qps.po"
+    catalog_dir = out / "locale" / language / "LC_MESSAGES"
     catalog_dir.mkdir(parents=True)
+    subprocess.run(["msgfmt", "--check", "-o", str(catalog_dir / "reverblabr.mo"), str(source)], check=True)
 
-    subprocess.run([str(REPO / "tools" / "extract-messages.sh"), str(out / "po")], check=True, stdout=subprocess.DEVNULL)
-    subprocess.run([sys.executable, str(REPO / "tools" / "pseudo-locale.py"), str(out / "po" / "reverblabr.pot"),
-                    str(out / "qps.po")], check=True, stdout=subprocess.DEVNULL)
-    subprocess.run(["msgfmt", "--check", "-o", str(catalog_dir / "reverblabr.mo"), str(out / "qps.po")], check=True)
-
-    command = [options.checker, "--locale-dir", str(out / "locale"), "--out", str(out),
+    command = [options.checker, "--locale-dir", str(out / "locale"), "--language", language, "--out", str(out),
                "--appearance", options.appearance]
     if options.inject:
         command += ["--inject", options.inject]
@@ -72,8 +88,21 @@ def main() -> int:
     if findings:
         print(f"FAIL: {len(findings)} findings on {report['screens']} screens; screenshots and report.json in {out}")
         return 1
-    print(f"PASS: pseudo-locale, {report['screens']} screens, nothing untranslated or cut off")
+    if options.catalog:
+        print(f"PASS: {language}, {report['screens']} screens, nothing cut off")
+    else:
+        print(f"PASS: pseudo-locale, {report['screens']} screens, nothing untranslated or cut off")
     return 0
+
+
+def language_of(catalog: pathlib.Path) -> str:
+    """The catalog's Language header: the folder its .mo goes in."""
+    for line in catalog.read_text(encoding="utf-8").splitlines():
+        if line.startswith('"Language:'):
+            return line[len('"Language:'):].strip().rstrip('"').replace("\\n", "").strip()
+        if line.startswith("#:") or (line.startswith("msgid") and line != 'msgid ""'):
+            break
+    return ""
 
 
 if __name__ == "__main__":

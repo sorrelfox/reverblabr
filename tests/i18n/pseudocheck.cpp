@@ -106,12 +106,18 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
 
     QCommandLineParser parser;
-    const QCommandLineOption localeOption(u"locale-dir"_s, u"Where qps/LC_MESSAGES/reverblabr.mo is."_s, u"dir"_s);
+    const QCommandLineOption localeOption(
+        u"locale-dir"_s, u"Where <language>/LC_MESSAGES/reverblabr.mo is."_s, u"dir"_s);
+    const QCommandLineOption languageOption(
+        u"language"_s,
+        u"The catalog's language: qps, the pseudo-locale (the default), or a real one such as de."_s,
+        u"code"_s,
+        u"qps"_s);
     const QCommandLineOption outOption(u"out"_s, u"Where the screenshots and report.json go."_s, u"directory"_s);
     const QCommandLineOption appearanceOption(u"appearance"_s, u"reverblabr-dark or system-dark."_s, u"name"_s);
     const QCommandLineOption injectOption(
         u"inject"_s, u"Put one known fault on the first screen: hardcoded or truncated."_s, u"fault"_s);
-    parser.addOptions({localeOption, outOption, appearanceOption, injectOption});
+    parser.addOptions({localeOption, languageOption, outOption, appearanceOption, injectOption});
     parser.addHelpOption();
     parser.process(app);
     if (!parser.isSet(localeOption) || !parser.isSet(outOption)) {
@@ -120,12 +126,15 @@ int main(int argc, char *argv[])
     }
 
     // The pseudo-locale, and nothing else: a word it doesn't have stays in
-    // English, which is exactly what the check looks for.
+    // English, which is exactly what the check looks for. **A real
+    // language** is checked for room only: its words are its translators',
+    // and a name or a unit rightly stays as it is.
+    const QString language = parser.value(languageOption);
     KLocalizedString::setApplicationDomain("reverblabr");
     KLocalizedString::addDomainLocaleDir("reverblabr", parser.value(localeOption));
-    KLocalizedString::setLanguages({u"qps"_s});
-    if (!KLocalizedString::isApplicationTranslatedInto(u"qps"_s)) {
-        qCritical("the pseudo-locale catalog did not load; gettext needs a real locale such as en_US.UTF-8");
+    KLocalizedString::setLanguages({language});
+    if (!KLocalizedString::isApplicationTranslatedInto(language)) {
+        qCritical("the %s catalog did not load; gettext needs a real locale such as en_US.UTF-8", qPrintable(language));
         return 3;
     }
 
@@ -164,6 +173,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(u"CheckEngine"_s, &mock);
     engine.rootContext()->setContextProperty(u"AppearanceName"_s, parser.value(appearanceOption));
     engine.rootContext()->setContextProperty(u"Inject"_s, parser.value(injectOption));
+    engine.rootContext()->setContextProperty(u"PseudoLocale"_s, language == u"qps"_s);
     engine.load(QUrl::fromLocalFile(QStringLiteral(PSEUDO_CHECK_QML)));
     if (engine.rootObjects().isEmpty()) {
         return 1;
