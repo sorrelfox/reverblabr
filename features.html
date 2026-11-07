@@ -43,7 +43,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
       <ul>
         <li><a href="features.html" aria-current="page">Features</a></li>
         <li><a href="download.html">Download</a></li>
-        <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/README.md">Docs</a></li>
+        <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/README.md">Docs</a></li>
         <li><a href="https://github.com/sorrelfox/reverblabr">Source code</a></li>
       </ul>
     </nav>
@@ -55,7 +55,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 <section class="canvas page-head" aria-labelledby="title">
   <div class="wrap">
     <h1 id="title">Everything Reverblabr does</h1>
-    <p class="lede">Reverblabr works in sessions. A session takes sound from sources, runs it through effects and meters, and sends it to outputs. You build it on a canvas from blocks, and you can change anything while it plays. This page lists all of it; the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/README.md">documentation</a> has the details.</p>
+    <p class="lede">Reverblabr works in sessions. A session takes sound from sources, runs it through effects and meters, and sends it to outputs. You build it on a canvas from blocks, and you can change anything while it plays. This page lists all of it; the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/README.md">documentation</a> has the details.</p>
   </div>
 </section>
 
@@ -240,7 +240,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
         <img src="images/recording-inspector.webp" width="820" height="520" loading="lazy" decoding="async" alt="The window for one recording: its waveform, play controls, file name and tag fields, with buttons to open its folder, open it in another program or move it to the trash.">
         <figcaption>Listen to a recording, rename it and fill in its tags.</figcaption>
       </figure>
-      <p>Before you record anyone but yourself, read <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/privacy.md">Privacy</a>: in many places it is against the law to record a call without the agreement of everyone in it.</p>
+      <p>Before you record anyone but yourself, read <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/privacy.md">Privacy</a>: in many places it is against the law to record a call without the agreement of everyone in it.</p>
     </section>
 
     <section aria-labelledby="virtual-devices">
@@ -294,7 +294,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
         <li><strong>Limits built in:</strong> a ceiling for the output and the most gain a band may get. Raising a limit takes one more step and the sound rises to it slowly. Where a block that can add gain comes after the last limit, the Output Device adds a limit of its own and says why.</li>
         <li><strong>Not a medical device.</strong> Reverblabr measures nothing about anybody's health and doesn't replace an audiologist or a hearing aid. Its limits work on the numbers inside the computer: how loud that is at your ear depends on your volume and your headphones. A safety notice comes up before the first Hearing block is added.</li>
       </ul>
-      <p><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/hearing.md">Hearing</a> in the documentation explains them, safety first.</p>
+      <p><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/hearing.md">Hearing</a> in the documentation explains them, safety first.</p>
     </section>
 
     <section aria-labelledby="background">
@@ -327,7 +327,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 reverblabr-ctl set "Evening radio" Voice gain 0.5
 reverblabr-ctl split "Evening radio"
 reverblabr-ctl status --json</code></pre>
-      <p><strong>The D-Bus API</strong>, <code>io.github.reverblabr.Engine1</code> on the session bus, does everything the window does: the window uses nothing else. Nothing released in it is taken away or changed, only added to, and the same holds for the exit codes and the JSON of <code>reverblabr-ctl</code>. See <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/ctl.md">reverblabr-ctl</a> and <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/dbus-api.md">the D-Bus API</a>.</p>
+      <p><strong>The D-Bus API</strong>, <code>io.github.reverblabr.Engine1</code> on the session bus, does everything the window does: the window uses nothing else. Nothing released in it is taken away or changed, only added to, and the same holds for the exit codes and the JSON of <code>reverblabr-ctl</code>. See <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/ctl.md">reverblabr-ctl</a> and <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/dbus-api.md">the D-Bus API</a>.</p>
     </section>
 
     <section aria-labelledby="streaming">
@@ -361,15 +361,15 @@ reverblabr-ctl status --json</code></pre>
 
     <section aria-labelledby="privacy">
       <h2 id="privacy">Privacy</h2>
-      <p>Reverblabr doesn't use the network on its own account: no usage statistics and no update checks. Only Broadcast and Live Stream send anything, to the server you name. <strong>Copy Diagnostics</strong> leaves out your home folder, user name and computer name. A running session shows up by name in PipeWire's own tools, such as <code>wpctl status</code>, so you can see what is listening. <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/privacy.md">Privacy</a> says more, about recording other people too.</p>
+      <p>Reverblabr doesn't use the network on its own account: no usage statistics and no update checks. Only Broadcast and Live Stream send anything, to the server you name. <strong>Copy Diagnostics</strong> leaves out your home folder, user name and computer name. A running session shows up by name in PipeWire's own tools, such as <code>wpctl status</code>, so you can see what is listening. <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/privacy.md">Privacy</a> says more, about recording other people too.</p>
     </section>
 
     <section aria-labelledby="languages">
       <h2 id="languages">Languages</h2>
-      <p>Reverblabr is in English only so far. Every word in the window goes through KDE's translation system, so a new language is a matter of translating it.</p>
+      <p>Reverblabr speaks fifteen languages: English, German, Spanish, French, Italian, Brazilian Portuguese, Russian, Polish, Japanese, Korean, Simplified and Traditional Chinese, Ukrainian, Dutch and Turkish. It follows your desktop's language, or the one you choose in its Settings window. The window, its notifications, the panel widget and <code>reverblabr-ctl</code> are all translated. Every word goes through KDE's translation system, so a new language is a matter of translating it (<a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/i18n.md#the-translations">Translations</a>).</p>
     </section>
 
-    <p class="actions"><a class="button primary" href="download.html"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Download Reverblabr 1.0.1</a></p>
+    <p class="actions"><a class="button primary" href="download.html"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Download Reverblabr 1.0.2</a></p>
   </div>
 </div>
 
@@ -380,7 +380,7 @@ reverblabr-ctl status --json</code></pre>
     <div class="foot-grid">
       <div>
         <a class="brand" href="./"><img src="icon.svg" alt="" width="32" height="32"><span>Reverblabr</span></a>
-        <p>Capture, process and route audio on your desktop. Version 1.0.1, released on <time datetime="2026-11-06">6 November 2026</time>.</p>
+        <p>Capture, process and route audio on your desktop. Version 1.0.2, released on <time datetime="2026-11-07">7 November 2026</time>.</p>
       </div>
       <nav aria-label="Project">
         <h2>Project</h2>
@@ -388,21 +388,21 @@ reverblabr-ctl status --json</code></pre>
           <li><a href="https://github.com/sorrelfox/reverblabr">Source code</a></li>
           <li><a href="https://github.com/sorrelfox/reverblabr/releases">All releases</a></li>
           <li><a href="https://github.com/sorrelfox/reverblabr/issues">Report a bug</a></li>
-          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/CONTRIBUTING.md">Contributing</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/CONTRIBUTING.md">Contributing</a></li>
         </ul>
       </nav>
       <nav aria-label="Documentation">
         <h2>Documentation</h2>
         <ul>
-          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/getting-started.md">Getting started</a></li>
-          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/blocks.md">Blocks</a></li>
-          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/privacy.md">Privacy</a></li>
-          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/docs/troubleshooting.md">When something goes wrong</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/getting-started.md">Getting started</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/blocks.md">Blocks</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/privacy.md">Privacy</a></li>
+          <li><a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/docs/troubleshooting.md">When something goes wrong</a></li>
         </ul>
       </nav>
     </div>
     <div class="legal">
-      <p>The code is under the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/LICENSE">Mozilla Public License 2.0</a>; the documentation and this site's words and pictures under CC-BY-SA-4.0. The name and the logo are covered by the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.1/TRADEMARKS.md">trademark policy</a>.</p>
+      <p>The code is under the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/LICENSE">Mozilla Public License 2.0</a>; the documentation and this site's words and pictures under CC-BY-SA-4.0. The name and the logo are covered by the <a href="https://github.com/sorrelfox/reverblabr/blob/v1.0.2/TRADEMARKS.md">trademark policy</a>.</p>
       <p>VST is a registered trademark of Steinberg Media Technologies GmbH. The typefaces are Noto Sans and JetBrains Mono, under the <a href="fonts/OFL-1.1.txt">SIL Open Font License 1.1</a>.</p>
       <p>This site sets no cookies and loads nothing from other sites.</p>
     </div>
