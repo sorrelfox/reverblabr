@@ -24,7 +24,7 @@ HelpPage {
             KI18n.i18nc("@info help page of the Voice Forward block", "While a good part of the voice band is in the centre the rest goes down by Background. Otherwise it goes down by Between voices, so the room and the music stay. A line's first syllable can come under the louder background, since the block does not look ahead."),
             KI18n.i18nc("@info help page of the Voice Forward block", "A dB on the slider does not buy a dB. Taken out now shows what it really does, often much less, and -24 dB is not far beyond -12 dB. It may sound watery."),
             KI18n.i18nc("@info help page of the Voice Forward block", "On a mono sound both sides are alike, so between 100 Hz and 12 kHz there is nothing to move, and the card says so. Under and over that the sound still goes down, so a low rumble or a bass falls. With one side silent, or one side in reversed polarity, everything counts as the rest."),
-            KI18n.i18nc("@info help page of the Voice Forward block", "It holds the sound back by about 23 ms at 48 kHz, even at 0 dB. A wireless link or another delay adds to that, and the picture can fall behind."),
+            KI18n.i18nc("@info help page of the Voice Forward block", "It holds the sound back by about 23 ms at 48 kHz, even at 0 dB. A wireless link or another delay adds to that, and the sound can fall behind the picture."),
             KI18n.i18nc("@info help page of the Voice Forward block", "A limit at -1 dBFS stops peaks whenever the block changes anything. It is a digital limit, not a level at your ears. At 0 dB, after the lift has gone, the limit steps aside too, so nothing is changed at all.")
         ]
     }

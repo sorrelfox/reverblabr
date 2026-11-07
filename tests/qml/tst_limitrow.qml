@@ -237,7 +237,7 @@ TestCase {
         compare(Announcer.last, "Loudness stops here. To go on, use Go Further.");
         SessionModel.setParam(panel.blockId, "loudnessDb", 10);
         tryVerify(() => row.button.visible, 1000, "Go Further did not show at the stop");
-        compare(row.button.text, "Go Further...");
+        compare(row.button.text, "Go Further…");
         row.askFor(15);
         tryVerify(() => row.dialog.opened, 1000);
         row.confirm.trigger();

@@ -244,7 +244,7 @@ QQC2.ApplicationWindow {
             type: Kirigami.MessageType.Warning
             visible: userUnreadableMessage.reason !== ""
             text: KI18n.i18nc("@info %1 is why the file could not be read",
-                              "Your virtual devices could not be read: %1 They are not listed, and no change can be saved until the file can be read.",
+                              "Your virtual devices could not be read: %1. They are not listed, and no change can be saved until the file can be read.",
                               VirtualDevices.reasonText(userUnreadableMessage.reason))
         }
 
@@ -260,7 +260,7 @@ QQC2.ApplicationWindow {
             type: Kirigami.MessageType.Warning
             visible: systemUnreadableMessage.reason !== ""
             text: KI18n.i18nc("@info %1 is why the file could not be read",
-                              "The devices for all users could not be read: %1 They are not listed.",
+                              "The devices for all users could not be read: %1. They are not listed.",
                               VirtualDevices.reasonText(systemUnreadableMessage.reason))
         }
 

@@ -129,12 +129,12 @@ HelpPage {
         setting: true
         title: KI18n.i18nc("@label what the block follows: the loudest sample or a short average", "Detector")
         paragraphs: [
-            KI18n.i18nc("@info help page of the Dynamics Processor block", "How the block measures the level it compares with the thresholds. A new block uses peak.")
+            KI18n.i18nc("@info help page of the Dynamics Processor block", "How the block measures the level it compares with the thresholds. A new block uses Peaks.")
         ]
         points: [
-            KI18n.i18nc("@info help page of the Dynamics Processor block, one choice of Detector", "peak: the highest point of the sound wave over the last few thousandths of a second. It reacts to every peak, so nothing slips past."),
-            // i18n: rms is short for root mean square; the sentence explains it.
-            KI18n.i18nc("@info help page of the Dynamics Processor block, one choice of Detector", "rms: an average over the last hundredth of a second, which follows how loud the sound feels more closely. RMS is short for root mean square, a way of averaging.")
+            KI18n.i18nc("@info help page of the Dynamics Processor block, one choice of Detector", "Peaks: the highest point of the sound wave over the last few thousandths of a second. It reacts to every peak, so nothing slips past."),
+            // i18n: RMS is short for root mean square; the sentence explains it.
+            KI18n.i18nc("@info help page of the Dynamics Processor block, one choice of Detector", "Average (RMS): an average over the last hundredth of a second, which follows how loud the sound feels more closely. RMS is short for root mean square, a way of averaging.")
         ]
     }
 

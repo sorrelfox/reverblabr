@@ -90,7 +90,7 @@ HelpPage {
             KI18n.i18nc("@label where a Voice Gauge shows", "Show it on")
         ]
         paragraphs: [
-            KI18n.i18nc("@info help page of the Voice Gauge block", "A row with the number and the word in the small window that stays over other programs, shared with Speech Now. There is room for four rows. It starts off, and you can turn it off here or in the tray's popover. Drag the window to move it. A full-screen share may show it, name included.")
+            KI18n.i18nc("@info help page of the Voice Gauge block", "A row with the number and the word in the small window that stays over other programs, shared with Speech Now. There is room for four rows. It starts off, and you can turn it on here or in the tray's popover. Drag the window to move it. A full-screen share may show it, name included.")
         ]
     }
 

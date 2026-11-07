@@ -51,7 +51,7 @@ ColumnLayout {
     property real fixedStop: NaN
     /// Whether the button is there at every value, or only at the stop.
     property bool buttonAlways: true
-    property string buttonText: KI18n.i18nc("@action:button raise a limit, which asks first", "Raise...")
+    property string buttonText: KI18n.i18nc("@action:button raise a limit, which asks first", "Raise…")
 
     /// How low the drag going on has been: a limit lowered by a drag cannot
     /// come back up in the same drag.

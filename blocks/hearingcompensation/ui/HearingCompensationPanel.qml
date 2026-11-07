@@ -1379,7 +1379,7 @@ ColumnLayout {
         valueText: value => panel.liftText(value)
         fixedStop: panel.loudnessStop
         buttonAlways: false
-        buttonText: KI18n.i18nc("@action:button take Loudness past the line, which asks first", "Go Further...")
+        buttonText: KI18n.i18nc("@action:button take Loudness past the line, which asks first", "Go Further…")
         stopWords: KI18n.i18nc("@info said at the end of a slider", "Loudness stops here. To go on, use Go Further.")
         question: KI18n.i18nc("@info the question over a number, 'Loudness is +10 dB'", "Loudness is %1. Take it to:",
                               panel.liftText(loudnessRow.value))
