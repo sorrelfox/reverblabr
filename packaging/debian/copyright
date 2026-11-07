@@ -32,6 +32,8 @@ Files: app/io.github.reverblabr.Reverblabr.metainfo.xml
  VERSION
  CMakePresets.json
  REUSE.toml
+ po/*/reverblabr-data.po
+ tests/languages/*.po
 Copyright: 2026 Reverblabr contributors
 License: CC0-1.0
 

@@ -1,0 +1,351 @@
+# French translation of Reverblabr.
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+msgid ""
+msgstr ""
+"Project-Id-Version: reverblabr\n"
+"Report-Msgid-Bugs-To: https://github.com/sorrelfox/reverblabr/issues\n"
+"POT-Creation-Date: 2026-11-02 06:05-0500\n"
+"PO-Revision-Date: 2026-11-07 12:46+0000\n"
+"Last-Translator: Reverblabr contributors\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: ctl/commands.cpp:94
+msgctxt "@info a timer's duration in seconds"
+msgid "%1 s"
+msgstr "%1 s"
+
+#: ctl/commands.cpp:97
+msgctxt "@info a timer's duration in minutes"
+msgid "%1 min"
+msgstr "%1 min"
+
+#: ctl/commands.cpp:100
+msgctxt "@info a timer's duration in hours"
+msgid "%1 h"
+msgstr "%1 h"
+
+#: ctl/commands.cpp:102
+msgctxt "@info a timer's duration in hours and minutes"
+msgid "%1 h %2 min"
+msgstr "%1 h %2 min"
+
+#: ctl/commands.cpp:110
+msgctxt "@info a timer that runs once, on a date"
+msgid "once on %1"
+msgstr "une fois le %1"
+
+#: ctl/commands.cpp:113
+msgctxt "@info a timer's days"
+msgid "every day"
+msgstr "tous les jours"
+
+#: ctl/commands.cpp:116
+msgctxt "@info a timer's days"
+msgid "Monday to Friday"
+msgstr "du lundi au vendredi"
+
+#: ctl/commands.cpp:131
+msgctxt "@info a timer: its days, its time and how long it runs"
+msgid "%1 at %2 for %3"
+msgstr "%1 à %2 pendant %3"
+
+#: ctl/commands.cpp:137
+msgctxt "@info a timer that is switched off"
+msgid "off"
+msgstr "désactivé"
+
+#: ctl/commands.cpp:139
+msgctxt "@info a timer running its session, and until when"
+msgid "running until %1"
+msgstr "en cours jusqu'à %1"
+
+#: ctl/commands.cpp:143
+msgctxt "@info when a timer next starts its session"
+msgid "next %1"
+msgstr "prochain lancement : %1"
+
+#: ctl/commands.cpp:147
+msgctxt "@info a timer that will not start its session again"
+msgid "not again"
+msgstr "plus de lancement prévu"
+
+#: ctl/commands.cpp:149
+msgctxt "@info session: a timer, when it next runs, and its id"
+msgid "%1: %2, %3 (%4)"
+msgstr "%1 : %2, %3 (%4)"
+
+#: ctl/commands.cpp:158
+msgctxt "@info session state"
+msgid "stopped"
+msgstr "arrêtée"
+
+#: ctl/commands.cpp:161
+msgctxt "@info session state"
+msgid "starting"
+msgstr "démarrage en cours"
+
+#: ctl/commands.cpp:164
+msgctxt "@info session state"
+msgid "running"
+msgstr "en cours"
+
+#: ctl/commands.cpp:167
+msgctxt "@info session state"
+msgid "stopping"
+msgstr "arrêt en cours"
+
+#: ctl/commands.cpp:170
+msgctxt "@info session state"
+msgid "could not run"
+msgstr "échec du lancement"
+
+#: ctl/commands.cpp:173
+msgctxt "@info session state: on disk, not open"
+msgid "closed"
+msgstr "fermée"
+
+#: ctl/commands.cpp:204 ctl/commands.cpp:214
+msgctxt "@info session and its state"
+msgid "%1: %2"
+msgstr "%1 : %2"
+
+#: ctl/commands.cpp:217
+msgctxt "@info"
+msgid "There are no sessions."
+msgstr "Il n'y a aucune session."
+
+#: ctl/commands.cpp:232
+msgctxt "@info"
+msgid "“%1” is already running."
+msgstr "La session « %1 » est déjà en cours."
+
+#: ctl/commands.cpp:248
+msgctxt "@info"
+msgid "Started “%1”."
+msgstr "Session « %1 » lancée."
+
+#: ctl/commands.cpp:263 ctl/commands.cpp:531
+msgctxt "@info"
+msgid "“%1” is not running."
+msgstr "La session « %1 » n'est pas en cours."
+
+#: ctl/commands.cpp:272
+msgctxt "@info"
+msgid "Stopped “%1”."
+msgstr "Session « %1 » arrêtée."
+
+#: ctl/commands.cpp:318
+msgctxt "@info"
+msgid "“%1” started a new file: %2"
+msgstr "La session « %1 » a commencé un nouveau fichier : %2"
+
+#: ctl/commands.cpp:401
+msgctxt "@info"
+msgid "“%1” now takes input %2."
+msgstr "« %1 » prend désormais l'entrée %2."
+
+#: ctl/commands.cpp:419
+msgctxt "@info setting, block, value"
+msgid "Set %1 of “%2” to %3."
+msgstr "Réglage %1 de « %2 » mis à %3."
+
+#: ctl/commands.cpp:449
+msgctxt "@info"
+msgid "There are no timers."
+msgstr "Il n'y a aucun minuteur."
+
+#: ctl/commands.cpp:475
+msgctxt "@info"
+msgid "The timer %1 started “%2”."
+msgstr "Le minuteur %1 a lancé « %2 »."
+
+#: ctl/commands.cpp:476
+msgctxt "@info"
+msgid "“%2” was running already, so the timer %1 left it as it is."
+msgstr ""
+"La session « %2 » était déjà en cours : le minuteur %1 l'a donc laissée en "
+"l'état."
+
+#: ctl/commands.cpp:493
+msgctxt "@info"
+msgid "There is no session called “%1”."
+msgstr "Il n'y a aucune session nommée « %1 »."
+
+#: ctl/commands.cpp:496
+msgctxt "@info"
+msgid "More than one session is called “%1”. Name it by its id: %2"
+msgstr ""
+"Plusieurs sessions s'appellent « %1 ». Désignez-la par son identifiant : %2"
+
+#: ctl/commands.cpp:501
+msgctxt "@info"
+msgid "The session has no block of the kind this needs (%1)."
+msgstr "La session n'a aucun bloc du type requis (%1)."
+
+#: ctl/commands.cpp:503
+msgctxt "@info"
+msgid "The session has no block called “%1”."
+msgstr "La session n'a aucun bloc nommé « %1 »."
+
+#: ctl/commands.cpp:507
+msgctxt "@info"
+msgid "The session has more than one block of that kind. Name one: %1"
+msgstr "La session a plusieurs blocs de ce type. Désignez-en un : %1"
+
+#: ctl/commands.cpp:510
+msgctxt "@info"
+msgid "More than one block is called “%1”. Name it by its id: %2"
+msgstr ""
+"Plusieurs blocs s'appellent « %1 ». Désignez-le par son identifiant : %2"
+
+#: ctl/commands.cpp:514
+msgctxt "@info"
+msgid "“%1” has no setting called %2."
+msgstr "« %1 » n'a aucun réglage nommé %2."
+
+#: ctl/commands.cpp:518
+msgctxt "@info"
+msgid "%1 cannot be “%2”. It takes one of: %3"
+msgstr "%1 ne peut pas valoir « %2 ». Valeurs possibles : %3"
+
+#: ctl/commands.cpp:522
+msgctxt "@info"
+msgid "%1 cannot be “%2”. It takes a number from %3 to %4."
+msgstr "%1 ne peut pas valoir « %2 ». Il accepte un nombre de %3 à %4."
+
+#: ctl/commands.cpp:525
+msgctxt "@info"
+msgid "%1 cannot be “%2”."
+msgstr "%1 ne peut pas valoir « %2 »."
+
+#: ctl/commands.cpp:528
+msgctxt "@info"
+msgid "%1 is something the block reports, and cannot be set."
+msgstr "%1 est une valeur que le bloc indique ; elle ne peut pas être réglée."
+
+#: ctl/commands.cpp:536
+msgctxt "@info"
+msgid "There is no session bus to reach the engine on."
+msgstr "Il n'y a pas de bus de session pour joindre le moteur."
+
+#: ctl/commands.cpp:539
+msgctxt "@info"
+msgid "The engine is not running."
+msgstr "Le moteur n'est pas lancé."
+
+#: ctl/commands.cpp:542
+msgctxt "@info"
+msgid "The engine would not start (%1)."
+msgstr "Le moteur n'a pas pu démarrer (%1)."
+
+#: ctl/commands.cpp:544
+msgctxt "@info"
+msgid "The engine is not installed, so the session bus cannot start it."
+msgstr ""
+"Le moteur n'est pas installé : le bus de session ne peut donc pas le "
+"démarrer."
+
+#: ctl/commands.cpp:547
+msgctxt "@info"
+msgid "The engine did not answer %1 in time."
+msgstr "Le moteur n'a pas répondu à %1 à temps."
+
+#: ctl/commands.cpp:553
+msgctxt "@info"
+msgid "The engine did not take the call: %1"
+msgstr "Le moteur n'a pas accepté l'appel : %1"
+
+#: ctl/commands.cpp:556
+msgctxt "@info"
+msgid "“%1” could not start (%2)."
+msgstr "La session « %1 » n'a pas pu démarrer (%2)."
+
+#: ctl/commands.cpp:560
+msgctxt "@info"
+msgid "The engine refused the change (%1)."
+msgstr "Le moteur a refusé la modification (%1)."
+
+#: ctl/commands.cpp:563
+msgctxt "@info"
+msgid "There is no timer “%1”."
+msgstr "Il n'y a aucun minuteur « %1 »."
+
+#: ctl/commands.cpp:567
+msgctxt "@info"
+msgid ""
+"The timer %1 came round more than two minutes after its time, perhaps after "
+"the computer slept, so its session was not started."
+msgstr ""
+"Le minuteur %1 s'est déclenché plus de deux minutes après son heure, peut-"
+"être après une mise en veille de l'ordinateur : sa session n'a donc pas été "
+"lancée."
+
+#: ctl/commands.cpp:572
+msgctxt "@info"
+msgid "The recording could not be split (%1)."
+msgstr "L'enregistrement n'a pas pu être découpé (%1)."
+
+#: ctl/commands.cpp:576
+msgctxt "@info engine error code and its details"
+msgid "The engine refused: %1 %2"
+msgstr "Le moteur a refusé : %1 %2"
+
+#: ctl/main.cpp:56
+msgctxt "@info:usage"
+msgid ""
+"Usage: reverblabr-ctl [--json] [--timeout SECONDS] [--no-activate] COMMAND\n"
+"\n"
+"Commands:\n"
+"  list                              the sessions' names, one a line\n"
+"  status [SESSION]                  every session's state, or one's\n"
+"  start SESSION                     run a session\n"
+"  stop SESSION                      stop a session\n"
+"  split SESSION [RECORDER]          start a new file in a running session's Recorders\n"
+"  switch SESSION [SWITCH] A|B       turn an Input Switch to A or B\n"
+"  set SESSION BLOCK SETTING VALUE   change one setting of a block\n"
+"  timers list [SESSION]             every session's timers, or one's\n"
+"  timer-fire [--scheduled] TIMER    do now what a timer does when its time comes\n"
+"\n"
+"A session is named by its name or its id, a block by its name or its id.\n"
+"  --json            print the answer as JSON, the same in every language\n"
+"  --timeout SECONDS how long to wait for the engine (10)\n"
+"  --no-activate     only ask an engine that is already running\n"
+msgstr ""
+"Utilisation : reverblabr-ctl [--json] [--timeout SECONDES] [--no-activate] COMMANDE\n"
+"\n"
+"Commandes :\n"
+"  list                              les noms des sessions, un par ligne\n"
+"  status [SESSION]                  l'état de chaque session, ou d'une seule\n"
+"  start SESSION                     lancer une session\n"
+"  stop SESSION                      arrêter une session\n"
+"  split SESSION [ENREGISTREUR]      commencer un nouveau fichier dans les blocs Enregistreur d'une session en cours\n"
+"  switch SESSION [SÉLECTEUR] A|B    basculer un bloc Sélecteur d'entrée sur A ou B\n"
+"  set SESSION BLOC RÉGLAGE VALEUR   modifier un réglage d'un bloc\n"
+"  timers list [SESSION]             les minuteurs de chaque session, ou d'une seule\n"
+"  timer-fire [--scheduled] MINUTEUR faire maintenant ce que fait un minuteur à son heure\n"
+"\n"
+"Une session est désignée par son nom ou son identifiant, de même qu'un bloc.\n"
+"  --json             afficher la réponse en JSON, identique dans toutes les langues\n"
+"  --timeout SECONDES durée d'attente du moteur (10)\n"
+"  --no-activate      interroger seulement un moteur déjà lancé\n"
+
+#: ctl/main.cpp:117
+msgctxt "@info"
+msgid "--timeout takes a number of seconds, not “%1”."
+msgstr "--timeout attend un nombre de secondes, et non « %1 »."
+
+#: ctl/main.cpp:123
+msgctxt "@info"
+msgid "There is no option %1."
+msgstr "L'option %1 n'existe pas."
+
+#: ctl/main.cpp:250
+msgctxt "@info"
+msgid "There is no command “%1”."
+msgstr "La commande « %1 » n'existe pas."

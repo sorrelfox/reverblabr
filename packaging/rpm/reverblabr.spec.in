@@ -132,10 +132,11 @@ and a command-line tool runs and changes them from a terminal or a script.
 
 %install
 %cmake_install
-# po/ has no catalogs yet, and an empty file list is an error. Once it has
-# some, the build stops on them as unpackaged files: then this gets
-# "%%find_lang %%{name}" and %%files gets "-f %%{name}.lang", and the same
-# for the panel widget's catalog, plasma_applet_io.github.reverblabr.sessions.
+# The translations, every catalog of every language: the window's and the
+# engine's (reverblabr), reverblabr-ctl's and the panel widget's
+# (plasma_applet_io.github.reverblabr.sessions). --all-name, since the widget's
+# is named as Plasma looks it up rather than after the package.
+%find_lang %{name} --all-name
 
 
 %check
@@ -169,7 +170,7 @@ export QT_QPA_PLATFORM=offscreen
 %systemd_user_preun reverblabrd.service
 
 
-%files
+%files -f %{name}.lang
 %license LICENSE LICENSES/*.txt
 %doc README.md CREDITS.md TRADEMARKS.md
 # The window

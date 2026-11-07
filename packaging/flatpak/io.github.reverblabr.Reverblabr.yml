@@ -10,6 +10,10 @@ runtime: org.kde.Platform
 runtime-version: '6.11'
 sdk: org.kde.Sdk
 command: reverblabr
+# **The translations stay in the application**, not in a Locale extension of
+# their own: the release is a single-file bundle, which carries no extension, so
+# split off they would never be installed.
+separate-locales: false
 finish-args:
   - --share=ipc
   - --socket=wayland

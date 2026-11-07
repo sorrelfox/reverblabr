@@ -1,0 +1,111 @@
+# Spanish translation of Reverblabr.
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+msgid ""
+msgstr ""
+"Project-Id-Version: reverblabr\n"
+"Report-Msgid-Bugs-To: https://github.com/sorrelfox/reverblabr/issues\n"
+"POT-Creation-Date: 2026-10-29 16:12-0400\n"
+"PO-Revision-Date: 2026-11-07 12:45+0000\n"
+"Last-Translator: Reverblabr contributors\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: plasmoid/package/contents/ui/CompactRepresentation.qml:38
+#: plasmoid/package/contents/ui/main.qml:38
+msgctxt "@title the panel widget's name"
+msgid "Reverblabr Sessions"
+msgstr "Sesiones de Reverblabr"
+
+#: plasmoid/package/contents/ui/FullRepresentation.qml:41
+msgctxt "@title the sessions listed in the panel widget"
+msgid "Sessions"
+msgstr "Sesiones"
+
+#: plasmoid/package/contents/ui/FullRepresentation.qml:62
+msgctxt "@info %1 is a session"
+msgid "\"%1\" is no longer saved."
+msgstr "«%1» ya no está guardada."
+
+#: plasmoid/package/contents/ui/FullRepresentation.qml:63
+msgctxt "@info %1 is a session"
+msgid "\"%1\" could not be started. Open Reverblabr to see why."
+msgstr "No se ha podido iniciar «%1». Abra Reverblabr para ver el motivo."
+
+#: plasmoid/package/contents/ui/FullRepresentation.qml:98
+msgctxt "@info in the panel widget"
+msgid "No saved sessions yet"
+msgstr "Todavía no hay sesiones guardadas"
+
+#: plasmoid/package/contents/ui/FullRepresentation.qml:99
+msgctxt "@info in the panel widget"
+msgid "Reverblabr's background engine is not installed"
+msgstr "El motor en segundo plano de Reverblabr no está instalado"
+
+#: plasmoid/package/contents/ui/LevelBar.qml:43
+msgctxt "@info:whatsthis the loudest channel, in decibels"
+msgid "%1 dB"
+msgstr "%1 dB"
+
+#: plasmoid/package/contents/ui/LevelBar.qml:44
+msgctxt "@info:whatsthis nothing is running"
+msgid "Idle"
+msgstr "En reposo"
+
+#: plasmoid/package/contents/ui/SessionRow.qml:67
+msgctxt "@info:status a session is writing a recording"
+msgid "Recording"
+msgstr "Grabando"
+
+#: plasmoid/package/contents/ui/SessionRow.qml:75
+msgctxt "@info:tooltip %1 is a session"
+msgid "Level of %1"
+msgstr "Nivel de %1"
+
+#: plasmoid/package/contents/ui/SessionRow.qml:84
+msgctxt "@action:button stop the session"
+msgid "Stop"
+msgstr "Detener"
+
+#: plasmoid/package/contents/ui/SessionRow.qml:85
+msgctxt "@action:button start the session"
+msgid "Run"
+msgstr "Ejecutar"
+
+#: plasmoid/package/contents/ui/SessionRow.qml:89
+msgctxt "@action:button %1 is a session"
+msgid "Stop %1"
+msgstr "Detener %1"
+
+#: plasmoid/package/contents/ui/SessionRow.qml:90
+msgctxt "@action:button %1 is a session"
+msgid "Run %1"
+msgstr "Ejecutar %1"
+
+#: plasmoid/package/contents/ui/status.js:19
+msgctxt "@info:status"
+msgid "Reverblabr's background engine is not installed"
+msgstr "El motor en segundo plano de Reverblabr no está instalado"
+
+#: plasmoid/package/contents/ui/status.js:22
+msgctxt "@info:status"
+msgid "No session is running"
+msgstr "No hay ninguna sesión en ejecución"
+
+#: plasmoid/package/contents/ui/status.js:25
+msgctxt "@info:status"
+msgid "%1 session running, recording"
+msgid_plural "%1 sessions running, recording"
+msgstr[0] "%1 sesión en ejecución, grabando"
+msgstr[1] "%1 sesiones en ejecución, grabando"
+
+#: plasmoid/package/contents/ui/status.js:28
+msgctxt "@info:status"
+msgid "%1 session running"
+msgid_plural "%1 sessions running"
+msgstr[0] "%1 sesión en ejecución"
+msgstr[1] "%1 sesiones en ejecución"

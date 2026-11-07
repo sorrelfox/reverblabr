@@ -95,6 +95,7 @@ The devices stay until you delete them, whether Reverblabr is running or not. [V
 - **Auto Run and timers:** a session can start when you log in, or at the times you set (once, every day, Monday to Friday or on chosen days) for as long as you say, with no window open.
 - **[reverblabr-ctl](docs/ctl.md)** runs, stops and changes sessions from a terminal or a script, splits recordings and lists timers, with JSON output and documented exit codes.
 - **[The D-Bus API](docs/dbus-api.md)** does everything the window does, so your own programs can too.
+- **In fifteen languages:** English, German, Spanish, French, Italian, Brazilian Portuguese, Russian, Polish, Japanese, Korean, Simplified and Traditional Chinese, Ukrainian, Dutch and Turkish. It speaks your desktop's language, or the one you choose in its Settings window ([Internationalization](docs/i18n.md#the-translations)).
 
 [On the desktop](docs/desktop.md) has the details.
 

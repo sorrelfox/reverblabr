@@ -1,0 +1,386 @@
+# German translation of Reverblabr.
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: CC0-1.0
+msgid ""
+msgstr ""
+"Project-Id-Version: reverblabr\n"
+"Report-Msgid-Bugs-To: https://github.com/sorrelfox/reverblabr/issues\n"
+"POT-Creation-Date: 2026-11-07 07:37-0500\n"
+"PO-Revision-Date: 2026-11-07 12:45+0000\n"
+"Last-Translator: Reverblabr contributors\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: app/io.github.reverblabr.Reverblabr.desktop:6 notify/reverblabr.notifyrc:10
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:11
+msgid "Reverblabr"
+msgstr "Reverblabr"
+
+#: app/io.github.reverblabr.Reverblabr.desktop:7
+msgid "Audio Routing and Recording"
+msgstr "Audio-Routing und -Aufnahme"
+
+#: app/io.github.reverblabr.Reverblabr.desktop:8
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:12
+msgid "Capture, process and route audio on your desktop"
+msgstr "Audio auf Ihrem Desktop abgreifen, bearbeiten und weiterleiten"
+
+#: app/io.github.reverblabr.Reverblabr.desktop:13
+msgid "audio;capture;record;route;routing;pipewire;mixer;effects;stream;"
+msgstr ""
+"Audio;Ton;abgreifen;aufnehmen;Aufnahme;weiterleiten;Routing;PipeWire;Mischpult;Mixer;Effekte;Stream;"
+
+#: app/io.github.reverblabr.Reverblabr.desktop:20
+msgid "New Session"
+msgstr "Neue Sitzung"
+
+#: app/io.github.reverblabr.Reverblabr.desktop:25
+msgid "All Sessions"
+msgstr "Alle Sitzungen"
+
+#: notify/reverblabr.notifyrc:14
+msgid "Recording finished"
+msgstr "Aufnahme beendet"
+
+#: notify/reverblabr.notifyrc:15
+msgid "A Recorder block has finished and saved its file"
+msgstr "Ein Rekorder-Block ist fertig und hat seine Datei gespeichert"
+
+#: notify/reverblabr.notifyrc:19
+msgid "Device disconnected"
+msgstr "Gerät getrennt"
+
+#: notify/reverblabr.notifyrc:20
+msgid "A device a running session uses went away"
+msgstr "Ein Gerät, das eine laufende Sitzung verwendet, ist verschwunden"
+
+#: notify/reverblabr.notifyrc:24
+msgid "Application stopped playing"
+msgstr "Anwendung gibt nichts mehr wieder"
+
+#: notify/reverblabr.notifyrc:25
+msgid "An application a running session captures has no sound left to capture"
+msgstr ""
+"Eine Anwendung, die eine laufende Sitzung abgreift, liefert keinen Ton mehr"
+
+#: notify/reverblabr.notifyrc:29
+msgid "Application playing again"
+msgstr "Anwendung spielt wieder"
+
+#: notify/reverblabr.notifyrc:30
+msgid "An application whose capture was lost is playing again"
+msgstr "Eine Anwendung, deren Abgriff verloren gegangen war, spielt wieder"
+
+#: notify/reverblabr.notifyrc:34
+msgid "Plugin stopped"
+msgstr "Plugin beendet"
+
+#: notify/reverblabr.notifyrc:35
+msgid "A plugin crashed or stopped responding, and its block is bypassed"
+msgstr ""
+"Ein Plugin ist abgestürzt oder reagiert nicht mehr, und sein Block wird "
+"umgangen"
+
+#: notify/reverblabr.notifyrc:39
+msgid "Disk nearly full"
+msgstr "Datenträger fast voll"
+
+#: notify/reverblabr.notifyrc:40
+msgid "A recording's disk has little space left"
+msgstr "Auf dem Datenträger einer Aufnahme ist nur noch wenig Platz"
+
+#: notify/reverblabr.notifyrc:45
+msgid "Feedback prevented"
+msgstr "Rückkopplung verhindert"
+
+#: notify/reverblabr.notifyrc:46
+msgid ""
+"A connection that would have fed a session's sound back into itself was not "
+"made"
+msgstr ""
+"Eine Verbindung, die den Ton einer Sitzung in sie selbst zurückgeführt hätte,"
+" wurde nicht hergestellt"
+
+#: daemon/io.github.reverblabr.Runner.desktop:10
+msgid "Reverblabr Sessions"
+msgstr "Reverblabr-Sitzungen"
+
+#: daemon/io.github.reverblabr.Runner.desktop:11
+msgid "Run and stop Reverblabr sessions, and see what is being recorded"
+msgstr ""
+"Reverblabr-Sitzungen starten und stoppen und sehen, was gerade aufgenommen "
+"wird"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:15
+msgid ""
+"Reverblabr takes the sound of an application, a microphone or everything your"
+" computer plays, sends it through the effects you put together, and plays it,"
+" records it or hands it to other applications as a microphone of its own. You"
+" build each chain on a canvas, block by block, and hear every change while it"
+" plays."
+msgstr ""
+"Reverblabr nimmt den Ton einer Anwendung, eines Mikrofons oder von allem, was"
+" Ihr Rechner wiedergibt, schickt ihn durch die Effekte, die Sie "
+"zusammenstellen, und gibt ihn wieder, nimmt ihn auf oder reicht ihn als "
+"eigenes Mikrofon an andere Anwendungen weiter. Sie bauen jede Kette Block für"
+" Block auf einer Arbeitsfläche auf und hören jede Änderung, während der Ton "
+"läuft."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:22
+msgid ""
+"Capturing an application does not move it: it goes on playing where it was "
+"playing, and Reverblabr listens alongside. Nothing is changed in the "
+"application, and nothing has to be installed into it."
+msgstr ""
+"Das Abgreifen einer Anwendung leitet sie nicht um: Sie spielt weiter dort, wo"
+" sie gespielt hat, und Reverblabr hört mit. An der Anwendung wird nichts "
+"verändert, und in ihr muss nichts installiert werden."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:27
+msgid "What you can do with it:"
+msgstr "Was Sie damit tun können:"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:29
+msgid ""
+"Make a call or a stream sound better: take the noise out of a voice, even out"
+" its level and shape its tone."
+msgstr ""
+"Ein Gespräch oder einen Stream besser klingen lassen: Rauschen aus einer "
+"Stimme entfernen, ihren Pegel ausgleichen und ihren Klang formen."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:30
+msgid ""
+"Record the sound of one application, or of a microphone and an application "
+"side by side, to WAV, FLAC, MP3, Opus and more."
+msgstr ""
+"Den Ton einer Anwendung oder eines Mikrofons und einer Anwendung "
+"nebeneinander aufnehmen, als WAV, FLAC, MP3, Opus und mehr."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:31
+msgid ""
+"Turn a quiet programme up, a loud one down, or duck the music whenever "
+"someone speaks."
+msgstr ""
+"Eine leise Sendung lauter, eine laute leiser machen oder die Musik absenken, "
+"sobald jemand spricht."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:32
+msgid ""
+"Shape the sound for one ear or both, with gain that depends on pitch and "
+"level, and move high or low sounds into a range that is easier to hear."
+msgstr ""
+"Den Klang für ein Ohr oder beide formen, mit einer Verstärkung, die von "
+"Tonhöhe und Pegel abhängt, und hohe oder tiefe Klänge in einen Bereich "
+"verschieben, der leichter zu hören ist."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:33
+msgid "Make virtual outputs and microphones that other applications can use."
+msgstr ""
+"Virtuelle Ausgaben und Mikrofone erstellen, die andere Anwendungen nutzen "
+"können."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:34
+msgid ""
+"Use LV2 and LADSPA plugins beside the built-in effects, and CLAP and VST3 "
+"plugins where the package supports them."
+msgstr ""
+"LV2- und LADSPA-Plugins neben den eingebauten Effekten verwenden, und CLAP- "
+"und VST3-Plugins, wo das Paket sie unterstützt."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:35
+msgid ""
+"Keep sessions running with the window closed, from the system tray, from "
+"global shortcuts or from the command line."
+msgstr ""
+"Sitzungen bei geschlossenem Fenster weiterlaufen lassen, gesteuert über den "
+"Systemabschnitt der Kontrollleiste, globale Kurzbefehle oder die "
+"Befehlszeile."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:41
+msgid ""
+"A session: an application's sound, measured, set and sent to the speakers"
+msgstr ""
+"Eine Sitzung: der Ton einer Anwendung, gemessen, eingestellt und an die "
+"Lautsprecher geschickt"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:45
+msgid "A voice cleaned up, shaped and recorded, with the equaliser open"
+msgstr ""
+"Eine Stimme, bereinigt, geformt und aufgenommen, mit geöffnetem Equalizer"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:49
+msgid "High sounds moved into a range that is easier to hear"
+msgstr "Hohe Klänge, in einen leichter hörbaren Bereich verschoben"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:55
+msgid "Reverblabr contributors"
+msgstr "Die Reverblabr-Mitwirkenden"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:78
+msgid "audio"
+msgstr "Audio"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:79
+msgid "capture"
+msgstr "Abgreifen"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:80
+msgid "record"
+msgstr "Aufnehmen"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:81
+msgid "routing"
+msgstr "Routing"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:82
+msgid "effects"
+msgstr "Effekte"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:83
+msgid "microphone"
+msgstr "Mikrofon"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:84
+msgid "PipeWire"
+msgstr "PipeWire"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:105
+msgid "The first release. It has:"
+msgstr "Die erste Version. Sie bietet:"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:107
+msgid ""
+"sessions built on a canvas from sources, effects, meters and outputs, changed"
+" while they play, with undo;"
+msgstr ""
+"Sitzungen, auf einer Arbeitsfläche aus Quellen, Effekten, Messinstrumenten "
+"und Ausgaben aufgebaut und während der Wiedergabe veränderbar, mit "
+"Rückgängig-Funktion;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:108
+msgid ""
+"capture of an application, a microphone or everything the computer plays, "
+"without moving what is captured;"
+msgstr ""
+"Abgreifen einer Anwendung, eines Mikrofons oder von allem, was der Rechner "
+"wiedergibt, ohne das Abgegriffene umzuleiten;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:109
+msgid ""
+"more than twenty built-in effects, from volume, equalisers and dynamics to "
+"noise and hum removal, reverb, echo and pitch shifting;"
+msgstr ""
+"mehr als zwanzig eingebaute Effekte, von Lautstärke, Equalizern und Dynamik "
+"bis zu Rausch- und Brummentfernung, Hall, Echo und Tonhöhenverschiebung;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:110
+msgid ""
+"blocks that shape the sound for each ear, set up from an audiogram, and move "
+"sounds into a range that is easier to hear;"
+msgstr ""
+"Blöcke, die den Klang für jedes Ohr formen, anhand eines Audiogramms "
+"eingerichtet, und Klänge in einen leichter hörbaren Bereich verschieben;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:111
+msgid ""
+"peak, RMS and VU meters, a waveform and a spectrum at any point in a session;"
+msgstr ""
+"Spitzen-, RMS- und VU-Anzeigen, eine Wellenform und ein Spektrum an jeder "
+"Stelle einer Sitzung;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:112
+msgid ""
+"recording to WAV, AIFF, FLAC, MP3, Opus and Vorbis, and to M4A where the "
+"system's FFmpeg can write it, with a Files tab to play back, rename and tag "
+"recordings;"
+msgstr ""
+"Aufnahme als WAV, AIFF, FLAC, MP3, Opus und Vorbis sowie als M4A, wo das "
+"FFmpeg des Systems es schreiben kann, mit einem Reiter „Dateien“ zum "
+"Abspielen, Umbenennen und Taggen von Aufnahmen;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:113
+msgid ""
+"LV2 and LADSPA plugins, and CLAP and VST3 plugins where the package supports "
+"them, each in a process of its own;"
+msgstr ""
+"LV2- und LADSPA-Plugins sowie CLAP- und VST3-Plugins, wo das Paket sie "
+"unterstützt, jedes in einem eigenen Prozess;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:114
+msgid "virtual outputs and microphones that other applications can use;"
+msgstr ""
+"virtuelle Ausgaben und Mikrofone, die andere Anwendungen nutzen können;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:115
+msgid ""
+"a background engine that keeps sessions running with the window closed, a "
+"system tray icon, desktop notifications, global shortcuts and a command-line "
+"tool;"
+msgstr ""
+"einen Hintergrunddienst, der Sitzungen bei geschlossenem Fenster weiterlaufen"
+" lässt, ein Symbol im Systemabschnitt der Kontrollleiste, Desktop-"
+"Benachrichtigungen, globale Kurzbefehle und ein Befehlszeilenprogramm;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:116
+msgid "packages for Fedora 44, Ubuntu 26.04 and Debian testing, and a Flatpak."
+msgstr ""
+"Pakete für Fedora 44, Ubuntu 26.04 und Debian testing sowie ein Flatpak."
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:122
+msgid "The first version, not yet released. It has:"
+msgstr "Die erste Version, noch nicht veröffentlicht. Sie bietet:"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:124
+msgid ""
+"sessions built on a canvas from sources, effects, meters and outputs, with "
+"undo;"
+msgstr ""
+"Sitzungen, auf einer Arbeitsfläche aus Quellen, Effekten, Messinstrumenten "
+"und Ausgaben aufgebaut, mit Rückgängig-Funktion;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:125
+msgid ""
+"capture of an application, a microphone or the whole system, without moving "
+"what is captured;"
+msgstr ""
+"Abgreifen einer Anwendung, eines Mikrofons oder des ganzen Systems, ohne das "
+"Abgegriffene umzuleiten;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:126
+msgid ""
+"built-in effects, from volume, equalisers and dynamics to noise and hum "
+"removal, reverb, pitch shifting and blocks that shape the sound for each ear;"
+msgstr ""
+"eingebaute Effekte, von Lautstärke, Equalizern und Dynamik bis zu Rausch- und"
+" Brummentfernung, Hall, Tonhöhenverschiebung und Blöcken, die den Klang für "
+"jedes Ohr formen;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:127
+msgid ""
+"recording to WAV, AIFF, FLAC, MP3, Opus, Vorbis and M4A, with a Files tab to "
+"find, play back, rename and tag recordings;"
+msgstr ""
+"Aufnahme als WAV, AIFF, FLAC, MP3, Opus, Vorbis und M4A, mit einem Reiter "
+"„Dateien“ zum Finden, Abspielen, Umbenennen und Taggen von Aufnahmen;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:128
+msgid "LV2, CLAP and LADSPA plugins, each in a process of its own;"
+msgstr "LV2-, CLAP- und LADSPA-Plugins, jedes in einem eigenen Prozess;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:129
+msgid "virtual outputs and microphones;"
+msgstr "virtuelle Ausgaben und Mikrofone;"
+
+#: app/io.github.reverblabr.Reverblabr.metainfo.xml:130
+msgid ""
+"a background engine that keeps sessions running with the window closed, a "
+"system tray icon, desktop notifications, global shortcuts and a command-line "
+"tool."
+msgstr ""
+"einen Hintergrunddienst, der Sitzungen bei geschlossenem Fenster weiterlaufen"
+" lässt, ein Symbol im Systemabschnitt der Kontrollleiste, Desktop-"
+"Benachrichtigungen, globale Kurzbefehle und ein Befehlszeilenprogramm."

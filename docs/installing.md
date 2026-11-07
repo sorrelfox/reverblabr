@@ -127,6 +127,13 @@ Flathub's plugins don't come with the Flatpak. Install the ones you want, LSP's 
 flatpak install --user flathub org.freedesktop.LinuxAudio.Plugins.LSP//25.08
 ```
 
+**Languages.** Reverblabr's own words in every language are in the Flatpak. Qt's and KDE's (a dialog's standard buttons, a shortcut written out) come from the runtime's translations, which Flatpak installs for your system's languages. If you choose another language in Reverblabr's Settings, add it to them, German for example, so those words follow too:
+
+```sh
+flatpak config --user --set extra-languages de
+flatpak update --user
+```
+
 The sandbox may write to your Music folder, where recordings go unless a Recorder names another folder; a folder elsewhere hasn't been tried in the Flatpak yet. It is also the newest of the four, and the one that has had the least use so far.
 
 ## A package and the Flatpak together
@@ -274,7 +281,7 @@ The handbook opens in KHelpCenter, which none of the packages installs for you.
 
 ## Known limitations
 
-- **Plasma on Wayland only.** Plasma on X11 and other desktops are not tried. Reverblabr is in English only so far ([Translations](i18n.md)).
+- **Plasma on Wayland only.** Plasma on X11 and other desktops are not tried.
 - **Capturing an application, you hear it twice** until you move the application to an output you aren't listening to, or use a virtual device ([Getting started](getting-started.md#run-it)).
 - **A connection that would feed a session back into itself is refused.** Name your real speakers in the Output Device ([When something goes wrong](troubleshooting.md#common-problems)).
 - **Without real-time priority** from rtkit, dropouts are likelier.

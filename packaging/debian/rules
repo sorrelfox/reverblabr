@@ -60,10 +60,9 @@ ifeq ($(TESTING),ON)
 		-E 'Costs?(LessThan|Little|Under|NoMore|Nothing)|FitQuantum'
 endif
 
-# The translations' folder is made before there are any catalogs. zsh on
-# Debian and Ubuntu looks for a package's completions in vendor-completions.
+# zsh on Debian and Ubuntu looks for a package's completions in
+# vendor-completions.
 execute_after_dh_auto_install:
-	rmdir --ignore-fail-on-non-empty debian/reverblabr/usr/share/locale
 	mkdir -p debian/reverblabr/usr/share/zsh/vendor-completions
 	mv debian/reverblabr/usr/share/zsh/site-functions/_reverblabr-ctl debian/reverblabr/usr/share/zsh/vendor-completions/
 	rmdir debian/reverblabr/usr/share/zsh/site-functions
