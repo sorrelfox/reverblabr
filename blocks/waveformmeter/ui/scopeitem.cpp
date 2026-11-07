@@ -271,7 +271,10 @@ void ScopeItem::setGridColor(const QColor &color)
 
 bool ScopeItem::crossed() const
 {
-    return m_view.crossed();
+    // **What was last said**, not the view's own: the render thread works
+    // the trace out and the change is said here a moment later, and a
+    // property read in between would disagree with every binding on it.
+    return m_saidCrossed;
 }
 
 QVariantList ScopeItem::heights(int trace) const
