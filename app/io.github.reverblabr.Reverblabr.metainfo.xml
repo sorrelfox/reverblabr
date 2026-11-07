@@ -100,6 +100,15 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.0.2" date="2026-11-07" type="stable">
+      <description>
+        <p>Reverblabr in your language, and a Settings window:</p>
+        <ul>
+          <li>the window, its notifications, the panel widget and the command-line tool in fourteen more languages: German, Spanish, French, Italian, Brazilian Portuguese, Russian, Polish, Japanese, Korean, Simplified and Traditional Chinese, Ukrainian, Dutch and Turkish;</li>
+          <li>a Settings window, where the language, the appearance and Auto Run are chosen.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-11-06" type="stable">
       <description>
         <p>The first release. It has:</p>
