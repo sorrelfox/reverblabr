@@ -12,9 +12,10 @@ The desktop entry's name, comment and actions, the notification events and
 the AppStream data are extracted into reverblabr-data.pot, and each
 po/<language>/reverblabr-data.po is merged back into the files the build
 installs, by cmake/RbTranslateDataFile.cmake. Here: the template has them,
-and a made-up German catalog, run through the very script the build runs,
-comes out in all three files, which the distributions' own validators still
-accept.
+two made-up catalogs, German and French, run through the very script the
+build runs, come out in all three files, which the distributions' own
+validators still accept; and so do the shipped catalogs of po/, each
+language once.
 
     test_data_translations.py CMAKE
 """
@@ -70,17 +71,22 @@ def german(msgid):
     return "«" + msgid + "»"
 
 
-def write_catalog(entries, path):
+def french(msgid):
+    """A second stand-in, for a second language."""
+    return "‹" + msgid + "›"
+
+
+def write_catalog(entries, path, language="de", translate=german):
     """A .po file translating every entry the template has."""
     lines = [
         'msgid ""',
         'msgstr ""',
         '"Content-Type: text/plain; charset=UTF-8\\n"',
-        '"Language: de\\n"',
+        f'"Language: {language}\\n"',
         "",
     ]
     for _, msgid in entries:
-        lines += [f'msgid "{msgid}"', f'msgstr "{german(msgid)}"', ""]
+        lines += [f'msgid "{msgid}"', f'msgstr "{translate(msgid)}"', ""]
     path.parent.mkdir(parents=True)
     path.write_text("\n".join(lines), encoding="utf-8")
 
@@ -106,9 +112,10 @@ def main():
                        for refs, msgid in entries):
                 failures.append(f'missing from reverblabr-data.pot: "{text}…" from {source}')
 
-        # **The build's own merge, with one language**, from KDE's layout.
+        # **The build's own merge, with two languages**, from KDE's layout.
         podir = scratch / "po"
         write_catalog(entries, podir / "de" / "reverblabr-data.po")
+        write_catalog(entries, podir / "fr" / "reverblabr-data.po", "fr", french)
         out = scratch / "out"
         merged = {}
         for kind, source in (("DESKTOP", DESKTOP), ("DESKTOP", NOTIFYRC), ("DESKTOP", RUNNER), ("XML", METAINFO)):
@@ -132,6 +139,10 @@ def main():
         if f'<summary xml:lang="de">{german("Capture, process and route audio on your desktop")}</summary>' \
                 not in metainfo:
             failures.append("the AppStream data has no German summary")
+        for language in ("de", "fr"):
+            count = metainfo.count(f'<summary xml:lang="{language}">')
+            if count != 1:
+                failures.append(f"the AppStream data has {count} summaries in {language}, not one")
 
         # **Still valid** once translated, as a distribution checks them.
         for tool, argv in (
@@ -146,6 +157,34 @@ def main():
             run = subprocess.run(argv, capture_output=True, text=True, check=False)
             if run.returncode != 0:
                 failures.append(f"{tool} rejects the translated file:\n{run.stdout}{run.stderr}")
+
+        # **The shipped catalogs**, as the build merges them: valid, and each
+        # language once. Merged one language after another, the application's
+        # name, which every catalog keeps as it is, doubled with each language
+        # from the second on; the made-up catalogs, which change every word,
+        # cannot show that.
+        shipped = sorted((REPO_ROOT / "po").glob("*/reverblabr-data.po"))
+        if shipped:
+            real = scratch / "real"
+            for kind, source in (("DESKTOP", DESKTOP), ("XML", METAINFO)):
+                code, log = merge(cmake, kind, source, real / source.name, REPO_ROOT / "po")
+                if code != 0:
+                    failures.append(f"merging the shipped catalogs into {source.name} failed:\n{log}")
+            if (real / METAINFO.name).exists():
+                summaries = (real / METAINFO.name).read_text(encoding="utf-8").count("<summary xml:lang=")
+                if summaries != len(shipped):
+                    failures.append(f"the AppStream data has {summaries} translated summaries for "
+                                    f"{len(shipped)} languages")
+            for tool, argv in (
+                ("desktop-file-validate", ["desktop-file-validate", str(real / DESKTOP.name)]),
+                ("appstreamcli", ["appstreamcli", "validate", "--no-net", str(real / METAINFO.name)]),
+            ):
+                if shutil.which(tool) is None or not pathlib.Path(argv[-1]).exists():
+                    continue
+                run = subprocess.run(argv, capture_output=True, text=True, check=False)
+                if run.returncode != 0:
+                    failures.append(f"{tool} rejects the file with the shipped translations:\n"
+                                    f"{(run.stdout + run.stderr)[:2000]}")
 
         # **With no translations**, what is installed is the file as written.
         empty = scratch / "empty-po"

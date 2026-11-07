@@ -9,10 +9,13 @@
 # the desktop entry, the notification events and the AppStream data.
 #
 # Their strings are extracted by Messages.sh into reverblabr-data.pot. Here
-# each po/<language>/reverblabr-data.po, KDE's layout, is merged back into a
-# copy of the file, one language at a time: `msgfmt --desktop` adds
-# `Name[de]=…` lines, `msgfmt --xml` adds `xml:lang="de"` elements. With no
-# translations yet, the copy is the file as written.
+# every po/<language>/reverblabr-data.po, KDE's layout, is merged back into a
+# copy of the file: `msgfmt --desktop` adds `Name[de]=…` lines, `msgfmt --xml`
+# adds `xml:lang="de"` elements. **All languages in one run**, msgfmt's bulk
+# mode (a folder of <language>.po files and their LINGUAS list): merged one
+# language after another, `msgfmt --xml` translated the elements the run
+# before had added as well, and the AppStream data doubled with each
+# language. With no translations, the copy is the file as written.
 #
 #   rb_translate_data_file(<target> <kind> <source> <output>)
 #
@@ -58,34 +61,36 @@ if(CMAKE_SCRIPT_MODE_FILE)
     get_filename_component(output_dir "${OUTPUT}" DIRECTORY)
     get_filename_component(output_name "${OUTPUT}" NAME)
     file(MAKE_DIRECTORY "${output_dir}")
-    # msgfmt tells an AppStream file by its name, so every step keeps it.
-    set(step_dir "${output_dir}/.${output_name}.merge")
-    file(REMOVE_RECURSE "${step_dir}")
-    file(MAKE_DIRECTORY "${step_dir}")
-    set(current "${SOURCE}")
 
     file(GLOB translations "${PODIR}/*/${RB_DATA_DOMAIN}.po")
     list(SORT translations)
-    if(translations)
-        find_program(RB_MSGFMT msgfmt REQUIRED)
+    if(NOT translations)
+        file(COPY_FILE "${SOURCE}" "${OUTPUT}" ONLY_IF_DIFFERENT)
+        return()
     endif()
-    set(index 0)
+    find_program(RB_MSGFMT msgfmt REQUIRED)
+
+    # The folder bulk mode reads: <language>.po and LINGUAS, one language a
+    # line. msgfmt tells an AppStream file by its name, so the merged file
+    # keeps it.
+    set(stage_dir "${output_dir}/.${output_name}.merge")
+    file(REMOVE_RECURSE "${stage_dir}")
+    file(MAKE_DIRECTORY "${stage_dir}")
+    set(languages "")
     foreach(translation IN LISTS translations)
         get_filename_component(language_dir "${translation}" DIRECTORY)
         get_filename_component(language "${language_dir}" NAME)
-        math(EXPR index "${index} + 1")
-        file(MAKE_DIRECTORY "${step_dir}/${index}")
-        set(next "${step_dir}/${index}/${output_name}")
-        execute_process(
-            COMMAND ${RB_MSGFMT} ${mode} --template=${current} -l ${language} -o ${next} ${translation}
-            RESULT_VARIABLE result
-            ERROR_VARIABLE error)
-        if(NOT result EQUAL 0)
-            message(FATAL_ERROR "msgfmt could not merge ${translation} into ${output_name}: ${error}")
-        endif()
-        set(current "${next}")
+        file(COPY_FILE "${translation}" "${stage_dir}/${language}.po")
+        string(APPEND languages "${language}\n")
     endforeach()
-
-    file(COPY_FILE "${current}" "${OUTPUT}" ONLY_IF_DIFFERENT)
-    file(REMOVE_RECURSE "${step_dir}")
+    file(WRITE "${stage_dir}/LINGUAS" "${languages}")
+    execute_process(
+        COMMAND ${RB_MSGFMT} ${mode} --template=${SOURCE} -d ${stage_dir} -o ${stage_dir}/${output_name}
+        RESULT_VARIABLE result
+        ERROR_VARIABLE error)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "msgfmt could not merge the translations of ${PODIR} into ${output_name}: ${error}")
+    endif()
+    file(COPY_FILE "${stage_dir}/${output_name}" "${OUTPUT}" ONLY_IF_DIFFERENT)
+    file(REMOVE_RECURSE "${stage_dir}")
 endif()
