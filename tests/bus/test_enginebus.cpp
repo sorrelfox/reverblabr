@@ -201,6 +201,10 @@ protected:
         for (const QString &name : std::as_const(connections)) {
             QDBusConnection::disconnectFromBus(name);
         }
+        // **A service this test published itself** keeps the name until the
+        // bus has seen its connection close, and until then the bus names
+        // this process as the owner, which is no daemon to stop.
+        (void)waitFor([this] { return daemonPid() != ::getpid(); }, 5000);
         // **Nothing outlives the test**: a daemon it started, by hand or by
         // calling, is stopped, and killed if it will not stop.
         if (const qint64 pid = daemonPid(); pid > 0 && signalProcess(pid, SIGTERM)) {
