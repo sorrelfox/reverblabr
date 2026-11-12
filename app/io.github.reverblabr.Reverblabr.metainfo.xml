@@ -100,6 +100,16 @@ SPDX-License-Identifier: CC0-1.0
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.0.3" date="2026-11-12" type="stable">
+      <description>
+        <p>A package for Fedora 45, and an AppImage:</p>
+        <ul>
+          <li>a package for Fedora 45, beside the one for Fedora 44: a package built for one Fedora doesn't start on the other;</li>
+          <li>an AppImage, one file that runs without being installed on other distributions with Plasma 6 and PipeWire, without Auto Run, timers, KRunner, the panel widget and virtual devices for all users;</li>
+          <li>the waveform no longer says "No crossing found" for a moment after it has found one.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.2" date="2026-11-07" type="stable">
       <description>
         <p>Reverblabr in your language, and a Settings window:</p>

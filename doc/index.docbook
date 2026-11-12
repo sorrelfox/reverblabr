@@ -41,8 +41,8 @@ Creative Commons Attribution-ShareAlike 4.0 International licence; see
 
 <!-- The release the handbook describes and its day: tools/release.sh
      writes both, and tools.handbook-release holds the version to VERSION. -->
-<date>2026-11-07</date>
-<releaseinfo>&reverblabr; 1.0.2</releaseinfo>
+<date>2026-11-12</date>
+<releaseinfo>&reverblabr; 1.0.3</releaseinfo>
 
 <abstract>
 <para>&reverblabr; takes sound from your applications, microphones and other
