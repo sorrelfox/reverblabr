@@ -4905,6 +4905,14 @@ msgstr ""
 "I timer non funzionano in Reverblabr installato come Flatpak. La sessione li "
 "conserva."
 
+#: app/qml/SchedulePane.qml:246
+msgctxt "@info under the Schedule tab's timers"
+msgid ""
+"Timers don't run in Reverblabr from an AppImage. The session keeps them."
+msgstr ""
+"I timer non funzionano nella versione AppImage di Reverblabr. La sessione li "
+"conserva."
+
 #: app/qml/SchedulePane.qml:243
 msgctxt "@info under the Schedule tab's timers"
 msgid ""
@@ -5194,6 +5202,15 @@ msgid ""
 msgstr ""
 "Reverblabr installato come Flatpak non può avviare le sessioni all'accesso. "
 "La sessione conserva l'impostazione."
+
+#: app/qml/SessionInfoPane.qml:271
+msgctxt "@info under the Auto Run switch"
+msgid ""
+"Reverblabr from an AppImage can't run sessions when you log in. The session "
+"keeps the setting."
+msgstr ""
+"Reverblabr in versione AppImage non può avviare le sessioni all'accesso. La "
+"sessione conserva l'impostazione."
 
 #: app/qml/SessionInfoPane.qml:267
 msgctxt "@info under the Auto Run switch"
@@ -5635,6 +5652,12 @@ msgctxt "@info"
 msgid "Reverblabr from a Flatpak can't run sessions when you log in."
 msgstr ""
 "Reverblabr installato come Flatpak non può avviare le sessioni all'accesso."
+
+#: app/qml/SettingsWindow.qml:493
+msgctxt "@info"
+msgid "Reverblabr from an AppImage can't run sessions when you log in."
+msgstr ""
+"Reverblabr in versione AppImage non può avviare le sessioni all'accesso."
 
 #: app/qml/SettingsWindow.qml:492
 msgctxt "@info"
@@ -6509,6 +6532,13 @@ msgctxt "@info:tooltip"
 msgid "Reverblabr from a Flatpak can't make devices for all users."
 msgstr ""
 "Reverblabr installato come Flatpak non può creare dispositivi per tutti gli "
+"utenti."
+
+#: app/qml/VirtualDevicesWindow.qml:510
+msgctxt "@info:tooltip"
+msgid "Reverblabr from an AppImage can't make devices for all users."
+msgstr ""
+"Reverblabr in versione AppImage non può creare dispositivi per tutti gli "
 "utenti."
 
 #: app/qml/VirtualDevicesWindow.qml:508

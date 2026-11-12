@@ -4,8 +4,8 @@
 # A release. A pushed tag vX.Y.Z has to be VERSION's (tools/check-release-tag.sh).
 # The workflow makes the source tarball, builds and tests Reverblabr from that
 # tarball on Fedora 44, and builds the packages from it: the Fedora RPMs, the
-# .debs for Debian testing and Ubuntu 26.04, and a Flatpak bundle. Each is
-# installed and started in a clean system. Then it creates a draft GitHub
+# .debs for Debian testing and Ubuntu 26.04, a Flatpak bundle and an
+# AppImage. Each is installed, or for the AppImage started, in a clean system. Then it creates a draft GitHub
 # Release with the tarball, the packages and SHA256SUMS, to be reviewed and
 # published by hand. Publishing it sends the source RPM to COPR (copr.yml).
 # The released files get a build provenance attestation, which
@@ -292,10 +292,69 @@ jobs:
           path: flatpak/build.log
           if-no-files-found: ignore
 
+  # The AppImage, from the tarball in a plain Fedora 44 system, as the RPM is
+  # built (packaging/appimage/build-appimage.sh installs what it needs).
+  appimage:
+    name: AppImage
+    needs: sources
+    runs-on: ubuntu-24.04
+    container: registry.fedoraproject.org/fedora:44
+    timeout-minutes: 150
+    steps:
+      - uses: actions/download-artifact@v8
+        with: { name: sources, path: dist }
+      - name: Unpack
+        run: |
+          dnf -y install xz tar > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
+          tar -xf dist/reverblabr-*.tar.xz
+          mv reverblabr-*/ src
+      # Four compilers at a time, as in the other build jobs: the job has to
+      # fit in 12 GB.
+      - name: Build the AppImage from the tarball
+        env:
+          RB_APPIMAGE_JOBS: 4
+        run: src/packaging/appimage/build-appimage.sh dist/reverblabr-*.tar.xz appimage
+      - uses: actions/upload-artifact@v7
+        with:
+          name: appimage
+          path: appimage/reverblabr-*.AppImage
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: appimage-log
+          path: appimage/build-appimage.log
+          if-no-files-found: ignore
+
+  # Started on Ubuntu 24.04, whose glibc is older than Fedora 44's: what the
+  # AppImage brings has to be enough, with only the graphics libraries,
+  # PipeWire's client library and D-Bus from the system.
+  appimage-run:
+    name: Start the AppImage (Ubuntu 24.04)
+    needs: [sources, appimage]
+    runs-on: ubuntu-24.04
+    container: docker.io/library/ubuntu:24.04
+    timeout-minutes: 30
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - uses: actions/download-artifact@v8
+        with: { name: sources, path: dist }
+      - uses: actions/download-artifact@v8
+        with: { name: appimage, path: appimage }
+      # An artifact loses the file's mode.
+      - name: Start it
+        run: |
+          { apt-get update && apt-get install -y --no-install-recommends xz-utils; } > /tmp/apt.log 2>&1 || { tail -40 /tmp/apt.log; exit 1; }
+          tar -xf dist/reverblabr-*.tar.xz
+          mv reverblabr-*/ src
+          chmod +x appimage/reverblabr-*.AppImage
+          src/packaging/appimage/smoke-appimage.sh appimage/reverblabr-*.AppImage
+
   release:
     name: Draft release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [sources, build, rpm, rpm-install, deb, deb-install, flatpak]
+    needs: [sources, build, rpm, rpm-install, deb, deb-install, flatpak, appimage, appimage-run]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -316,7 +375,7 @@ jobs:
           mkdir dist
           cp -t dist artifacts/sources/reverblabr-*.tar.xz
           find artifacts/rpm -name '*.rpm' ! -name '*-debuginfo-*' ! -name '*-debugsource-*' -exec cp -t dist {} +
-          cp -t dist artifacts/deb-*/reverblabr_*.deb artifacts/flatpak/reverblabr-*.flatpak
+          cp -t dist artifacts/deb-*/reverblabr_*.deb artifacts/flatpak/reverblabr-*.flatpak artifacts/appimage/reverblabr-*.AppImage
           # GitHub renames an asset whose name has a character such as the
           # "~" of Ubuntu's version, and SHA256SUMS would then name a file
           # the release doesn't have. apt doesn't mind the file's name.
@@ -332,6 +391,7 @@ jobs:
             dist/*.rpm
             dist/*.deb
             dist/*.flatpak
+            dist/*.AppImage
       - name: Draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

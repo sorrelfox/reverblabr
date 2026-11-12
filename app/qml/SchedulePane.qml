@@ -234,11 +234,16 @@ FocusScope {
             Layout.fillWidth: true
             Layout.margins: AppMetrics.libraryInset
             // **A Flatpak has no timers** (ADR-0034): they are systemd
-            // timers on the host, which a sandbox can't make.
-            visible: !AppShell.engineInBackground || AppShell.sandboxed
+            // timers on the host, which a sandbox can't make. **Nor an
+            // AppImage** (ADR-0037): a timer would name a program in its
+            // mount, which is gone by the time the timer comes round.
+            visible: !AppShell.engineInBackground || AppShell.sandboxed || AppShell.appImage
             text: AppShell.sandboxed
                 ? KI18n.i18nc("@info under the Schedule tab's timers",
                               "Timers don't run in Reverblabr from a Flatpak. The session keeps them.")
+                : AppShell.appImage
+                ? KI18n.i18nc("@info under the Schedule tab's timers",
+                              "Timers don't run in Reverblabr from an AppImage. The session keeps them.")
                 : KI18n.i18nc("@info under the Schedule tab's timers",
                               "Timers need Reverblabr's background engine, which isn't installed here. The session keeps them.")
             color: AppColors.muted

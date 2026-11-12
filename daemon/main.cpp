@@ -192,12 +192,17 @@ int main(int argc, char **argv)
     //
     // **Neither in a Flatpak** (ADR-0034): a sandbox has no user service
     // manager to enable a unit or a timer with, and an engine started by its
-    // window is no login's first. The sessions keep their settings.
+    // window is no login's first. **Nor from an AppImage** (ADR-0037): a
+    // unit or a timer would name a program in the AppImage's mount, which
+    // is gone once its last program exits. The sessions keep their settings.
     const bool sandboxed = rb::pw::inFlatpak();
+    const bool appImage = rb::pw::inAppImage();
+    const bool startsNothing = sandboxed || appImage;
     std::optional<rb::daemon::AutostartUnit> autostartUnit;
     std::optional<rb::daemon::AutoRun> autoRun;
-    if (sandboxed) {
-        qCInfo(lcDaemon) << "in a Flatpak: no Auto Run and no timers";
+    if (startsNothing) {
+        qCInfo(lcDaemon) << (sandboxed ? "in a Flatpak: no Auto Run and no timers"
+                                       : "from an AppImage: no Auto Run and no timers");
     } else {
         autostartUnit.emplace(bus);
         autoRun.emplace(engine.get(), &*autostartUnit, sessionListing);
@@ -210,7 +215,7 @@ int main(int argc, char **argv)
     // the mock engine**: a test's or a developer's pretend sessions must not
     // touch the person's systemd timers.
     std::optional<rb::daemon::TimerSchedule> timerSchedule;
-    if (!parser.isSet(mock) && !sandboxed) {
+    if (!parser.isSet(mock) && !startsNothing) {
         timerSchedule.emplace(engine.get(),
                               bus,
                               rb::daemon::TimerSchedule::userUnitDirectory(),
@@ -226,7 +231,7 @@ int main(int argc, char **argv)
         // did before ADR-0023. The note is still kept, so that choosing
         // once a login again holds from the next start on.
         if (!autoRun) {
-            // In a Flatpak: nothing starts on its own.
+            // In a Flatpak or from an AppImage: nothing starts on its own.
         } else if (rb::daemon::autoRunEveryEngineStart(rb::daemon::defaultSettingsPath())) {
             qCInfo(lcDaemon) << "Auto Run is set to run at every engine start";
             autoRun->start();

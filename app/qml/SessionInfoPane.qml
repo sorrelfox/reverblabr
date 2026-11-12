@@ -242,7 +242,8 @@ QQC2.ScrollView {
 
                     objectName: "autoRunWhen"
                     // Only with the switch on: it is what the switch does.
-                    visible: AppShell.engineInBackground && !AppShell.sandboxed && autoRunSwitch.checked
+                    visible: AppShell.engineInBackground && !AppShell.sandboxed && !AppShell.appImage
+                             && autoRunSwitch.checked
                     text: AutoRunSetting.everyEngineStart
                         ? KI18n.i18nc("@info under the Auto Run switch; Settings and Auto Run are the menu's words",
                                       "Runs every time the background engine starts, even after you stopped it. Settings › Auto Run changes this for every session.")
@@ -258,11 +259,16 @@ QQC2.ScrollView {
 
                     objectName: "autoRunNeedsBackground"
                     // **A Flatpak has no Auto Run** (ADR-0034): nothing
-                    // there may start the engine at login.
-                    visible: !AppShell.engineInBackground || AppShell.sandboxed
+                    // there may start the engine at login. **Nor an
+                    // AppImage** (ADR-0037): nothing at login knows where
+                    // it is mounted.
+                    visible: !AppShell.engineInBackground || AppShell.sandboxed || AppShell.appImage
                     text: AppShell.sandboxed
                         ? KI18n.i18nc("@info under the Auto Run switch",
                                       "Reverblabr from a Flatpak can't run sessions when you log in. The session keeps the setting.")
+                        : AppShell.appImage
+                        ? KI18n.i18nc("@info under the Auto Run switch",
+                                      "Reverblabr from an AppImage can't run sessions when you log in. The session keeps the setting.")
                         : KI18n.i18nc("@info under the Auto Run switch",
                                       "Needs Reverblabr's background engine, which isn't installed here. The session keeps the setting.")
                     color: AppColors.muted

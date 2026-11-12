@@ -486,9 +486,11 @@ QQC2.ApplicationWindow {
                 Help {
                     id: autoRunUnavailable
 
-                    visible: AppShell.sandboxed || !AppShell.engineInBackground
+                    visible: AppShell.sandboxed || AppShell.appImage || !AppShell.engineInBackground
                     text: AppShell.sandboxed
                         ? KI18n.i18nc("@info", "Reverblabr from a Flatpak can't run sessions when you log in.")
+                        : AppShell.appImage
+                        ? KI18n.i18nc("@info", "Reverblabr from an AppImage can't run sessions when you log in.")
                         : KI18n.i18nc("@info", "Needs Reverblabr's background engine, which isn't installed here.")
                 }
             }

@@ -841,7 +841,7 @@ kbd {
 
 .systems {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
     margin: 32px 0 0;
     padding: 0;
@@ -897,6 +897,11 @@ kbd {
 @media (max-width: 1023px) {
     .systems {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* An odd one out takes the whole row. */
+    .systems li:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
     }
 }
 
@@ -1365,7 +1370,7 @@ table.compare {
 }
 
 .compare td {
-    width: 19.5%;
+    width: 15.6%;
 }
 
 .yes,

@@ -48,6 +48,7 @@ TestCase {
         TestEngine.reconnectAudioSystem();
         AppShell.engineInBackground = true;
         AppShell.sandboxed = false;
+        AppShell.appImage = false;
         AppShell.sessionId = "";
         AutoRunSetting.everyEngineStart = false;
     }
@@ -159,6 +160,22 @@ TestCase {
         tryVerify(() => pane.autoRunNeedsBackground.visible, 1000, "a Flatpak said nothing about Auto Run");
         verify(pane.autoRunNeedsBackground.text.indexOf("Flatpak") >= 0, pane.autoRunNeedsBackground.text);
         verify(!pane.autoRunWhen.visible, "said when Auto Run runs, in a Flatpak that has none");
+        compare(SessionModel.autoRun, "login", "the session lost its setting");
+    }
+
+    // **Nor has an AppImage** (ADR-0037), and it says so in its own words.
+    function test_fromAnAppImageAutoRunSaysItDoesNotRun() {
+        const window = createTemporaryObject(mainWindow, testCase);
+        openSession();
+        window.sidebarIndex = window.sidebar.infoTab;
+        const pane = window.infoPane;
+        SessionModel.setAutoRun("login");
+        tryVerify(() => pane.autoRunWhen.visible, 1000, "nothing said when the session runs");
+
+        AppShell.appImage = true;
+        tryVerify(() => pane.autoRunNeedsBackground.visible, 1000, "an AppImage said nothing about Auto Run");
+        verify(pane.autoRunNeedsBackground.text.indexOf("AppImage") >= 0, pane.autoRunNeedsBackground.text);
+        verify(!pane.autoRunWhen.visible, "said when Auto Run runs, in an AppImage that has none");
         compare(SessionModel.autoRun, "login", "the session lost its setting");
     }
 

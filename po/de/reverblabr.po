@@ -4909,6 +4909,12 @@ msgctxt "@info under the Schedule tab's timers"
 msgid "Timers don't run in Reverblabr from a Flatpak. The session keeps them."
 msgstr "In Reverblabr als Flatpak laufen keine Timer. Die Sitzung behält sie."
 
+#: app/qml/SchedulePane.qml:246
+msgctxt "@info under the Schedule tab's timers"
+msgid ""
+"Timers don't run in Reverblabr from an AppImage. The session keeps them."
+msgstr "In Reverblabr als AppImage laufen keine Timer. Die Sitzung behält sie."
+
 #: app/qml/SchedulePane.qml:243
 msgctxt "@info under the Schedule tab's timers"
 msgid ""
@@ -5197,6 +5203,15 @@ msgid ""
 "keeps the setting."
 msgstr ""
 "Reverblabr als Flatpak kann keine Sitzungen beim Anmelden starten. Die "
+"Sitzung behält die Einstellung."
+
+#: app/qml/SessionInfoPane.qml:271
+msgctxt "@info under the Auto Run switch"
+msgid ""
+"Reverblabr from an AppImage can't run sessions when you log in. The session "
+"keeps the setting."
+msgstr ""
+"Reverblabr als AppImage kann keine Sitzungen beim Anmelden starten. Die "
 "Sitzung behält die Einstellung."
 
 #: app/qml/SessionInfoPane.qml:267
@@ -5643,6 +5658,11 @@ msgstr ""
 msgctxt "@info"
 msgid "Reverblabr from a Flatpak can't run sessions when you log in."
 msgstr "Reverblabr als Flatpak kann keine Sitzungen beim Anmelden starten."
+
+#: app/qml/SettingsWindow.qml:493
+msgctxt "@info"
+msgid "Reverblabr from an AppImage can't run sessions when you log in."
+msgstr "Reverblabr als AppImage kann keine Sitzungen beim Anmelden starten."
 
 #: app/qml/SettingsWindow.qml:492
 msgctxt "@info"
@@ -6514,6 +6534,11 @@ msgstr ""
 msgctxt "@info:tooltip"
 msgid "Reverblabr from a Flatpak can't make devices for all users."
 msgstr "Reverblabr als Flatpak kann keine Geräte für alle Benutzer erstellen."
+
+#: app/qml/VirtualDevicesWindow.qml:510
+msgctxt "@info:tooltip"
+msgid "Reverblabr from an AppImage can't make devices for all users."
+msgstr "Reverblabr als AppImage kann keine Geräte für alle Benutzer erstellen."
 
 #: app/qml/VirtualDevicesWindow.qml:508
 msgctxt "@info:tooltip"

@@ -4557,6 +4557,12 @@ msgctxt "@info under the Schedule tab's timers"
 msgid "Timers don't run in Reverblabr from a Flatpak. The session keeps them."
 msgstr "Flatpak 版的 Reverblabr 無法執行計時器。工作階段會保留它們。"
 
+#: app/qml/SchedulePane.qml:246
+msgctxt "@info under the Schedule tab's timers"
+msgid ""
+"Timers don't run in Reverblabr from an AppImage. The session keeps them."
+msgstr "AppImage 版的 Reverblabr 無法執行計時器。工作階段會保留它們。"
+
 #: app/qml/SchedulePane.qml:243
 msgctxt "@info under the Schedule tab's timers"
 msgid ""
@@ -4830,6 +4836,13 @@ msgid ""
 "Reverblabr from a Flatpak can't run sessions when you log in. The session "
 "keeps the setting."
 msgstr "Flatpak 版的 Reverblabr 無法在您登入時執行工作階段。工作階段會保留此設定。"
+
+#: app/qml/SessionInfoPane.qml:271
+msgctxt "@info under the Auto Run switch"
+msgid ""
+"Reverblabr from an AppImage can't run sessions when you log in. The session "
+"keeps the setting."
+msgstr "AppImage 版的 Reverblabr 無法在您登入時執行工作階段。工作階段會保留此設定。"
 
 #: app/qml/SessionInfoPane.qml:267
 msgctxt "@info under the Auto Run switch"
@@ -5246,6 +5259,11 @@ msgstr ""
 msgctxt "@info"
 msgid "Reverblabr from a Flatpak can't run sessions when you log in."
 msgstr "Flatpak 版的 Reverblabr 無法在您登入時執行工作階段。"
+
+#: app/qml/SettingsWindow.qml:493
+msgctxt "@info"
+msgid "Reverblabr from an AppImage can't run sessions when you log in."
+msgstr "AppImage 版的 Reverblabr 無法在您登入時執行工作階段。"
 
 #: app/qml/SettingsWindow.qml:492
 msgctxt "@info"
@@ -6087,6 +6105,11 @@ msgstr "供所有使用者使用的裝置，需要管理員密碼"
 msgctxt "@info:tooltip"
 msgid "Reverblabr from a Flatpak can't make devices for all users."
 msgstr "Flatpak 版的 Reverblabr 無法建立供所有使用者使用的裝置。"
+
+#: app/qml/VirtualDevicesWindow.qml:510
+msgctxt "@info:tooltip"
+msgid "Reverblabr from an AppImage can't make devices for all users."
+msgstr "AppImage 版的 Reverblabr 無法建立供所有使用者使用的裝置。"
 
 #: app/qml/VirtualDevicesWindow.qml:508
 msgctxt "@info:tooltip"

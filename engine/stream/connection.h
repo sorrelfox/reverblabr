@@ -9,6 +9,7 @@
 
 #include "stream/protocol.h"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -16,6 +17,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 struct gnutls_certificate_credentials_st;
@@ -23,12 +25,30 @@ struct gnutls_certificate_credentials_st;
 namespace rb::stream
 {
 
+/// **Where distributions keep their authorities as one file**, Fedora's
+/// first. GnuTLS reads the system's store where the distribution it was built
+/// on keeps it, and a GnuTLS that came with Reverblabr from another one, as
+/// in an AppImage (ADR-0037), finds none there.
+/// Constant, so that a TlsOptions made before main() has them too.
+inline constexpr std::array<std::string_view, 4> kAuthorityBundles{
+    "/etc/pki/tls/certs/ca-bundle.crt",
+    "/etc/ssl/certs/ca-certificates.crt",
+    "/etc/ssl/ca-bundle.pem",
+    "/etc/ssl/cert.pem",
+};
+
 /// How a connection is made secure.
 struct TlsOptions {
     /// The certificate authorities trusted, as a PEM file, **in place of**
     /// the system's. Empty, as everywhere but in a test, for the system's
     /// own: the ones the distribution ships, and any the person added.
     std::string trustFile;
+    /// Without a trustFile, **read in turn when the system's store gives
+    /// none**, until one has any. The same authorities, in another place.
+    std::vector<std::string> authorityBundles{kAuthorityBundles.begin(), kAuthorityBundles.end()};
+    /// Whether the system's store is read before authorityBundles. Off only
+    /// in a test, to see them read in its place.
+    bool systemStore = true;
 
     [[nodiscard]] bool operator==(const TlsOptions &other) const = default;
 };

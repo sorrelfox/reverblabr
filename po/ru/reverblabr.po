@@ -4871,6 +4871,12 @@ msgctxt "@info under the Schedule tab's timers"
 msgid "Timers don't run in Reverblabr from a Flatpak. The session keeps them."
 msgstr "В Reverblabr из Flatpak таймеры не работают. Сеанс сохраняет их."
 
+#: app/qml/SchedulePane.qml:246
+msgctxt "@info under the Schedule tab's timers"
+msgid ""
+"Timers don't run in Reverblabr from an AppImage. The session keeps them."
+msgstr "В Reverblabr из AppImage таймеры не работают. Сеанс сохраняет их."
+
 #: app/qml/SchedulePane.qml:243
 msgctxt "@info under the Schedule tab's timers"
 msgid ""
@@ -5156,6 +5162,15 @@ msgid ""
 "keeps the setting."
 msgstr ""
 "Reverblabr из Flatpak не может запускать сеансы при входе в систему. Сеанс "
+"сохраняет этот параметр."
+
+#: app/qml/SessionInfoPane.qml:271
+msgctxt "@info under the Auto Run switch"
+msgid ""
+"Reverblabr from an AppImage can't run sessions when you log in. The session "
+"keeps the setting."
+msgstr ""
+"Reverblabr из AppImage не может запускать сеансы при входе в систему. Сеанс "
 "сохраняет этот параметр."
 
 #: app/qml/SessionInfoPane.qml:267
@@ -5602,6 +5617,11 @@ msgstr ""
 msgctxt "@info"
 msgid "Reverblabr from a Flatpak can't run sessions when you log in."
 msgstr "Reverblabr из Flatpak не может запускать сеансы при входе в систему."
+
+#: app/qml/SettingsWindow.qml:493
+msgctxt "@info"
+msgid "Reverblabr from an AppImage can't run sessions when you log in."
+msgstr "Reverblabr из AppImage не может запускать сеансы при входе в систему."
 
 #: app/qml/SettingsWindow.qml:492
 msgctxt "@info"
@@ -6472,6 +6492,12 @@ msgctxt "@info:tooltip"
 msgid "Reverblabr from a Flatpak can't make devices for all users."
 msgstr ""
 "Reverblabr из Flatpak не может создавать устройства для всех пользователей."
+
+#: app/qml/VirtualDevicesWindow.qml:510
+msgctxt "@info:tooltip"
+msgid "Reverblabr from an AppImage can't make devices for all users."
+msgstr ""
+"Reverblabr из AppImage не может создавать устройства для всех пользователей."
 
 #: app/qml/VirtualDevicesWindow.qml:508
 msgctxt "@info:tooltip"

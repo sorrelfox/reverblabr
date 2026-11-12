@@ -5,13 +5,13 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Installing Reverblabr
 
-Reverblabr comes as a package for Fedora 44, for Debian testing and for Ubuntu 26.04 (Kubuntu included), and as a Flatpak for other distributions. All of them are on the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), with the source. The commands below find a file by its ending, so keep one version of it in the folder you saved it in. You can also [build it yourself](#building-it-yourself), which takes a few commands and a few minutes.
+Reverblabr comes as a package for Fedora 44, for Debian testing and for Ubuntu 26.04 (Kubuntu included), and as a Flatpak and an AppImage for other distributions. All of them are on the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), with the source. The commands below find a file by its ending, so keep one version of it in the folder you saved it in. You can also [build it yourself](#building-it-yourself), which takes a few commands and a few minutes.
 
 ## What you need
 
 - **KDE Plasma 6 on Wayland.** Reverblabr is written for Plasma and nothing else. It may start on another desktop, but I don't try it there.
 - **PipeWire 1.6 or newer**, with **WirePlumber 0.5 or newer**. Current distributions run both by default.
-- **A 64-bit PC** (x86_64, also called amd64). The packages are built for nothing else.
+- **A 64-bit PC** (x86_64, also called amd64). The packages, the Flatpak and the AppImage are built for nothing else.
 
 ## Which one to take
 
@@ -21,9 +21,10 @@ Reverblabr comes as a package for Fedora 44, for Debian testing and for Ubuntu 2
 | Debian testing | [the Debian package](#debian-testing) | CLAP plugins |
 | Kubuntu 26.04, or Ubuntu 26.04 with Plasma | [the Ubuntu package](#ubuntu-and-kubuntu-2604) | CLAP and VST3 plugins, Speech Denoise and the voice model |
 | Another distribution, or you'd like a sandbox | [the Flatpak](#the-flatpak) | Auto Run, timers, KRunner, the panel widget, devices for all users, the Model block, plugins installed on your system, and reconnecting after PipeWire restarts |
+| Another distribution, without installing anything | [the AppImage](#the-appimage) | Auto Run, timers, KRunner, the panel widget and devices for all users |
 | Anything else, or you want to work on Reverblabr | [your own build](#building-it-yourself) | whatever your system has no library for |
 
-Install one of them: not a package and the Flatpak together ([below](#a-package-and-the-flatpak-together)). [What each one has](#what-each-one-has) compares them in full.
+Use one of them: not a package, the Flatpak or the AppImage together ([below](#more-than-one-together)). [What each one has](#what-each-one-has) compares them in full.
 
 ## Fedora 44
 
@@ -134,11 +135,50 @@ flatpak config --user --set extra-languages de
 flatpak update --user
 ```
 
-The sandbox may write to your Music folder, where recordings go unless a Recorder names another folder; a folder elsewhere hasn't been tried in the Flatpak yet. It is also the newest of the four, and the one that has had the least use so far.
+The sandbox may write to your Music folder, where recordings go unless a Recorder names another folder; a folder elsewhere hasn't been tried in the Flatpak yet. It has had less use so far than the packages.
 
-## A package and the Flatpak together
+## The AppImage
 
-Install one or the other. Both give their background engine the same name on your desktop's bus, `io.github.reverblabr.Engine`. With both installed, whichever engine starts first serves both windows, while each keeps its sessions in its own place, so the Flatpak's window can end up talking to the package's engine, or the other way round.
+The AppImage is one file that runs without being installed, on any other distribution with Plasma 6 and PipeWire 1.6. It brings everything it needs, Qt, KDE Frameworks and even its own C library, so it runs on distributions older than the ones the packages are for; it is built on Fedora 44, and each release's is started on Ubuntu 24.04 before it is published. Only your graphics drivers and PipeWire's library come from your system. It is no sandbox: it uses your folders, your virtual devices and your plugins as a package does.
+
+Download the file ending in `-x86_64.AppImage` from the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), put it where you keep programs, make it executable and start it:
+
+```sh
+chmod +x ./reverblabr-*-x86_64.AppImage
+./reverblabr-*-x86_64.AppImage
+```
+
+It doesn't add itself to the application launcher; an AppImage manager, such as Gear Lever, does that for you. The window starts Reverblabr's background engine when none is running, and the engine keeps running, and the AppImage with it, after the window is closed, while a session runs. To remove it, delete the file. Your sessions, presets and settings are in your home folder, as with a package, and stay.
+
+The command-line tool is the AppImage called by its name. Make a link named `reverblabr-ctl` to the file, somewhere on your `PATH`:
+
+```sh
+ln -s "$PWD"/reverblabr-*-x86_64.AppImage ~/.local/bin/reverblabr-ctl
+```
+
+It reaches the background engine while one runs, but can't start one.
+
+An AppImage runs through FUSE, which most distributions have (`fusermount3`). Without it, unpack the AppImage once and start what it unpacked:
+
+```sh
+./reverblabr-*-x86_64.AppImage --appimage-extract
+squashfs-root/AppRun
+```
+
+Not `--appimage-extract-and-run`: that deletes its copy when the window closes, while the engine is still running from it.
+
+**What it lacks, and why:**
+
+- **Auto Run at login, and timers.** Both would have your account's systemd start a program inside the AppImage later, and the AppImage is there only while it runs, wherever you keep the file. The Info and Schedule tabs say so.
+- **KRunner and the panel widget.** Plasma looks for them in folders on your system, and the AppImage installs nothing there.
+- **Virtual devices for all users.** They need a helper installed as root. Devices for your own account work as in a package.
+- **The manual page and the shell completions** of `reverblabr-ctl`.
+
+Plugins installed on your system run in the AppImage's plugin host, with its libraries; one built for a newer system than Fedora 44 may not load. The handbook (F1) is inside the AppImage, which your desktop's help viewer may not find; that hasn't been tried yet. The same pages are in the [documentation](README.md). The AppImage is the newest way to get Reverblabr, and the one that has had the least use so far.
+
+## More than one together
+
+Use one of them. The packages, the Flatpak and the AppImage give their background engine the same name on your desktop's bus, `io.github.reverblabr.Engine`. With two installed, whichever engine starts first serves both windows, so the Flatpak's or the AppImage's window can end up talking to the package's engine, or the other way round. The package and the AppImage keep their sessions in the same place; the Flatpak keeps its own.
 
 ## Checking a download
 
@@ -160,14 +200,14 @@ gh attestation verify ./reverblabr-*.fc44.x86_64.rpm --repo sorrelfox/reverblabr
 
 ## Updating
 
-None of these update themselves: they don't come from a repository that dnf, apt or Flatpak follows. For a new version, download its file from the release page and install it the same way. For the Flatpak, add `--reinstall` to the install command.
+None of these update themselves: they don't come from a repository that dnf, apt or Flatpak follows. For a new version, download its file from the release page and install it the same way. For the Flatpak, add `--reinstall` to the install command. For the AppImage, put the new file in place of the old one.
 
 ## Removing Reverblabr
 
 The sections above say how to remove each one. Two things stay behind on purpose:
 
 - **Virtual devices** belong to PipeWire, which makes them again at every login. Delete them in the Virtual Devices window before you remove Reverblabr, or delete their files afterwards and log out and back in. [Removing Reverblabr](virtual-devices.md#removing-reverblabr) names the files.
-- **Timers** are systemd user timers in your home folder (not in the Flatpak, which has none). Delete them in the Schedule tab first. A timer left behind fails each time it comes round, harmlessly.
+- **Timers** are systemd user timers in your home folder (not in the Flatpak or the AppImage, which have none). Delete them in the Schedule tab first. A timer left behind fails each time it comes round, harmlessly.
 
 ## Building it yourself
 
@@ -256,26 +296,26 @@ The full list is in [What to install](dependencies.md#optional).
 
 ## What each one has
 
-| | Fedora 44 | Debian testing | Ubuntu 26.04 | Flatpak | Your own build |
-|---|---|---|---|---|---|
-| Every block not named below, recording, virtual devices for your account | yes | yes | yes | yes | yes |
-| Speech Denoise, and the voice model of Speech Now, Voice Gauge and Night Level | yes | yes | no | yes | with RNNoise 0.2 |
-| Model block (Beta) | yes | yes | yes | no | with ONNX Runtime 1.20 or later |
-| Broadcast and Live Stream | yes | yes | yes | yes | with QtKeychain, and for Live Stream FreeType, HarfBuzz, fontconfig and libswscale |
-| LV2 and LADSPA plugins | yes | yes | yes | Flathub's | yes |
-| CLAP plugins | yes | no | no | Flathub's | with the CLAP SDK 1.2 |
-| VST3 plugins | yes | yes | no | Flathub's | with the VST3 SDK 3.8 or later |
-| Plugins installed on your system | yes | yes | yes | no | yes |
-| Sessions keep running with the window closed | yes | yes | yes | yes | once installed |
-| Sessions come back by themselves after PipeWire restarts | yes | yes | yes | no: `flatpak kill`, then start it again | yes |
-| `reverblabr-ctl` | yes | yes | yes | through `flatpak run`, without manual page and completions | once installed |
-| Auto Run and timers | yes | yes | yes | no | once installed |
-| KRunner and the panel widget | yes | yes | yes | no | once installed |
-| Virtual devices for all users | yes | yes | yes | no | with KAuth, and the helper installed |
-| The handbook (F1) | yes | yes | yes | most likely not | with KDocTools, once installed |
-| Where recordings can go | anywhere | anywhere | anywhere | the Music folder | anywhere |
-| Built against | Fedora 44's Qt 6.11 | the Qt Debian testing had at the release | Ubuntu 26.04's Qt | KDE's runtime 6.11 from Flathub | your system |
-| Updates | by hand | by hand | by hand | by hand | `git pull` and build again |
+| | Fedora 44 | Debian testing | Ubuntu 26.04 | Flatpak | AppImage | Your own build |
+|---|---|---|---|---|---|---|
+| Every block not named below, recording, virtual devices for your account | yes | yes | yes | yes | yes | yes |
+| Speech Denoise, and the voice model of Speech Now, Voice Gauge and Night Level | yes | yes | no | yes | yes | with RNNoise 0.2 |
+| Model block (Beta) | yes | yes | yes | no | yes | with ONNX Runtime 1.20 or later |
+| Broadcast and Live Stream | yes | yes | yes | yes | yes | with QtKeychain, and for Live Stream FreeType, HarfBuzz, fontconfig and libswscale |
+| LV2 and LADSPA plugins | yes | yes | yes | Flathub's | yes | yes |
+| CLAP plugins | yes | no | no | Flathub's | yes | with the CLAP SDK 1.2 |
+| VST3 plugins | yes | yes | no | Flathub's | yes | with the VST3 SDK 3.8 or later |
+| Plugins installed on your system | yes | yes | yes | no | yes, with the AppImage's libraries | yes |
+| Sessions keep running with the window closed | yes | yes | yes | yes | yes | once installed |
+| Sessions come back by themselves after PipeWire restarts | yes | yes | yes | no: `flatpak kill`, then start it again | yes | yes |
+| `reverblabr-ctl` | yes | yes | yes | through `flatpak run`, without manual page and completions | through a link named `reverblabr-ctl`, without manual page and completions | once installed |
+| Auto Run and timers | yes | yes | yes | no | no | once installed |
+| KRunner and the panel widget | yes | yes | yes | no | no | once installed |
+| Virtual devices for all users | yes | yes | yes | no | no | with KAuth, and the helper installed |
+| The handbook (F1) | yes | yes | yes | most likely not | not tried | with KDocTools, once installed |
+| Where recordings can go | anywhere | anywhere | anywhere | the Music folder | anywhere | anywhere |
+| Built against | Fedora 44's Qt 6.11 | the Qt Debian testing had at the release | Ubuntu 26.04's Qt | KDE's runtime 6.11 from Flathub | Fedora 44's Qt 6.11, which it brings | your system |
+| Updates | by hand | by hand | by hand | by hand | by hand | `git pull` and build again |
 
 The handbook opens in KHelpCenter, which none of the packages installs for you.
 
@@ -298,4 +338,5 @@ The handbook opens in KHelpCenter, which none of the packages installs for you.
 - **A running session isn't listed in the Plasma audio applet**, only in PipeWire's own tools ([Privacy](privacy.md)).
 - **A Bluetooth headset** drops to hands-free sound while anything records from it.
 - **The Flatpak** lacks what [its section](#the-flatpak) lists, shares the engine's name with the packages, and has to be killed and started again after PipeWire restarts.
+- **The AppImage** lacks what [its section](#the-appimage) lists, shares the engine's name with the packages, and is about 150 MB.
 - **Nothing updates itself.** Download each new version from the release page.

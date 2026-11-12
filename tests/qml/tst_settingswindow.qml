@@ -87,6 +87,7 @@ TestCase {
         AutoRunSetting.everyEngineStart = false;
         AppShell.engineInBackground = true;
         AppShell.sandboxed = false;
+        AppShell.appImage = false;
         TestRestart.reset();
     }
 
@@ -396,6 +397,10 @@ TestCase {
         verify(settings.autoRunUnavailable.visible);
         verify(settings.autoRunUnavailable.text.includes("Flatpak"));
         AppShell.sandboxed = false;
+        AppShell.appImage = true;
+        verify(settings.autoRunUnavailable.visible);
+        verify(settings.autoRunUnavailable.text.includes("AppImage"));
+        AppShell.appImage = false;
         AppShell.engineInBackground = false;
         verify(settings.autoRunUnavailable.visible);
         verify(settings.autoRunUnavailable.text.includes("background engine"));

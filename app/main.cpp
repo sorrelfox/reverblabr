@@ -202,14 +202,18 @@ int main(int argc, char *argv[])
     // **In a Flatpak the window starts it** (ADR-0034): the host's bus has no
     // activation file for a name inside a sandbox, so the window runs the
     // daemon beside itself, in the same sandbox, and it outlives the window
-    // as an activated one does.
+    // as an activated one does. **So does one from an AppImage** (ADR-0037):
+    // nothing on the bus knows where its mount is, and an activation file
+    // there belongs to a package installed beside it.
     const bool sandboxed = rb::pw::inFlatpak();
+    const bool appImage = rb::pw::inAppImage();
     rb::ui::AppShell::setSandboxed(sandboxed);
+    rb::ui::AppShell::setAppImage(appImage);
     // **With the environment the window was started with** (ADR-0036): the
     // daemon reads the person's choice of language for itself, and follows
     // it as it changes, which a LANGUAGE handed over from here would get in
     // the way of.
-    const rb::bus::DaemonStarter startDaemon = sandboxed
+    const rb::bus::DaemonStarter startDaemon = sandboxed || appImage
         ? rb::bus::detachedStarter(QDir(QCoreApplication::applicationDirPath()).filePath(u"reverblabrd"_s),
                                    {},
                                    rb::notify::ProcessLanguage::originalEnvironment())

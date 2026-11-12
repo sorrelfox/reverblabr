@@ -9,8 +9,9 @@
 
 #include <QString>
 
-/// Whether Reverblabr runs in a Flatpak, and where the person's own
-/// configuration is from inside one (ADR-0034).
+/// Whether Reverblabr runs in a Flatpak (ADR-0034) or from an AppImage
+/// (ADR-0037), and where the person's own configuration is from inside a
+/// Flatpak.
 namespace rb::pw
 {
 
@@ -20,6 +21,17 @@ inline constexpr auto kFlatpakInfo = "/.flatpak-info";
 /// Whether this process runs in a Flatpak: \a marker is there. Tests name
 /// another file.
 [[nodiscard]] bool inFlatpak(const QString &marker = QString::fromLatin1(kFlatpakInfo));
+
+/// The file the AppImage puts beside its share folder, named from the folder
+/// the programs are in (ADR-0037). An installed copy has none.
+inline constexpr auto kAppImageMarker = "../share/reverblabr/appimage";
+
+/// Whether the programs in \a programFolder run from an AppImage: the
+/// marker is there. **A file of the AppImage's own, not its environment**:
+/// `APPIMAGE` and `APPDIR` are inherited by everything an AppImage starts,
+/// a packaged Reverblabr among it. An empty \a programFolder means this
+/// program's own, which needs the application object.
+[[nodiscard]] bool inAppImage(const QString &programFolder = {});
 
 /// The folder PipeWire reads this user's configuration from. Outside a
 /// Flatpak, `$XDG_CONFIG_HOME` or `~/.config`, which is what Qt answers.

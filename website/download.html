@@ -9,7 +9,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; media-src 'self'; font-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Download Reverblabr @VERSION@</title>
-<meta name="description" content="Reverblabr @VERSION@ for Fedora 44, Ubuntu and Kubuntu 26.04, Debian testing, and as a Flatpak for other distributions: the files, how to install, start and remove each one, and what each one lacks, and why.">
+<meta name="description" content="Reverblabr @VERSION@ for Fedora 44, Ubuntu and Kubuntu 26.04, Debian testing, and as a Flatpak and an AppImage for other distributions: the files, how to install, start and remove each one, and what each one lacks, and why.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eff0f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1b1e20" media="(prefers-color-scheme: dark)">
@@ -25,7 +25,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 <meta property="og:site_name" content="Reverblabr">
 <meta property="og:locale" content="en_GB">
 <meta property="og:title" content="Download Reverblabr @VERSION@">
-<meta property="og:description" content="Packages for Fedora 44, Ubuntu and Kubuntu 26.04 and Debian testing, and a Flatpak, with what each one lacks, and why.">
+<meta property="og:description" content="Packages for Fedora 44, Ubuntu and Kubuntu 26.04 and Debian testing, a Flatpak and an AppImage, with what each one lacks, and why.">
 <meta property="og:url" content="https://sorrelfox.github.io/reverblabr/download.html">
 <meta property="og:image" content="https://sorrelfox.github.io/reverblabr/social.jpg">
 <meta property="og:image:width" content="1200">
@@ -55,12 +55,13 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 <section class="canvas page-head" aria-labelledby="title">
   <div class="wrap">
     <h1 id="title">Download Reverblabr @VERSION@</h1>
-    <p class="lede">Released on <time datetime="@DATE@">@DATE_TEXT@</time>. There is a package for Fedora 44, for Ubuntu and Kubuntu 26.04 and for Debian testing, and a Flatpak for other distributions. All of them are for 64-bit PCs (x86_64, also called amd64) with KDE Plasma 6 and PipeWire. Take the one for your system:</p>
+    <p class="lede">Released on <time datetime="@DATE@">@DATE_TEXT@</time>. There is a package for Fedora 44, for Ubuntu and Kubuntu 26.04 and for Debian testing, and a Flatpak and an AppImage for other distributions. All of them are for 64-bit PCs (x86_64, also called amd64) with KDE Plasma 6 and PipeWire. Take the one for your system:</p>
     <ul class="systems">
       <li><a class="system" href="#fedora"><span class="name">Fedora 44</span><span class="kind">RPM package</span><span class="gives">Has everything.</span></a></li>
       <li><a class="system" href="#ubuntu"><span class="name">Ubuntu and Kubuntu 26.04</span><span class="kind">DEB package</span><span class="gives">Lacks CLAP and VST3 plugins, Speech Denoise and the voice model.</span></a></li>
       <li><a class="system" href="#debian"><span class="name">Debian testing</span><span class="kind">DEB package</span><span class="gives">Lacks CLAP plugins.</span></a></li>
       <li><a class="system" href="#flatpak"><span class="name">Any other distribution</span><span class="kind">Flatpak</span><span class="gives">Lacks Auto Run, timers, KRunner, the panel widget, devices for all users, the Model block, plugins installed on your system, and reconnecting after PipeWire restarts.</span></a></li>
+      <li><a class="system" href="#appimage"><span class="name">Any other distribution, without installing</span><span class="kind">AppImage</span><span class="gives">Lacks Auto Run, timers, KRunner, the panel widget and devices for all users.</span></a></li>
     </ul>
   </div>
 </section>
@@ -73,6 +74,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
       <li><a href="#ubuntu">Ubuntu and Kubuntu 26.04</a></li>
       <li><a href="#debian">Debian testing</a></li>
       <li><a href="#flatpak">The Flatpak</a></li>
+      <li><a href="#appimage">The AppImage</a></li>
       <li><a href="#compare">What each one has</a></li>
       <li><a href="#verify">Checking a download</a></li>
       <li><a href="#requirements">What you need</a></li>
@@ -226,17 +228,54 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
           <p>Add <code>--delete-data</code> to remove its sessions, presets and settings as well. Recordings and virtual devices stay. The KDE runtime it brought stays too; <code>flatpak uninstall --user --unused</code> removes it once nothing else needs it.</p>
         </dd>
       </dl>
-      <p class="muted">The sandbox may write to your Music folder, where recordings go unless a Recorder names another folder; a folder elsewhere hasn't been tried in the Flatpak yet. It is also the newest of the four, and the one that has had the least use so far.</p>
+      <p class="muted">The sandbox may write to your Music folder, where recordings go unless a Recorder names another folder; a folder elsewhere hasn't been tried in the Flatpak yet. It has had less use so far than the packages.</p>
+    </section>
+
+    <section class="pkg" id="appimage" aria-labelledby="appimage-title">
+      <div class="pkg-head">
+        <div>
+          <h2 id="appimage-title">The AppImage</h2>
+          <span class="file">reverblabr-@VERSION@-x86_64.AppImage</span>
+        </div>
+        <a class="button primary" href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-x86_64.AppImage"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Download the AppImage</a>
+      </div>
+      <p>One file that runs without being installed, on any other distribution with Plasma 6 and PipeWire 1.6. It brings everything it needs, Qt, KDE Frameworks and even its own C library, so it runs on distributions older than the ones the packages are for; it is built on Fedora 44, and each release's is started on Ubuntu 24.04 before it is published. Only your graphics drivers and PipeWire's library come from your system. It is no sandbox: it uses your folders, your virtual devices and your plugins as a package does.</p>
+      <div class="lacks">
+        <h3>What it lacks, and why</h3>
+        <ul>
+          <li><strong>Auto Run at login, and timers.</strong> Both would have your account's systemd start a program inside the AppImage later, and the AppImage is there only while it runs, wherever you keep the file. The Info and Schedule tabs say so.</li>
+          <li><strong>KRunner and the panel widget.</strong> Plasma looks for them in folders on your system, and the AppImage installs nothing there.</li>
+          <li><strong>Virtual devices for all users.</strong> They need a helper installed as root. Devices for your own account work as in a package.</li>
+          <li><strong>The manual page and the shell completions</strong> of <code>reverblabr-ctl</code>.</li>
+        </ul>
+      </div>
+      <dl class="steps">
+        <dt>Start</dt>
+        <dd>
+          <p>Put it where you keep programs, make it executable and start it:</p>
+<pre class="cmd" data-what="start the AppImage"><code>chmod +x ./reverblabr-@VERSION@-x86_64.AppImage
+./reverblabr-@VERSION@-x86_64.AppImage</code></pre>
+          <p>It doesn't add itself to the application launcher; an AppImage manager, such as Gear Lever, does that for you. The window starts the background engine when none is running, and the engine keeps running, and the AppImage with it, after the window is closed, while a session runs.</p>
+          <p>The command-line tool is the AppImage called by its name, through a link named <code>reverblabr-ctl</code> somewhere on your <code>PATH</code>. It reaches the background engine while one runs, but can't start one:</p>
+<pre class="cmd" data-what="make the command-line tool"><code>ln -s "$PWD"/reverblabr-@VERSION@-x86_64.AppImage ~/.local/bin/reverblabr-ctl</code></pre>
+          <p>An AppImage runs through FUSE, which most distributions have. Without it, unpack it once with <code>--appimage-extract</code> and start <code>squashfs-root/AppRun</code>; not <code>--appimage-extract-and-run</code>, which deletes its copy when the window closes, while the engine is still running from it.</p>
+        </dd>
+        <dt>Remove</dt>
+        <dd>
+          <p>Delete the file. Your sessions, presets and settings are in your home folder, as with a package, and stay.</p>
+        </dd>
+      </dl>
+      <p class="muted">Plugins installed on your system run in the AppImage's plugin host, with its libraries; one built for a newer system than Fedora 44 may not load. Whether your desktop's help viewer finds the handbook (F1) inside the AppImage hasn't been tried yet. The AppImage is the newest way to get Reverblabr, and the one that has had the least use so far.</p>
     </section>
 
     <section aria-labelledby="together-title" id="together">
-      <h2 id="together-title">A package and the Flatpak together</h2>
-      <p>Install one or the other. Both give their background engine the same name on your desktop's bus, <code>io.github.reverblabr.Engine</code>. With both installed, whichever engine starts first serves both windows, while each keeps its sessions in its own place, so the Flatpak's window can end up talking to the package's engine, or the other way round.</p>
+      <h2 id="together-title">More than one together</h2>
+      <p>Use one of them. The packages, the Flatpak and the AppImage give their background engine the same name on your desktop's bus, <code>io.github.reverblabr.Engine</code>. With two installed, whichever engine starts first serves both windows, so the Flatpak's or the AppImage's window can end up talking to the package's engine, or the other way round. The package and the AppImage keep their sessions in the same place; the Flatpak keeps its own.</p>
     </section>
 
     <section aria-labelledby="compare">
       <h2 id="compare">What each one has</h2>
-      <p>Not every package has everything: not every distribution packages every library Reverblabr can use, and a sandbox can't reach every part of the desktop. Where one lacks something, it says why.</p>
+      <p>Not every package has everything: not every distribution packages every library Reverblabr can use, a sandbox can't reach every part of the desktop, and an AppImage installs nothing. Where one lacks something, it says why.</p>
       <div class="compare-wrap">
         <table class="compare" role="table">
           <thead role="rowgroup">
@@ -246,6 +285,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <th scope="col" role="columnheader">Debian testing</th>
               <th scope="col" role="columnheader">Ubuntu 26.04</th>
               <th scope="col" role="columnheader">Flatpak</th>
+              <th scope="col" role="columnheader">AppImage</th>
             </tr>
           </thead>
           <tbody role="rowgroup">
@@ -255,6 +295,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Speech Denoise, and the voice model of Speech Now, Voice Gauge and Night Level</th>
@@ -262,6 +303,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span><span class="no">No</span><span class="why-not">Ubuntu has no package of RNNoise.</span></span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Model block (Beta)</th>
@@ -269,6 +311,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">ONNX Runtime isn't built into it.</span></span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Broadcast and Live Stream</th>
@@ -276,6 +319,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">LV2 and LADSPA plugins</th>
@@ -283,6 +327,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Flathub's</span><span class="why-not">The plugins Flathub packages for it.</span></span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">CLAP plugins</th>
@@ -290,6 +335,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span><span class="no">No</span><span class="why-not">Debian has no package of the CLAP SDK.</span></span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span><span class="no">No</span><span class="why-not">Ubuntu has no package of the CLAP SDK.</span></span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Flathub's</span><span class="why-not">The plugins Flathub packages for it.</span></span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">VST3 plugins</th>
@@ -297,6 +343,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span><span class="no">No</span><span class="why-not">Ubuntu's VST3 SDK is 3.7; Reverblabr takes 3.8, the first under the MIT licence.</span></span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Flathub's</span><span class="why-not">The plugins Flathub packages for it.</span></span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Plugins installed on your system</th>
@@ -304,6 +351,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">They are built against your system's libraries, not the runtime's.</span></span></td>
+              <td role="cell" data-label="AppImage"><span><span class="yes">Yes</span><span class="why-not">With the AppImage's libraries.</span></span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Sessions keep running with the window closed</th>
@@ -311,6 +359,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Sessions come back by themselves after PipeWire restarts</th>
@@ -318,6 +367,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">The sandbox keeps PipeWire's old socket: flatpak kill, then start it again.</span></span></td>
+              <td role="cell" data-label="AppImage"><span class="yes">Yes</span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader"><code>reverblabr-ctl</code></th>
@@ -325,6 +375,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Through flatpak run</span><span class="why-not">Without its manual page and completions; it can't start the engine.</span></span></td>
+              <td role="cell" data-label="AppImage"><span><span class="part">Through a link</span><span class="why-not">Named reverblabr-ctl, without its manual page and completions; it can't start the engine.</span></span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Auto Run and timers</th>
@@ -332,6 +383,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">They go through your account's systemd, which a sandbox can't reach.</span></span></td>
+              <td role="cell" data-label="AppImage"><span><span class="no">No</span><span class="why-not">Nothing outside the AppImage can start a program inside it.</span></span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">KRunner and the panel widget</th>
@@ -339,6 +391,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">Plasma looks for them on your system, not inside a sandbox.</span></span></td>
+              <td role="cell" data-label="AppImage"><span><span class="no">No</span><span class="why-not">Plasma looks for them on your system, and the AppImage installs nothing.</span></span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Virtual devices for all users</th>
@@ -346,6 +399,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">They need a helper that runs as root, which a Flatpak can't install.</span></span></td>
+              <td role="cell" data-label="AppImage"><span><span class="no">No</span><span class="why-not">They need a helper installed as root.</span></span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">The handbook (F1)</th>
@@ -353,6 +407,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">Most likely not</span><span class="why-not">The desktop's help viewer can't read inside the sandbox.</span></span></td>
+              <td role="cell" data-label="AppImage"><span><span class="part">Not tried</span><span class="why-not">The help viewer would have to find it inside the AppImage.</span></span></td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Where recordings can go</th>
@@ -360,6 +415,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing">Anywhere</td>
               <td role="cell" data-label="Ubuntu 26.04">Anywhere</td>
               <td role="cell" data-label="Flatpak"><span>The Music folder<span class="why-not">The one folder for recordings the sandbox may write to.</span></span></td>
+              <td role="cell" data-label="AppImage">Anywhere</td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Built against</th>
@@ -367,6 +423,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing">The Qt Debian testing had at the release</td>
               <td role="cell" data-label="Ubuntu 26.04">Ubuntu 26.04's Qt</td>
               <td role="cell" data-label="Flatpak">KDE's runtime 6.11 from Flathub</td>
+              <td role="cell" data-label="AppImage">Fedora 44's Qt 6.11, which it brings</td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Updates</th>
@@ -374,6 +431,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
               <td role="cell" data-label="Debian testing">By hand</td>
               <td role="cell" data-label="Ubuntu 26.04">By hand</td>
               <td role="cell" data-label="Flatpak">By hand</td>
+              <td role="cell" data-label="AppImage">By hand</td>
             </tr>
           </tbody>
         </table>
@@ -386,7 +444,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
       <p>The release page has <code>SHA256SUMS</code> beside the files. Download it to the same folder, and there:</p>
 <pre class="cmd" data-what="check the checksums"><code>sha256sum -c --ignore-missing SHA256SUMS</code></pre>
       <p>Each file you downloaded should say <code>OK</code>, which means it arrived whole.</p>
-      <p>Where a file comes from is shown by its build provenance attestation: a signed record, kept by GitHub, that the file was built by this repository's release workflow. The tarball and each package have one. With the <a href="https://cli.github.com">GitHub CLI</a>, for example:</p>
+      <p>Where a file comes from is shown by its build provenance attestation: a signed record, kept by GitHub, that the file was built by this repository's release workflow. The tarball, each package and the AppImage have one. With the <a href="https://cli.github.com">GitHub CLI</a>, for example:</p>
 <pre class="cmd" data-what="check where the Fedora package was built"><code>gh attestation verify ./reverblabr-@VERSION@-1.fc44.x86_64.rpm --repo sorrelfox/reverblabr</code></pre>
       <p><code>SHA256SUMS</code> has no attestation of its own, and the packages are not signed with a GPG key. GitHub's own <em>Source code</em> archives are not the release's tarball: they are not in <code>SHA256SUMS</code> and have no attestation.</p>
       <h3 id="files">Every file of the release</h3>
@@ -395,6 +453,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr_@VERSION@-1.ubuntu26.04_amd64.deb">reverblabr_@VERSION@-1.ubuntu26.04_amd64.deb</a>: Ubuntu and Kubuntu 26.04</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr_@VERSION@-1_amd64.deb">reverblabr_@VERSION@-1_amd64.deb</a>: Debian testing</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-x86_64.flatpak">reverblabr-@VERSION@-x86_64.flatpak</a>: the Flatpak</li>
+        <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-x86_64.AppImage">reverblabr-@VERSION@-x86_64.AppImage</a>: the AppImage</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@.tar.xz">reverblabr-@VERSION@.tar.xz</a>: the source, which every package was built from</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc44.src.rpm">reverblabr-@VERSION@-1.fc44.src.rpm</a>: the source RPM, to rebuild the Fedora package</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/SHA256SUMS">SHA256SUMS</a>: the checksums of all of them</li>
@@ -407,7 +466,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
       <ul class="points">
         <li><strong>KDE Plasma 6 on Wayland.</strong> Reverblabr is written for Plasma and nothing else. It may start on another desktop, or on Plasma under X11, but it isn't tried there.</li>
         <li><strong>PipeWire 1.6 or newer</strong>, with <strong>WirePlumber 0.5 or newer</strong>. Current distributions run both by default.</li>
-        <li><strong>A 64-bit PC</strong> (x86_64, also called amd64). The packages are built for nothing else.</li>
+        <li><strong>A 64-bit PC</strong> (x86_64, also called amd64). The packages, the Flatpak and the AppImage are built for nothing else.</li>
         <li><strong>A screen</strong> at least 768 pixels on its shorter side.</li>
         <li><strong>Real-time priority</strong> from rtkit, which Fedora and Kubuntu run by default. Without it, dropouts are likelier.</li>
         <li><strong>For some parts:</strong> KWallet, or another password store, for the Broadcast and Live Stream blocks; polkit for devices for all users; <code>layer-shell-qt</code> for the windows that float over other programs; an H.264 encoder for Live Stream; XWayland for the windows of plugins; KHelpCenter to read the handbook.</li>
@@ -416,7 +475,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
 
     <section aria-labelledby="updating">
       <h2 id="updating">Updating</h2>
-      <p>None of these update themselves: they don't come from a repository that dnf, apt or Flatpak follows. For a new version, download its file from the release page and install it the same way. For the Flatpak, add <code>--reinstall</code> to the install command. To hear about new versions, watch the repository's releases on GitHub.</p>
+      <p>None of these update themselves: they don't come from a repository that dnf, apt or Flatpak follows. For a new version, download its file from the release page and install it the same way. For the Flatpak, add <code>--reinstall</code> to the install command. For the AppImage, put the new file in place of the old one. To hear about new versions, watch the repository's releases on GitHub.</p>
     </section>
 
     <section aria-labelledby="removing">
@@ -424,7 +483,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
       <p>Each section above says how to remove its package. Two things stay behind on purpose:</p>
       <ul class="points">
         <li><strong>Virtual devices</strong> belong to PipeWire, which makes them again at every login. Delete them in the Virtual Devices window before you remove Reverblabr, or delete <code>~/.config/pipewire/pipewire.conf.d/90-reverblabr-virtual-devices.conf</code> afterwards (and, as root, <code>/etc/pipewire/pipewire.conf.d/90-reverblabr-virtual-devices-system.conf</code> for devices for all users), then log out and back in.</li>
-        <li><strong>Timers</strong> are systemd user timers in your home folder. Delete them in the Schedule tab first. A timer left behind fails each time it comes round, harmlessly.</li>
+        <li><strong>Timers</strong> are systemd user timers in your home folder (not in the Flatpak or the AppImage, which have none). Delete them in the Schedule tab first. A timer left behind fails each time it comes round, harmlessly.</li>
       </ul>
     </section>
 
@@ -451,6 +510,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
         <li><strong>A running session isn't listed in the Plasma audio applet</strong>, only in PipeWire's own tools.</li>
         <li><strong>A Bluetooth headset</strong> drops to hands-free sound while anything records from it.</li>
         <li><strong>The Flatpak</strong> lacks what <a href="#flatpak">its section</a> lists, shares the engine's name with the packages, and has to be killed and started again after PipeWire restarts.</li>
+        <li><strong>The AppImage</strong> lacks what <a href="#appimage">its section</a> lists, shares the engine's name with the packages, and is about 150 MB.</li>
         <li><strong>Nothing updates itself.</strong> Download each new version from the release page.</li>
       </ul>
       <p>Found something else? <a href="https://github.com/sorrelfox/reverblabr/issues">Open an issue</a>, say which package you installed, and paste what <strong>Copy Diagnostics</strong> on the Info tab gives you.</p>

@@ -259,7 +259,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
       <ul class="points">
         <li>Outputs and inputs, stereo or mono, as many as you need. Rename them, switch them off or delete them in the Virtual Devices window.</li>
         <li><strong>They belong to your desktop</strong>, not to Reverblabr: they stay until you delete them, whether Reverblabr is running or not, and come back after a restart.</li>
-        <li><strong>For every user</strong> of the computer too, after an administrator's password. Not in the Flatpak.</li>
+        <li><strong>For every user</strong> of the computer too, after an administrator's password. Not in the Flatpak or the AppImage.</li>
         <li><strong>No feedback howl.</strong> A connection that would feed a session's sound back into its own input is refused, and Reverblabr says so.</li>
       </ul>
       <figure class="shot narrow">
@@ -304,7 +304,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
         <li><strong>Auto Run.</strong> Set a session to <strong>Run when I log in</strong>, and the engine starts it when you log in, without opening the window. Once per login by default, so a session you stopped stays stopped, or every time the engine starts.</li>
         <li><strong>Timers.</strong> The Schedule tab (<kbd>Ctrl</kbd>+<kbd>4</kbd>) starts a session once on a date, every day, Monday to Friday or on the days you choose, at a time and for as long as you set. When it is done it can ask the applications the session captures to quit. Timers are systemd user timers, so Reverblabr doesn't have to be open; they don't wake a computer that is asleep.</li>
       </ul>
-      <p class="muted">Auto Run and timers need an installed Reverblabr, from a package or an installed build. The Flatpak can't have them.</p>
+      <p class="muted">Auto Run and timers need an installed Reverblabr, from a package or an installed build. The Flatpak and the AppImage can't have them.</p>
     </section>
 
     <section aria-labelledby="desktop">
@@ -317,7 +317,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
         <li><strong>Notifications</strong> when a recording finishes, a device disconnects, an application stops playing or plays again, a plugin stops, the disk under a recording is nearly full, or a connection that would feed a session back into itself is refused.</li>
         <li><strong>The launcher</strong> offers New Session and All Sessions on Reverblabr's entry, and only one Reverblabr runs at a time: starting it again brings its window forward.</li>
       </ul>
-      <p class="muted">The panel widget and KRunner need an installed Reverblabr as well; the Flatpak has neither.</p>
+      <p class="muted">The panel widget and KRunner need an installed Reverblabr as well; the Flatpak and the AppImage have neither.</p>
     </section>
 
     <section aria-labelledby="scripting">

@@ -1,0 +1,33 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# What the AppImage runs (ADR-0037): Reverblabr's window, or the
+# command-line tool or the engine when the AppImage is called by its name,
+# through a link named reverblabr-ctl or reverblabrd.
+#
+# The runtime starts this from where it mounted the AppImage, which it puts
+# in APPDIR, and says what the AppImage was called as in ARGV0: a script's
+# $0 is its own path. One unpacked with --appimage-extract is started as
+# squashfs-root/AppRun, or through a link to it, which $0 names.
+
+self=$(readlink -f -- "$0")
+here=${self%/*}
+[ -x "$here/usr/bin/reverblabr" ] || {
+    echo "reverblabr: $here is not Reverblabr's AppImage" >&2
+    exit 127
+}
+called=$0
+if [ -n "${APPDIR:-}" ] && [ "$(readlink -f -- "$APPDIR")" = "$here" ]; then
+    called=${ARGV0:-$0}
+fi
+case ${called##*/} in
+    reverblabr-ctl) program=reverblabr-ctl ;;
+    reverblabrd) program=reverblabrd ;;
+    *) program=reverblabr ;;
+esac
+exec "$here/usr/bin/$program" "$@"

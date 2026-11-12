@@ -4869,6 +4869,14 @@ msgid "Timers don't run in Reverblabr from a Flatpak. The session keeps them."
 msgstr ""
 "Os temporizadores não funcionam no Reverblabr em Flatpak. A sessão os mantém."
 
+#: app/qml/SchedulePane.qml:246
+msgctxt "@info under the Schedule tab's timers"
+msgid ""
+"Timers don't run in Reverblabr from an AppImage. The session keeps them."
+msgstr ""
+"Os temporizadores não funcionam no Reverblabr em AppImage. A sessão os "
+"mantém."
+
 #: app/qml/SchedulePane.qml:243
 msgctxt "@info under the Schedule tab's timers"
 msgid ""
@@ -5154,6 +5162,15 @@ msgid ""
 "keeps the setting."
 msgstr ""
 "O Reverblabr em Flatpak não pode executar sessões quando você faz login. A "
+"sessão mantém a configuração."
+
+#: app/qml/SessionInfoPane.qml:271
+msgctxt "@info under the Auto Run switch"
+msgid ""
+"Reverblabr from an AppImage can't run sessions when you log in. The session "
+"keeps the setting."
+msgstr ""
+"O Reverblabr em AppImage não pode executar sessões quando você faz login. A "
 "sessão mantém a configuração."
 
 #: app/qml/SessionInfoPane.qml:267
@@ -5598,6 +5615,12 @@ msgctxt "@info"
 msgid "Reverblabr from a Flatpak can't run sessions when you log in."
 msgstr ""
 "O Reverblabr em Flatpak não pode executar sessões quando você faz login."
+
+#: app/qml/SettingsWindow.qml:493
+msgctxt "@info"
+msgid "Reverblabr from an AppImage can't run sessions when you log in."
+msgstr ""
+"O Reverblabr em AppImage não pode executar sessões quando você faz login."
 
 #: app/qml/SettingsWindow.qml:492
 msgctxt "@info"
@@ -6469,6 +6492,12 @@ msgctxt "@info:tooltip"
 msgid "Reverblabr from a Flatpak can't make devices for all users."
 msgstr ""
 "O Reverblabr em Flatpak não pode criar dispositivos para todos os usuários."
+
+#: app/qml/VirtualDevicesWindow.qml:510
+msgctxt "@info:tooltip"
+msgid "Reverblabr from an AppImage can't make devices for all users."
+msgstr ""
+"O Reverblabr em AppImage não pode criar dispositivos para todos os usuários."
 
 #: app/qml/VirtualDevicesWindow.qml:508
 msgctxt "@info:tooltip"

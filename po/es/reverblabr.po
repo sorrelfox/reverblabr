@@ -4882,6 +4882,14 @@ msgstr ""
 "Los temporizadores no funcionan en el Reverblabr de Flatpak. La sesión los "
 "conserva."
 
+#: app/qml/SchedulePane.qml:246
+msgctxt "@info under the Schedule tab's timers"
+msgid ""
+"Timers don't run in Reverblabr from an AppImage. The session keeps them."
+msgstr ""
+"Los temporizadores no funcionan en el Reverblabr de AppImage. La sesión los "
+"conserva."
+
 #: app/qml/SchedulePane.qml:243
 msgctxt "@info under the Schedule tab's timers"
 msgid ""
@@ -5170,6 +5178,15 @@ msgid ""
 "keeps the setting."
 msgstr ""
 "El Reverblabr de Flatpak no puede ejecutar sesiones cuando usted inicia "
+"sesión en el sistema. La sesión conserva el ajuste."
+
+#: app/qml/SessionInfoPane.qml:271
+msgctxt "@info under the Auto Run switch"
+msgid ""
+"Reverblabr from an AppImage can't run sessions when you log in. The session "
+"keeps the setting."
+msgstr ""
+"El Reverblabr de AppImage no puede ejecutar sesiones cuando usted inicia "
 "sesión en el sistema. La sesión conserva el ajuste."
 
 #: app/qml/SessionInfoPane.qml:267
@@ -5618,6 +5635,13 @@ msgctxt "@info"
 msgid "Reverblabr from a Flatpak can't run sessions when you log in."
 msgstr ""
 "El Reverblabr de Flatpak no puede ejecutar sesiones cuando usted inicia "
+"sesión en el sistema."
+
+#: app/qml/SettingsWindow.qml:493
+msgctxt "@info"
+msgid "Reverblabr from an AppImage can't run sessions when you log in."
+msgstr ""
+"El Reverblabr de AppImage no puede ejecutar sesiones cuando usted inicia "
 "sesión en el sistema."
 
 #: app/qml/SettingsWindow.qml:492
@@ -6492,6 +6516,13 @@ msgctxt "@info:tooltip"
 msgid "Reverblabr from a Flatpak can't make devices for all users."
 msgstr ""
 "El Reverblabr de Flatpak no puede crear dispositivos para todos los usuarios."
+
+#: app/qml/VirtualDevicesWindow.qml:510
+msgctxt "@info:tooltip"
+msgid "Reverblabr from an AppImage can't make devices for all users."
+msgstr ""
+"El Reverblabr de AppImage no puede crear dispositivos para todos los "
+"usuarios."
 
 #: app/qml/VirtualDevicesWindow.qml:508
 msgctxt "@info:tooltip"

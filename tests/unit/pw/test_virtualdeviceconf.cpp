@@ -402,6 +402,21 @@ TEST(Sandbox, AFlatpakIsToldByTheFileFlatpakPutsInEverySandbox)
     EXPECT_EQ(QString::fromLatin1(kFlatpakInfo), u"/.flatpak-info"_s);
 }
 
+TEST(Sandbox, AnAppImageIsToldByAFileBesideItsPrograms)
+{
+    QTemporaryDir root;
+    ASSERT_TRUE(root.isValid());
+    const QString programs = root.filePath(u"usr/bin"_s);
+    ASSERT_TRUE(QDir().mkpath(programs));
+    EXPECT_FALSE(inAppImage(programs));
+    ASSERT_TRUE(QDir().mkpath(root.filePath(u"usr/share/reverblabr"_s)));
+    QFile file(root.filePath(u"usr/share/reverblabr/appimage"_s));
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    file.close();
+    EXPECT_TRUE(inAppImage(programs));
+    EXPECT_FALSE(inAppImage(root.path())) << "the marker is found from the programs' folder only";
+}
+
 TEST(Sandbox, OutsideAFlatpakPipeWiresConfigurationIsXdgConfigHome)
 {
     const QString config = qEnvironmentVariable("XDG_CONFIG_HOME");

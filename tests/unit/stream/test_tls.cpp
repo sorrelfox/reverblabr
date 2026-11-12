@@ -225,6 +225,31 @@ TEST(TlsTest, AStoreWithNoAuthoritiesIsSaidSoAndNotTakenForAnUntrustedServer)
     EXPECT_TRUE(TlsTrust::load({}).has_value());
 }
 
+// **A store GnuTLS can't find is not the end**: the same authorities are in
+// a file of their own, wherever the distribution keeps it.
+TEST(TlsTest, WithoutTheSystemsStoreTheFirstBundleThatHasAnyIsRead)
+{
+    TestAuthority authority;
+    const std::filesystem::path empty =
+        std::filesystem::temp_directory_path() / ("reverblabr-test-none-" + std::to_string(::getpid()) + ".pem");
+    std::ofstream(empty).flush();
+    TlsOptions options;
+    options.systemStore = false;
+    options.authorityBundles = {"/nonexistent/reverblabr-authorities.pem", empty.string(), authority.trustFile()};
+    const std::expected<std::shared_ptr<const TlsTrust>, StreamError> trust = TlsTrust::load(options);
+    EXPECT_TRUE(trust.has_value()) << "the third file, the one with an authority in it, was not read";
+
+    options.authorityBundles = {"/nonexistent/reverblabr-authorities.pem", empty.string()};
+    const std::expected<std::shared_ptr<const TlsTrust>, StreamError> none = TlsTrust::load(options);
+    ASSERT_FALSE(none.has_value());
+    EXPECT_EQ(none.error(), StreamError::TrustStoreUnavailable);
+    std::filesystem::remove(empty);
+
+    // Fedora's place first, as the distribution the packages are built on.
+    ASSERT_FALSE(kAuthorityBundles.empty());
+    EXPECT_EQ(kAuthorityBundles.front(), "/etc/pki/tls/certs/ca-bundle.crt");
+}
+
 TEST(TlsTest, NothingOlderThanTls12IsSpoken)
 {
     TestAuthority authority;

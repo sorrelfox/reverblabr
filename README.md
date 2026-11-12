@@ -17,7 +17,7 @@ Reverblabr is young and still has bugs, so please [tell me](#bugs-and-contributi
 
 ## Download and install
 
-Take the file for your system from the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), and install it from the folder you saved it in. The commands find the file by its ending, so keep one version of it there. The packages and the Flatpak are for 64-bit PCs (x86_64, also called amd64).
+Take the file for your system from the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), and install it from the folder you saved it in. The commands find the file by its ending, so keep one version of it there. The packages, the Flatpak and the AppImage are for 64-bit PCs (x86_64, also called amd64).
 
 **Fedora 44:** the file ending in `.fc44.x86_64.rpm`
 
@@ -44,18 +44,28 @@ flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/fl
 flatpak install --user ./reverblabr-*-x86_64.flatpak
 ```
 
-Then start Reverblabr from your application launcher. Install a package or the Flatpak, not both: the two would share one background engine.
+Then start Reverblabr from your application launcher.
 
-Not every package has everything, because not every distribution packages every library Reverblabr can use, and a sandbox can't reach every part of the desktop:
+**Any other distribution, without installing anything:** the file ending in `-x86_64.AppImage`. It brings everything it needs but your graphics drivers and PipeWire:
+
+```sh
+chmod +x ./reverblabr-*-x86_64.AppImage
+./reverblabr-*-x86_64.AppImage
+```
+
+Use one of them, not two: they would share one background engine.
+
+Not every package has everything, because not every distribution packages every library Reverblabr can use, a sandbox can't reach every part of the desktop, and an AppImage installs nothing:
 
 | | Lacks | Why |
 |---|---|---|
 | Fedora 44 | nothing | |
 | Debian testing | CLAP plugins | Debian has no package of the CLAP SDK. |
 | Ubuntu and Kubuntu 26.04 | CLAP plugins, VST3 plugins, Speech Denoise, and the voice model Speech Now, Voice Gauge and Night Level listen with (they use a simpler detector) | Ubuntu has no package of the CLAP SDK or of RNNoise, and its VST3 SDK, 3.7, is older than 3.8, the first version under the MIT licence. |
+| AppImage | Auto Run at login, timers, KRunner, the panel widget and virtual devices for all users | Nothing outside the AppImage can start a program inside it, since it is there only while it runs, and it installs nothing. |
 | Flatpak | Auto Run at login, timers, KRunner, the panel widget, virtual devices for all users, the Model block, plugins installed on your system, and reconnecting after PipeWire restarts | A sandbox can't reach the parts of the desktop these need, and keeps the PipeWire socket it started with. ONNX Runtime, which the Model block needs, isn't built into it. It sees only the plugins Flathub packages for it. |
 
-The Fedora, Debian and Ubuntu packages are built against their distribution's Qt and have to be rebuilt when it moves to a newer one; the Flatpak brings its own. None of them updates itself. [Installing](docs/installing.md) has the details: each package, checking a download, removing Reverblabr, and building it yourself.
+The Fedora, Debian and Ubuntu packages are built against their distribution's Qt and have to be rebuilt when it moves to a newer one; the Flatpak and the AppImage bring their own. None of them updates itself. [Installing](docs/installing.md) has the details: each package, checking a download, removing Reverblabr, and building it yourself.
 
 ## What it does
 
@@ -144,7 +154,7 @@ I first wanted a GNU licence, but it would have kept commercial plugins out. I w
 
 Reverblabr is developed for Linux and KDE Plasma (on Wayland). I don't plan to port it to macOS or Windows. The code is written and tuned specifically for Linux and PipeWire, rather than for something that works everywhere.
 
-I use Fedora, so that's where I develop and test it, and its package is the one with everything. The packages for Debian testing and Ubuntu 26.04 and the Flatpak are built from the release's source and installed in a clean system before each release, but I rarely try them on a desktop.
+I use Fedora, so that's where I develop and test it, and its package is the one with everything. The packages for Debian testing and Ubuntu 26.04, the Flatpak and the AppImage are built from the release's source and installed, or for the AppImage started, in a clean system before each release, but I rarely try them on a desktop.
 
 ## Building it from source
 

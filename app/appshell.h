@@ -113,6 +113,10 @@ class AppShell : public QObject
     /// no Auto Run, no timers and no devices for all users: the places
     /// those appear say so. Writable for the QML tests.
     Q_PROPERTY(bool sandboxed READ sandboxed WRITE setSandboxedHere NOTIFY sandboxedChanged)
+    /// **Whether Reverblabr runs from an AppImage** (ADR-0037), which has
+    /// no Auto Run, no timers and no devices for all users either, and says
+    /// so in its own words. Writable for the QML tests.
+    Q_PROPERTY(bool appImage READ appImage WRITE setAppImageHere NOTIFY appImageChanged)
 
 public:
     /// How often the status bar is worked out again. The task asks for at
@@ -151,6 +155,11 @@ public:
     static void setSandboxed(bool sandboxed);
     [[nodiscard]] bool sandboxed() const;
     void setSandboxedHere(bool sandboxed);
+
+    /// Says whether this is an AppImage, before any QML is loaded.
+    static void setAppImage(bool appImage);
+    [[nodiscard]] bool appImage() const;
+    void setAppImageHere(bool appImage);
 
     /// The QML singleton, made from whatever setEngine() was given.
     static AppShell *create(QQmlEngine *engine, QJSEngine *scriptEngine);
@@ -219,6 +228,7 @@ Q_SIGNALS:
     void statusChanged();
     void engineInBackgroundChanged();
     void sandboxedChanged();
+    void appImageChanged();
 
 private:
     class Private;

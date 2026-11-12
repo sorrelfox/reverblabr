@@ -1,0 +1,61 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Reverblabr contributors
+# SPDX-License-Identifier: MPL-2.0
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Starts one of Reverblabr's programs in the AppImage (ADR-0037): the one
+# named by the link this is called through, usr/bin/reverblabrd for example,
+# with the arguments it was given.
+#
+# **With the AppImage's own C library**: the program is handed to the
+# AppImage's dynamic loader, with the AppImage's libraries first, so it runs
+# where the system's glibc is older than the one it was built with. The
+# loader is started through a link named after the program, which is the
+# name the system shows for the process. The loader sits beside the links in
+# usr/bin, so a program's own folder (/proc/self/exe) is usr/bin: where Qt
+# finds qt.conf, and where the window finds reverblabrd and KIO kioworker.
+#
+# Every program the AppImage starts comes back through here: the window
+# starts usr/bin/reverblabrd, the engine the plugin hosts named below, and
+# KIO usr/libexec/kf6/kioworker.
+
+name=${0##*/}
+# usr is the folder with bin/ld-linux-x86-64.so.2 in it, the link's own or
+# one above it (usr/libexec/kf6 for kioworker).
+usr=$(cd -- "$(dirname -- "$0")" && pwd -P)
+while [ ! -e "$usr/bin/ld-linux-x86-64.so.2" ]; do
+    [ "$usr" != / ] || {
+        echo "reverblabr: $0 is not in Reverblabr's AppImage" >&2
+        exit 127
+    }
+    usr=$(dirname -- "$usr")
+done
+lib=$usr/lib
+program=$lib/reverblabr-appimage/programs/$name
+[ -x "$program" ] || {
+    echo "reverblabr: the AppImage has no program $name" >&2
+    exit 127
+}
+
+# The engine starts the plugin and model hosts from here, not from where a
+# package puts them, which may hold another version.
+export REVERBLABR_PLUGIN_HOST="$usr/bin/reverblabr-plugin-host"
+export REVERBLABR_MODEL_HOST="$usr/bin/reverblabr-model-host"
+export REVERBLABR_CTL_LOCALEDIR="$usr/share/locale"
+# A plugin's own window, through the AppImage's suil.
+export SUIL_MODULE_DIR="$lib/suil-0"
+# The translations, the notification events, the icons and the handbook,
+# before the system's. Once: the window, the engine and the hosts each
+# come through here.
+case ":${XDG_DATA_DIRS:-}:" in
+    *":$usr/share:"*) ;;
+    *) export XDG_DATA_DIRS="$usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" ;;
+esac
+# **Only the AppImage's Qt plugins and QML modules**: ones built for the
+# system's Qt would be loaded into this one. qt.conf names the AppImage's.
+unset QT_PLUGIN_PATH QML_IMPORT_PATH QML2_IMPORT_PATH
+
+exec "$lib/reverblabr-appimage/names/$name" --library-path "$lib" --argv0 "$0" "$program" "$@"

@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Packaging
 
-Distribution packaging goes in this folder. There is an RPM spec for Fedora, in [`rpm/`](rpm/), a Debian source package for Debian testing and Ubuntu 26.04, in [`debian/`](debian/), and a Flatpak manifest, in [`flatpak/`](flatpak/). A release on GitHub carries all three: the Fedora package and its source RPM, a `.deb` for each of the two distributions, and a Flatpak bundle, beside the source tarball and `SHA256SUMS`. The release's text says which file is for which system, what each one lacks and how to check a download: [`release-downloads.md`](release-downloads.md), which `tools/release-notes.py` puts after the version's notes with `@VERSION@` filled in. A change to what a package holds, or to a file's name, changes that file too, and [Installing](../docs/installing.md).
+Distribution packaging goes in this folder. There is an RPM spec for Fedora, in [`rpm/`](rpm/), a Debian source package for Debian testing and Ubuntu 26.04, in [`debian/`](debian/), a Flatpak manifest, in [`flatpak/`](flatpak/), and the scripts that make an AppImage, in [`appimage/`](appimage/). A release on GitHub carries all four: the Fedora package and its source RPM, a `.deb` for each of the two distributions, a Flatpak bundle and an AppImage, beside the source tarball and `SHA256SUMS`. The release's text says which file is for which system, what each one lacks and how to check a download: [`release-downloads.md`](release-downloads.md), which `tools/release-notes.py` puts after the version's notes with `@VERSION@` filled in. A change to what a package holds, or to a file's name, changes that file too, and [Installing](../docs/installing.md).
 
 No packaging file writes the version itself. It comes from [`VERSION`](../VERSION): a spec or changelog template takes it as `@VERSION@`, filled in from that file or from the release tarball's name (`reverblabr-X.Y.Z`). Releases are made with `tools/release.sh` ([Making a release](../docs/development.md#making-a-release)).
 
@@ -174,3 +174,25 @@ packaging/flatpak/smoke-flatpak.sh dist/flatpak/reverblabr-0.1.0-x86_64.flatpak
 [`flatpak/smoke-flatpak.sh`](flatpak/smoke-flatpak.sh) installs the bundle for the user, runs every program's `--version` in the sandbox, and opens the window offscreen for a few seconds on a session bus of its own, with no PipeWire socket, checking that the engine it starts takes its name. It removes the install again unless it was there before. The release workflow builds the bundle from the release tarball on a GitHub runner, runs this check, and attaches the bundle to the draft release. No check plays sound through the sandbox: this one leaves the PipeWire socket out on purpose, so real sound, the tray, notifications and global shortcuts in the Flatpak are still to be tried on a desktop.
 
 The bundle is installed with `flatpak install --user reverblabr-0.1.0-x86_64.flatpak`; Flathub must be a remote, for the runtime. The command-line tool is `flatpak run --command=reverblabr-ctl io.github.reverblabr.Reverblabr`; with no activation file it can't start the engine, so it reaches one only while the window's is running.
+
+## An AppImage
+
+[`appimage/build-appimage.sh`](appimage/build-appimage.sh) makes one file, `reverblabr-X.Y.Z-x86_64.AppImage`, that runs without being installed ([ADR-0037](../docs/adr/0037-appimage.md)). It builds Reverblabr from a release tarball in a plain Fedora 44 system, as the Fedora package is, every block included, and puts it in an AppDir with everything its programs load: Qt, KDE Frameworks, the Qt plugins and QML modules the window uses (the Wayland and X11 platforms, KDE's platform theme, the Breeze style, Plasma's QML controls, Kirigami's styles, KIO's file and trash workers), Qt's and KDE's translations, and **the C library with its dynamic loader**. Only the graphics libraries and PipeWire's client library are the system's. As root the script installs what it needs with dnf: the spec's BuildRequires and the parts that are loaded at run time without being linked. The AppImage's runtime is AppImage's type2 runtime, downloaded from a dated release and checked against the sum in the script; `RB_APPIMAGE_RUNTIME` names a copy instead.
+
+```sh
+podman run --rm -v "$PWD:/src:ro,z" -v "$PWD/dist:/dist:z" registry.fedoraproject.org/fedora:44 \
+    /src/packaging/appimage/build-appimage.sh /dist/reverblabr-0.1.0.tar.xz /dist/appimage
+```
+
+**Each program starts through [`appimage/launch`](appimage/launch)**, which hands it to the AppImage's loader with the AppImage's libraries first, so the AppImage runs where glibc is older than Fedora's. The loader is in `usr/bin`, beside a link for each program (`usr/bin/reverblabrd`, `usr/libexec/kf6/kioworker` for KIO), and the programs themselves are in `usr/lib/reverblabr-appimage/programs`. `usr/bin` is each program's own folder, with `qt.conf` in it. [`appimage/AppRun`](appimage/AppRun) starts the window, or `reverblabr-ctl` or `reverblabrd` when the AppImage is called through a link of that name.
+
+**Not in the AppImage:** Auto Run, timers, KRunner, the panel widget and devices for all users, as in the Flatpak, and for one reason: nothing outside the AppImage can name a program in it, since it is mounted only while it runs. The window says so where they appear. The activation file, the systemd unit, KRunner's file, the manual page and the shell completions are left out. The window starts `reverblabrd` itself when no engine runs; the engine keeps the AppImage mounted after the window has closed. Unlike the Flatpak, it is no sandbox: virtual devices go to `~/.config/pipewire`, the plugins installed on the system are found, the engine reconnects after PipeWire restarts, and the Model block is there.
+
+[`appimage/smoke-appimage.sh`](appimage/smoke-appimage.sh) checks the AppImage in a plain container of an older distribution: it installs only what the AppImage leaves to the system, unpacks it (a container has no FUSE), runs every program's `--version` and the AppImage called as `reverblabr-ctl`, and opens the window offscreen on a session bus of its own, with no PipeWire socket, checking that the engine it starts is the AppImage's, shows as `reverblabrd`, and answers `reverblabr-ctl`:
+
+```sh
+podman run --rm -v "$PWD/dist/appimage:/a:ro,z" -v "$PWD/packaging/appimage:/check:ro,z" \
+    docker.io/library/ubuntu:24.04 /check/smoke-appimage.sh /a/reverblabr-0.1.0-x86_64.AppImage
+```
+
+The release workflow builds the AppImage from the release tarball, runs this check on Ubuntu 24.04, whose glibc 2.39 is older than Fedora 44's, and attaches the AppImage to the draft release. No check plays sound through it, and the start through FUSE, with the engine outliving the window, has been tried by hand on Fedora 44 only.

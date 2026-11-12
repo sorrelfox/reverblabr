@@ -141,9 +141,18 @@ std::expected<std::shared_ptr<const TlsTrust>, StreamError> TlsTrust::load(const
     // it to the system's store, as for any other program. The count is
     // what was read: none is a store that is missing, not a server to
     // distrust.
-    const int read = options.trustFile.empty()
-        ? gnutls_certificate_set_x509_system_trust(credentials)
-        : gnutls_certificate_set_x509_trust_file(credentials, options.trustFile.c_str(), GNUTLS_X509_FMT_PEM);
+    int read = 0;
+    if (!options.trustFile.empty()) {
+        read = gnutls_certificate_set_x509_trust_file(credentials, options.trustFile.c_str(), GNUTLS_X509_FMT_PEM);
+    } else {
+        read = options.systemStore ? gnutls_certificate_set_x509_system_trust(credentials) : 0;
+        // **The same authorities as one file**, where the store is
+        // somewhere this GnuTLS doesn't look.
+        for (auto bundle = options.authorityBundles.begin(); read <= 0 && bundle != options.authorityBundles.end();
+             ++bundle) {
+            read = gnutls_certificate_set_x509_trust_file(credentials, bundle->c_str(), GNUTLS_X509_FMT_PEM);
+        }
+    }
     if (read <= 0) {
         return std::unexpected(StreamError::TrustStoreUnavailable);
     }

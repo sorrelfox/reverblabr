@@ -201,6 +201,17 @@ TestCase {
         verify(window.addDialog.allUsersChoice.whyNot.indexOf("Flatpak") >= 0, window.addDialog.allUsersChoice.whyNot);
     }
 
+    // **Nor has an AppImage** (ADR-0037): the helper is installed as root.
+    function test_fromAnAppImageEveryUserCannotBeChosenAndItSaysWhy() {
+        const window = testCase.openWindow();
+        window.allUsersAvailable = false;
+        window.appImage = true;
+        window.addDialog.open();
+        tryVerify(() => window.addDialog.opened, testCase.noticeMs);
+        verify(!window.addDialog.allUsersChoice.enabled, "every user can be chosen in an AppImage");
+        verify(window.addDialog.allUsersChoice.whyNot.indexOf("AppImage") >= 0, window.addDialog.allUsersChoice.whyNot);
+    }
+
     function test_everyUserCannotBeChosenWithoutTheHelper() {
         const window = testCase.openWindow();
         window.allUsersAvailable = false;

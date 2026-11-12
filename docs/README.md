@@ -9,7 +9,7 @@ These pages explain how to install Reverblabr, how to use it, and how it is put 
 
 ## Using Reverblabr
 
-- [Installing](installing.md): the packages and the Flatpak, what each one lacks and why, and building it yourself
+- [Installing](installing.md): the packages, the Flatpak and the AppImage, what each one lacks and why, and building it yourself
 - [Getting started](getting-started.md): your first session, from an application to your speakers
 - [Blocks](blocks.md): every block in the library and what it is for
 - [Virtual devices](virtual-devices.md): sound cards of your own, for routing programs through Reverblabr

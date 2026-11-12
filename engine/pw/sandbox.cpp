@@ -7,6 +7,7 @@
 
 #include "pw/sandbox.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -19,6 +20,12 @@ namespace rb::pw
 bool inFlatpak(const QString &marker)
 {
     return QFileInfo::exists(marker);
+}
+
+bool inAppImage(const QString &programFolder)
+{
+    const QString folder = programFolder.isEmpty() ? QCoreApplication::applicationDirPath() : programFolder;
+    return !folder.isEmpty() && QFileInfo::exists(QDir(folder).filePath(QString::fromLatin1(kAppImageMarker)));
 }
 
 QString pipeWireConfigHome(bool sandboxed)

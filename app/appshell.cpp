@@ -29,6 +29,7 @@ std::function<const rt::ScopePool *(const QString &)> g_scopes;
 std::pair<QString, QString> g_startupNotice;
 bool g_engineInBackground = true;
 bool g_sandboxed = false;
+bool g_appImage = false;
 
 [[nodiscard]] qint64 steadyMilliseconds()
 {
@@ -139,6 +140,25 @@ void AppShell::setSandboxedHere(bool sandboxed)
     }
     g_sandboxed = sandboxed;
     Q_EMIT sandboxedChanged();
+}
+
+void AppShell::setAppImage(bool appImage)
+{
+    g_appImage = appImage;
+}
+
+bool AppShell::appImage() const
+{
+    return g_appImage;
+}
+
+void AppShell::setAppImageHere(bool appImage)
+{
+    if (g_appImage == appImage) {
+        return;
+    }
+    g_appImage = appImage;
+    Q_EMIT appImageChanged();
 }
 
 core::EngineFacade *AppShell::engine()

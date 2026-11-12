@@ -4879,6 +4879,12 @@ msgctxt "@info under the Schedule tab's timers"
 msgid "Timers don't run in Reverblabr from a Flatpak. The session keeps them."
 msgstr "Timers werken niet in Reverblabr als Flatpak. De sessie bewaart ze."
 
+#: app/qml/SchedulePane.qml:246
+msgctxt "@info under the Schedule tab's timers"
+msgid ""
+"Timers don't run in Reverblabr from an AppImage. The session keeps them."
+msgstr "Timers werken niet in Reverblabr als AppImage. De sessie bewaart ze."
+
 #: app/qml/SchedulePane.qml:243
 msgctxt "@info under the Schedule tab's timers"
 msgid ""
@@ -5165,6 +5171,15 @@ msgid ""
 msgstr ""
 "Reverblabr als Flatpak kan geen sessies starten bij het aanmelden. De sessie "
 "bewaart de instelling."
+
+#: app/qml/SessionInfoPane.qml:271
+msgctxt "@info under the Auto Run switch"
+msgid ""
+"Reverblabr from an AppImage can't run sessions when you log in. The session "
+"keeps the setting."
+msgstr ""
+"Reverblabr als AppImage kan geen sessies starten bij het aanmelden. De sessie"
+" bewaart de instelling."
 
 #: app/qml/SessionInfoPane.qml:267
 msgctxt "@info under the Auto Run switch"
@@ -5609,6 +5624,11 @@ msgstr ""
 msgctxt "@info"
 msgid "Reverblabr from a Flatpak can't run sessions when you log in."
 msgstr "Reverblabr als Flatpak kan geen sessies starten bij het aanmelden."
+
+#: app/qml/SettingsWindow.qml:493
+msgctxt "@info"
+msgid "Reverblabr from an AppImage can't run sessions when you log in."
+msgstr "Reverblabr als AppImage kan geen sessies starten bij het aanmelden."
 
 #: app/qml/SettingsWindow.qml:492
 msgctxt "@info"
@@ -6479,6 +6499,11 @@ msgstr ""
 msgctxt "@info:tooltip"
 msgid "Reverblabr from a Flatpak can't make devices for all users."
 msgstr "Reverblabr als Flatpak kan geen apparaten voor alle gebruikers maken."
+
+#: app/qml/VirtualDevicesWindow.qml:510
+msgctxt "@info:tooltip"
+msgid "Reverblabr from an AppImage can't make devices for all users."
+msgstr "Reverblabr als AppImage kan geen apparaten voor alle gebruikers maken."
 
 #: app/qml/VirtualDevicesWindow.qml:508
 msgctxt "@info:tooltip"

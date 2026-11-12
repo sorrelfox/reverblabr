@@ -11,8 +11,8 @@ labels: bug
 ## How you installed Reverblabr
 
 <!--
-The Fedora package, the Debian or the Ubuntu package, the Flatpak, or your own
-build. Copy Diagnostics doesn't say which.
+The Fedora package, the Debian or the Ubuntu package, the Flatpak, the
+AppImage, or your own build. Copy Diagnostics doesn't say which.
 -->
 
 ## How to make it happen again

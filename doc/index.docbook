@@ -1093,8 +1093,8 @@ it.</para>
 <title>Speech Denoise</title>
 <para>Clears the background from a voice without learning anything first,
 using RNNoise, a model trained on speech. It works at 48 kHz and adds 30 ms of
-delay. It is only built where RNNoise is there: the Fedora and Debian packages
-and the Flatpak have it, the Ubuntu package doesn't, because Ubuntu doesn't
+delay. It is only built where RNNoise is there: the Fedora and Debian packages,
+the Flatpak and the AppImage have it, the Ubuntu package doesn't, because Ubuntu doesn't
 package RNNoise.</para>
 </sect2>
 
@@ -1333,8 +1333,8 @@ the next time you open the tab.</para>
 sessions keep running with the window closed, the tray and a panel widget
 show what is going on, and shortcuts work from anywhere. Most of this needs an installed
 &reverblabr;, because a build started from the source tree has no background
-engine. The Flatpak has the background engine, but not Auto Run, timers,
-KRunner or the panel widget.</para>
+engine. The Flatpak and the AppImage have the background engine, but not
+Auto Run, timers, KRunner or the panel widget.</para>
 
 <sect1 id="all-sessions">
 <title>All your sessions at once</title>
@@ -1740,7 +1740,7 @@ once. Devices for all users have a padlock in the list. Other users get the
 device the next time they log in.</para>
 
 <para>This needs a small helper that runs as root. The packages and a full
-install include it, and the Flatpak can't have it;
+install include it, and the Flatpak and the AppImage can't have it;
 until it is installed, choosing All Users only tells you that it is
 missing.</para>
 </sect1>

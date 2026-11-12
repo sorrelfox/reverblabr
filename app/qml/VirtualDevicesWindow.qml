@@ -114,6 +114,8 @@ QQC2.ApplicationWindow {
     /// A Flatpak has no all-users helper (ADR-0034), and says so. A test may
     /// say otherwise.
     property bool sandboxed: AppShell.sandboxed
+    /// Nor has an AppImage (ADR-0037): the helper is installed as root.
+    property bool appImage: AppShell.appImage
 
     /// Whether the engine has said there are none at all, with nothing
     /// hidden by a file it could not read.
@@ -503,6 +505,9 @@ QQC2.ApplicationWindow {
                     readonly property string whyNot: !root.allUsersAvailable && root.sandboxed
                         ? KI18n.i18nc("@info:tooltip",
                                       "Reverblabr from a Flatpak can't make devices for all users.")
+                        : !root.allUsersAvailable && root.appImage
+                        ? KI18n.i18nc("@info:tooltip",
+                                      "Reverblabr from an AppImage can't make devices for all users.")
                         : !root.allUsersAvailable
                         ? KI18n.i18nc("@info:tooltip",
                                       "This copy of Reverblabr was built without the part that makes devices for all users.")

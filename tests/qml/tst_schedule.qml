@@ -37,6 +37,7 @@ TestCase {
     function cleanup() {
         AppShell.engineInBackground = true;
         AppShell.sandboxed = false;
+        AppShell.appImage = false;
         AppShell.sessionId = "";
     }
 
@@ -175,6 +176,16 @@ TestCase {
         AppShell.sandboxed = true;
         verify(window.schedulePane.needsBackground.visible);
         verify(window.schedulePane.needsBackground.text.indexOf("Flatpak") >= 0,
+               window.schedulePane.needsBackground.text);
+    }
+
+    // **Nor has an AppImage** (ADR-0037), and it says so in its own words.
+    function test_fromAnAppImageTimersSayTheyDoNotRun() {
+        const window = openWindow();
+        verify(!window.schedulePane.needsBackground.visible);
+        AppShell.appImage = true;
+        verify(window.schedulePane.needsBackground.visible);
+        verify(window.schedulePane.needsBackground.text.indexOf("AppImage") >= 0,
                window.schedulePane.needsBackground.text);
     }
 }
