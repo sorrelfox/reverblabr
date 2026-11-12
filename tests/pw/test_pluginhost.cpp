@@ -60,6 +60,7 @@ constexpr float kCodeScale = 8192.0f;
 }
 
 struct Port {
+    // Nothing of its own: the filter needs only the port.
 };
 
 /// The node before the host and the node after it, on a thread loop of

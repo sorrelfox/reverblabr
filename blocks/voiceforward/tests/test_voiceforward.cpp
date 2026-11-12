@@ -73,6 +73,7 @@ struct Rig {
     }
 
     struct TwoPart {
+        // A tag: one cut under voices and another between them.
     };
 
     Rig(TwoPart, float background, float between, bool holdLevel = false)

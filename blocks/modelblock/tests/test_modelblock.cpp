@@ -45,6 +45,13 @@
 #include <thread>
 #include <vector>
 
+#if defined(__has_feature)
+#if __has_feature(realtime_sanitizer)
+#include <sanitizer/rtsan_interface.h>
+#define RB_TEST_UNDER_RTSAN 1
+#endif
+#endif
+
 using namespace rb;
 using namespace rb::blocks;
 using namespace rb::dsp;
@@ -296,17 +303,33 @@ public:
         return prepared;
     }
 
+    // **Waits on purpose**, which a real block never may: these tests run
+    // it offline, with no audio thread to keep in time, and the wait is
+    // what makes the result the same however a cycle is cut. So
+    // -Wfunction-effects is quietened for this function alone, and the
+    // real-time sanitizer for the wait alone: the model block's own
+    // process() before it is still checked.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfunction-effects"
+#endif
     void process(ProcessContext &context) noexcept RB_NONBLOCKING override
     {
         m_inner.process(context);
         const std::uint64_t written = m_inner.framesWritten();
         const std::uint32_t behind = m_inner.info().latencySamples - kSpare;
         const std::uint64_t wanted = written > behind ? written - behind : 0;
+#if defined(RB_TEST_UNDER_RTSAN)
+        const __rtsan::ScopedDisabler waitingOnPurpose;
+#endif
         const auto deadline = std::chrono::steady_clock::now() + kPatience;
         while (m_inner.wetEnd() < wanted && std::chrono::steady_clock::now() < deadline) {
             std::this_thread::sleep_for(50us);
         }
     }
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
     void reset() noexcept RB_NONBLOCKING override
     {

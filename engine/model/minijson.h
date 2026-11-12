@@ -17,6 +17,8 @@
 namespace rb::model
 {
 
+struct JsonMember;
+
 /// **Just enough JSON for a model's configuration**, which comes from a
 /// folder and so from anybody. The caller's text is at most kMostJsonBytes;
 /// nesting and the number of values are limited, so neither a deep nor a
@@ -37,10 +39,18 @@ struct JsonValue {
     double number = 0.0;
     std::string text;
     std::vector<JsonValue> items;
-    std::vector<std::pair<std::string, JsonValue>> members;
+    /// A vector may hold a type that is still incomplete here; a std::pair
+    /// of one may not, and Clang with GCC 16's library refuses it.
+    std::vector<JsonMember> members;
 
     /// The member called \a key of an object, or null.
     [[nodiscard]] const JsonValue *find(std::string_view key) const noexcept;
+};
+
+/// One member of an object: its name and its value.
+struct JsonMember {
+    std::string name;
+    JsonValue value;
 };
 
 inline constexpr std::size_t kMostJsonBytes = 64 * 1024;

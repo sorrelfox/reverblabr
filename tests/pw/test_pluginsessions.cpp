@@ -981,7 +981,7 @@ protected:
     /// Sound through the model, as the output hears it.
     void waitForSound()
     {
-        ASSERT_TRUE(m_pump->pumpUntil([this] { return modelHost() > 0; }, 5s));
+        ASSERT_TRUE(m_pump->pumpUntil([] { return modelHost() > 0; }, 5s));
         ASSERT_TRUE(m_pump->pumpUntil([this] { return m_sound->listen(*m_pump, 100ms).heard() > 0; }, 10s))
             << "the model's answer never reached the output\n"
             << dumpGraph();

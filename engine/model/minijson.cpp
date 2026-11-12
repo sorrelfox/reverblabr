@@ -110,7 +110,7 @@ private:
             if (!parseString(key) || !take(':') || !parseValue(member, depth + 1)) {
                 return false;
             }
-            value.members.emplace_back(std::move(key), std::move(member));
+            value.members.push_back({std::move(key), std::move(member)});
         } while (take(','));
         return take('}');
     }
