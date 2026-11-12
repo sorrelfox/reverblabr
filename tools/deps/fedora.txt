@@ -158,9 +158,12 @@ jq
 # The private PipeWire instance of the integration tests (tests/pw/harness):
 # the daemons, a Pulse client and a private D-Bus session. The tests also use
 # pw-link, pw-loopback and wpctl from the debugging tools above, and
-# libcanberra to play a notification sound the way KDE does.
+# libcanberra to play a notification sound the way KDE does, with its
+# PulseAudio backend: part of libcanberra on Fedora 44, a package of its own
+# (libcanberra-backend-pulse) on Fedora 45, so it is named by its file.
 pipewire
 pipewire-pulseaudio
 pulseaudio-utils
 dbus-daemon
 libcanberra
+/usr/lib64/libcanberra-0.30/libcanberra-pulse.so

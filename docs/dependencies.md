@@ -148,7 +148,7 @@ None of these are needed to use Reverblabr. They are what [Development](developm
 | A graph view | `qpwgraph` | `qpwgraph` | seeing the PipeWire graph while you work |
 | jq | `jq` | `jq` | querying `pw-dump` |
 | The tests' own PipeWire | `pipewire`, `pipewire-pulseaudio`, `pulseaudio-utils`, `dbus-daemon` | `pipewire`, `pipewire-pulse`, `pulseaudio-utils`, `dbus` | the private PipeWire, Pulse client and D-Bus session the integration tests run in |
-| libcanberra | `libcanberra` | `libcanberra0`, `libcanberra-pulse` | a test that plays a notification sound the way KDE does, through PulseAudio as KDE does |
+| libcanberra | `libcanberra`, `/usr/lib64/libcanberra-0.30/libcanberra-pulse.so` (its PulseAudio backend: in `libcanberra` on Fedora 44, in `libcanberra-backend-pulse` on Fedora 45) | `libcanberra0`, `libcanberra-pulse` | a test that plays a notification sound the way KDE does, through PulseAudio as KDE does |
 | LSP's LV2 plugins | `lsp-plugins-lv2` | `lsp-plugins-lv2` | the plugin hosting tests |
 | The LADSPA SDK's example plugins | `ladspa` | `ladspa-sdk` | the LADSPA hosting tests' common plugin, the stereo amplifier; without it those checks are skipped, and the rest run against LADSPA plugins the tests build |
 | LSP's CLAP plugins | `lsp-plugins-clap` | `lsp-plugins-clap` | the CLAP hosting tests, where the build has the CLAP SDK. The plugin windows' tests build an LV2 and a CLAP plugin of their own whose windows need no display (`tests/lv2`, `tests/clap`) |
