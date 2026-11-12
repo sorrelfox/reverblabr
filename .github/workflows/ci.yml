@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Reverblabr contributors
 # SPDX-License-Identifier: CC0-1.0
 #
-# Checks, the build and the whole test suite on Fedora 44 and on Ubuntu
-# 26.04, started by hand (Actions, CI, Run workflow) on the branch about to be
+# Checks, the build and the whole test suite on Fedora 44 and 45 and on
+# Ubuntu 26.04, started by hand (Actions, CI, Run workflow) on the branch about to be
 # released, and on nothing else. The project's Actions minutes are limited, so
 # no push and no pull request starts it: changes are checked on the
 # developer's machine (docs/development.md, "Before a change goes in"), and
@@ -75,11 +75,18 @@ jobs:
           packaging/rpm/srpm.sh "/tmp/rpm/reverblabr-$version.tar.xz"
           rpmlint /tmp/rpm/reverblabr.spec /tmp/rpm/*.src.rpm
 
+  # Each supported Fedora: they differ in FFmpeg (8 on 44, 9 on 45), the
+  # compiler and KDE Frameworks, so a build or a test can pass on one only.
   build-and-test:
-    name: Build and test (Fedora 44)
+    name: Build and test (Fedora ${{ matrix.fedora }})
     needs: checks
+    strategy:
+      # Each Fedora's result counts on its own.
+      fail-fast: false
+      matrix:
+        fedora: ["44", "45"]
     runs-on: ubuntu-24.04
-    container: registry.fedoraproject.org/fedora:44
+    container: registry.fedoraproject.org/fedora:${{ matrix.fedora }}
     # A hung test would otherwise hold the runner for six hours. Tests that
     # need a compositor skip themselves here; the ones that need PipeWire
     # start a private one.
@@ -114,7 +121,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results
+          name: test-results-fedora-${{ matrix.fedora }}
           path: |
             build/debug/ctest-junit.xml
             build/debug/Testing/Temporary/LastTest.log

@@ -56,4 +56,4 @@ Reverblabr is an original work. Reimplementing a feature you know from another p
 
 ## What CI checks
 
-Before a release, GitHub Actions checks the sign-offs, the clean-room rule, `reuse lint` and `clang-format`, then builds on Fedora 44 with warnings as errors, runs the whole test suite and treats any qmllint warning as an error.
+Before a release, GitHub Actions checks the sign-offs, the clean-room rule, `reuse lint` and `clang-format`, then builds on Fedora 44 and Fedora 45 (and on Ubuntu 26.04) with warnings as errors, runs the whole test suite and treats any qmllint warning as an error.

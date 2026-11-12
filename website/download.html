@@ -9,7 +9,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; media-src 'self'; font-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Download Reverblabr @VERSION@</title>
-<meta name="description" content="Reverblabr @VERSION@ for Fedora 44, Ubuntu and Kubuntu 26.04, Debian testing, and as a Flatpak and an AppImage for other distributions: the files, how to install, start and remove each one, and what each one lacks, and why.">
+<meta name="description" content="Reverblabr @VERSION@ for Fedora 44 and 45, Ubuntu and Kubuntu 26.04, Debian testing, and as a Flatpak and an AppImage for other distributions: the files, how to install, start and remove each one, and what each one lacks, and why.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eff0f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1b1e20" media="(prefers-color-scheme: dark)">
@@ -25,7 +25,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 <meta property="og:site_name" content="Reverblabr">
 <meta property="og:locale" content="en_GB">
 <meta property="og:title" content="Download Reverblabr @VERSION@">
-<meta property="og:description" content="Packages for Fedora 44, Ubuntu and Kubuntu 26.04 and Debian testing, a Flatpak and an AppImage, with what each one lacks, and why.">
+<meta property="og:description" content="Packages for Fedora 44 and 45, Ubuntu and Kubuntu 26.04 and Debian testing, a Flatpak and an AppImage, with what each one lacks, and why.">
 <meta property="og:url" content="https://sorrelfox.github.io/reverblabr/download.html">
 <meta property="og:image" content="https://sorrelfox.github.io/reverblabr/social.jpg">
 <meta property="og:image:width" content="1200">
@@ -55,9 +55,9 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 <section class="canvas page-head" aria-labelledby="title">
   <div class="wrap">
     <h1 id="title">Download Reverblabr @VERSION@</h1>
-    <p class="lede">Released on <time datetime="@DATE@">@DATE_TEXT@</time>. There is a package for Fedora 44, for Ubuntu and Kubuntu 26.04 and for Debian testing, and a Flatpak and an AppImage for other distributions. All of them are for 64-bit PCs (x86_64, also called amd64) with KDE Plasma 6 and PipeWire. Take the one for your system:</p>
+    <p class="lede">Released on <time datetime="@DATE@">@DATE_TEXT@</time>. There is a package for Fedora 44 and 45, for Ubuntu and Kubuntu 26.04 and for Debian testing, and a Flatpak and an AppImage for other distributions. All of them are for 64-bit PCs (x86_64, also called amd64) with KDE Plasma 6 and PipeWire. Take the one for your system:</p>
     <ul class="systems">
-      <li><a class="system" href="#fedora"><span class="name">Fedora 44</span><span class="kind">RPM package</span><span class="gives">Has everything.</span></a></li>
+      <li><a class="system" href="#fedora"><span class="name">Fedora 44 and 45</span><span class="kind">RPM package</span><span class="gives">Has everything.</span></a></li>
       <li><a class="system" href="#ubuntu"><span class="name">Ubuntu and Kubuntu 26.04</span><span class="kind">DEB package</span><span class="gives">Lacks CLAP and VST3 plugins, Speech Denoise and the voice model.</span></a></li>
       <li><a class="system" href="#debian"><span class="name">Debian testing</span><span class="kind">DEB package</span><span class="gives">Lacks CLAP plugins.</span></a></li>
       <li><a class="system" href="#flatpak"><span class="name">Any other distribution</span><span class="kind">Flatpak</span><span class="gives">Lacks Auto Run, timers, KRunner, the panel widget, devices for all users, the Model block, plugins installed on your system, and reconnecting after PipeWire restarts.</span></a></li>
@@ -70,7 +70,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
   <nav class="toc" aria-labelledby="toc-title">
     <h2 id="toc-title">On this page</h2>
     <ul>
-      <li><a href="#fedora">Fedora 44</a></li>
+      <li><a href="#fedora">Fedora 44 and 45</a></li>
       <li><a href="#ubuntu">Ubuntu and Kubuntu 26.04</a></li>
       <li><a href="#debian">Debian testing</a></li>
       <li><a href="#flatpak">The Flatpak</a></li>
@@ -90,17 +90,22 @@ SPDX-License-Identifier: CC-BY-SA-4.0
     <section class="pkg" id="fedora" aria-labelledby="fedora-title">
       <div class="pkg-head">
         <div>
-          <h2 id="fedora-title">Fedora 44</h2>
+          <h2 id="fedora-title">Fedora 44 and 45</h2>
+          <span class="file">reverblabr-@VERSION@-1.fc45.x86_64.rpm</span>
           <span class="file">reverblabr-@VERSION@-1.fc44.x86_64.rpm</span>
         </div>
-        <a class="button primary" href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc44.x86_64.rpm"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Download the Fedora package</a>
+        <div class="buttons">
+          <a class="button primary" href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc45.x86_64.rpm"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Fedora 45 package</a>
+          <a class="button" href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc44.x86_64.rpm"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7.5 8 11.5 12 7.5M3 14h10"/></svg>Fedora 44 package</a>
+        </div>
       </div>
       <p>The Fedora package has everything: every block, the background engine, Auto Run and timers, KRunner, the panel widget, virtual devices for all users, <code>reverblabr-ctl</code> with its manual page and shell completions, and the handbook.</p>
+      <p>There is one for each Fedora. Take your Fedora's: a package built for one doesn't start on the other, since each is built against its own release's FFmpeg and Qt. After an upgrade to a newer Fedora, install the newer Fedora's package.</p>
       <dl class="steps">
         <dt>Install</dt>
         <dd>
-          <p>In the folder you saved it in:</p>
-<pre class="cmd" data-what="install the Fedora package"><code>sudo dnf install ./reverblabr-@VERSION@-1.fc44.x86_64.rpm</code></pre>
+          <p>In the folder you saved it in. The command picks your Fedora's file:</p>
+<pre class="cmd" data-what="install the Fedora package"><code>sudo dnf install ./reverblabr-@VERSION@-1.fc$(rpm -E %fedora).x86_64.rpm</code></pre>
           <p>What it needs comes from Fedora's own repositories. It also recommends <code>openh264</code>, Cisco's H.264 encoder, for the Live Stream block's video; <code>layer-shell-qt</code>, for the windows that float over other programs; and <code>polkit</code>, for the password prompt of devices for all users.</p>
         </dd>
         <dt>Start</dt>
@@ -112,7 +117,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
       </dl>
       <div class="lacks">
         <h3>It is tied to Qt 6.11</h3>
-        <p>The window uses parts of Qt that Qt keeps private and changes from one version to the next, so the package requires Qt 6.11's. If Fedora 44 moves on to Qt 6.12, that requirement can't be met any more, and the package has to be rebuilt. The source RPM on the release page does that, for a newer Qt or for another Fedora release: <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/installing.md#fedora-44">Installing</a> has the commands.</p>
+        <p>The window uses parts of Qt that Qt keeps private and changes from one version to the next, so the package requires Qt 6.11's. If your Fedora moves on to Qt 6.12, that requirement can't be met any more, and the package has to be rebuilt. The source RPM on the release page does that, for a newer Qt or for another Fedora release: <a href="https://github.com/sorrelfox/reverblabr/blob/v@VERSION@/docs/installing.md#fedora-44-and-45">Installing</a> has the commands.</p>
       </div>
     </section>
 
@@ -281,7 +286,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
           <thead role="rowgroup">
             <tr role="row">
               <th scope="col" role="columnheader"><span class="sr-only">Part</span></th>
-              <th scope="col" role="columnheader">Fedora 44</th>
+              <th scope="col" role="columnheader">Fedora 44 and 45</th>
               <th scope="col" role="columnheader">Debian testing</th>
               <th scope="col" role="columnheader">Ubuntu 26.04</th>
               <th scope="col" role="columnheader">Flatpak</th>
@@ -291,7 +296,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
           <tbody role="rowgroup">
             <tr role="row">
               <th scope="row" role="rowheader">Every block not named below, recording, virtual devices for your account</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
@@ -299,7 +304,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Speech Denoise, and the voice model of Speech Now, Voice Gauge and Night Level</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span><span class="no">No</span><span class="why-not">Ubuntu has no package of RNNoise.</span></span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
@@ -307,7 +312,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Model block (Beta)</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">ONNX Runtime isn't built into it.</span></span></td>
@@ -315,7 +320,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Broadcast and Live Stream</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
@@ -323,7 +328,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">LV2 and LADSPA plugins</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Flathub's</span><span class="why-not">The plugins Flathub packages for it.</span></span></td>
@@ -331,7 +336,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">CLAP plugins</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span><span class="no">No</span><span class="why-not">Debian has no package of the CLAP SDK.</span></span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span><span class="no">No</span><span class="why-not">Ubuntu has no package of the CLAP SDK.</span></span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Flathub's</span><span class="why-not">The plugins Flathub packages for it.</span></span></td>
@@ -339,7 +344,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">VST3 plugins</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span><span class="no">No</span><span class="why-not">Ubuntu's VST3 SDK is 3.7; Reverblabr takes 3.8, the first under the MIT licence.</span></span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Flathub's</span><span class="why-not">The plugins Flathub packages for it.</span></span></td>
@@ -347,7 +352,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Plugins installed on your system</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">They are built against your system's libraries, not the runtime's.</span></span></td>
@@ -355,7 +360,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Sessions keep running with the window closed</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span class="yes">Yes</span></td>
@@ -363,7 +368,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Sessions come back by themselves after PipeWire restarts</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">The sandbox keeps PipeWire's old socket: flatpak kill, then start it again.</span></span></td>
@@ -371,7 +376,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader"><code>reverblabr-ctl</code></th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="part">Through flatpak run</span><span class="why-not">Without its manual page and completions; it can't start the engine.</span></span></td>
@@ -379,7 +384,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Auto Run and timers</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">They go through your account's systemd, which a sandbox can't reach.</span></span></td>
@@ -387,7 +392,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">KRunner and the panel widget</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">Plasma looks for them on your system, not inside a sandbox.</span></span></td>
@@ -395,7 +400,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Virtual devices for all users</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">No</span><span class="why-not">They need a helper that runs as root, which a Flatpak can't install.</span></span></td>
@@ -403,7 +408,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">The handbook (F1)</th>
-              <td role="cell" data-label="Fedora 44"><span class="yes">Yes</span></td>
+              <td role="cell" data-label="Fedora 44 and 45"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Debian testing"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Ubuntu 26.04"><span class="yes">Yes</span></td>
               <td role="cell" data-label="Flatpak"><span><span class="no">Most likely not</span><span class="why-not">The desktop's help viewer can't read inside the sandbox.</span></span></td>
@@ -411,7 +416,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Where recordings can go</th>
-              <td role="cell" data-label="Fedora 44">Anywhere</td>
+              <td role="cell" data-label="Fedora 44 and 45">Anywhere</td>
               <td role="cell" data-label="Debian testing">Anywhere</td>
               <td role="cell" data-label="Ubuntu 26.04">Anywhere</td>
               <td role="cell" data-label="Flatpak"><span>The Music folder<span class="why-not">The one folder for recordings the sandbox may write to.</span></span></td>
@@ -419,7 +424,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Built against</th>
-              <td role="cell" data-label="Fedora 44">Fedora 44's Qt 6.11</td>
+              <td role="cell" data-label="Fedora 44 and 45">Each Fedora's own Qt 6.11</td>
               <td role="cell" data-label="Debian testing">The Qt Debian testing had at the release</td>
               <td role="cell" data-label="Ubuntu 26.04">Ubuntu 26.04's Qt</td>
               <td role="cell" data-label="Flatpak">KDE's runtime 6.11 from Flathub</td>
@@ -427,7 +432,7 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">Updates</th>
-              <td role="cell" data-label="Fedora 44">By hand</td>
+              <td role="cell" data-label="Fedora 44 and 45">By hand</td>
               <td role="cell" data-label="Debian testing">By hand</td>
               <td role="cell" data-label="Ubuntu 26.04">By hand</td>
               <td role="cell" data-label="Flatpak">By hand</td>
@@ -445,17 +450,18 @@ flatpak install --user ./reverblabr-@VERSION@-x86_64.flatpak</code></pre>
 <pre class="cmd" data-what="check the checksums"><code>sha256sum -c --ignore-missing SHA256SUMS</code></pre>
       <p>Each file you downloaded should say <code>OK</code>, which means it arrived whole.</p>
       <p>Where a file comes from is shown by its build provenance attestation: a signed record, kept by GitHub, that the file was built by this repository's release workflow. The tarball, each package and the AppImage have one. With the <a href="https://cli.github.com">GitHub CLI</a>, for example:</p>
-<pre class="cmd" data-what="check where the Fedora package was built"><code>gh attestation verify ./reverblabr-@VERSION@-1.fc44.x86_64.rpm --repo sorrelfox/reverblabr</code></pre>
+<pre class="cmd" data-what="check where the Fedora package was built"><code>gh attestation verify ./reverblabr-@VERSION@-1.fc$(rpm -E %fedora).x86_64.rpm --repo sorrelfox/reverblabr</code></pre>
       <p><code>SHA256SUMS</code> has no attestation of its own, and the packages are not signed with a GPG key. GitHub's own <em>Source code</em> archives are not the release's tarball: they are not in <code>SHA256SUMS</code> and have no attestation.</p>
       <h3 id="files">Every file of the release</h3>
       <ul class="note-list">
+        <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc45.x86_64.rpm">reverblabr-@VERSION@-1.fc45.x86_64.rpm</a>: Fedora 45</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc44.x86_64.rpm">reverblabr-@VERSION@-1.fc44.x86_64.rpm</a>: Fedora 44</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr_@VERSION@-1.ubuntu26.04_amd64.deb">reverblabr_@VERSION@-1.ubuntu26.04_amd64.deb</a>: Ubuntu and Kubuntu 26.04</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr_@VERSION@-1_amd64.deb">reverblabr_@VERSION@-1_amd64.deb</a>: Debian testing</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-x86_64.flatpak">reverblabr-@VERSION@-x86_64.flatpak</a>: the Flatpak</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-x86_64.AppImage">reverblabr-@VERSION@-x86_64.AppImage</a>: the AppImage</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@.tar.xz">reverblabr-@VERSION@.tar.xz</a>: the source, which every package was built from</li>
-        <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc44.src.rpm">reverblabr-@VERSION@-1.fc44.src.rpm</a>: the source RPM, to rebuild the Fedora package</li>
+        <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/reverblabr-@VERSION@-1.fc44.src.rpm">reverblabr-@VERSION@-1.fc44.src.rpm</a>: the source RPM, to rebuild the Fedora package, for either Fedora</li>
         <li><a href="https://github.com/sorrelfox/reverblabr/releases/download/v@VERSION@/SHA256SUMS">SHA256SUMS</a>: the checksums of all of them</li>
       </ul>
       <p>The <a href="https://github.com/sorrelfox/reverblabr/releases/tag/v@VERSION@">release page</a> has the same files and the release notes.</p>

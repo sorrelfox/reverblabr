@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Installing Reverblabr
 
-Reverblabr comes as a package for Fedora 44, for Debian testing and for Ubuntu 26.04 (Kubuntu included), and as a Flatpak and an AppImage for other distributions. All of them are on the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), with the source. The commands below find a file by its ending, so keep one version of it in the folder you saved it in. You can also [build it yourself](#building-it-yourself), which takes a few commands and a few minutes.
+Reverblabr comes as a package for Fedora 44 and Fedora 45, for Debian testing and for Ubuntu 26.04 (Kubuntu included), and as a Flatpak and an AppImage for other distributions. All of them are on the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), with the source. The commands below find a file by its ending, so keep one version of it in the folder you saved it in. You can also [build it yourself](#building-it-yourself), which takes a few commands and a few minutes.
 
 ## What you need
 
@@ -17,7 +17,7 @@ Reverblabr comes as a package for Fedora 44, for Debian testing and for Ubuntu 2
 
 | Your system | Take | It lacks |
 |---|---|---|
-| Fedora 44 | [the Fedora package](#fedora-44) | nothing |
+| Fedora 44 or 45 | [the Fedora package](#fedora-44-and-45) | nothing |
 | Debian testing | [the Debian package](#debian-testing) | CLAP plugins |
 | Kubuntu 26.04, or Ubuntu 26.04 with Plasma | [the Ubuntu package](#ubuntu-and-kubuntu-2604) | CLAP and VST3 plugins, Speech Denoise and the voice model |
 | Another distribution, or you'd like a sandbox | [the Flatpak](#the-flatpak) | Auto Run, timers, KRunner, the panel widget, devices for all users, the Model block, plugins installed on your system, and reconnecting after PipeWire restarts |
@@ -26,15 +26,17 @@ Reverblabr comes as a package for Fedora 44, for Debian testing and for Ubuntu 2
 
 Use one of them: not a package, the Flatpak or the AppImage together ([below](#more-than-one-together)). [What each one has](#what-each-one-has) compares them in full.
 
-## Fedora 44
+## Fedora 44 and 45
 
 The Fedora package has everything: every block, the background engine, Auto Run and timers, KRunner, the panel widget, virtual devices for all users, `reverblabr-ctl` with its manual page and shell completions, and the handbook.
 
-Download the file ending in `.fc44.x86_64.rpm` from the [release page](https://github.com/sorrelfox/reverblabr/releases/latest) and install it from the folder you saved it in:
+There is one for each Fedora: the file ending in `.fc44.x86_64.rpm` is for Fedora 44, the one ending in `.fc45.x86_64.rpm` for Fedora 45. Take your Fedora's: a package built for one doesn't start on the other, since each is built against its own release's FFmpeg and Qt, whose libraries change from one Fedora to the next. Download it from the [release page](https://github.com/sorrelfox/reverblabr/releases/latest) and install it from the folder you saved it in. The command picks your Fedora's file by itself:
 
 ```sh
-sudo dnf install ./reverblabr-*.fc44.x86_64.rpm
+sudo dnf install ./reverblabr-*.fc$(rpm -E %fedora).x86_64.rpm
 ```
+
+After an upgrade to a newer Fedora, install the newer Fedora's package the same way.
 
 What it needs comes from Fedora's own repositories. It also recommends `openh264`, Cisco's H.264 encoder, for the Live Stream block's video; `layer-shell-qt`, for the windows that float over other programs; and `polkit`, for the password prompt of devices for all users.
 
@@ -44,7 +46,7 @@ Start Reverblabr from the application launcher, or with `reverblabr` in a termin
 sudo dnf remove reverblabr
 ```
 
-**It is tied to Qt 6.11.** The window uses parts of Qt that Qt keeps private and changes from one version to the next, so the package requires Qt 6.11's. If Fedora 44 moves on to Qt 6.12, that requirement can't be met any more, and the package has to be rebuilt. The source RPM on the release page, the file ending in `.fc44.src.rpm`, does that, for a newer Qt or for another Fedora release. Remove the release's package first if it is installed: a package rebuilt on Fedora 44 has the same version, and dnf would take it for installed already. Your sessions and settings stay.
+**It is tied to Qt 6.11.** The window uses parts of Qt that Qt keeps private and changes from one version to the next, so the package requires Qt 6.11's. If your Fedora moves on to Qt 6.12, that requirement can't be met any more, and the package has to be rebuilt. The source RPM on the release page, the file ending in `.fc44.src.rpm`, does that, for a newer Qt or for another Fedora release. Remove the release's package first if it is installed: a rebuilt package has the same version, and dnf would take it for installed already. Your sessions and settings stay.
 
 ```sh
 sudo dnf remove reverblabr
@@ -193,7 +195,7 @@ Each file you downloaded should say `OK`, which means it arrived whole.
 Where a file comes from is shown by its build provenance attestation: a signed record, kept by GitHub, that the file was built by this repository's release workflow. The tarball and each package have one. With the [GitHub CLI](https://cli.github.com), for each file you downloaded, here the Fedora package:
 
 ```sh
-gh attestation verify ./reverblabr-*.fc44.x86_64.rpm --repo sorrelfox/reverblabr
+gh attestation verify ./reverblabr-*.fc$(rpm -E %fedora).x86_64.rpm --repo sorrelfox/reverblabr
 ```
 
 `SHA256SUMS` has no attestation of its own, and the packages are not signed with a GPG key. GitHub's own *Source code* archives are not the release's tarball: they are not in `SHA256SUMS` and have no attestation.
@@ -296,7 +298,7 @@ The full list is in [What to install](dependencies.md#optional).
 
 ## What each one has
 
-| | Fedora 44 | Debian testing | Ubuntu 26.04 | Flatpak | AppImage | Your own build |
+| | Fedora 44 and 45 | Debian testing | Ubuntu 26.04 | Flatpak | AppImage | Your own build |
 |---|---|---|---|---|---|---|
 | Every block not named below, recording, virtual devices for your account | yes | yes | yes | yes | yes | yes |
 | Speech Denoise, and the voice model of Speech Now, Voice Gauge and Night Level | yes | yes | no | yes | yes | with RNNoise 0.2 |
@@ -314,7 +316,7 @@ The full list is in [What to install](dependencies.md#optional).
 | Virtual devices for all users | yes | yes | yes | no | no | with KAuth, and the helper installed |
 | The handbook (F1) | yes | yes | yes | most likely not | not tried | with KDocTools, once installed |
 | Where recordings can go | anywhere | anywhere | anywhere | the Music folder | anywhere | anywhere |
-| Built against | Fedora 44's Qt 6.11 | the Qt Debian testing had at the release | Ubuntu 26.04's Qt | KDE's runtime 6.11 from Flathub | Fedora 44's Qt 6.11, which it brings | your system |
+| Built against | each Fedora's own Qt 6.11 | the Qt Debian testing had at the release | Ubuntu 26.04's Qt | KDE's runtime 6.11 from Flathub | Fedora 44's Qt 6.11, which it brings | your system |
 | Updates | by hand | by hand | by hand | by hand | by hand | `git pull` and build again |
 
 The handbook opens in KHelpCenter, which none of the packages installs for you.

@@ -19,10 +19,10 @@ Reverblabr is young and still has bugs, so please [tell me](#bugs-and-contributi
 
 Take the file for your system from the [release page](https://github.com/sorrelfox/reverblabr/releases/latest), and install it from the folder you saved it in. The commands find the file by its ending, so keep one version of it there. The packages, the Flatpak and the AppImage are for 64-bit PCs (x86_64, also called amd64).
 
-**Fedora 44:** the file ending in `.fc44.x86_64.rpm`
+**Fedora 44 and 45:** the file ending in `.fc44.x86_64.rpm` on Fedora 44, `.fc45.x86_64.rpm` on Fedora 45 (the command picks yours)
 
 ```sh
-sudo dnf install ./reverblabr-*.fc44.x86_64.rpm
+sudo dnf install ./reverblabr-*.fc$(rpm -E %fedora).x86_64.rpm
 ```
 
 **Ubuntu 26.04 and Kubuntu 26.04:** the file ending in `.ubuntu26.04_amd64.deb`
@@ -59,7 +59,7 @@ Not every package has everything, because not every distribution packages every 
 
 | | Lacks | Why |
 |---|---|---|
-| Fedora 44 | nothing | |
+| Fedora 44 and 45 | nothing | |
 | Debian testing | CLAP plugins | Debian has no package of the CLAP SDK. |
 | Ubuntu and Kubuntu 26.04 | CLAP plugins, VST3 plugins, Speech Denoise, and the voice model Speech Now, Voice Gauge and Night Level listen with (they use a simpler detector) | Ubuntu has no package of the CLAP SDK or of RNNoise, and its VST3 SDK, 3.7, is older than 3.8, the first version under the MIT licence. |
 | AppImage | Auto Run at login, timers, KRunner, the panel widget and virtual devices for all users | Nothing outside the AppImage can start a program inside it, since it is there only while it runs, and it installs nothing. |

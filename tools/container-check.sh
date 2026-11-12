@@ -11,7 +11,7 @@
 # copied into a throwaway container, so nothing from the host leaks in.
 #
 # Usage: tools/container-check.sh [IMAGE] [STAGE]
-#   IMAGE  fedora:44 (default) or ubuntu:26.04
+#   IMAGE  fedora:44 (default), fedora:45 or ubuntu:26.04
 #   STAGE  deps       install the packages and run tools/check-deps.sh
 #          configure  as deps, then configure the debug preset (default)
 #          test       as configure, then build and run the tests

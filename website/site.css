@@ -1265,6 +1265,13 @@ pre.cmd code {
     margin: 0;
 }
 
+/* A package with a file for each release of its distribution */
+.pkg-head .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
 .file {
     display: block;
     margin-top: 4px;

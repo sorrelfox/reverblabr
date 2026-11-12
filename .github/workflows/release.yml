@@ -3,7 +3,8 @@
 #
 # A release. A pushed tag vX.Y.Z has to be VERSION's (tools/check-release-tag.sh).
 # The workflow makes the source tarball, builds and tests Reverblabr from that
-# tarball on Fedora 44, and builds the packages from it: the Fedora RPMs, the
+# tarball on Fedora 44, and builds the packages from it: the RPMs for Fedora 44
+# and 45, the
 # .debs for Debian testing and Ubuntu 26.04, a Flatpak bundle and an
 # AppImage. Each is installed, or for the AppImage started, in a clean system. Then it creates a draft GitHub
 # Release with the tarball, the packages and SHA256SUMS, to be reviewed and
@@ -105,12 +106,19 @@ jobs:
   # The Fedora packages, from the tarball the way COPR builds them: the
   # source RPM first (packaging/rpm/srpm.sh), then the binary RPMs from
   # nothing but that source RPM, with exactly its BuildRequires installed.
+  # One build for each Fedora: a package is tied to its release's FFmpeg
+  # (the library names change between releases) and to its exact Qt.
   rpm:
-    name: RPM packages (Fedora 44)
+    name: RPM packages (Fedora ${{ matrix.fedora }})
     needs: sources
+    strategy:
+      # Each Fedora's result counts on its own.
+      fail-fast: false
+      matrix:
+        fedora: ["44", "45"]
     runs-on: ubuntu-24.04
     container:
-      image: registry.fedoraproject.org/fedora:44
+      image: registry.fedoraproject.org/fedora:${{ matrix.fedora }}
       # The runner's own SDKs, which nothing here uses, so that the first
       # step can delete them. The build tree with its debug information and
       # LTO objects takes about 15 GB, more than a runner has free.
@@ -147,23 +155,27 @@ jobs:
           rpmlint -r src/packaging/rpm/reverblabr.rpmlintrc rpm/reverblabr.spec rpm/*.rpm
       - uses: actions/upload-artifact@v7
         with:
-          name: rpm
+          name: rpm-fedora-${{ matrix.fedora }}
           path: rpm/*.rpm
           if-no-files-found: error
 
   # In a container that has seen no build: what dnf pulls in has to be
   # enough for every program to start.
   rpm-install:
-    name: Install the RPMs (Fedora 44)
+    name: Install the RPMs (Fedora ${{ matrix.fedora }})
     needs: [sources, rpm]
+    strategy:
+      fail-fast: false
+      matrix:
+        fedora: ["44", "45"]
     runs-on: ubuntu-24.04
-    container: registry.fedoraproject.org/fedora:44
+    container: registry.fedoraproject.org/fedora:${{ matrix.fedora }}
     timeout-minutes: 30
     steps:
       - uses: actions/download-artifact@v8
         with: { name: sources, path: dist }
       - uses: actions/download-artifact@v8
-        with: { name: rpm, path: rpm }
+        with: { name: "rpm-fedora-${{ matrix.fedora }}", path: rpm }
       - name: Install, run and remove
         run: |
           dnf -y install xz tar > /tmp/dnf.log 2>&1 || { tail -40 /tmp/dnf.log; exit 1; }
@@ -369,12 +381,16 @@ jobs:
       - uses: actions/download-artifact@v8
         with: { path: artifacts }
       # The packages go beside the tarball, and into the checksums with it.
-      # Not the debug information: that is for COPR's own repository.
+      # Not the debug information: that is for COPR's own repository. One
+      # source RPM, the oldest Fedora's: it rebuilds on any Fedora, and COPR
+      # (copr.yml) is sent exactly one.
       - name: Files and checksums
         run: |
           mkdir dist
           cp -t dist artifacts/sources/reverblabr-*.tar.xz
-          find artifacts/rpm -name '*.rpm' ! -name '*-debuginfo-*' ! -name '*-debugsource-*' -exec cp -t dist {} +
+          find artifacts/rpm-fedora-* -name '*.rpm' ! -name '*.src.rpm' ! -name '*-debuginfo-*' ! -name '*-debugsource-*' -exec cp -t dist {} +
+          srpms=(artifacts/rpm-fedora-*/*.src.rpm)
+          cp -t dist "${srpms[0]}"
           cp -t dist artifacts/deb-*/reverblabr_*.deb artifacts/flatpak/reverblabr-*.flatpak artifacts/appimage/reverblabr-*.AppImage
           # GitHub renames an asset whose name has a character such as the
           # "~" of Ubuntu's version, and SHA256SUMS would then name a file

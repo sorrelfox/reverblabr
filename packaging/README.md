@@ -100,17 +100,19 @@ One package holds everything on this page, the all-users helper and the panel wi
 
 ```sh
 podman run --rm -v ~/rpmbuild/RPMS:/rpms:Z -v "$PWD/packaging/rpm:/check:Z" \
-    registry.fedoraproject.org/fedora:44 /check/install-check.sh /rpms
+    registry.fedoraproject.org/fedora:45 /check/install-check.sh /rpms
 ```
 
-The release workflow does all of this from the release tarball and attaches the package and the source RPM to the draft release; the `-debuginfo` and `-debugsource` packages stay out. The CI's checks fill in the spec from every change and run rpmlint on it.
+The container's Fedora has to be the one the packages were built on: a package is linked against its Fedora's FFmpeg, whose library names change from one release to the next (Fedora 44 has FFmpeg 8, Fedora 45 FFmpeg 9), and requires its exact Qt. So a package built for one Fedora doesn't install or start on another, and each supported Fedora gets a build of its own from the same source RPM.
+
+The release workflow does all of this from the release tarball, once for each supported Fedora (44 and 45), and attaches the packages and one source RPM, Fedora 44's, to the draft release; the `-debuginfo` and `-debugsource` packages stay out. A new Fedora is one more entry in the `rpm` and `rpm-install` jobs' matrix in `.github/workflows/release.yml`, and a chroot on COPR. The CI's checks fill in the spec from every change and run rpmlint on it.
 
 ### COPR
 
 COPR builds the source RPM for each Fedora and publishes the packages. Publishing a release on GitHub sends its source RPM there ([`.github/workflows/copr.yml`](../.github/workflows/copr.yml)), once the repository has the secret it needs. Until then that workflow says the secret is missing and does nothing. To switch it on:
 
 1. Sign in at <https://copr.fedorainfracloud.org> with a Fedora account.
-2. Make a project, `reverblabr`, with the chroots `fedora-44-x86_64` and `fedora-rawhide-x86_64` (and each newer Fedora as it comes out; `aarch64` as well, if wanted). The packages are built from the source RPM, so the project needs no source settings.
+2. Make a project, `reverblabr`, with the chroots `fedora-44-x86_64`, `fedora-45-x86_64` and `fedora-rawhide-x86_64` (and each newer Fedora as it comes out; `aarch64` as well, if wanted). The packages are built from the source RPM, so the project needs no source settings.
 3. Copy the API configuration from <https://copr.fedorainfracloud.org/api/>: the whole file, `[copr-cli]` with `login`, `username`, `token` and `copr_url`. The token expires after 180 days; the same page renews it.
 4. On GitHub, under the repository's Settings, Secrets and variables, Actions: a secret `COPR_CONFIG` with that file as its value. If the project is not the token owner's `reverblabr`, a variable `COPR_PROJECT` with `OWNER/PROJECT` as well.
 
